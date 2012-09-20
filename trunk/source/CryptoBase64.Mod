@@ -1,0 +1,245 @@
+(* ETH Oberon, Copyright 2001 ETH Zuerich Institut fuer Computersysteme, ETH Zentrum, CH-8092 Zuerich.
+Refer to the "General ETH Oberon System Source License" contract available at: http://www.oberon.ethz.ch/ *)
+
+MODULE CryptoBase64;	 (* g.f. *)
+(** Base 64 encoding according to RFC1421 *)
+
+IMPORT Streams;
+
+CONST CR = 0DX;  LF = 0AX;
+
+VAR
+	encTable: ARRAY 64 OF CHAR;
+	decTable: ARRAY 128 OF INTEGER;
+
+
+	PROCEDURE Encode*( CONST image: ARRAY OF CHAR; len: LONGINT;
+						   VAR b64: ARRAY OF CHAR );
+	VAR
+		i, ix, ox: LONGINT;
+		group: LONGINT;
+
+		PROCEDURE EncodeGroup;
+		BEGIN
+			b64[ox + 3] := encTable[group MOD 64];  group := group DIV 64;
+			b64[ox + 2] := encTable[group MOD 64];  group := group DIV 64;
+			b64[ox + 1] := encTable[group MOD 64];  group := group DIV 64;
+			b64[ox] := encTable[group];
+			INC( ox, 4 );  group := 0
+		END EncodeGroup;
+
+		PROCEDURE EncodeRest( rest: LONGINT );
+		VAR i: LONGINT;
+		BEGIN
+			i := rest;
+			WHILE i < 3 DO  group := group*256 + 0; INC( i )  END;
+			b64[ox + 3] := '=';  group := group DIV 64;
+			IF rest = 1 THEN  b64[ox + 2] := '='
+			ELSE  b64[ox + 2] := encTable[group MOD 64];
+			END;
+			group := group DIV 64;
+			b64[ox + 1] := encTable[group MOD 64];  group := group DIV 64;
+			b64[ox] := encTable[group];
+			INC( ox, 4 );  group := 0
+		END EncodeRest;
+
+	BEGIN
+		group := 0;  i := 0; ix := 0;
+		WHILE ix < len DO
+			group := group*256 + ORD( image[ix] );  INC( ix );  INC( i );
+			IF i >= 3 THEN  EncodeGroup();  i := 0 END;
+		END;
+		IF i > 0 THEN EncodeRest( i )  END;
+		b64[ox] := 0X;
+ 	END Encode;
+
+
+	(* returns image length, negative value = error! *)
+	PROCEDURE Decode*( CONST b64: ARRAY OF CHAR;
+						    VAR image: ARRAY OF CHAR ): LONGINT;
+	VAR
+		i, d: INTEGER;
+		ch: CHAR;
+		code, group: LONGINT;
+		ix, len: LONGINT;
+
+		PROCEDURE outgroup;
+		BEGIN
+			image[len + 2] := CHR( group MOD 256 );  group := group DIV 256;
+			image[len + 1] := CHR( group MOD 256 );  group := group DIV 256;
+			image[len] := CHR( group );
+			INC( len, 3 ); group := 0
+		END outgroup;
+
+		PROCEDURE outrest( r: LONGINT );
+		BEGIN
+			group := group DIV 256;
+			IF r = 2 THEN  image[len + 1] := CHR( group MOD 256 )  END;
+			group := group DIV 256;
+			image[len] := CHR( group );
+			INC( len, r ); group := 0
+		END outrest;
+
+		PROCEDURE nextch(): CHAR;
+		VAR c: CHAR;
+		BEGIN
+			REPEAT  c := b64[ix];  INC( ix )  UNTIL (c # CR) & (c # LF );
+			RETURN c
+		END nextch;
+
+	BEGIN
+		len := 0; ix := 0;  group := 0; ch := nextch();
+		REPEAT
+			i := 0;
+			WHILE (ch # '=') & (i < 4) DO
+				code := decTable[ORD( ch )];  ch := nextch();
+				IF code < 0 THEN  RETURN -1 (* error *)  END;
+				group := group*64 + code;  INC( i );
+			END;
+			IF i = 4 THEN  outgroup  END;
+		UNTIL (ch = '=') OR (ch <= ' ');
+		IF ch = '=' THEN  d := 0;
+			WHILE ch = '=' DO
+				group := group*64;  INC( d );  ch := nextch()
+			END;
+			outrest( 3 - d )
+		END;
+		RETURN len
+	END Decode;
+
+
+
+
+ 	PROCEDURE EncodeStream*( CONST image: ARRAY OF CHAR; len: LONGINT;
+						   		  w: Streams.Writer );
+	VAR
+		i, ix, ox: LONGINT;
+		group: LONGINT;
+		buf: ARRAY 80 OF CHAR;
+
+		PROCEDURE EncodeGroup;
+		BEGIN
+			buf[ox + 3] := encTable[group MOD 64];  group := group DIV 64;
+			buf[ox + 2] := encTable[group MOD 64];  group := group DIV 64;
+			buf[ox + 1] := encTable[group MOD 64];  group := group DIV 64;
+			buf[ox] := encTable[group];
+			INC( ox, 4 );
+			IF ox >= 72 THEN  OutLine  END;
+			group := 0
+		END EncodeGroup;
+
+		PROCEDURE EncodeRest( rest: LONGINT );
+		VAR i: LONGINT;
+		BEGIN
+			i := rest;
+			WHILE i < 3 DO  group := group*256 + 0; INC( i )  END;
+			buf[ox + 3] := '=';  group := group DIV 64;
+			IF rest = 1 THEN  buf[ox + 2] := '='
+			ELSE  buf[ox + 2] := encTable[group MOD 64];
+			END;
+			group := group DIV 64;
+			buf[ox + 1] := encTable[group MOD 64];  group := group DIV 64;
+			buf[ox] := encTable[group];
+			INC( ox, 4 );  group := 0
+		END EncodeRest;
+
+		PROCEDURE OutLine;
+		BEGIN
+			w.Bytes( buf, 0, ox );
+			w.Char( CR ); w.Char( LF );
+			ox := 0
+		END OutLine;
+
+	BEGIN
+		group := 0;  i := 0; ix := 0;  ox := 0;
+		WHILE ix < len DO
+			group := group*256 + ORD( image[ix] );  INC( ix );  INC( i );
+			IF i >= 3 THEN  EncodeGroup;  i := 0  END;
+		END;
+		IF i > 0 THEN EncodeRest( i )  END;
+		IF ox > 0 THEN  OutLine  END
+ 	END EncodeStream;
+
+
+	(* returns image length, negative value = error! *)
+	PROCEDURE DecodeStream*( r: Streams.Reader;
+								    VAR image: ARRAY OF CHAR ): LONGINT;
+	VAR
+		i, d: LONGINT;
+		ch: CHAR;
+		code, group: LONGINT;
+		len: LONGINT;
+
+		PROCEDURE outgroup;
+		BEGIN
+			image[len + 2] := CHR( group MOD 256 );  group := group DIV 256;
+			image[len + 1] := CHR( group MOD 256 );  group := group DIV 256;
+			image[len] := CHR( group );
+			INC( len, 3 );  group := 0
+		END outgroup;
+
+		PROCEDURE outrest( r: LONGINT );
+		BEGIN
+			group := group DIV 256;
+			IF r = 2 THEN  image[len + 1] := CHR( group MOD 256 )  END;
+			group := group DIV 256;
+			image[len] := CHR( group );
+			INC( len, r ); group := 0
+		END outrest;
+
+		PROCEDURE nextch(): CHAR;
+		CONST CR = 0DX;  LF = 0AX;
+		VAR c: CHAR;
+		BEGIN
+			REPEAT  r.Char( c )  UNTIL (c # CR) & (c # LF );
+			RETURN c
+		END nextch;
+
+	BEGIN
+		r.SkipSpaces();
+		len := 0; group := 0;  ch := nextch();
+		REPEAT
+			i := 0;
+			WHILE (ch # '=') & (i < 4) DO
+				code := decTable[ORD( ch )];  ch := nextch();
+				IF code < 0 THEN  RETURN -1 (* error *)  END;
+				group := group*64 + code;  INC( i );
+			END;
+			IF i = 4 THEN  outgroup  END
+		UNTIL decTable[ORD( ch )] < 0;
+		IF ch = '=' THEN  d := 0;
+			WHILE ch = '=' DO
+				group := group*64;  INC( d );  ch := nextch()
+			END;
+			outrest( 3 - d )
+		END;
+		RETURN len
+	END DecodeStream;
+
+
+	PROCEDURE InitTables;
+	VAR i, max: INTEGER;
+	BEGIN
+		max := ORD("Z") - ORD("A");
+		FOR i := 0 TO max DO
+			encTable[i] := CHR( i + ORD("A") )
+		END;
+		INC(max);
+		FOR i := max TO max + ORD("z") - ORD("a") DO
+			encTable[i] := CHR( i - max + ORD("a") )
+		END;
+		max := max + ORD("z") - ORD("a") + 1;
+		FOR i := max TO max + ORD("9") - ORD("0") DO
+			encTable[i] := CHR( i - max + ORD("0") )
+		END;
+		encTable[62] := "+";
+		encTable[63] := "/";
+		FOR i := 0 TO 127 DO  decTable[i] := -1  END;
+		FOR i := 0 TO 63 DO
+			decTable[ORD( encTable[i]) ] := i
+		END
+	END InitTables;
+
+BEGIN
+	InitTables();
+END CryptoBase64.

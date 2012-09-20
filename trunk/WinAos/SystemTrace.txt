@@ -1,0 +1,32 @@
+Heaps: Initializing heap...GC mode : heuristic
+... Ok
+Traps: TrapHandler installed
+Display: Initialize message dispatcher...
+Display: Start message dispatching
+Display: Normal mode
+Default font installedOpenType 0.45 BBPort /3.12.2004  eos, pl
+WindowManager: 32-bit color
+WindowManager: Display resolution: 1280x1035x32
+{P cpuid= 0, pid= 66 WindowsClipboard: Registered clipboard at host clipboard interface.}
+Autostart: executing WMTrapWriter.Install
+{P cpuid= 0, pid= 68 Events: System event log started.}
+WMMacros: Macro file Macros.XML loaded.
+Autostart: executing UpTime.Install
+Uptime monitor started.
+Autostart: executing StartMenu.Open
+Autostart: executing SkinEngine.Load traditional.skin
+SkinEngine : Loading traditional.skin...ok
+Autostart: executing WMRestorable.Load Auto.dsk
+{P cpuid= 0, pid= 62 Starting logger}
+WMRestorable: Loading desktop from Auto.dsk...
+WORK: mounted
+SyntaxHighlighter: Auto-loading SyntaxHighlighter.XML ... done.
+	ReleaseTree@0	error: HEADER section expected
+Cleanup
+{P cpuid= 0, pid= 43 Events: System event log shut down.}
+{P cpuid= 0, pid= 43 WindowsClipboard: Unregistered clipboard at host clipboard interface.}
+WindowManager: Window manager closed
+{P cpuid= 0, pid= 43 Files: 24 open files}
+WinFS 25 discarded finalizers, 0 pending finalizers
+Objects 28 discarded finalizers, 0 pending finalizers
+Machine.Shutdown

@@ -1,0 +1,83 @@
+(* ETH Oberon, Copyright 2001 ETH Zuerich Institut fuer Computersysteme, ETH Zentrum, CH-8092 Zuerich.
+Refer to the "General ETH Oberon System Source License" contract available at: http://www.oberon.ethz.ch/ *)
+
+MODULE CryptoDES3;   (*	g.f.	2002.07.20 *)
+
+(* Triple DES Cipher *)
+
+IMPORT Ciphers := CryptoCiphers, U := CryptoUtils, DES := CryptoDES;
+
+TYPE
+	Block = DES.Block;
+
+	Cipher* = OBJECT (Ciphers.Cipher)
+			VAR c1, c2, c3: DES.Cipher;
+				iv: Block;
+
+				PROCEDURE InitKey*( CONST src: ARRAY OF CHAR;  pos: LONGINT;  keybits: LONGINT );
+				BEGIN
+					ASSERT( keybits = 192 );
+					InitKey^( src, pos, 64 );
+					c1.InitKey( src, 0, 64 );  c2.InitKey( src, 8, 64 );  c3.InitKey( src, 16, 64 );
+				END InitKey;
+
+				PROCEDURE SetIV*( CONST src: ARRAY OF CHAR;  p: LONGINT );
+				BEGIN
+					SetIV^( src, p );   (* set mode *)
+					U.CharsToBlockLE( src, p, iv )
+				END SetIV;
+
+				PROCEDURE Encrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
+				VAR i: LONGINT;  b: Block;
+				BEGIN
+					ASSERT( isKeyInitialized );
+					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
+					i := 0;
+					WHILE i < len DO
+						U.CharsToBlockLE( buf, ofs + i, b );
+						IF mode = Ciphers.CBC THEN  U.XORBlock( b, iv )  END;
+						DES.IP( b[0], b[1] );
+						c1.Encrypt0( b );  c2.Decrypt0( b );  c3.Encrypt0( b );
+						DES.FP( b[0], b[1] );
+						IF mode = Ciphers.CBC THEN  iv := b  END;
+						U.BlockToCharsLE( b, buf, ofs + i );
+						INC( i, blockSize )
+					END
+				END Encrypt;
+
+				PROCEDURE Decrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
+				VAR i: LONGINT;  b0, b: Block;
+				BEGIN
+					ASSERT( isKeyInitialized );
+					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
+					i := 0;
+					WHILE i < len DO
+						U.CharsToBlockLE( buf, ofs + i, b );  b0 := b;
+						DES.IP( b[0], b[1] );
+						c3.Decrypt0( b );  c2.Encrypt0( b );  c1.Decrypt0( b );
+						DES.FP( b[0], b[1] );
+						IF mode = Ciphers.CBC THEN  U.XORBlock( b, iv );  iv := b0  END;
+						U.BlockToCharsLE( b, buf, ofs + i );
+						INC( i, blockSize )
+					END
+				END Decrypt;
+
+
+				PROCEDURE & Init*;
+				BEGIN
+					SetNameAndBlocksize( "3des", 8 );
+					NEW( c1 );  NEW( c2 );  NEW( c3 )
+				END Init;
+
+			END Cipher;
+
+
+	PROCEDURE NewCipher*( ): Ciphers.Cipher;
+	VAR cipher: Cipher;
+	BEGIN
+		NEW( cipher );  RETURN cipher
+	END NewCipher;
+
+
+END CryptoDES3.
+
