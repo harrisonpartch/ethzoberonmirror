@@ -1,0 +1,27 @@
+File Trap_20120924__183349.txt
+---------------------------
+
+LinuxAos (rev.4899)
+
+Trap   5.0  (unknown trap, division error?)
+SP = EE63EEE8H, FP = EE63F244H, PC = F206C36BH
+
+TCPTools?.SendFile:387 pc=387 [00000183H] = 0 + 387 crc=5A39E3C0
+  context=F208F3D0H (Commands.Context)
+  hostname="129.132.134.254"...
+  adrStr="129.132.134.254"...
+  ipAdr=Rec@00000004H
+  port=9100 (0000238CH)
+  res=3701 (00000E75H)
+  filename="test.ps"...
+State TCPTools?:
+Commands.Runner.@Body:584 pc=2040 [000007F8H] = 1456 + 584 crc=68BAE6F9
+Objects.Lock:3265 pc=3318 [00000CF6H] = 53 + 3265 crc=6411CA5A
+  obj=00000000H (NIL)
+  exclusive=112
+  hdr=F208F650H (Objects.Process)
+  p=00000000H (NIL)
+
+
+----------------------------------------------------
+
