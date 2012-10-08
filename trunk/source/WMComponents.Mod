@@ -929,6 +929,7 @@ TYPE
 			IF (p # NIL) & (p IS VisualComponent) THEN
 				p(VisualComponent).AlignSubComponents
 			END;
+			Invalidate;
 			Release
 		END AlignmentChanged;
 
@@ -1406,34 +1407,20 @@ TYPE
 		VAR m: Messages.Message; r, b: Rectangles.Rectangle; client: VisualComponent; parent: XML.Element;
 		BEGIN
 			IF ~initialized THEN RETURN END;
-			IF ~IsCallFromSequencer() THEN
-				r := GetClientRect();
-				client := SELF;
-				parent := GetParent();
-				WHILE (parent # NIL) & (parent IS VisualComponent) DO
-					b := client.bounds.Get();
-					Rectangles.MoveRel(r, b.l, b.t);
-					client := parent(VisualComponent);
-					parent := client.GetParent();
-				END;
-				m.msgType := Messages.MsgInvalidate;
-				m.msgSubType := Messages.MsgSubRectangle;
-				m.x := r.l; m.y := r.t; m.dx := r.r; m.dy := r.b;
-				m.sender := client;
-				(*ELSE
-					m.msgType := Messages.MsgInvalidate;
-					m.msgSubType := Messages.MsgSubAll; (* implies client rect *)
-					m.sender := SELF;
-					END;
-				*)
-
-				IF sequencer.Add(m) THEN IF CanYield THEN Objects.Yield END END;
-				(*
-				sequencer.ScheduleEvent(SELF.InvalidateCommand, sender, par); IF CanYield THEN Objects.Yield END;
-				*)
-			ELSIF visible.Get() THEN
-				InvalidateRect(GetClientRect())
-			END
+			r := GetClientRect();
+			client := SELF;
+			parent := GetParent();
+			WHILE (parent # NIL) & (parent IS VisualComponent) DO
+				b := client.bounds.Get();
+				Rectangles.MoveRel(r, b.l, b.t);
+				client := parent(VisualComponent);
+				parent := client.GetParent();
+			END;
+			m.msgType := Messages.MsgInvalidate;
+			m.msgSubType := Messages.MsgSubRectangle;
+			m.x := r.l; m.y := r.t; m.dx := r.r; m.dy := r.b;
+			m.sender := client;
+			IF sequencer.Add(m) THEN IF CanYield THEN Objects.Yield END END;
 		END InvalidateCommand;
 
 		PROCEDURE Invalidate*; (* For convenience in component internal use *)

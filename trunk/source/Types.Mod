@@ -527,7 +527,7 @@ VAR temp : LONGREAL; string : String;
 BEGIN
 	res := Ok;
 	IF (target IS String) THEN
-		TRACE(Strings.Length(value));
+		(*TRACE(Strings.Length(value));*)
 		EnsureStringLength(target(String).value, Strings.Length(value)+1);
 		COPY(value, target(String).value^);
 		(*

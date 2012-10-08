@@ -259,16 +259,25 @@ VAR
 	END Patch;
 
 	PROCEDURE Diagnose (block: Block);
-	VAR msg,num: ARRAY 128 OF CHAR;
+	VAR source, msg,num,name: ARRAY 128 OF CHAR;
 	BEGIN
 		IF block.used THEN
-			IF ObjectFile.IsCode(block.type) THEN msg := " code arranged at "
-			ELSE msg := " data arranged at "
-			END;
 			Strings.IntToHexStr(block.address, 8, num);
-			Strings.Append(msg,"0");
-			Strings.Append(msg, num);
-			Strings.Append(msg,"H");
+			source := "";
+			Strings.Append(source,"0");
+			Strings.Append(source, num);
+			Strings.Append(source,"H");
+
+			msg := "";
+
+			ObjectFile.SegmentedNameToString(block.identifier.name, name);
+
+			IF ObjectFile.IsCode(block.type) THEN msg := " code "
+			ELSE msg := " data "
+			END;
+			
+			Strings.Append(msg, name);
+
 			IF block.bits # NIL THEN
 				Strings.Append(msg, " to ");
 				Strings.IntToHexStr(block.address+block.bits.GetSize() DIV block.unit-1, 8, num);
@@ -279,9 +288,11 @@ VAR
 				Strings.Append(msg,num);
 				*)
 			END;
+			(*
 			Strings.IntToStr(block.address, num);
 			Strings.Append(msg," ("); Strings.Append(msg,num); Strings.Append(msg,")");
-			InformationP (block.identifier.name, msg);
+			*)
+			Information (source, msg);
 		ELSE InformationP (block.identifier.name, "unused"); END;
 	END Diagnose;
 

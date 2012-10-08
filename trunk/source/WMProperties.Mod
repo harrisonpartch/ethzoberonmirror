@@ -50,7 +50,6 @@ TYPE
 			UpdateProperty;
 			inLinkUpdate := FALSE;
 			ReleaseWrite;
-			IF (list # NIL) THEN list.onLinkChanged.CallWithSender(SELF,object) END;
 		END LinkChanged;
 
 		PROCEDURE SetLinkAsString*(CONST string : ARRAY OF CHAR);
@@ -1933,6 +1932,11 @@ TYPE
 			NotDefault;
 			ReleaseWrite;
 		END Set;
+
+		PROCEDURE LinkChanged(sender, object: ANY);
+		BEGIN
+			IF (list # NIL) THEN list.onLinkChanged.CallWithSender(SELF,object) END;
+		END LinkChanged;
 
 		PROCEDURE SetAsString*(CONST string : ARRAY OF CHAR);
 		BEGIN

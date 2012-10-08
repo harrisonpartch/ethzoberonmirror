@@ -256,7 +256,9 @@ TYPE
 
 		PROCEDURE Synchronize(force : BOOLEAN);
 		BEGIN
-			UpdateAdrLabel(property.GetLink())
+			IF property # NIL THEN
+				UpdateAdrLabel(property.GetLink())
+			END;
 		END Synchronize;
 
 		PROCEDURE IsCompatible(property : WMProperties.Property) : BOOLEAN;

@@ -144,7 +144,8 @@ TYPE
 				IF (string.value # NIL) THEN
 					SetGeneric(string, res); (* ignore res *)
 				END;
-			ELSE AddContent^(content);
+			ELSIF (content # NIL) THEN AddContent^(content);
+			ELSE (* empty content, does not have to add content *)
 			END;
 		END AddContent;
 

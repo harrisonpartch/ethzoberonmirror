@@ -3756,8 +3756,9 @@ TYPE
 				END;
 				Commands.Activate(command, context, {}, res, msg);
 				IF res # Commands.Ok THEN
-					KernelLog.String("WMTextView: Command execution error, res: "); KernelLog.Int(res, 0);
-					KernelLog.String(" ("); KernelLog.String(msg); KernelLog.String(")"); KernelLog.Ln;
+					commandWriter.String("WMTextView: Command execution error, res: "); commandWriter.Int(res, 0);
+					commandWriter.String(" ("); commandWriter.String(msg); commandWriter.String(")"); commandWriter.Ln;
+					commandWriter.Update;
 				END;
 			END;
 		END StartCommand;

@@ -64,13 +64,13 @@ TYPE
 			FOR i := 0 TO nofProcesses - 1 DO
 				process := processes[i];
 
-				Objects.GetCpuCycles(process, cycles, TRUE); (* higher granularity counter, but does not detect suspending of thread *)
+				Objects.GetCpuCycles(process, cycles, FALSE); (* higher granularity counter, but does not detect suspending of thread *)
 				 times[i] := cycles[0];
 				(*
 				Kernel32.GetThreadTimes(process.handle, t0,t1,t2,t3);
 				times[i] := HUGEINT(t2.dwLowDateTime+t3.dwLowDateTime) + 10000000H * HUGEINT(t2.dwHighDateTime+t3.dwHighDateTime) ;
 				*)
-				IF (process # me) & RanMeanwhile(process, times[i]) THEN
+				IF (process # me) & (cycles[0] # 0) (*RanMeanwhile(process, times[i]) *) THEN
 					HandleProcess(process);
 				END;
 			END;
@@ -86,7 +86,7 @@ TYPE
 		LOOP
 			WHILE (state = Running) DO
 				Process;
-				Kernel32.Sleep(Intervall);
+				(*Kernel32.Sleep(Intervall);*)
 			END;
 			IF (state = Terminating) THEN EXIT; END;
 		END;

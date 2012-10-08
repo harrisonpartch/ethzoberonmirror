@@ -72,13 +72,13 @@ BEGIN
 		vc.bounds.SetWidth(width);
 	ELSE
 		width := vc.bounds.GetWidth();
-		IF (width <= 0) THEN width := DefaultWidth; END;
+		IF (width <= 0) THEN width := DefaultWidth; vc.bounds.SetWidth(width) END;
 	END;
 	IF height # 0 THEN
 		vc.bounds.SetHeight(height);
 	ELSE
 		height := vc.bounds.GetHeight();
-		IF (height <= 0) THEN height := DefaultHeight; END;
+		IF (height <= 0) THEN height := DefaultHeight; vc.bounds.SetHeight(height) END;
 	END;
 	IF client THEN vc.alignment.Set(WMComponents.AlignClient) END;
 	IF fullscreen THEN

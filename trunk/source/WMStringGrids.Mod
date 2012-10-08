@@ -55,7 +55,7 @@ TYPE
 		BEGIN
 			NEW(onChanged, SELF, WMComponents.NewString("TreeModelChanged"), NIL, NIL);
 			NEW(rows, 4);
-			lockLevel :=0
+			lockLevel :=0;
 		END Init;
 
 		(** acquire a read/write lock on the object *)
@@ -341,6 +341,7 @@ TYPE
 		BEGIN
 			Init^;
 			SetNameAsString(StrStringGrid);
+			SetGenerator("WMStringGrids.GenStringGrid");
 			NEW(clCell, PrototypeTclCell, NIL, NIL); properties.Add(clCell);
 			NEW(clHover, PrototypeTclHover, NIL, NIL); properties.Add(clHover);
 			NEW(clSelected, PrototypeTclSelected, NIL, NIL); properties.Add(clSelected);
@@ -352,7 +353,8 @@ TYPE
 		(*	NEW(fontHeight, PrototypeTfontHeight, NIL, NIL); properties.Add(fontHeight);	*)
 			takesFocus.Set(TRUE);
 			NEW(model);
-			model.onChanged.Add(ModelChanged)
+			model.onChanged.Add(ModelChanged);
+			ModelChanged(NIL,NIL);
 		END Init;
 
 		PROCEDURE ModelChanged(sender, data : ANY);

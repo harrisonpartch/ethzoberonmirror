@@ -1118,6 +1118,32 @@ TYPE
 			END;
 		END Expression;
 
+		(*
+		PROCEDURE ResetUsedTemporaries(previous: VariableUse);
+		VAR current: VariableUse; set: SET; i,j: LONGINT; variable: SyntaxTree.Variable; op: Operand; tmp: IntermediateCode.Operand;
+		BEGIN
+			temporaries.GetUsage(current);
+			FOR i := 0 TO LEN(current)-1 DO
+				set := current[i] - previous[i];
+				IF set # {} THEN
+					FOR j := 0 TO MAX(SET)-1 DO
+						IF j IN set THEN
+							variable := temporaries.GetVariable(i*MAX(SET)+j);
+							IF (variable.type.resolved IS SyntaxTree.MathArrayType) & (variable.type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Tensor) THEN
+								Symbol(variable, op);
+								MakeMemory(tmp,op.op,addressType,0);
+								ReleaseOperand(op);
+								Emit(Mov(position,tmp, nil ) );
+								ReleaseIntermediateOperand(tmp);
+							END;
+						END;
+					END;
+				END;
+			END;
+
+		END ResetUsedTemporaries;
+		*)
+
 		PROCEDURE Statement(x: SyntaxTree.Statement);
 		VAR use: VariableUse;
 		BEGIN
@@ -1131,6 +1157,7 @@ TYPE
 			END;
 			x.Accept(SELF);
 			CheckRegistersFree();
+			(*ResetUsedTemporaries(use);*)
 			temporaries.SetUsage(use);
 		END Statement;
 
@@ -4696,7 +4723,7 @@ TYPE
 		END InitFields;
 
 		PROCEDURE InitVariable(VAR variable: SyntaxTree.Variable);
-		VAR type: SyntaxTree.Type; operand: Operand;
+		VAR type: SyntaxTree.Type; operand: Operand; tmp: IntermediateCode.Operand;
 		BEGIN
 			type := variable.type.resolved;
 			IF (type IS SyntaxTree.MathArrayType) THEN
@@ -4704,6 +4731,12 @@ TYPE
 					IF type.form = SyntaxTree.Open THEN
 						Symbol(variable,operand);
 						InitFields(type, operand.tag,0);
+					ELSIF type.form = SyntaxTree.Tensor THEN
+						Symbol(variable, operand);
+						MakeMemory(tmp,operand.op,addressType,0);
+						ReleaseOperand(operand);
+						Emit(Mov(position,tmp, nil ) );
+						ReleaseIntermediateOperand(tmp);
 					END;
 				END;
 			ELSE
