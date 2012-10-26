@@ -564,7 +564,7 @@ TYPE
 						IF IsRegisterOperand(operands[addressOperand]) THEN
 							IF Trace THEN KernelLog.String(" isRegisterOperand "); END;
 							ModRM (3, regField, InstructionSet.RegisterIndex(operands[addressOperand].register) MOD 8);
-						ELSIF cpuBits = bits16 THEN
+						ELSIF (cpuBits = bits16) & (InstructionSet.RegisterType(operands[addressOperand].register) # reg32) THEN
 							IF Trace THEN KernelLog.String(" cpuBits=16 "); END;
 							IF (operands[addressOperand].scale # 1) OR (operands[addressOperand].symbol.name # "") THEN
 								ErrorSI("invalid effective address (2)", mnem,operands);

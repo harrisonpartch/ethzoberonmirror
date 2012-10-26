@@ -3596,7 +3596,7 @@ TYPE
 					INC(i);
 					IF (i = 22) THEN
 						string[22] := 0X;
-						IF (string = "SystemTools.DoCommands") THEN
+						IF (string = "SystemTools.DoCommands") OR Strings.StartsWith2("PreliminaryCommands",string) THEN
 							sDoCommands := TRUE;
 						END;
 					END;

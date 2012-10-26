@@ -162,7 +162,7 @@ entry1:
 	mov ds, ax	; data segment
 	mov ss, ax	; stack segment
 	mov es, ax	;
-	mov sp, (lsize + tablesize + 1 + 20) * sectsize			; no relocations: use 1 block on top of loader, table and block buffer (for loading) for stack
+	mov sp, (lsize + tablesize + 1 + 40) * sectsize			; no relocations: use 1 block on top of loader, table and block buffer (for loading) for stack
 
 
 	call mark	; 'O' - show progress
@@ -173,10 +173,7 @@ entry1:
 	push word entry2	; in relocated loader at IP= offset entry2
 	retf	; jump to CS:IP
 ; = END ===========
-bufbeg0:	db 0	; buffer overwrites code later
-bufbeg:	db 0	; an area from here to bufend will be used
-		; as buffer for editing the config strings
-; NOTE: keep that area as large as possible !
+
 
 ; set up segment registers & stack
 entry2:
@@ -299,8 +296,6 @@ nolba:	inc dword [sector]	; next sector number
 	in	al, 92h
 	or	al, 2
 	out	92h, al
-
-	xchg bx, bx ; magic debug for bochs
 
 	; enable unreal mode
 	cli
@@ -585,7 +580,10 @@ fk1:	mov al, [si]	; get first type byte
 	jmp fk1	; continue searching for a 07h entry
 
 ; note the kernel entry point for later
-fk2:	mov eax, [si+16]	; get that entry point
+fk2:
+
+	; mov eax, [si+16]	; get that entry point
+	mov eax, 100000h ; entry point hardcoded at 1 MB, no reloc possible or necessary
 	mov [kentry], eax	; save it
 
 ; issue a progress message - the follow-up of "OBER"
@@ -633,22 +631,19 @@ rk5:
 
 	push edx
 
-	xchg bx,bx
-
 	mov	eax, [si]
 	shl eax, 9 ; position * sectorsize
 	add eax, 0100000h - 07C00h;
 
-	xchg bx,bx
-
 copybuffer:
 	mov edx, [es:bx]
-	mov	[ds:eax], edx
+	mov	[eax], edx
 	add	bx, 4
 	add	eax, 4
-	xchg bx, bx
 	cmp	bx, sectsize ; compare against cx * sectsize in general case (when cx # 1)
 	jne	copybuffer
+
+
 
 	pop edx
 
@@ -1460,3 +1455,8 @@ depth:	resw 1	; bits per pixel (video mode)
 opcode:	resw 1	; temporary save area
 InitBin:	resw 1	; video mode value as integer
 		; 0 indicates long assembler code string
+
+bufbeg0:	resb 1	; buffer overwrites code later
+bufbeg:	resb 1	; an area from here to bufend will be used
+		; as buffer for editing the config strings
+; NOTE: keep that area as large as possible !

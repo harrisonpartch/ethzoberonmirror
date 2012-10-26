@@ -1362,9 +1362,15 @@ TYPE
 		PROCEDURE Draw*(canvas : WMGraphics.Canvas);
 		VAR command: Strings.String; event: Event;
 		BEGIN
+			(*
+				can lead to deadlock:
+				we hold the lock "lock"
+				onDraw tries to get the Objects lock, but this may be held by other component (should better not, but did, dead: WMPartitionsComponents.OperationEventHandler
+
+
 			command := GetAttributeValue("onDraw");
 			IF (command # NIL) THEN HandleEvent(event, SELF, command); END;
-
+			*)
 			CheckReadLock;
 			IF ~visible.Get() THEN RETURN END;
 			canvas.SaveState(canvasState);

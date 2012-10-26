@@ -1126,8 +1126,11 @@ TYPE
 		BEGIN {EXCLUSIVE} dead := TRUE; END;
 	END DriverManager;
 
+TYPE
+	Registry= OBJECT(Plugins.Registry) END Registry;
+
 VAR
-	usbDrivers- : Plugins.Registry;	(* Instanciated USB device drivers (linked to a attached USB device) 	*)
+	usbDrivers- : (*Plugins.*)Registry;	(* Instanciated USB device drivers (linked to a attached USB device) 	*)
 	drivers- : DriverManager;   			(* Usb internal registry for installable USB device drivers 			*)
 	rootHubs : RootHubArray;
 	nbrOfTopologyEvents- : LONGINT;	(* Incremented each time a device is connected/disconnected *)

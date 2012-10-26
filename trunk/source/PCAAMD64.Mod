@@ -1653,7 +1653,7 @@ TYPE
 
 					IF operands[addressOperand] IS Reg THEN
 						ModRM (3, regField, operands[addressOperand](Reg).index MOD 8);
-					ELSIF bits = size16 THEN
+					ELSIF (bits = size16) & ((operands[addressOperand](Mem).reg = NIL) OR ~(operands[addressOperand](Mem).reg IS Reg32)) THEN
 						mem := operands[addressOperand](Mem);
 						IF (mem.scale # 1) OR (mem.fixup # NIL) THEN
 							PCM.Error (556, errPos, ""); RETURN FALSE;

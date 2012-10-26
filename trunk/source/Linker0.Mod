@@ -1067,7 +1067,9 @@ VAR i, n: LONGINT; adr: SYSTEM.ADDRESS; m: Module;
 			NewSys(initBlock, 5*n + (5+3));  adr := SYSTEM.VAL(SYSTEM.ADDRESS, initBlock)
 		ELSE
 			INC(n);  InitBody(m.next);
-			Address(SYSTEM.ADR(m.code[0])+diff);  Char("H");  Char(" ");  String(m.name);  Ln;
+			Address(SYSTEM.ADR(m.code[0])+diff);  Char("H");  Char(" ");
+			Address(SYSTEM.ADR(m.data[0])+diff);  Char("H");  Char(" ");
+			String(m.name);  Ln;
 			SYSTEM.PUT(adr, 0E8X);	(* CALL *)
 			SYSTEM.PUT(adr+1, SYSTEM.ADR(m.code[0]) - (adr+5));  (* call address *)
 			INC(adr, 5)

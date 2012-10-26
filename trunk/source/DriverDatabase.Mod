@@ -388,9 +388,10 @@ END LoadDriverDatabase;
 
 (** Exported commands *)
 
-(** Enable driver lookup/installation service *)
+(** Enable driver lookup/installation service. A forced reload can be achieved by executing Disable and Enable. *)
 PROCEDURE Enable*;
 BEGIN {EXCLUSIVE}
+	IF enabled THEN RETURN END;
 	database := LoadDriverDatabase(); (* force reloading *)
 	IF database # NIL THEN
 		NEW(cmdHistory, 10); cmdIndex := 0;
@@ -403,6 +404,7 @@ END Enable;
 (** Disable driver lookup/installation service *)
 PROCEDURE Disable*;
 BEGIN {EXCLUSIVE}
+	IF ~ enabled THEN RETURN END;
 	UsbDriverLoader.SetLoaders(NIL, NIL);
 	enabled := FALSE;
 	IF Verbose THEN KernelLog.String("DriverDatabase: Disabled driver lookup service."); KernelLog.Ln; END;

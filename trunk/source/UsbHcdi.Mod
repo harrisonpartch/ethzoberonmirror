@@ -1239,9 +1239,12 @@ TYPE
 		END Show;
 	END Pipe;
 
+TYPE
+	Registry= OBJECT(Plugins.Registry) END Registry;
+
 VAR
 	controllerCount : LONGINT; (* Only used for name creation - does not necessary reflect the actual HC count *)
-	controllers- : Plugins.Registry;
+	controllers- : (*Plugins.*)Registry;
 
 (** Assign a name to the host controller and add it to the controllers registry *)
 PROCEDURE RegisterHostController*(hcd : Hcd; CONST description : Plugins.Description);

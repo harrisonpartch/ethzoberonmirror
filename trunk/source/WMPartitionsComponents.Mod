@@ -1448,7 +1448,7 @@ TYPE
 		END UpdateGrid;
 
 		PROCEDURE OperationEventHandler(sender, data :  ANY);
-		BEGIN {EXCLUSIVE}
+		BEGIN (*{EXCLUSIVE}*) (* can lead to deadlock: we hold exclusive lock. Other component has lock but needs exclusive lock, cf. WMComponents.VisualComponent.Draw *)
 			operations := PartitionsLib.operations.GetAllInternal();
 			UpdateGrid(TRUE);
 		END OperationEventHandler;
