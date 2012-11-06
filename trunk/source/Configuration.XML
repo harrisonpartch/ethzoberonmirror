@@ -217,160 +217,160 @@ To update: Configuration.Init ~
 	registered. The action "Open" is considered to open the file with an application.
 	Occurences of the string @filename in the attribute value of settings will be replaced by
 	the filename parameter -->
-
-	<Section name="Filehandlers">
-
+		
+		<Section name="Filehandlers">
 		<!-- use lower case for extensions, sort lexographically -->
-
-		<Section name="asm">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="atg">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="avi">
-			<Setting name="Open" value="WMPlayer.Open"/>
-		</Section>
-		<Section name="bak">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="bmp">
-			<Setting name="Open" value="WMPicView.Open"/>
-			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-		</Section>
-		<Section name="bnf">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="dsk">
-			<Setting name="Open" value="PET.Open"/>
-			<Setting name="Load desktop" value="WMDesktops.Load"/>
-		</Section>
-		<Section name="ebnf">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="gif">
-			<Setting name="Open" value="WMPicView.Open"/>
-			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-		</Section>
-		<Section name="htm">
-			<Setting name="Open" value="WebBrowser.Open"/>
-		</Section>
-		<Section name="html">
-			<Setting name="Open" value="WebBrowser.Open"/>
-		</Section>
-		<Section name="ini">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="jp2">
-			<Setting name="Open" value="WMPicView.Open"/>
-			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-		</Section>
-		<Section name="jpeg">
-			<Setting name="Open" value="WMPicView.Open"/>
-			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-		</Section>
-		<Section name="jpg">
-			<Setting name="Open" value="WMPicView.Open"/>
-			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-		</Section>
-		<Section name="kul">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="log">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="mod">
-			<Setting name="Open" value="PET.Open"/>
-			<Setting name="Compile" value="Compiler.Compile @filename"/>
-		</Section>
+			
+			<Section name="asm">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="atg">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="avi">
+				<Setting name="Open" value="WMPlayer.Open"/>
+			</Section>
+			<Section name="bak">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="bmp">
+				<Setting name="Open" value="WMPicView.Open"/>
+				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+			</Section>
+			<Section name="bnf">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="dsk">
+				<Setting name="Open" value="PET.Open"/>
+				<Setting name="Load desktop" value="WMDesktops.Load"/>
+			</Section>
+			<Section name="ebnf">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="gif">
+				<Setting name="Open" value="WMPicView.Open"/>
+				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+			</Section>
+			<Section name="htm">
+				<Setting name="Open" value="WebBrowser.Open"/>
+			</Section>
+			<Section name="html">
+				<Setting name="Open" value="WebBrowser.Open"/>
+			</Section>
+			<Section name="ini">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="jp2">
+				<Setting name="Open" value="WMPicView.Open"/>
+				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+			</Section>
+			<Section name="jpeg">
+				<Setting name="Open" value="WMPicView.Open"/>
+				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+			</Section>
+			<Section name="jpg">
+				<Setting name="Open" value="WMPicView.Open"/>
+				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+			</Section>
+			<Section name="kul">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="log">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="mod">
+				<Setting name="Open" value="PET.Open"/>
+				<Setting name="Compile" value="Compiler.Compile @filename"/>
+			</Section>
 			<Section name="sym">
 				<Setting name="Open" value="PET.Open"/>
-			</Section>	
+			</Section>
 			<Section name="gof">
 				<Setting name="Open" value="FoxGenericObjectFile.Show"/>
 			</Section>
-		<Section name="mdf">
-			<Setting name="Open" value="PET.Open"/>
+			<Section name="mdf">
+				<Setting name="Open" value="PET.Open"/>
 				<Setting name="Compile" value="Compiler.Compile --activeCells -b=TRM @filename"/>
+			</Section>
+			<Section name="mos">
+				<Setting name="Open" value="PET.Open"/>
+				<Setting name="Compile" value="OSACompiler0.Compile \s @filename"/>
+			</Section>
+			<Section name="mpeg">
+				<Setting name="Open" value="WMPlayer.Open"/>
+			</Section>
+			<Section name="mpg">
+				<Setting name="Open" value="WMPlayer.Open"/>
+			</Section>
+			<Section name="abx">
+				<Setting name="Open" value="Decoder.Open"/>
+			</Section>
+			<Section name="oba">
+				<Setting name="Open" value="Decoder.Open"/>
+			</Section>
+			<Section name="obw">
+				<Setting name="Open" value="Decoder.Open"/>
+			</Section>
+			<Section name="obx">
+				<Setting name="Open" value="Decoder.Open"/>
+			</Section>
+			<Section name="obj">
+				<Setting name="Open" value="Decoder.Open"/>
+			</Section>
+			<Section name="ogg">
+				<Setting name="Open" value="OGGVorbisPlayer.Play"/>
+			</Section>
+			<Section name="pet">
+				<Setting name="Open" value="PET.OpenState"/>
+			</Section>
+			<Section name="pict">
+				<Setting name="Open" value="WMPicView.Open"/>
+			</Section>
+			<Section name="png">
+				<Setting name="Open" value="WMPicView.Open"/>
+				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+			</Section>
+			<Section name="rep">
+				<Setting name="Open" value="WMArchives.Open"/>
+			</Section>
+			<Section name="skin">
+				<Setting name="Open" value="SkinEditor.Open"/>
+				<Setting name="Set as skin" value="SkinEngine.Load"/>
+				<Setting name="Open archive" value="WMArchives.Open"/>
+			</Section>
+			<Section name="svg">
+				<Setting name="Open" value="WebBrowser.Open"/>
+			</Section>
+			<Section name="tar">
+				<Setting name="Open" value="WMArchives.Open"/>
+				<Setting name="Untar" value="Tar.Extract"/>
+			</Section>
+			<Section name="test">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="text">
+				<Setting name="Open" value="Notepad.Open"/>
+			</Section>
+			<Section name="txt">
+				<Setting name="Open" value="Notepad.Open"/>
+			</Section>
+			<Section name="tool">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="wav">
+				<Setting name="Open" value="WMPlayer.Open"/>
+			</Section>
+			<Section name="xml">
+				<Setting name="Open" value="PET.Open"/>
+			</Section>
+			<Section name="zip">
+				<Setting name="Extract" value="ZipTool.ExtractAll"/>
+			</Section>
 		</Section>
-		<Section name="mos">
-			<Setting name="Open" value="PET.Open"/>
-			<Setting name="Compile" value="OSACompiler0.Compile \s @filename"/>
-		</Section>
-		<Section name="mpeg">
-			<Setting name="Open" value="WMPlayer.Open"/>
-		</Section>
-		<Section name="mpg">
-			<Setting name="Open" value="WMPlayer.Open"/>
-		</Section>
-		<Section name="abx">
-			<Setting name="Open" value="Decoder.Open"/>
-		</Section>
-		<Section name="oba">
-			<Setting name="Open" value="Decoder.Open"/>
-		</Section>
-		<Section name="obw">
-			<Setting name="Open" value="Decoder.Open"/>
-		</Section>
-		<Section name="obx">
-			<Setting name="Open" value="Decoder.Open"/>
-		</Section>
-		<Section name="obj">
-			<Setting name="Open" value="Decoder.Open"/>
-		</Section>
-		<Section name="ogg">
-			<Setting name="Open" value="OGGVorbisPlayer.Play"/>
-		</Section>
-		<Section name="pet">
-			<Setting name="Open" value="PET.OpenState"/>
-		</Section>
-		<Section name="pict">
-			<Setting name="Open" value="WMPicView.Open"/>
-		</Section>
-		<Section name="png">
-			<Setting name="Open" value="WMPicView.Open"/>
-			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-		</Section>
-		<Section name="rep">
-			<Setting name="Open" value="WMArchives.Open"/>
-		</Section>
-		<Section name="skin">
-			<Setting name="Open" value="SkinEditor.Open"/>
-			<Setting name="Set as skin" value="SkinEngine.Load"/>
-			<Setting name="Open archive" value="WMArchives.Open"/>
-		</Section>
-		<Section name="svg">
-			<Setting name="Open" value="WebBrowser.Open"/>
-		</Section>
-		<Section name="tar">
-			<Setting name="Open" value="WMArchives.Open"/>
-			<Setting name="Untar" value="Tar.Extract"/>
-		</Section>
-		<Section name="test">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="text">
-			<Setting name="Open" value="Notepad.Open"/>
-		</Section>
-		<Section name="txt">
-			<Setting name="Open" value="Notepad.Open"/>
-		</Section>
-		<Section name="tool">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="wav">
-			<Setting name="Open" value="WMPlayer.Open"/>
-		</Section>
-		<Section name="xml">
-			<Setting name="Open" value="PET.Open"/>
-		</Section>
-		<Section name="zip">
-			<Setting name="Extract" value="ZipTool.ExtractAll"/>
-		</Section>
-	</Section>
-
-<!-- Net Configuration Example -->
-
+		
+	<!-- Net Configuration Example -->
+		
+		
 	<!--Section name="NetConfig">
 		<Setting name="IPForwarding" value="FALSE" />
 		<Setting name="EchoReply" value="TRUE" />
@@ -416,187 +416,196 @@ To update: Configuration.Init ~
 			</Section>
 		</Section>
 	</Section -->
-
-<!-- Applications -->
-
-	<Section name="Applications">
-
-		<Section name="PET">
-			<Section name="General">
-				<Setting name="BackupOnStore" value="Yes"/> <!-- No | Yes | Paranoid -->
-				<Setting name="BackupOnCompile" value="FALSE"/>
-				<Setting name="ShowPathInTabs" value="FALSE"/>
-				<Setting name="ScratchPanelHeight" value="5"/>
-				<Setting name="EnableWhitespaceWarnings" value="FALSE"/>
-				<Setting name="ShowLineNumbers" value="FALSE"/>
-				<Setting name="IndicateTabs" value="FALSE"/>
-				<Setting name="CurrentLineColor" value="0"/>
-			</Section>
-			<Section name="Compilers">
-				<Section name="PACO">
-					<Setting name="caption" value="Compile"/>
-					<Setting name="options" value="\Ws"/>
-					<Setting name="fileExtension" value="MOLD"/>
-					<Setting name="loadmodule" value="PC"/>
-					<Setting name="genTree" value="PETModuleTree.GenModuleTree"/>
-					<Setting name="findPC" value="TRUE"/>
+		
+		
+	<!-- Applications -->
+		
+		<Section name="Applications">
+			<Section name="PET">
+				<Section name="General">
+					<Setting name="BackupOnStore" value="Yes"/>
+					
+				<!-- No | Yes | Paranoid -->
+					
+					<Setting name="BackupOnCompile" value="FALSE"/>
+					<Setting name="ShowPathInTabs" value="FALSE"/>
+					<Setting name="ScratchPanelHeight" value="5"/>
+					<Setting name="EnableWhitespaceWarnings" value="FALSE"/>
+					<Setting name="ShowLineNumbers" value="FALSE"/>
+					<Setting name="IndicateTabs" value="FALSE"/>
+					<Setting name="CurrentLineColor" value="0"/>
 				</Section>
-				<Section name="Fox">
-					<Setting name="caption" value="Compile"/>
-					<Setting name="options" value="-b=AMD --warnings"/>
-					<Setting name="fileExtension" value="MOD"/>
-					<Setting name="loadmodule" value="TextCompiler"/>
-					<Setting name="genTree" value="PETModuleTree.GenModuleTree"/>
-					<Setting name="findPC" value="TRUE"/>
-				</Section>
-				<Section name="Fox">
-					<Setting name="caption" value="Compile"/>
+				<Section name="Compilers">
+					<Section name="PACO">
+						<Setting name="caption" value="Compile"/>
+						<Setting name="options" value="\Ws"/>
+						<Setting name="fileExtension" value="MOLD"/>
+						<Setting name="loadmodule" value="PC"/>
+						<Setting name="genTree" value="PETModuleTree.GenModuleTree"/>
+						<Setting name="findPC" value="TRUE"/>
+					</Section>
+					<Section name="Fox">
+						<Setting name="caption" value="Compile"/>
+						<Setting name="options" value="-b=AMD --warnings"/>
+						<Setting name="fileExtension" value="MOD"/>
+						<Setting name="loadmodule" value="TextCompiler"/>
+						<Setting name="genTree" value="PETModuleTree.GenModuleTree"/>
+						<Setting name="findPC" value="TRUE"/>
+					</Section>
+					<Section name="Fox">
+						<Setting name="caption" value="Compile"/>
 						<Setting name="options" value="--activeCells -b=TRM"/>
-					<Setting name="fileExtension" value="MDF"/>
-					<Setting name="loadmodule" value="TextCompiler"/>
-					<Setting name="genTree" value="PETModuleTree.GenModuleTree"/>
-					<Setting name="findPC" value="TRUE"/>
-				</Section>
-				<Section name="ReleaseTool">
-					<Setting name="caption" value="Parse"/>
-					<Setting name="options" value="\check"/>
-					<Setting name="fileExtension" value="TOOL"/>
-					<Setting name="loadmodule" value="Release"/>
-					<Setting name="genTree" value="PETReleaseTree.GenBuildTree"/>
-					<Setting name="findPC" value="FALSE"/>
-				</Section>
-				<Section name="AAMD64">
-					<Setting name="caption" value="Assemble"/>
-					<Setting name="options" value=""/>
-					<Setting name="fileExtension" value="ASM"/>
-					<Setting name="loadmodule" value="PCAAMD64"/>
-					<Setting name="genTree" value=""/>
-					<Setting name="findPC" value="FALSE"/>
-				</Section>
-				<Section name="XML">
-					<Setting name="caption" value="Parse"/>
-					<Setting name="options" value=""/>
-					<Setting name="fileExtension" value="XML"/>
-					<Setting name="loadmodule" value="PETXMLTree"/>
-					<Setting name="genTree" value="PETXMLTree.GenXMLTree"/>
-					<Setting name="findPC" value="FALSE"/>
-				</Section>
+						<Setting name="fileExtension" value="MDF"/>
+						<Setting name="loadmodule" value="TextCompiler"/>
+						<Setting name="genTree" value="PETModuleTree.GenModuleTree"/>
+						<Setting name="findPC" value="TRUE"/>
+					</Section>
+					<Section name="ReleaseTool">
+						<Setting name="caption" value="Parse"/>
+						<Setting name="options" value="\check"/>
+						<Setting name="fileExtension" value="TOOL"/>
+						<Setting name="loadmodule" value="Release"/>
+						<Setting name="genTree" value="PETReleaseTree.GenBuildTree"/>
+						<Setting name="findPC" value="FALSE"/>
+					</Section>
+					<Section name="AAMD64">
+						<Setting name="caption" value="Assemble"/>
+						<Setting name="options" value=""/>
+						<Setting name="fileExtension" value="ASM"/>
+						<Setting name="loadmodule" value="PCAAMD64"/>
+						<Setting name="genTree" value=""/>
+						<Setting name="findPC" value="FALSE"/>
+					</Section>
+					<Section name="XML">
+						<Setting name="caption" value="Parse"/>
+						<Setting name="options" value=""/>
+						<Setting name="fileExtension" value="XML"/>
+						<Setting name="loadmodule" value="PETXMLTree"/>
+						<Setting name="genTree" value="PETXMLTree.GenXMLTree"/>
+						<Setting name="findPC" value="FALSE"/>
+					</Section>
 					<Section name="OSACompiler0">
-					<Setting name="caption" value="Compile"/>
-					<Setting name="options" value="\s"/>
-					<Setting name="fileExtension" value="MOS"/>
-					<Setting name="loadmodule" value="OSACompiler0"/>
-					<Setting name="genTree" value="PETModuleTree.GenModuleTree"/>
-					<Setting name="findPC" value="TRUE"/>
+						<Setting name="caption" value="Compile"/>
+						<Setting name="options" value="\s"/>
+						<Setting name="fileExtension" value="MOS"/>
+						<Setting name="loadmodule" value="OSACompiler0"/>
+						<Setting name="genTree" value="PETModuleTree.GenModuleTree"/>
+						<Setting name="findPC" value="TRUE"/>
+					</Section>
+					<Section name="TestTool">
+						<Setting name="caption" value="Test"/>
+						<Setting name="options" value="\e \r"/>
+						<Setting name="fileExtension" value="TEST"/>
+						<Setting name="loadmodule" value="PCTest"/>
+						<Setting name="genTree" value=""/>
+						<Setting name="findPC" value="FALSE"/>
+					</Section>
 				</Section>
-				<Section name="TestTool">
-					<Setting name="caption" value="Test"/>
-					<Setting name="options" value="\e \r"/>
-					<Setting name="fileExtension" value="TEST"/>
-					<Setting name="loadmodule" value="PCTest"/>
-					<Setting name="genTree" value=""/>
-					<Setting name="findPC" value="FALSE"/>
-				</Section>
-			</Section>
-			<Section name="SyntaxHighlighter">
+				<Section name="SyntaxHighlighter">
 				<!-- Map file extension to SyntaxHighlighter name -->
-				<Setting name="MOD" value="Oberon"/>
-				<Setting name ="MDF" value="DataflowOberon"/>
+					
+					<Setting name="MOD" value="Oberon"/>
+					<Setting name="MDF" value="DataflowOberon"/>
 					<Setting name="MOS" value="Oberon"/>
-				<Setting name="XML" value="XML"/>
+					<Setting name="XML" value="XML"/>
 					<Setting name="ASM" value="Assembler"/>
-				<Setting name="TOOL" value="ReleaseTool"/>
-				<Setting name="C" value="C"/>
+					<Setting name="TOOL" value="ReleaseTool"/>
+					<Setting name="C" value="C"/>
+				</Section>
+				<Section name="Diff">
+					<Setting name="Command" value="WMDiff.Open"/>
+					<Setting name="Prefix" value=""/>
+					<Setting name="Suffix" value=".Bak"/>
+				</Section>
+				<Section name="Search">
+					<Setting name="Wrap" value="FALSE"/>
+					<Setting name="HighlightAll" value="FALSE"/>
+					<Setting name="CaseSensitive" value="TRUE"/>
+				</Section>
 			</Section>
-			<Section name="Diff">
-				<Setting name="Command" value="WMDiff.Open"/>
-				<Setting name="Prefix" value=""/>
-				<Setting name="Suffix" value=".Bak"/>
-			</Section>
-			<Section name="Search">
-				<Setting name="Wrap" value="FALSE"/>
-				<Setting name="HighlightAll" value="FALSE"/>
-				<Setting name="CaseSensitive" value="TRUE"/>
-			</Section>
-		</Section>
-
-		<Section name="WMV24Component">
-			<Setting name="WindowStartupSize" value="800x400"/>
-			<Setting name="IndicateKeyboardFocus" value="TRUE"/>
-			<Setting name="LineFeed" value="FALSE"/>
-			<Setting name="UseBackspace" value="TRUE"/>
-			<Setting name="ShowStatusBar" value="TRUE"/>
-			<Setting name="Echo" value="FALSE"/>
-
+			<Section name="WMV24Component">
+				<Setting name="WindowStartupSize" value="800x400"/>
+				<Setting name="IndicateKeyboardFocus" value="TRUE"/>
+				<Setting name="LineFeed" value="FALSE"/>
+				<Setting name="UseBackspace" value="TRUE"/>
+				<Setting name="ShowStatusBar" value="TRUE"/>
+				<Setting name="Echo" value="FALSE"/>
+				
 			<!-- PortNumber Bps Databits Stopbits Parity -->
-			<Setting name="PortSettings" value="1 115200 8 1 none"/>
-
+				
+				<Setting name="PortSettings" value="1 115200 8 1 none"/>
+				
 			<!-- When pressing X/Y-Send buttons, the optional command string is sent to the target device (incl. CR) before sending -->
-			<Setting name="XReceiveCommand" value=""/>
-			<Setting name="YReceiveCommand" value=""/>
-
+				
+				<Setting name="XReceiveCommand" value=""/>
+				<Setting name="YReceiveCommand" value=""/>
+				
 			<!-- When pressing X/Y-Receive buttons, the optional command string and the filename is sent to the target device -->
-			<Setting name="XSendCommand" value=""/>
-			<Setting name="YSendCommand" value=""/>
-
+				
+				<Setting name="XSendCommand" value=""/>
+				<Setting name="YSendCommand" value=""/>
+				
 			<!-- User-defined commands for the command menu -->
-			<Section name="CommandMenu">
-				<Setting name="Command1" value=""/>
-				<Setting name="Command2" value=""/>
+				
+				<Section name="CommandMenu">
+					<Setting name="Command1" value=""/>
+					<Setting name="Command2" value=""/>
+				</Section>
 			</Section>
-		</Section>
-
-		<Section name="MailClient">
-			<Setting name="IMAPServer" value=""/>
-			<Setting name="UserName" value=""/>
-			<Setting name="SMTPServer" value=""/>
-			<Setting name="SMTPThisHost" value=""/>
-			<Setting name="ExpungeOnFolderChange" value="TRUE"/>
-			<Setting name="ExpungeOnDelete" value="FALSE"/>
-			<Setting name="UseDragNDropAsMove" value="TRUE"/>
-			<Setting name="ExpungeOnMove" value="TRUE"/>
-			<Setting name="UseATrashBin" value="FALSE"/>
-			<Setting name="SentFolder" value=""/>
-			<Setting name="DraftFolder" value=""/>
-			<Setting name="TrashBin" value=""/>
-			<Setting name="From" value=""/>
-		</Section>
-
-		<Section name="Performance Monitor">
-			<Section name="Plugins">
+			<Section name="MailClient">
+				<Setting name="IMAPServer" value=""/>
+				<Setting name="UserName" value=""/>
+				<Setting name="SMTPServer" value=""/>
+				<Setting name="SMTPThisHost" value=""/>
+				<Setting name="ExpungeOnFolderChange" value="TRUE"/>
+				<Setting name="ExpungeOnDelete" value="FALSE"/>
+				<Setting name="UseDragNDropAsMove" value="TRUE"/>
+				<Setting name="ExpungeOnMove" value="TRUE"/>
+				<Setting name="UseATrashBin" value="FALSE"/>
+				<Setting name="SentFolder" value=""/>
+				<Setting name="DraftFolder" value=""/>
+				<Setting name="TrashBin" value=""/>
+				<Setting name="From" value=""/>
+			</Section>
+			<Section name="Performance Monitor">
+				<Section name="Plugins">
 				<!-- Specify which plugins should be loaded at startup -->
-				<Setting name="WMPerfMonPluginCpu" value="TRUE"/>
-				<Setting name="WMPerfMonPluginMemory" value="TRUE"/>
-				<Setting name="WMPerfMonPluginPerfMon" value="TRUE"/>
-				<Setting name="WMPerfMonPluginMessages" value="TRUE"/>
-				<Setting name="WMPerfMonPluginNetStats" value="FALSE"/>
-				<Setting name="WMPerfMonPluginEvents" value="TRUE"/>
-
+					
+					<Setting name="WMPerfMonPluginCpu" value="TRUE"/>
+					<Setting name="WMPerfMonPluginMemory" value="TRUE"/>
+					<Setting name="WMPerfMonPluginPerfMon" value="TRUE"/>
+					<Setting name="WMPerfMonPluginMessages" value="TRUE"/>
+					<Setting name="WMPerfMonPluginNetStats" value="FALSE"/>
+					<Setting name="WMPerfMonPluginEvents" value="TRUE"/>
+					
 				<!-- kernel statistics plugins -->
-				<Setting name="WMPerfMonPluginHeap" value="FALSE"/>
-
+					
+					<Setting name="WMPerfMonPluginHeap" value="FALSE"/>
+					
 				<!-- device performance plugins -->
-				<Setting name="WMPerfMonPluginNetwork" value="TRUE"/>
-				<Setting name="WMPerfMonPluginSerials" value="FALSE"/>
-				<Setting name="WMPerfMonPluginDisks" value="TRUE"/>
-				<Setting name="WMPerfMonPluginUsb" value="TRUE"/>
-
+					
+					<Setting name="WMPerfMonPluginNetwork" value="TRUE"/>
+					<Setting name="WMPerfMonPluginSerials" value="FALSE"/>
+					<Setting name="WMPerfMonPluginDisks" value="TRUE"/>
+					<Setting name="WMPerfMonPluginUsb" value="TRUE"/>
+					
 				<!-- server statistics plugins -->
-				<Setting name="WMPerfMonPluginHTTPServer" value="FALSE"/>
-				<Setting name="WMPerfMonPluginFTPServer" value="FALSE"/>
-				<Setting name="WMPerfMonPluginVNCServer" value="FALSE"/>
-				<Setting name="WMPerfMonPluginQuoteServer" value="FALSE"/>
-
+					
+					<Setting name="WMPerfMonPluginHTTPServer" value="FALSE"/>
+					<Setting name="WMPerfMonPluginFTPServer" value="FALSE"/>
+					<Setting name="WMPerfMonPluginVNCServer" value="FALSE"/>
+					<Setting name="WMPerfMonPluginQuoteServer" value="FALSE"/>
+					
 				<!-- other plugins -->
-				<Setting name="WMPerfMonPluginExample" value="FALSE"/>
+					
+					<Setting name="WMPerfMonPluginExample" value="FALSE"/>
+				</Section>
 			</Section>
 		</Section>
-	</Section>
-
-<!-- Paco Compiler -->
-
-	<Section name="Paco">
-		<Setting name="ErrorMessages" value="Errors.XML"/>
-	</Section>
-
-</Config>
+		
+	<!-- Paco Compiler -->
+		
+		<Section name="Paco">
+			<Setting name="ErrorMessages" value="Errors.XML"/>
+		</Section>
+	</Config>

@@ -5,8 +5,8 @@ IMPORT
 	WM := WMWindowManager, WMMessages;
 
 CONST
-	m = 50;
-	size = 4;
+	m = 300;
+	size = 2;
 
 	WindowWidth = m * size; WindowHeight = m * size;
 

@@ -1,23 +1,11 @@
 <Desktop>
-	<Window name="WMKernelLog" loader="WMKernelLog.Restore" l="62" t="65" r="702" b="485" flags="{0..2}"/>
 	<Window name="FileManager" loader="WMFileManager.Restore" l="770" t="84" r="1270" b="484" flags="{0..2}"/>
-	<Window name="PET" loader="PET.Restore" l="313" t="64" r="1117" b="901" flags="{0..2}">
+	<Window name="WMKernelLog" loader="WMKernelLog.Restore" l="62" t="65" r="702" b="485" flags="{0..2}"/>
+	<Window name="PET" loader="PET.Restore" l="33" t="100" r="833" b="700" flags="{0..2}">
 		<PETData>
 			<General SelectedPageNr="0" ProjectTextFile=""/>
-			<Tab file="/home/sr/dev/ethz-oberon-repository-mirror/trunk/source/WebFTPServer.Mod" codecFormat="AUTO" compilerOptions="-b=AMD --warnings" showLabels="false" wordWrap="false">
-				<Editor firstLine="1233" cursorPos="39272"/>
-				<SplitEditor visible="false" firstLine="0" cursorPos="0" height="400"/>
-				<SearchPanel visible="true" wrap="true" casesensitive="true" backwards="false" highlight="false" searchString="client" replaceString=""/>
-				<LogPanel height="130"/>
-				<SidePanel visible="true" width="250" scratchHeight="5"/>
-			</Tab>
-		</PETData>
-	</Window>
-	<Window name="PET" loader="PET.Restore" l="375" t="365" r="1175" b="965" flags="{0..2}">
-		<PETData>
-			<General SelectedPageNr="0" ProjectTextFile=""/>
-			<Tab file="SynergyClient.Mod" codecFormat="AUTO" compilerOptions="-b=AMD --warnings" showLabels="false" wordWrap="false">
-				<Editor firstLine="294" cursorPos="0"/>
+			<Tab file="AMD64.Raster.Mod" codecFormat="AUTO" compilerOptions="-b=AMD --warnings" showLabels="false" wordWrap="false">
+				<Editor firstLine="79" cursorPos="4844"/>
 				<SplitEditor visible="false" firstLine="0" cursorPos="0" height="400"/>
 				<SearchPanel visible="false" wrap="false" casesensitive="true" backwards="false" highlight="false" searchString="" replaceString=""/>
 				<LogPanel height="130"/>
