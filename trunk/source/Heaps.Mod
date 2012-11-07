@@ -190,7 +190,7 @@ VAR
 
 	GCType*: LONGINT;
 	freeBlockFound-, freeBlockNotFound-: LONGINT;
-	EnableFreeLists, EnableReturnBlocks: BOOLEAN;
+	EnableFreeLists, EnableReturnBlocks, trace-: BOOLEAN;
 
 (* check validity of p *)
 PROCEDURE CheckPointer(p: SYSTEM.ADDRESS): BOOLEAN;
@@ -921,7 +921,6 @@ BEGIN
 		INC(currentMarkValue);
 		AddRootObject(root);
 
-
 		IF GCType = HeuristicStackInspectionGC THEN
 
 			REPEAT
@@ -1355,6 +1354,8 @@ BEGIN
 	Machine.GetConfig("EnableReturnBlocks", s);
 	EnableReturnBlocks := (s[0] = "1");
 	IF EnableReturnBlocks THEN Trace.String("Heaps:ReturnBlocks enabled"); Trace.Ln END;
+	Machine.GetConfig("TraceHeaps",s);
+	trace := (s[0] = "1");
 
 	minSize := 32;
 	FOR i := 0 TO MaxFreeLists DO

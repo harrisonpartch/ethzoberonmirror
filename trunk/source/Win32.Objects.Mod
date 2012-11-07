@@ -327,10 +327,11 @@ TYPE
 		    the set of variables here must not be interrupted, i.e. atomic writing of the set of variables is absolutely necessary.  They system may hang
 		    if the lock is not taken. *)
 		PROCEDURE SetgcOngoing(value: BOOLEAN);
-		VAR p: Heaps.ProcessLink; cur, r: Process; res: Kernel32.BOOL; num: LONGINT;
+		VAR p: Heaps.ProcessLink; cur, r: Process; res: Kernel32.BOOL; num: LONGINT; time: LONGINT;
 		BEGIN (* serialize writers *)
 			IF value THEN
 				(* Low, Medium or High priority process calls this *)
+				time := Kernel32.GetTickCount();
 				Machine.Acquire(Machine.Objects);
 				Machine.Acquire(Machine.Heaps); (* to protect agains concurrent LazySweep *)
 				r := CurrentProcess();
@@ -361,6 +362,8 @@ TYPE
 
 				Machine.Release(Machine.Heaps);
 				Machine.Release(Machine.Objects);
+				time := Kernel32.GetTickCount()-time;
+				IF Heaps.trace THEN Trace.String("GC Called -- duration "); Trace.Int(time,0); Trace.String(" ms."); Trace.Ln END;
 				IF finalizerCaller # NIL THEN finalizerCaller.Activate() END;
 			END;
 		END SetgcOngoing;

@@ -989,11 +989,11 @@ TYPE
 			lock.AcquireWrite;
 			ASSERT(top # NIL);
 
-			IF pointerOwner # NIL THEN pi := pointerOwner.pointerInfo
+			IF pointerOwner # NIL THEN
+				IF WM.FlagNoPointer IN pointerOwner.flags THEN pi := pointerNull ELSE pi := pointerOwner.pointerInfo END;
+			(*ELSIF WM.FlagNoPointer IN top.flags THEN pi := pointerNull; pointerInfo := pi; *)
 			ELSE pi := NIL
 			END;
-
-			IF WM.FlagNoPointer IN top.flags THEN pi := pointerNull; pointerInfo := pi END;
 
 			IF pi = NIL THEN pi := pointerStandard END; IF pointerInfo = NIL THEN pointerInfo := pointerStandard END;
 
@@ -1546,18 +1546,21 @@ BEGIN
 	Bound(x.t, 0, img.height); Bound(x.b, 0, img.height)
 END ClipAtImage;
 
-PROCEDURE FillSession(wm : WindowManager; bgColor: LONGINT);
+PROCEDURE FillSession(wm : WindowManager; bgColor: LONGINT; noPointer: BOOLEAN);
 VAR bg : DW.BackWindow; t : Window;
 BEGIN
 	NEW(bg, bgColor);
 	bg.flags := {WM.FlagHidden};
+	IF noPointer THEN
+		INCL(bg.flags, WM.FlagNoPointer);
+	END;
 	wm.SetWindowTitle(bg, WM.NewString("New background"));
 	Rect.SetRect(bg.bounds, MIN(LONGINT), MIN(LONGINT), MAX(LONGINT), MAX(LONGINT));
 	wm.lock.AcquireWrite; t := wm.ReplaceBackground(bg); wm.lock.ReleaseWrite;
 END FillSession;
 
 PROCEDURE Replace*(color: LONGINT; noPointer: BOOLEAN);
-VAR disp : Plugins.Plugin; view : ViewPort; r : Rectangle; res : LONGINT;
+VAR disp : Plugins.Plugin; view : ViewPort; r : Rectangle; res : LONGINT; w: WM.Window;
 BEGIN
 	disp := Displays.registry.Await("");
 	IF (disp(Displays.Display).format = Displays.color8888) THEN
@@ -1571,12 +1574,11 @@ BEGIN
 		KernelLog.String("WindowManager: 16-bit color"); KernelLog.Ln;
 	END;
 	NEW (session);  NEW(toucher);
-	IF noPointer THEN
-		INCL( session.top.flags, WM.FlagNoPointer);
-	END;
+
 	NEW(view, disp(Displays.Display));
 	session.lock.AcquireWrite; session.AddView(view); session.lock.ReleaseWrite;
-	FillSession(session, color);
+	FillSession(session, color, noPointer);
+
 	IF (view.width0 > 0) & (view.height0 > 0) THEN
 		r := Graphics.MakeRectangle(0, 0, view.width0, view.height0);
 	ELSE
@@ -1586,6 +1588,12 @@ BEGIN
 	WM.registry.Add(session, res);
 	NEW(defaultMouse, 5, 15); defaultMouse.view := view;
 	NEW(defaultKeyboard); defaultKeyboard.view := view;
+
+	w := session.bottom;
+	WHILE w # NIL DO
+		TRACE(w);
+		w := w.next;
+	END;
 END Replace;
 
 PROCEDURE InitCharMaps;
