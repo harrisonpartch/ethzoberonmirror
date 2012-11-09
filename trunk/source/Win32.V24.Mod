@@ -155,7 +155,7 @@ TYPE
 			ASSERT ( LEN( buf ) >= ofs + min );   (* array bound check not implemented in Kernel32.ReadFile *)
 			res := Serials.Ok; len := 0;
 			i := ofs;  l := Available();
-			WHILE (res = Serials.Ok) & (min > 0) OR ((l > 0) & (size > 0)) DO  (* fof 060804 *)
+			WHILE (res = Serials.Ok) & ((min > 0) OR ((l > 0) & (size > 0))) DO  (* fof 060804 *)
 				IF l > size THEN l := size END;
 				IF (handle # Kernel32.InvalidHandleValue) THEN
 					IF  (l > 0) THEN
