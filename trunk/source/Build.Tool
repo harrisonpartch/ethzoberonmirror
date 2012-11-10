@@ -271,7 +271,8 @@ SystemTools.DoCommands
 
 PCAAMD64.Assemble OBLUnreal.Asm ~
 PartitionsLib.SetBootLoaderFile OBLUnreal.Bin ~ 
-
+PCAAMD64.Assemble BootManager.Asm ~
+BootManager.Split BootManager.Bin ~ 
 SystemTools.Timer start ~
 
 FSTools.DeleteFiles ../Test/A2HDD.img ~
@@ -284,7 +285,7 @@ Linker.Link \P../Test/ \.Obx ../Test/USB.Bin 0100000H 100000H Kernel Traps
 	DiskVolumes DiskFS Loader BootConsole ~
 	
 Partitions.WriteMBR VDISK0#0 OBEMBR.Bin ~
-Partitions.InstallBootManager VDISK0#0 ~
+Partitions.InstallBootManager VDISK0#0 BootManagerMBR.Bin BootManagerTail.Bin ~
 Partitions.Create VDISK0#1 76 150 ~
 
 Partitions.Format VDISK0#1 AosFS -2 ../Test/USB.Bin ~ (* -2 makes sure that actual boot file size is taken as offset for AosFS *)

@@ -459,6 +459,9 @@ PACKAGE Drivers ARCHIVE "Drivers.zip" SOURCE "DriversSrc.zip" DESCRIPTION "Devic
 		# USB HID class driver
 		UsbHid.Mod
 		UsbMouse.Mod
+		
+		#USB <-> RS232 FTDI driver
+		UsbFTDI.Mod
 	}
 
 	I386 { I386.UsbKeyboard.Mod }
@@ -474,6 +477,8 @@ PACKAGE Drivers ARCHIVE "Drivers.zip" SOURCE "DriversSrc.zip" DESCRIPTION "Devic
 
 		UsbPrinter.Mod
 		UsbGarminGPS18.Mod
+
+		# Touchscreen drivers
 		UsbTouchscreen.Mod
 
 		# Bluetooth stack

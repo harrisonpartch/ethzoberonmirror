@@ -1,4 +1,4 @@
-MODULE Machine;	(** AUTHOR "pjm"; PURPOSE "Bootstrapping, configuration and machine interface"; *)
+MODULE Machine;	(** AUTHOR "pjm, G.F."; PURPOSE "Bootstrapping, configuration and machine interface"; *)
 
 
 IMPORT S := SYSTEM, Trace, Unix, Glue;
@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5005)";
+	Version = "Aos (rev.5017)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -96,12 +96,12 @@ VAR
 	
 	thrInitialize	: PROCEDURE {REALTIME, C} ( VAR low, high: LONGINT ): BOOLEAN;
 	
-	mtxInit		: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Mutex_t;
+	mtxInit-	: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Mutex_t;
 	mtxDestroy	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
 	mtxLock	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
 	mtxUnlock	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
 	
-	conInit		: PROCEDURE {REALTIME, C}  ( dummy: LONGINT ): Unix.Condition_t;
+	conInit-	: PROCEDURE {REALTIME, C}  ( dummy: LONGINT ): Unix.Condition_t;
 	conDestroy	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
 	conWait	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t;  mtx: Unix.Mutex_t );
 	conSignal	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );

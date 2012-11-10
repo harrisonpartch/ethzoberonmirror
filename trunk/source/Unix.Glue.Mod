@@ -1,9 +1,7 @@
 (* ETH Oberon, Copyright 2000 ETH Zuerich Institut fuer Computersysteme, ETH Zentrum, CH-8092 Zuerich.
 Refer to the "General ETH Oberon System Source License" contract available at: http://www.oberon.ethz.ch/ *)
 
-MODULE Glue;   (* g.f.  25.2.98 *)	(** non portable *)
-
-(** Interface to the dynamic linker of Unix *)
+MODULE Glue;   (** AUTHOR "G.F."; PURPOSE "Interface to the dynamic linker of Unix" *)
 
 
 IMPORT S := SYSTEM, Trace;

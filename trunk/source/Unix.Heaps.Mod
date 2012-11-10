@@ -1,7 +1,7 @@
 (* ETH Oberon, Copyright 2002 ETH Zuerich Institut fuer Computersysteme, ETH Zentrum, CH-8092 Zuerich.
 Refer to the "General ETH Oberon System Source License" contract available at: http://www.oberon.ethz.ch/ *)
 
-MODULE Heaps;
+MODULE Heaps;	(** AUTHOR "G.F."; PURPOSE "Heap management and garbage collector"; *)
 
 IMPORT S := SYSTEM, Trace, Unix, Machine;
 
@@ -124,7 +124,8 @@ VAR
 	GC*: PROCEDURE;
 	collecting-: BOOLEAN;
 	markDepth: LONGINT;
-
+	
+	
 	
 	(** Statistics. Will only be maintained if Stats = TRUE *)
 
@@ -719,6 +720,14 @@ VAR
 		p := S.VAL( ANY, ptr );
 		Machine.Release( Machine.Heaps )
 	END NewRec;
+	
+	
+	PROCEDURE InitProtHeader*( obj: Address );
+	VAR hdr: ProtRecBlock;
+	BEGIN
+		hdr := S.VAL( ProtRecBlock, obj - ProtOfs );
+		hdr.mtx := Machine.mtxInit( 0 );  hdr.enter := Machine.conInit( 0 );  hdr.lockedBy := NIL;  
+	END InitProtHeader;
 
 	PROCEDURE NewProtRec*( VAR p: ANY;  tag: Address; isRealtime: BOOLEAN );
 	VAR recSize, size: Size;  ptr0, ptr: Address;
@@ -734,6 +743,8 @@ VAR
 		ptr := ptr0 + ProtOfs;
 		S.PUT( ptr + HeapBlockOffset, ptr0 );
 		S.PUT( ptr + TypeDescOffset, tag );   (* set the tag *)
+		
+		InitProtHeader( ptr );
 		
 		p := S.VAL( ANY, ptr );
 		Machine.Release( Machine.Heaps );
@@ -828,10 +839,10 @@ VAR
 		S.GET( t - AdrSize, t );
 		S.GET( t + 4*AdrSize, m );
 		IF m # 0 THEN
-			i := 0;  S.GET( m + 4*AdrSize + i, ch );
+			i := 0;  S.GET( m + AdrSize + i, ch );
 			WHILE (ch >= '0') & (ch <= 'z') & (i < 32) DO
 				Trace.Char( ch );
-				INC( i );  S.GET( m + 4* AdrSize + i, ch )
+				INC( i );  S.GET( m + AdrSize + i, ch )
 			END
 		ELSE  Trace.String( "NIL" )
 		END;

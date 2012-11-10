@@ -11,7 +11,7 @@ IMPORT Commands, Files;
 PROCEDURE Split* (context: Commands.Context);
 VAR fileName: Files.FileName;
 	fi, fo, fo2 : Files.File; r : Files.Reader; w : Files.Writer;
-	count : LONGINT; ch : CHAR;
+	count,i : LONGINT; ch : CHAR;
 
 BEGIN
 	context.arg.SkipWhitespace; context.arg.String (fileName);
@@ -21,17 +21,24 @@ BEGIN
 	IF fi # NIL THEN
 		Files.OpenReader(r, fi, 0);
 		Files.OpenWriter(w, fo, 0);
+		i := 0;
 		FOR count := 1 TO 512 DO
 			r.Char(ch);
 			w.Char(ch);
+			INC(i);
 		END;
 		w.Update;
 		Files.Register(fo);
 
 		Files.OpenWriter(w, fo2, 0);
-		FOR count := 1 TO 12 * 512 DO
+		WHILE r.Available() > 0 DO
 			r.Char(ch);
 			w.Char(ch);
+			INC(i);
+		END;
+		WHILE i MOD 512 # 0 DO
+			w.Char(0X);
+			INC(i);
 		END;
 		w.Update;
 		Files.Register(fo2);

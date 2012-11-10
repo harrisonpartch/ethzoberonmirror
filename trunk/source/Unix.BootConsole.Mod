@@ -1,6 +1,6 @@
-MODULE BootConsole;
+MODULE BootConsole;	(** AUTHOR "G.F."; PURPOSE "Boot console"; *)
 
-IMPORT S := SYSTEM, Trace, Glue, Unix, Modules, Objects, Commands;
+IMPORT S := SYSTEM, Trace, Glue, Unix, Heaps, Modules, Objects, Commands;
 
 TYPE
 	Module = Modules.Module;
@@ -129,17 +129,19 @@ VAR
 	
 	PROCEDURE InitPrelinkedModules;
 	TYPE Body = PROCEDURE;
-	VAR m: Modules.Module;  body: Body;  trace: BOOLEAN;
+	VAR m: Modules.Module;  body: Body;  trace, heapsOk: BOOLEAN;
 	BEGIN
-		m := Modules.root;  trace := FALSE;
+		m := Modules.root;  trace := FALSE;  heapsOk := FALSE;
 		LOOP
 			IF m.name = "BootConsole" THEN  EXIT   END;   (* initialize modules belonging to bootfile only *)
 			IF trace THEN
 				Trace.String( "Initializing " );  Trace.StringLn( m.name )
 			END;
+			IF heapsOk THEN  Heaps.InitProtHeader( S.VAL( S.ADDRESS, m ) )  END;
 			body := S.VAL( Body, S.ADR( m.code[0] ) );
 			body;	
 			IF m.name = "Glue" THEN  trace := Glue.debug # {}  END;
+			IF m.name = "Heaps" THEN  heapsOk := TRUE  END;
 			m := m.next
 		END
 	END InitPrelinkedModules;
