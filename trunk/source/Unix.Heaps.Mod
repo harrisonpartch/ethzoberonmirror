@@ -722,12 +722,12 @@ VAR
 	END NewRec;
 	
 	
-	PROCEDURE InitProtHeader*( obj: Address );
+(*	PROCEDURE InitProtHeader*( obj: Address );
 	VAR hdr: ProtRecBlock;
 	BEGIN
 		hdr := S.VAL( ProtRecBlock, obj - ProtOfs );
 		hdr.mtx := Machine.mtxInit( 0 );  hdr.enter := Machine.conInit( 0 );  hdr.lockedBy := NIL;  
-	END InitProtHeader;
+	END InitProtHeader;	*)
 
 	PROCEDURE NewProtRec*( VAR p: ANY;  tag: Address; isRealtime: BOOLEAN );
 	VAR recSize, size: Size;  ptr0, ptr: Address;
@@ -744,7 +744,7 @@ VAR
 		S.PUT( ptr + HeapBlockOffset, ptr0 );
 		S.PUT( ptr + TypeDescOffset, tag );   (* set the tag *)
 		
-		InitProtHeader( ptr );
+	(*	InitProtHeader( ptr );	*)
 		
 		p := S.VAL( ANY, ptr );
 		Machine.Release( Machine.Heaps );
