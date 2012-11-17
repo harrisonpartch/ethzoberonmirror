@@ -520,7 +520,10 @@ TYPE
 		PROCEDURE & InitReader*( receive: Receiver;  size: LONGINT );
 		BEGIN
 			ASSERT ( receive # NIL );
-			NEW( buf, size );  SELF.receive := receive;  Reset
+			IF (buf = NIL) OR (LEN(buf) # size) THEN
+				NEW( buf, size );
+			END;
+			SELF.receive := receive;  Reset
 		END InitReader;
 
 	(** reset the reader by dropping the bytes in the buffer, resetting the result code and setting received to 0.

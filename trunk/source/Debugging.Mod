@@ -1,6 +1,6 @@
 MODULE Debugging;   (**  AUTHOR "fof"; PURPOSE "Debugging facilities";  **)
 
-IMPORT SYSTEM, Streams, KernelLog, Files, StringPool,  Modules, Objects, Reflection, Machine, Commands, Locks, Dates;
+IMPORT SYSTEM, Streams, KernelLog, Files, StringPool,  Modules, Objects, Reflection, Machine, Commands, Locks, Dates, Heaps;
 
 VAR
 	DefaultLog, Log-: Streams.Writer;  f: Files.File;  lock: Locks.RWLock;
@@ -183,6 +183,21 @@ VAR
 	BEGIN
 		Str( "}" );  Log.Update;  lock.ReleaseWrite;
 	END Exit;
+
+	PROCEDURE Nothing;
+	BEGIN
+	END Nothing;
+
+	PROCEDURE DisableGC*;
+	BEGIN
+		Heaps.GC := Nothing;
+	END DisableGC;
+
+	PROCEDURE EnableGC*;
+	BEGIN
+		Heaps.GC := Heaps.InvokeGC;
+	END EnableGC;
+
 
 BEGIN
 	Streams.OpenWriter( DefaultLog, KernelLog.Send );  Log := DefaultLog; NEW( lock );

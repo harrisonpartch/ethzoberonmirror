@@ -457,6 +457,7 @@ TYPE
 		BP, SP, RA, RD, RS, RC: LONGINT; (* base pointer and stack pointer register index, depends on cpuBits *)
 
 		emitter: Assembler.Emitter; (* assembler generating and containing the machine code *)
+		backend: BackendAMD64;
 
 		(* register spill state *)
 		stackSize: LONGINT;
@@ -481,19 +482,21 @@ TYPE
 
 
 		(* -------------------------- constructor -------------------------------*)
-		PROCEDURE &InitGeneratorAMD64(CONST runtime: SyntaxTree.IdentifierString; diagnostics: Diagnostics.Diagnostics; bits: LONGINT);
+		PROCEDURE &InitGeneratorAMD64(CONST runtime: SyntaxTree.IdentifierString; diagnostics: Diagnostics.Diagnostics; backend: BackendAMD64);
 		VAR physicalRegisters: PhysicalRegisters; physicalRegisters32: PhysicalRegisters32; physicalRegisters64: PhysicalRegisters64;
 		BEGIN
+			SELF.backend := backend;
 			runtimeModuleName := runtime;
+			SELF.cpuBits := backend.bits;
 
 			NEW(emitter,diagnostics);
-			IF bits=32 THEN
+			IF cpuBits=32 THEN
 				NEW(physicalRegisters32); physicalRegisters := physicalRegisters32; error := ~emitter.SetBits(32);
 				opBP := opEBP; opSP := opESP; opRA := opEAX; opRB := opEBX; opRD := opEDI; opRS := opESI; opRC := opECX;
 				SP := ESP; BP := EBP; RA := EAX;
 				RD := EDI; RS := ESI; RC := ECX;
 				ASSERT(~error);
-			ELSIF bits=64 THEN
+			ELSIF cpuBits=64 THEN
 				NEW(physicalRegisters64); physicalRegisters := physicalRegisters64; error := ~emitter.SetBits(64);
 				opBP := opRBP; opSP := opRSP; opRA := registerOperands[RAX]; opRB := registerOperands[RBX]; opRD := registerOperands[RDI];
 				opRS := registerOperands[RSI]; opRC := registerOperands[RCX];
@@ -503,7 +506,7 @@ TYPE
 				ASSERT(~error);
 			ELSE Halt("no register allocator for bits other than 32 / 64 ");
 			END;
-			SELF.cpuBits := bits;
+
 			fpStackPointer := 0;
 			InitTicketGenerator(diagnostics,2,physicalRegisters);
 		END InitGeneratorAMD64;
@@ -1149,10 +1152,16 @@ TYPE
 			emitter.Emit1(InstructionSet.opPUSH,opBP);
 			emitter.Emit2(InstructionSet.opMOV,opBP,opSP);
 			IF initialize THEN
+				(* always including this instruction make trace insertion possible *)
+				IF backend.traceable THEN
+					emitter.Emit2(InstructionSet.opXOR,opRA,opRA);
+				END;
 				ASSERT(size MOD opRA.sizeInBytes = 0);
 				numberMachineWords := size DIV opRA.sizeInBytes;
 				IF numberMachineWords >0  THEN
+					IF ~backend.traceable THEN
 					emitter.Emit2(InstructionSet.opXOR,opRA,opRA);
+					END;
 					WHILE numberMachineWords MOD 4 # 0 DO
 						emitter.Emit1(InstructionSet.opPUSH, opRA);
 						DEC(numberMachineWords);
@@ -2680,6 +2689,7 @@ TYPE
 	VAR
 		cg: CodeGeneratorAMD64;
 		bits: LONGINT;
+		traceable: BOOLEAN;
 
 		PROCEDURE &InitBackendAMD64;
 		BEGIN
@@ -2689,7 +2699,7 @@ TYPE
 
 		PROCEDURE Initialize(diagnostics: Diagnostics.Diagnostics; log: Streams.Writer; flags: SET; checker: SemanticChecker.Checker; system: Global.System; activeCells: ActiveCells.Specification);
 		BEGIN
-			Initialize^(diagnostics,log, flags,checker,system,activeCells); NEW(cg, runtimeModuleName, diagnostics, bits);
+			Initialize^(diagnostics,log, flags,checker,system,activeCells); NEW(cg, runtimeModuleName, diagnostics, SELF);
 		END Initialize;
 
 		PROCEDURE GetSystem(): Global.System;
@@ -2956,12 +2966,14 @@ TYPE
 		PROCEDURE DefineOptions(options: Options.Options);
 		BEGIN
 			options.Add(0X,"bits",Options.Integer);
+			options.Add(0X,"traceable", Options.Flag);
 			DefineOptions^(options);
 		END DefineOptions;
 
 		PROCEDURE GetOptions(options: Options.Options);
 		BEGIN
 			IF ~options.GetInteger("bits",bits) THEN bits := 32 END;
+			traceable := options.GetFlag("traceable");
 			GetOptions^(options);
 		END GetOptions;
 

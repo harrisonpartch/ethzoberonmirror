@@ -13,7 +13,7 @@ CONST
 	ArrayBlock = 3;
 	SystemBlock = 4;
 
-	MaxNofTypes = 800;
+	MaxNofTypes = 2048;
 
 	(* Analyzer.Sort *)
 	SortNone = 0;

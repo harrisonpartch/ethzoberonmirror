@@ -10,7 +10,7 @@ MODULE OpenTypeFonts; (** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType
 	*)
 
 	IMPORT
-		SYSTEM, Strings, OTInt := OpenTypeInt, OType := OpenType, Files, KernelLog, Commands;
+		SYSTEM, Strings, OTInt := OpenTypeInt, OType := OpenType, OpenTypeScan, Files, KernelLog, Commands;
 
 	CONST
 		ScreenDPI = 71;
@@ -89,6 +89,7 @@ MODULE OpenTypeFonts; (** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType
 		VAR
 			file: Files.File; r, m: Files.Rider; font: OType.Font; i, chars, ranges, xmin, ymin, xmax, ymax, j: INTEGER;
 			beg, end: ARRAY 64 OF INTEGER; data: RasterData; no, bytes, k: LONGINT;
+ 			ras: OpenTypeScan.Rasterizer;
 	BEGIN
 		file := Files.New(name);
 		ASSERT(file # NIL);
@@ -136,11 +137,11 @@ MODULE OpenTypeFonts; (** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType
 				no := OType.UnicodeToGlyph(font, OType.CharToUnicode[j]);
 				IF (j = 9) & (no = 0) THEN
 					no := OType.UnicodeToGlyph(font, OType.CharToUnicode[ORD("I")]);
-					OType.LoadGlyph(inst, Glyph, SHORT(no), {OType.Hinted, OType.Width});
+					OType.LoadGlyph(inst, Glyph, ras, SHORT(no), {OType.Hinted, OType.Width});
 					Glyph.awx := 8*Glyph.awx;
 					Glyph.hbx := 0; Glyph.hby := 0; Glyph.rw := 0; Glyph.rh := 0
 				ELSE
-					OType.LoadGlyph(inst, Glyph, SHORT(no), mode)
+					OType.LoadGlyph(inst, Glyph, ras, SHORT(no), mode)
 				END;
 				Files.WriteInt(m, Glyph.awx);												(* advance *)
 				Files.WriteInt(m, Glyph.hbx);												(* horizontal bearing x *)
@@ -156,7 +157,7 @@ MODULE OpenTypeFonts; (** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType
 					bytes := Glyph.rh * data.bpr;
 					ASSERT(bytes < LEN(Pattern));
 					k := 0; REPEAT Pattern[k] := 0X; INC(k) UNTIL k = bytes;
-					OType.EnumRaster(Glyph, data);
+					OType.EnumRaster(ras, data);
 					k := 0; REPEAT r.file.Write(r, Pattern[k]); INC(k) UNTIL k = bytes			(* pattern *)
 				END;
 				INC(j)

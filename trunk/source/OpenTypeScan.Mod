@@ -11,7 +11,6 @@ MODULE OpenTypeScan;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"
 	IMPORT
 		OpenTypeInt;
 
-
 	CONST
 		(** enumeration rules **)
 		Round* = 0;									(** if included, coordinates are rounded to integer grid (leave out for grey scales) **)
@@ -57,6 +56,69 @@ MODULE OpenTypeScan;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"
 			When enumerating columns, 'rowcol' is the column number and 'beg' and 'end' are subpixel
 			values representing a vertical interval in that column
 		**)
+VAR
+	scanlinePool: Scanline;
+	intersectionPool: Intersection;
+
+	(*---  pools ----*)
+
+	PROCEDURE NewScanline(): Scanline;
+	VAR scanline: Scanline;
+	BEGIN{EXCLUSIVE}
+		IF scanlinePool = NIL THEN
+			NEW(scanline);
+		ELSE
+			scanline := scanlinePool; scanlinePool := scanline.next;
+			scanline.next := NIL;
+		END;
+		RETURN scanline
+	END NewScanline;
+
+	PROCEDURE NewIntersection(): Intersection;
+	VAR intersection: Intersection;
+	BEGIN{EXCLUSIVE}
+		IF intersectionPool = NIL THEN
+			NEW(intersection)
+		ELSE
+			intersection := intersectionPool; intersectionPool := intersection.next;
+			intersection.next := NIL;
+		END;
+		RETURN intersection
+	END NewIntersection;
+
+	PROCEDURE DisposeIntersections(VAR first: Intersection);
+	VAR sentinel, next: Intersection;
+	BEGIN (* only called from DisposeScanlines, no EXCLUSIVE possible here *)
+		sentinel := first; next := NIL;
+		WHILE (first # NIL) & (next # sentinel) DO
+			next :=  first.next;
+			first.next :=  intersectionPool;
+			first.link := NIL;
+			intersectionPool := first;
+			first := next;
+		END;
+	END DisposeIntersections;
+
+	PROCEDURE DisposeScanlines(VAR first: Scanline);
+	VAR next, sentinel: Scanline;
+	BEGIN{EXCLUSIVE}
+		sentinel := first; next := NIL;
+		WHILE (first # NIL) & (next # sentinel) DO
+			next := first.next;
+			DisposeIntersections(first.isect);
+			first.prev := NIL;
+			first.next := scanlinePool;
+			scanlinePool := first;
+			first := next;
+		END;
+		first := NIL;
+	END DisposeScanlines;
+
+	PROCEDURE DisposeRasterizer*(VAR ras: Rasterizer);
+	BEGIN
+		DisposeScanlines(ras.hor);
+		DisposeScanlines(ras.ver);
+	END DisposeRasterizer;
 
 
 	(*--- Conversion of Outline to Scanlines ---*)
@@ -64,7 +126,7 @@ MODULE OpenTypeScan;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"
 	PROCEDURE Init (VAR first: Scanline);
 		VAR last: Scanline;
 	BEGIN
-		NEW(first); NEW(last);
+		first := NewScanline(); last := NewScanline();
 		first.yx := MIN(F26D6); first.next := last; first.prev := last; first.isect := NIL;
 		last.yx := MAX(F26D6); last.prev := first; last.next := first; last.isect := NIL
 	END Init;
@@ -73,24 +135,25 @@ MODULE OpenTypeScan;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"
 		VAR sl: Scanline; is, prev: Intersection;
 	BEGIN
 		(* find correct scanline *)
-		WHILE scan.next.yx <= yx DO scan := scan.next END;
+		WHILE scan.(*next.*)yx <= yx DO scan := scan.next END;
 		WHILE scan.yx > yx DO scan := scan.prev END;
 
 		(* allocate new scanline if on new coordinate *)
 		IF scan.yx < yx THEN
-			NEW(sl); sl.yx := yx;
+			sl := NewScanline();sl.yx := yx;
 			sl.next := scan.next; sl.prev := scan;
 			sl.next.prev := sl; scan.next := sl;
-			NEW(is); is.xy := MAX(F26D6); is.next := is;
+			is := NewIntersection(); is.xy := MAX(F26D6); is.next := is;
 			sl.isect := is;
 			scan := sl
 		END;
 
 		(* search place to insert and insert new intersection in scanline *)
 		prev := scan.isect; WHILE prev.next.xy < xy DO prev := prev.next END;
-		NEW(is); is.xy := xy; is.up := up;
-		is.next := prev.next; prev.next := is;
-
+			is := NewIntersection();
+			is.xy := xy;
+			is.up := up;
+			is.next := prev.next; prev.next := is;
 		(* insert intersection within contour sequence *)
 		is.param := t;
 		WHILE hint.link.param < t DO hint := hint.link END;
@@ -188,12 +251,14 @@ MODULE OpenTypeScan;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"
 		END
 	END IntersectBezier;
 
+
 	(** convert outline to scanlines **)
 	PROCEDURE Convert* (outline: OpenTypeInt.Zone; rules: SET; VAR r: Rasterizer);
 		VAR
 			hor, ver: Scanline; last, hint, is: Intersection; pt: OpenTypeInt.Points; cont, first, points, i, j, p, q: INTEGER; t: Fixed;
 			c0, c2, c1: OpenTypeInt.Coord;
 	BEGIN
+		DisposeRasterizer(r);
 		r.rules := rules;
 		IF outline.contours = 0 THEN
 			r.width := 0; r.height := 0;
@@ -201,7 +266,7 @@ MODULE OpenTypeScan;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"
 			RETURN
 		END;
 		Init(r.hor); Init(r.ver); hor := r.hor; ver := r.ver;
-		NEW(last); last.param := MAX(Fixed);								(* sentinel for contour list *)
+		last := NewIntersection(); last.param := MAX(Fixed);								(* sentinel for contour list *)
 		pt := outline.pt;
 		cont := 0;
 		WHILE cont < outline.contours DO
@@ -244,16 +309,15 @@ MODULE OpenTypeScan;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"
 		r.ymin := r.hor.next.yx DIV 40H * 40H; r.ymax := (r.hor.prev.prev.yx DIV 40H + 1) * 40H;
 	*)
 
-	(**)
 		(* calculate bounding box *)
 	(*
 		r.xmin := MAX(F26D6); r.ymin := MAX(F26D6);
 		r.xmax := MIN(F26D6); r.ymax := MIN(F26D6);
 	*)
-	(**)
+	(* *)
 		r.xmin := r.ver.next.yx; r.xmax := r.ver.prev.prev.yx;
 		r.ymin := r.hor.next.yx; r.ymax := r.hor.prev.prev.yx;
-	(**)
+	(* *)
 		hor := r.hor.next;
 		WHILE hor # r.hor.prev DO
 			is := hor.isect.next;
@@ -274,7 +338,7 @@ MODULE OpenTypeScan;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"
 		r.ymin := r.ymin - r.ymin MOD 40H;
 		r.xmax := r.xmax + 40H - r.xmax MOD 40H;
 		r.ymax := r.ymax + 40H - r.ymax MOD 40H;
-	(**)
+	(* *)
 
 		IF r.xmin < r.xmax THEN r.width := SHORT((r.xmax - r.xmin) DIV 40H) ELSE r.width := 0 END;
 		IF r.ymin < r.ymax THEN r.height := SHORT((r.ymax - r.ymin) DIV 40H) ELSE r.height := 0 END

@@ -1,11 +1,9 @@
 (* ETH Oberon, Copyright 2000 ETH Zuerich Institut fuer Computersysteme, ETH Zentrum, CH-8092 Zuerich.
 Refer to the "General ETH Oberon System Source License" contract available at: http://www.oberon.ethz.ch/ *)
 
-MODULE BootLinker;   (* Oberon for Windows bootlinker (MH) / based on MIPS bootlinker (RC) *)
+MODULE BootLinker;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 
-(* 2007.05.21	g.f.	Unix ports version *)
-(* 2008.04.07	g.f.	Bootlinker now independent of Oberon system *)
-(* 2009.01.27	g.f.	separated TypeTag from TypeDesc	*)
+(* based on Oberon for Windows bootlinker (MH) and  MIPS bootlinker (RC) *)
 
 
 IMPORT S := SYSTEM, Commands, Streams, Files;
@@ -157,6 +155,8 @@ TYPE
 				crc			: LONGINT
 			END Module;
 
+	
+	
 VAR
 	procOffsets{UNTRACED}: ProcOffsetTable;	(* global table containing procedure code offsets and pointer offsets, sorted in ascending order of procedure code offsets *)
 	numProcs: LONGINT;			(* number of entries in procOffsets *)
@@ -357,7 +357,6 @@ VAR
 	END NewProtRec;
 
 
-
 	PROCEDURE NewArr( VAR ptr: ANY; eltag: Address;  nofelem, nofdim: LONGINT );
 	(* implementation of NEW(ptr, dim0,  ...) *)
 	VAR size, elSize, arrSize, ptrOffset, dataOffset: Size;  firstElem, p: Address;
@@ -370,7 +369,7 @@ VAR
 		IF arrSize = 0 THEN
 			p := NewSys( nofdim*4 + 3*AdrSize );
 		ELSE
-			IF eltag # 0 THEN  S.GET( eltag + AdrSize, ptrOffset )  ELSE ptrOffset := -AdrSize  END;
+			S.GET( eltag + AdrSize, ptrOffset );
 			IF ptrOffset = -AdrSize THEN  (* no pointers in element type *)
 				p := NewSys( dataOffset + arrSize );
 				S.PUT( p + 3*AdrSize, nofelem )
@@ -388,6 +387,7 @@ VAR
 		END;
 		ptr := S.VAL( ANY, p )
 	END NewArr;
+	
 
 
 	PROCEDURE FillStaticType( VAR staticTypeAddr: Address;
@@ -600,7 +600,7 @@ VAR
 	
 	BEGIN
 		FOR i := 0 TO LEN( m.typeInfo ) -1 DO
-			S.PUT( S.ADR( m.typeInfo[i]^ ) - AdrSize, tdTag );
+			S.PUT( S.VAL( Address, m.typeInfo[i] ) - AdrSize, tdTag );
 		END;
 		S.PUT( S.VAL( Address, m ) - AdrSize,  modTag );
 		PatchExport( m.export, S.VAL( Address, S.VAL( SET, expTag ) + arrayMask ) );
@@ -1601,6 +1601,21 @@ VAR
 		dest[j] := 0X
 	END Append;
 
+
+(*	PROCEDURE ShowTD( tag: Address );
+	VAR i, val: LONGINT;
+	BEGIN
+		S.GET( tag - 4, val );  out.Hex( val, -8 );  out.Ln;
+		REPEAT
+			S.GET( tag, val );
+			out.Hex( tag, -8 ); out.Char( ' ' ); out.Hex( val, -8 );  out.Ln;
+			INC( tag, 4 ); INC( i )
+		UNTIL (val = -4) OR (i = 10);
+		out.Ln;
+		out.Update
+	END ShowTD;	*)
+	
+	
 	PROCEDURE MakeTD;
 		(* create temp. type tags which are needed to load the *)
 		(* first modules up to module 'Modules'  *)
@@ -1608,15 +1623,15 @@ VAR
 		exp: ExportPtr;  mod: Module;
 		ptr: POINTER TO RECORD a: ANY  END;
 		proc: ProcTable;  procOfs: ProcOffsetTable;
-		td: TypeDesc;
+		td: TypeDesc;  pTab: PtrTable;
 	BEGIN
-		NEW( exp );  S.GET( S.VAL( Address, exp ) - AdrSize, expTag );
-		NEW( td );  S.GET( S.VAL( Address, td ) - AdrSize, tdTag );
-		NEW( mod );  S.GET( S.VAL( Address, mod ) - AdrSize, modTag );
-		NEW( ptr );  S.GET( S.VAL( Address, ptr ) - AdrSize, ptrElemTag );
-		NEW( proc, 1 );  S.GET( S.VAL( Address, proc ) - AdrSize, procTableEntryTag );
-		NEW( procOfs, 1 );  S.GET( S.VAL( Address, proc ) - AdrSize, procOffsetEntryTag );
-		ptrTableTag := 0;
+		NEW( exp );  S.GET( S.VAL( Address, exp ) - AdrSize, expTag );		
+		NEW( td );  S.GET( S.VAL( Address, td ) - AdrSize, tdTag );			
+		NEW( mod );  S.GET( S.VAL( Address, mod ) - AdrSize, modTag );		
+		NEW( ptr );  S.GET( S.VAL( Address, ptr ) - AdrSize, ptrElemTag );		
+		NEW( proc, 1 );  S.GET( S.VAL( Address, proc ) - AdrSize, procTableEntryTag );		
+		NEW( procOfs, 1 );  S.GET( S.VAL( Address, procOfs ) - AdrSize, procOffsetEntryTag );		
+		NEW( pTab, 1 );  S.GET( S.VAL( Address, pTab ) - AdrSize, ptrTableTag );			
 	END MakeTD;
 
 
@@ -1723,7 +1738,7 @@ VAR
 			Init( heap );
 			NewArr( S.VAL( ANY, procOffsets ), procOffsetEntryTag, InitTableLen, 1 );
 			numProcs := 0; 
-			NewArr( S.VAL( ANY, ptrOffsets ), 0, InitPtrTableLen, 1 );
+			NewArr( S.VAL( ANY, ptrOffsets ), ptrTableTag, InitPtrTableLen, 1 );
 			numPtrs := 0; 
 			
 			out.String( "linking " );  out.String( bootFileName );  out.Ln;  

@@ -174,7 +174,6 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 			scanType: INTEGER;
 			store: OpenTypeInt.Store;
 			cvt: OpenTypeInt.CVT;
-			ras: OpenTypeScan.Rasterizer;
 		END;
 
 		(** glyph outline enumeration **)
@@ -1219,7 +1218,7 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 	END LoadOutline;
 
 	(** load glyph structure with appropriately scaled outline **)
-	PROCEDURE LoadGlyph* (inst: Instance; glyph: Glyph; num: LONGINT; mode: SET);
+	PROCEDURE LoadGlyph* (inst: Instance; glyph: Glyph; VAR ras: OpenTypeScan.Rasterizer; num: LONGINT; mode: SET);
 		VAR
 			font: Font; aw, xmin, ymin, xmax, ymax: F26D6; n: INTEGER;
 			cur: OpenTypeInt.Coord; rules: SET;
@@ -1305,10 +1304,10 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 				IF glyph.scanType IN {1, 5} THEN INCL(rules, OpenTypeScan.Stubs) END;
 				IF glyph.scanType IN {4, 5} THEN INCL(rules, OpenTypeScan.Smart) END
 			END;
-			OpenTypeScan.Convert(glyph.outline, rules, glyph.ras);
-			glyph.hbx := SHORT(glyph.ras.xmin DIV 40H);
-			glyph.hby := SHORT(glyph.ras.ymin DIV 40H);
-			glyph.rw := glyph.ras.width; glyph.rh := glyph.ras.height
+			OpenTypeScan.Convert(glyph.outline, rules, ras);
+			glyph.hbx := SHORT(ras.xmin DIV 40H);
+			glyph.hby := SHORT(ras.ymin DIV 40H);
+			glyph.rw := ras.width; glyph.rh := ras.height
 		END
 	END LoadGlyph;
 
@@ -1395,10 +1394,10 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 	END EnumCol;
 
 	(** enumerate non-transparent pixels of glyph raster image **)
-	PROCEDURE EnumRaster* (glyph: Glyph; VAR data: RasterData);
+	PROCEDURE EnumRaster* (VAR ras: OpenTypeScan.Rasterizer; VAR data: RasterData);
 	BEGIN
-		OpenTypeScan.EnumerateRows(glyph.ras, EnumRow, data);
-		OpenTypeScan.EnumerateColumns(glyph.ras, EnumCol, data)
+		OpenTypeScan.EnumerateRows(ras, EnumRow, data);
+		OpenTypeScan.EnumerateColumns(ras, EnumCol, data)
 	END EnumRaster;
 
 

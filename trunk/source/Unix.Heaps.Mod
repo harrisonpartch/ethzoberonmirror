@@ -60,7 +60,7 @@ CONST
 	MaxFreeLists = 14; 	(* number of free lists *)
 	FreeListBarrier = 7;
 	
-	ProtOfs = 2*BlockSize + 16;
+	ProtOfs = 2*BlockSize + 16;	(*! mod 32 = 16 ! *)
 	ProtTypeBit* = 31;   (** flags in TypeDesc, low bits reserved for extLevel *)
 
 	MarkBit* = 0;  ArrayBit* = 1;  FreeBit* = 2;  SubObjBit* = 3;  ProtObjBit* = 4;
@@ -85,15 +85,15 @@ TYPE
 			
 	ProtRecBlock* = POINTER TO ProtRecBlockDesc;
 	ProtRecBlockDesc* = RECORD 
-		recSize: Size;
+		recSize: Size;	(* needed by SizeOf(blk) in Sweep *)
 		
 		awaitingLock*:	ProcessQueue;	(* unused in UnixAos *)
 		awaitingCond*: ProcessQueue;
 		lockedBy*: ANY;	
 		lock*: ANY;	(* used by Win32, unused for I386 and UnixAos *)
 		
-		mtx*: Unix.Mutex_t;			(* processes blocked awaiting lock *)
-		enter*: Unix.Condition_t;	(* processes blocked awaiting lock *)
+		mtx*: Unix.Mutex_t;			(* processes blocked awaiting lock (UnixAos only) *)
+		enter*: Unix.Condition_t;	(* processes blocked awaiting lock (UnixAos only) *)
 	END;
 
 	RootObject* = OBJECT 
@@ -121,7 +121,8 @@ VAR
 	heapSize, heapAvailable: Size;
 
 	throuput:  Size;
-	GC*: PROCEDURE;
+	GC* : PROCEDURE;
+	InvokeGC* : PROCEDURE;
 	collecting-: BOOLEAN;
 	markDepth: LONGINT;
 	
@@ -140,6 +141,7 @@ VAR
 	Nmark-, Nmarked-, NfinalizeAlive-, NfinalizeDead-: LONGINT;
 	NgcCyclesMark-, NgcCyclesLastRun-, NgcCyclesMax-, NgcCyclesAllRuns- : HUGEINT;
 
+	
 	PROCEDURE EmptyProc;
 	END EmptyProc;
 
@@ -503,6 +505,7 @@ VAR
 		RETURN blockSize
 	END SizeOf;
 	
+	
 	PROCEDURE SortCandidates;
 	VAR i, j, h: LONGINT;  p: Address;
 	BEGIN
@@ -714,6 +717,7 @@ VAR
 		END;
 		S.GET( tag, recSize );
 		size := recSize + AdrSize;  INC( size, (-size) MOD BlockSize );
+		
 		Machine.Acquire( Machine.Heaps );
 		ptr := GetBlock( size ) + AdrSize;
 		S.PUT( ptr - AdrSize, tag );
@@ -722,30 +726,23 @@ VAR
 	END NewRec;
 	
 	
-(*	PROCEDURE InitProtHeader*( obj: Address );
-	VAR hdr: ProtRecBlock;
-	BEGIN
-		hdr := S.VAL( ProtRecBlock, obj - ProtOfs );
-		hdr.mtx := Machine.mtxInit( 0 );  hdr.enter := Machine.conInit( 0 );  hdr.lockedBy := NIL;  
-	END InitProtHeader;	*)
-
+	(** Private compiler interface. Do not use. *)
 	PROCEDURE NewProtRec*( VAR p: ANY;  tag: Address; isRealtime: BOOLEAN );
 	VAR recSize, size: Size;  ptr0, ptr: Address;
 	BEGIN
 		S.GET( tag, recSize );
 		(* add space for tag and header and round up to BlockSize *)
 		size := recSize + ProtOfs + AdrSize;  INC( size, (-size) MOD BlockSize );
+		
 		Machine.Acquire( Machine.Heaps );
 		ptr0 := GetBlock( size ) + AdrSize;
-		S.PUT( ptr0 - AdrSize, ptr0 );   (* set the main tag *)
-		S.PUT( ptr0, size - AdrSize );   (* size *)
+		S.PUT( ptr0 - AdrSize, ptr0 );		(* set the tag used by Sweep *)
+		S.PUT( ptr0, size - AdrSize );		(* size, needed by SizeOf(blk) in Sweep *)
 		
-		ptr := ptr0 + ProtOfs;
+		ptr := ptr0 + ProtOfs;				(* mod 32 = 16 ! *)
 		S.PUT( ptr + HeapBlockOffset, ptr0 );
-		S.PUT( ptr + TypeDescOffset, tag );   (* set the tag *)
-		
-	(*	InitProtHeader( ptr );	*)
-		
+		S.PUT( ptr + TypeDescOffset, tag );	(* set the tag *)
+				
 		p := S.VAL( ANY, ptr );
 		Machine.Release( Machine.Heaps );
 	END NewProtRec;
@@ -758,34 +755,37 @@ VAR
 		size := size + AdrSize + 24;  INC( size, (-size) MOD BlockSize );
 		Machine.Acquire( Machine.Heaps );
 		ptr := GetBlock( size ) + AdrSize;  
-		S.PUT( ptr - AdrSize, ptr );  S.PUT( ptr, size - AdrSize );
-		S.PUT( ptr + AdrSize, S.VAL( Address, -AdrSize ) );
-		S.PUT( ptr + 20, ptr );
-		p := S.VAL( ANY, ptr + 24 );
+		S.PUT( ptr - AdrSize, ptr );		(* tag used by Sweep *)
+		S.PUT( ptr, size - AdrSize );		(* size, needed by SizeOf(blk) in Sweep *)
+		S.PUT( ptr + AdrSize, S.VAL( Address, -AdrSize ) );	
+		
+		S.PUT( ptr + 24 - AdrSize, ptr );	(* tag *)
+		p := S.VAL( ANY, ptr + 24 );		(* mod 16 = 8 ! *)
 		Machine.Release( Machine.Heaps )
 	END NewSys;
 
 	(** Private compiler interface. Do not use. *)
 	PROCEDURE NewArr*( VAR p: ANY;  eltag: Address;  nofelem, nofdim: Size; isRealtime: BOOLEAN );
-	VAR size, arrSize, dataOffset: Size;  ptr, firstElem: Address; sTB: StaticTypeBlock;
+	VAR elSize, arrSize, blkSize, dataOffset, ptrOffset: Size;  ptr, firstElem: Address; 
 	BEGIN
-		sTB := S.VAL( StaticTypeBlock, eltag );
-		arrSize := nofelem*sTB.recSize;
+		S.GET( eltag, elSize );
+		arrSize := nofelem*elSize;
 		IF arrSize = 0 THEN
 			NewSys( p, nofdim*4 + 3*AdrSize, isRealtime );
 		ELSE
 			dataOffset := 3*AdrSize + nofdim*AdrSize;
 			INC( dataOffset, (-dataOffset) MOD ArrayAlignment );
-			IF LEN( sTB.pointerOffsets ) = 0 THEN
+			S.GET( eltag + AdrSize, ptrOffset );
+			IF ptrOffset = -AdrSize THEN
 				(* no pointers in element type *)
 				NewSys( p, dataOffset + arrSize, isRealtime );
 			ELSE
-				size := dataOffset + arrSize + AdrSize; INC( size, (-size) MOD BlockSize );
+				blkSize := dataOffset + arrSize + AdrSize; INC( blkSize, (-blkSize) MOD BlockSize );
 				Machine.Acquire( Machine.Heaps );
-				ptr := GetBlock( size ) + AdrSize;
+				ptr := GetBlock( blkSize ) + AdrSize;
 				S.PUT( ptr - AdrSize, S.VAL( SET, eltag ) + {ArrayBit} );
 				firstElem := ptr + dataOffset;
-				S.PUT( ptr, firstElem + arrSize - sTB.recSize );  (* last elem *)
+				S.PUT( ptr, firstElem + arrSize - elSize );  (* last elem *)
 				(* ptr + 4 is reserved for mark phase *)
 				S.PUT( ptr + 2*AdrSize, firstElem );
 				p := S.VAL( ANY, ptr );
@@ -833,22 +833,26 @@ VAR
 
 	(** WriteType - Write a type name (for tracing only). *)
 	PROCEDURE WriteType*( t: Address );		(* t is static type descriptor *)
-	VAR m: Address; i: LONGINT;  ch: CHAR;  name: ARRAY 32 OF CHAR;
+	VAR m: Address; i: LONGINT;  ch: CHAR;  a: Address;
 	BEGIN
-		name := "";
 		S.GET( t - AdrSize, t );
 		S.GET( t + 4*AdrSize, m );
 		IF m # 0 THEN
-			i := 0;  S.GET( m + AdrSize + i, ch );
+			a := m + AdrSize;
+			i := 0;  S.GET( a, ch );
 			WHILE (ch >= '0') & (ch <= 'z') & (i < 32) DO
 				Trace.Char( ch );
-				INC( i );  S.GET( m + AdrSize + i, ch )
+				INC( i );  S.GET( a + i, ch )
 			END
 		ELSE  Trace.String( "NIL" )
 		END;
 		Trace.Char( '.' );
-		S.MOVE( t + 5*AdrSize, S.ADR( name[0] ), 32 );
-		IF name[0] = 0X THEN  Trace.String( "-" )  ELSE  Trace.String( name )  END;
+		a := t + 5*AdrSize;  i := 0;  S.GET( a, ch );
+		WHILE (ch >= '0') & (ch <= 'z') & (i < 32) DO
+			Trace.Char( ch );
+			INC( i );  S.GET( a + i, ch )
+		END;
+		IF i = 0 THEN  Trace.String( "-" )  END;	
 	END WriteType;
 
 
@@ -950,22 +954,67 @@ VAR
 
 	(*------------------ Initialization --------------------------------------------------*)
 
+	
+	(*
+	(* for debugging the static linker output *)
+	PROCEDURE BlockInfo( block: Address );
+	VAR tag: SET;  lastElem: Address;  recSize, blockSize: Size;
+		tag0, ttag: Address;
+	BEGIN
+		S.GET( block, tag );
+		S.GET( S.VAL( Address, tag - {ArrayBit, MarkBit} ), recSize );
+		tag0 := S.VAL( Address, tag - {ArrayBit, MarkBit} );
+		Trace.Hex( block, -8 );  Trace.Char( ' ' );  Trace.Hex( tag0, -8 ); Trace.Char( ' ' );
+		IF ArrayBit IN tag THEN
+			S.GET( block + AdrSize, lastElem );
+			blockSize := lastElem + recSize - block;
+			INC( blockSize, (-blockSize) MOD BlockSize );
+			
+			Trace.String( "array of " );  WriteType( tag0 )
+		ELSE
+			blockSize := recSize + AdrSize;
+			INC( blockSize, (-blockSize) MOD BlockSize );
+			
+			IF tag0 # block + AdrSize THEN  
+				WriteType( tag0 )
+			ELSE
+				S.GET( block + 24, ttag );
+				IF ttag = tag0 THEN  Trace.String( "sysblock" )
+				ELSE
+					S.GET( block + ProtOfs - AdrSize, ttag );
+					IF ttag = tag0 THEN 
+						Trace.String( "prot. " );
+						S.GET( block + ProtOfs, ttag );  WriteType( ttag )
+					ELSE
+						Trace.String( "?" )
+					END
+				END
+			END
+		END;
+		
+		Trace.Char( ' ' );  Trace.Int( blockSize, 1 );  
+		Trace.Ln
+	END BlockInfo;
+	*)
+	
 	PROCEDURE InitHeap;
 	VAR adr2: Address;
 		block, tag: Address;  frBlock:FreeBlock;
+		n: LONGINT;
 	BEGIN
+		n := 0;
 		block := Machine.memBlockHead.beginBlockAdr;
 		S.GET( block, tag );
 		WHILE tag # 0 DO
+		(*	IF n < 200 THEN  BlockInfo( block );  INC( n )  END;	*)
 			INC( block, SizeOf( block ) );
 			S.GET( block, tag );
 		END;
-		
+
 		S.PUT( block, block + AdrSize );	(* tag *)
 		S.PUT( block + AdrSize,  Machine.memBlockHead.endBlockAdr - block - AdrSize );	(* size *)
 		S.PUT( block + AdrSize + SizeSize, S.VAL( Address, 0 ) );		(* next *)
 	
-		
 		ClearFreeLists;
 		freeLists[MaxFreeLists].first := S.VAL( FreeBlock, block );
 		

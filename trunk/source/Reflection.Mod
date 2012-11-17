@@ -217,6 +217,56 @@ VAR
 		RETURN proc
 	END FindProc;
 
+	(* Find a procedure in the reference block.  Return index of name, or -1 if not found. *)
+	PROCEDURE FindProcByName*(mod: Modules.Module; CONST name: ARRAY OF CHAR;  VAR from, to: SYSTEM.ADDRESS): BOOLEAN;
+	VAR i, namePos, m, t, tstart, tend: LONGINT; ch: CHAR; newObjectFile: BOOLEAN;
+		refs: Modules.Bytes; success: BOOLEAN;
+	BEGIN
+		IF mod = NIL THEN RETURN FALSE END;
+		refs := mod.refs;
+		IF (refs=NIL) OR (LEN(refs) = 0) THEN RETURN FALSE END;
+		newObjectFile := NewObjectFile(refs);
+		i := 0; m := LEN(refs^);
+		IF newObjectFile THEN INC(i) END;
+		ch := refs[i]; INC(i); tstart := 0;
+		success := FALSE;
+		WHILE (i < m) & ((ch = 0F8X) OR (ch = 0F9X)) & ~success DO	(* proc *)
+			GetNum(refs, i, tstart);	(* pofs *)
+			IF newObjectFile THEN GetNum(refs,i,tend) END;
+			IF ch = 0F9X THEN
+				GetNum(refs, i, t);	(* nofPars *)
+				INC(i, 3)	(* RetType, procLev, slFlag *);
+				IF newObjectFile THEN INC(i,6) END;
+			END;
+			namePos := 0; success := TRUE;
+			REPEAT ch := refs[i]; INC(i); success := success & (ch = name[namePos]); INC(namePos); UNTIL ch = 0X;	(* pname *)
+			IF i < m THEN
+				ch := refs[i]; INC(i);	(* 1X | 3X | 0F8X | 0F9X *)
+				WHILE (i < m) & (ch >= 1X) & (ch <= 3X) DO	(* var *)
+					ch := refs[i]; INC(i);	(* type *)
+					IF (ch >= 81X) OR (ch = 16X) OR (ch = 1DX) THEN
+						GetNum(refs, i, t)	(* dim/tdadr *)
+					END;
+					GetNum(refs, i, t);	(* vofs *)
+					REPEAT ch := refs[i]; INC(i) UNTIL ch = 0X;	(* vname *)
+					IF i < m THEN ch := refs[i]; INC(i) END	(* 1X | 3X | 0F8X | 0F9X *)
+				END
+			END;
+		END;
+		IF success & ~newObjectFile THEN
+			IF (ch = 0F8X) OR (ch = 0F9X) THEN
+				GetNum(refs, i, tend)
+			ELSE
+				tend :=LEN(mod.code);
+			END;
+			INC(tstart, SYSTEM.ADR(mod.code[0]));
+			INC(tend, SYSTEM.ADR(mod.code[0]));
+		END;
+		from := tstart; to := tend;
+		RETURN success
+	END FindProcByName;
+
+
 	(* Display variables. *)
 	PROCEDURE Variables(w: Streams.Writer; refs: Modules.Bytes; refpos: LONGINT; base: SYSTEM.ADDRESS);
 	VAR v: Variable; j, col: LONGINT; name: ARRAY 64 OF CHAR; etc: BOOLEAN;

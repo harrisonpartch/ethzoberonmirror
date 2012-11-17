@@ -2,7 +2,7 @@ MODULE WMOTFonts;	(** AUTHOR "PL"; PURPOSE "OpenType Support" *)
 
 IMPORT
 	SYSTEM, KernelLog, WMGraphics, Raster, WMFontManager, Strings, WMRectangles,
-	Files, OpenTypeFonts, OpenType, OpenTypeInt;
+	Files, OpenTypeFonts, OpenType, OpenTypeInt, OpenTypeScan;
 
 CONST
 	ScreenDPI = 71;
@@ -35,6 +35,8 @@ TYPE
 		inst: OpenType.Instance;
 		glyph : OpenType.Glyph;
 		inCache, outCache: POINTER TO ARRAY OF CHAR; (* caches for antialiasing algorithm to avoid excessive allocation *)
+		ras: OpenTypeScan.Rasterizer;
+
 
 		PROCEDURE &Init*;
 		VAR mode : Raster.Mode; pix : Raster.Pixel;
@@ -158,7 +160,7 @@ TYPE
 
 			no := OpenType.UnicodeToGlyph(ofont, code);
 			IF Debug THEN KernelLog.String("Reading Glyph Nr: "); KernelLog.Int(no, 0); KernelLog.String(" Code: u"); KernelLog.Hex(code, 4); KernelLog.Ln END;
-			OpenType.LoadGlyph(inst, glyph, no,  {OpenType.Hinted, OpenType.Width , OpenType.Raster });
+			OpenType.LoadGlyph(inst, glyph, ras, no,  {OpenType.Hinted, OpenType.Width , OpenType.Raster });
 			g.dx := glyph.awx;													(* advance *)
 			g.x := glyph.hbx;													(* horizontal bearing x *)
 			g.y := glyph.hby;														(* horizontal bearing y *)
@@ -173,7 +175,7 @@ TYPE
 				ASSERT(bytes < LEN(Pattern));
 				ASSERT(bytes > 0);
 				k := 0; REPEAT Pattern[k] := 0X; INC(k) UNTIL k = bytes;
-				OpenType.EnumRaster(glyph, data);
+				OpenType.EnumRaster(ras, data);
 
 				xw := ((glyph.rw + 7) DIV 8) * 8;
 				l := xw * glyph.rh DIV 8;
@@ -197,6 +199,7 @@ TYPE
 				Antialias(g.img);
 			END;
 
+			OpenTypeScan.DisposeRasterizer(ras);
 		END ReadGlyph;
 
 		PROCEDURE Antialias(img: Raster.Image);

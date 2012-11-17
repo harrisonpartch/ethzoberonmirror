@@ -1116,6 +1116,15 @@ BEGIN
 	Machine.Release(Machine.Heaps)
 END NewSys;
 
+PROCEDURE SetPC(p: ANY; pc: SYSTEM.ADDRESS);
+VAR blockAdr: SYSTEM.ADDRESS;
+BEGIN
+	IF p # NIL THEN
+		SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, p)+HeapBlockOffset,blockAdr);
+		SYSTEM.PUT(blockAdr+HeapBlockOffset, pc);
+	END;
+END SetPC;
+
 (** NewRec - Implementation of NEW with a record. *)
 PROCEDURE NewRec*(VAR p: ANY; tag: SYSTEM.ADDRESS; isRealtime: BOOLEAN);
 VAR flags: SET; size, blockSize: SYSTEM.SIZE; typeInfoAdr, recordBlockAdr, dataBlockAdr : SYSTEM.ADDRESS;
@@ -1125,6 +1134,8 @@ BEGIN
 	SYSTEM.GET (typeInfoAdr + FlagsOfs, flags);
 	IF ProtTypeBit IN flags THEN
 		NewProtRec(p, tag, isRealtime);
+		SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+		SetPC(p,pc);
 	ELSE
 		SYSTEM.GET(tag, size);
 		(* the block size is the sum of the size of the RecordBlock and the DataBlock.
@@ -1213,6 +1224,7 @@ BEGIN
 	Machine.Release(Machine.Heaps)
 END NewProtRec;
 
+
 (** NewArr - Implementation of NEW with an array containing pointers. *)
 PROCEDURE NewArr*(VAR p: ANY; elemTag: SYSTEM.ADDRESS; numElems, numDims: SYSTEM.SIZE; isRealtime: BOOLEAN);
 VAR arrayBlockAdr, dataBlockAdr: SYSTEM.ADDRESS; arrayBlock {UNTRACED}: ArrayBlock;
@@ -1223,6 +1235,8 @@ BEGIN
 	arrSize := numElems * elemSize;
 	IF arrSize = 0 THEN
 		NewSys(p, numDims * AddressSize + 3 * AddressSize, isRealtime); (* no data, thus no specific alignment *)
+		SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+		SetPC(p,pc);
 	ELSE
 		ASSERT(BlockHeaderSize MOD ArrayAlignment = 0);
 		arrayDataOffset := numDims * AddressSize + 3 * AddressSize;
@@ -1231,6 +1245,8 @@ BEGIN
 		IF ptrOfs = MinPtrOfs - AddressSize THEN (* no pointers in element type *)
 			size := arrayDataOffset + arrSize;
 			NewSys(p, size, isRealtime);
+			SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+			SetPC(p, pc);
 		ELSE
 			arrayBlockSize := BlockHeaderSize + SYSTEM.SIZEOF(ArrayBlockDesc);
 			INC(arrayBlockSize, (-arrayBlockSize) MOD ArrayAlignment); (* do. *)

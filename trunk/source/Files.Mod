@@ -522,7 +522,11 @@ VAR
 
 PROCEDURE OpenReader*(VAR b: Reader; f: File; pos: LONGINT);
 BEGIN
-	NEW(b, f, pos)
+	IF b = NIL THEN
+		NEW(b, f, pos)
+	ELSE
+		b.InitFileReader(f,pos)
+	END;
 END OpenReader;
 
 (** Open a writer on a file at the specified position.  Remember to call Streams.Update before registering or closing the file! *)
