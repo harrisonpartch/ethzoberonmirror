@@ -6,17 +6,15 @@ MODULE BootLinker;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 (* based on Oberon for Windows bootlinker (MH) and  MIPS bootlinker (RC) *)
 
 
-IMPORT S := SYSTEM, Commands, Streams, Files;
+IMPORT S := SYSTEM, Commands, Streams, Files, Strings;
 
-CONST
-	StartModule = "BootConsole";
-	
+CONST	
 	ObjSuffix = ".Obj";
 
 	AdrSize = S.SIZEOF( S.ADDRESS );
 	SizeSize = S.SIZEOF( S.SIZE );
 
-	BootHeapSize = 32*1024*1024;  NofPtrFix = 10000;  
+	BootHeapSize = 2*1024*1024;  MaxReloc = 10000;  
 
 
 TYPE
@@ -177,12 +175,12 @@ VAR
 	
 	AN:  Address;
 
-	heapAdr, dlsymAdr, startModuleBody: Address;
+	heapAdr, dlsymAdr, entrypoint: Address;
 
 	modTag, expTag, ptrElemTag, procTableEntryTag, procOffsetEntryTag, ptrTableTag, tdTag: Address;
 
-	ptrFix: ARRAY NofPtrFix OF LONGINT;
-	ptrFixx: LONGINT;
+	ptrFix: ARRAY MaxReloc OF Address;
+	numRelocations: LONGINT;
 
 	(* ------------------- Loader ---------------------------------- *)
 
@@ -258,20 +256,49 @@ VAR
 			END;
 
 
-	(* ------------------- General procedures -------------------- *)
 
+	(* ------------------- General procedures -------------------- *)
 
 
 	PROCEDURE Error( CONST str1, str2: ARRAY OF CHAR );
 	BEGIN
-		error.String( "Error: " );  error.String( str1 );  error.String( str2 );  
 		error.Ln;
+		error.String( "Error: " );  error.String( str1 );  error.String( str2 );  
+		error.Ln; 
 	END Error;
+	
+	PROCEDURE FatalError( CONST str1, str2: ARRAY OF CHAR );
+	BEGIN
+		error.Ln;
+		error.String( "Error: " );  error.String( str1 );  error.String( str2 );  
+		error.Ln; 
+		error.Update;
+		HALT( 99 )
+	END FatalError;
+	
+
 
 
 	(* ------------------- Boot Heap ---------------------------------- *)
 
 
+	PROCEDURE Relocate( adr: Address );
+	VAR i: LONGINT;
+	BEGIN
+		FOR i := 0 TO numRelocations - 1 DO
+			IF ptrFix[i] = adr THEN
+			(*	Error( "", "same ptr location marked twice for fixing, ignored" );	*)
+				RETURN
+			END
+		END;
+		IF numRelocations # -1 THEN
+			IF numRelocations < MaxReloc THEN  ptrFix[numRelocations] := adr;  INC( numRelocations )
+			ELSE  Error( "Too many relocations", "" );  numRelocations := -1
+			END
+		END
+	END Relocate;
+	
+	
 	PROCEDURE ClearMem( a, len: LONGINT );
 	VAR  top: LONGINT;
 	BEGIN
@@ -282,16 +309,13 @@ VAR
 	END ClearMem;
 
 
-
 	PROCEDURE NewBlock( size: LONGINT ): Address;   (* size MOD B = 0 *)
 	VAR rsize, rest: LONGINT;  ptr, restptr: Address;
 	BEGIN
 		ptr := AN;
 		ASSERT( ptr MOD B = B - AdrSize );
 		S.GET( ptr + AdrSize, rsize );
-		IF rsize + AdrSize < size  THEN
-			error.Ln; error.String( "Pseudo-heap too small" );  error.Ln;  RETURN 0
-		END;
+		IF rsize + AdrSize < size  THEN  FatalError( "Pseudo-heap too small", "" )  END;
 		rest := rsize + AdrSize - size;
 		IF rest > 0 THEN  (* >= B >= 16 *)
 			restptr := ptr + size;
@@ -389,7 +413,6 @@ VAR
 	END NewArr;
 	
 
-
 	PROCEDURE FillStaticType( VAR staticTypeAddr: Address;
 								startAddr, typeInfoAdr: Address;
 								size, recSize: S.SIZE;
@@ -420,10 +443,54 @@ VAR
 		(* ptrOfs filled in later *)
 
 	END FillStaticType;
+	
+	
+	PROCEDURE MakeTD;
+		(* create temporary type tags which are needed for loading the  *)
+		(* first modules (up to module Modules). When Modules has been  *)
+		(* loaded they got replaced by the proper type tags (TreatModule) *)
+	VAR 
+		exp: ExportPtr;  mod: Module;
+		ptr: POINTER TO RECORD a: ANY  END; 
+		proc: ProcTable;  procOfs: ProcOffsetTable;
+		td: TypeDesc;  pTab: PtrTable;
+	BEGIN
+		NEW( exp );  S.GET( S.VAL( Address, exp ) - AdrSize, expTag );		
+		NEW( td );  S.GET( S.VAL( Address, td ) - AdrSize, tdTag );			
+		NEW( mod );  S.GET( S.VAL( Address, mod ) - AdrSize, modTag );		
+		NEW( ptr );  S.GET( S.VAL( Address, ptr ) - AdrSize, ptrElemTag );
+		NEW( proc, 1 );  S.GET( S.VAL( Address, proc ) - AdrSize, procTableEntryTag );		
+		NEW( procOfs, 1 );  S.GET( S.VAL( Address, procOfs ) - AdrSize, procOffsetEntryTag );		
+		NEW( pTab, 1 );  S.GET( S.VAL( Address, pTab ) - AdrSize, ptrTableTag );			
+	END MakeTD;
+
+
+	PROCEDURE InitializeHeap;
+	VAR firstBlock: Address;  i, size: LONGINT;  heap: Address;
+	BEGIN
+		S.NEW( S.VAL( ANY, heap ), BootHeapSize );
+		
+		modules := NIL;  lastMod := NIL;
+		dlsymAdr := 0; entrypoint := 0;
+
+		FOR i := 0 TO MaxReloc -1 DO  ptrFix[i] := 0  END;
+		numRelocations := 0;
+
+		heapAdr := heap + (-heap) MOD B;
+		firstBlock := heapAdr + B - AdrSize;
+		size := heap + BootHeapSize - firstBlock;  DEC( size, size MOD B );
+		S.PUT( firstBlock, firstBlock + AdrSize );
+		S.PUT( firstBlock + AdrSize, size - AdrSize );
+		S.PUT( firstBlock + 2*AdrSize, 0 );
+		AN := firstBlock ;
+		MakeTD
+	END InitializeHeap;
 
 
 
-	(* ---------------------- from Modules  ---------------------- *)
+
+
+	(* ---------------------- Modules  ---------------------- *)
 
 
 	PROCEDURE RefReadNum( VAR pos: LONGINT;  VAR i: LONGINT );
@@ -478,7 +545,8 @@ VAR
 				RefReadNum( pos, adr );  RefReadName( pos, name );  RefReadChar( pos, ch );
 			END;
 		END;
-		error.String( "Kernel routine '" );  error.String( pname );  
+		error.Ln;
+		error.String( "Error:  kernel routine '" );  error.String( m.name );  error.Char( '.' );  error.String( pname );  
 		error.String( "' not found" );  error.Ln;  RETURN 0
 	END ProcByName;
 
@@ -517,7 +585,7 @@ VAR
 		IF LEN(procTable) > 0 THEN
 			ASSERT( numProcs + LEN(procTable) <= LEN(procOffsets) );
 			
-			(* ptrTabe ignored in UnixAos *)
+			(*! ptrTabe ignored in UnixAos *)
 			
 			success := FindInsertionPos(procTable[0], pos); 
 			success := success & FindInsertionPos(procTable[LEN(procTable) - 1], poslast);
@@ -535,119 +603,7 @@ VAR
 			END
 		END
 	END InsertProcOffsets;
-	
-	(* ----------------------------------------------------------*)
 
-
-	PROCEDURE GetHeapRoutines( m: Module );
-	VAR i: LONGINT;
-	BEGIN
-		FOR i := 0 TO 2 DO  KernelRoutines[i].adr := ProcByName( KernelRoutines[i].name, m )  END
-	END GetHeapRoutines;
-
-	PROCEDURE GetObjectRoutines( m: Module );
-	VAR i: LONGINT;
-	BEGIN
-		FOR i := 3 TO 9 DO  KernelRoutines[i].adr := ProcByName( KernelRoutines[i].name, m )  END
-	END GetObjectRoutines;
-
-	PROCEDURE GetModuleRoutines( m: Module );
-	BEGIN
-		KernelRoutines[10].adr := ProcByName( KernelRoutines[10].name, m )
-	END GetModuleRoutines;
-
-
-
-	PROCEDURE PrepareGlue( m: Module );
-	VAR i, n: LONGINT; name: Name; x: Module;
-	BEGIN
-		INC( m.refcnt );   (* gets never unloaded *)
-
-		(* link to Unix (dlsym) *)
-		dlsymAdr := m.sb - AdrSize;
-		
-		n := 0;
-		FOR i := 0 TO LEN( m.typeInfo ) - 1 DO
-			name := m.typeInfo[i].name;
-			IF name = "PtrElemDesc" THEN  ptrElemTag := m.typeInfo[i].tag ;  INC( n )  END;
-		END;
-		IF n # 1 THEN
-			error.Ln;
-			error.String( "### 'PtrElemDesc' not found in module Glue" );  error.Ln;
-		END;
-		x := modules;
-		WHILE x # NIL DO
-			S.PUT( S.VAL( Address, x.typeInfo ) - AdrSize, S.VAL( SET, ptrElemTag ) + arrayMask );
-			x := x.next
-		END
-	END PrepareGlue;
-	
-	PROCEDURE FixTypeDescs( m: Module );
-	VAR i: LONGINT; 
-		
-		PROCEDURE PatchExport( VAR scope: ExportDesc;  tag: LONGINT );
-		VAR i: LONGINT;  t: Address;
-		BEGIN
-			S.GET( S.VAL( Address, scope.dsc ) - AdrSize, t );
-			IF t # tag THEN
-				S.PUT( S.VAL( Address, scope.dsc ) - AdrSize, tag );  i := 0;
-				WHILE i < scope.exports DO
-					IF scope.dsc[i].exports > 0 THEN  PatchExport( scope.dsc[i], tag )  END;
-					INC( i )
-				END
-			END
-		END PatchExport;
-	
-	BEGIN
-		FOR i := 0 TO LEN( m.typeInfo ) -1 DO
-			S.PUT( S.VAL( Address, m.typeInfo[i] ) - AdrSize, tdTag );
-		END;
-		S.PUT( S.VAL( Address, m ) - AdrSize,  modTag );
-		PatchExport( m.export, S.VAL( Address, S.VAL( SET, expTag ) + arrayMask ) );
-	END FixTypeDescs;
-
-
-	
-	PROCEDURE FixupModuletypes( m: Module );
-	VAR i, n: LONGINT;  name: Name;  x: Module;
-	BEGIN
-		n := 0;
-		FOR i := 0 TO LEN( m.typeInfo ) - 1 DO
-			name := m.typeInfo[i].name;
-			IF name = "TypeDesc" THEN  tdTag := m.typeInfo[i].tag;  INC( n )  END;
-			IF name = "Module" THEN  modTag := m.typeInfo[i].tag;  INC( n )  END;
-			IF name = "ExportDesc" THEN  expTag := m.typeInfo[i].tag;  INC( n )  END;
-			IF name = "ProcTableEntry" THEN  procTableEntryTag := m.typeInfo[i].tag;  INC( n )  END;
-			IF name = "ProcOffsetEntry" THEN  procOffsetEntryTag := m.typeInfo[i].tag;  INC( n )  END;
-		END;
-		
-		IF n # 5 THEN
-			error.Ln;
-			error.String( "### not all expected types found in module 'Modules'" ); 
-			error.Ln;
-		END;
-		x := modules;
-		WHILE x # NIL DO
-			FixTypeDescs( x );
-			x := x.next
-		END
-	END FixupModuletypes;
-
-	PROCEDURE Relocate( adr: LONGINT );
-	VAR i: LONGINT;
-	BEGIN
-		FOR i := 0 TO ptrFixx - 1 DO
-			IF ptrFix[i] = adr THEN
-			(*	Error( "", "same ptr location marked twice for fixing, ignored" );	*)
-				RETURN
-			END
-		END;
-		IF ptrFixx # -1 THEN
-			IF ptrFixx < NofPtrFix THEN  ptrFix[ptrFixx] := adr;  INC( ptrFixx )
-			ELSE  Error( "", "Too many ptr fixes" );  ptrFixx := -1
-			END
-		END
-	END Relocate;
 
 
 	(* GetNum - Get a compressed refblk number. *)
@@ -715,8 +671,122 @@ VAR
 	END AssignValue;
 
 
-	(* -------------------------  Loader  ------------------------- *)
+	PROCEDURE RelocateProcOffsets;	
+	VAR i, j: LONGINT; a: Address;
+	BEGIN
+		FOR i := 0 TO numProcs - 1 DO
+			a := S.ADR( procOffsets[i].data.pcFrom );  j := 0;
+			REPEAT
+				Relocate( a );  INC( a, AdrSize );  INC( j )
+			UNTIL j = 4
+		END
+	END RelocateProcOffsets;
 
+	PROCEDURE RelocatePtrOffsets;
+		(*!	
+			pointer offsets are not used by the GC of UnixAos because
+			I found no way to obtain the state (PC, SP, BP) of the
+			active Objects (POSIX threads).
+		*)
+	END RelocatePtrOffsets;
+	
+	
+	PROCEDURE InitializeModules;
+	BEGIN
+		NewArr( S.VAL( ANY, procOffsets ), procOffsetEntryTag, InitTableLen, 1 );
+		numProcs := 0; 
+		NewArr( S.VAL( ANY, ptrOffsets ), ptrTableTag, InitPtrTableLen, 1 );
+		numPtrs := 0; 
+	END InitializeModules;
+	
+
+	(* -------------------------  Loader  ------------------------- *)
+	
+	
+	PROCEDURE GetHeapRoutines( m: Module );
+	VAR i: LONGINT;
+	BEGIN
+		FOR i := 0 TO 2 DO  KernelRoutines[i].adr := ProcByName( KernelRoutines[i].name, m )  END
+	END GetHeapRoutines;
+
+	PROCEDURE GetObjectRoutines( m: Module );
+	VAR i: LONGINT;
+	BEGIN
+		FOR i := 3 TO 9 DO  KernelRoutines[i].adr := ProcByName( KernelRoutines[i].name, m )  END
+	END GetObjectRoutines;
+
+
+	PROCEDURE TreatGlue( m: Module );
+	VAR i, n: LONGINT; name: Name; 
+	BEGIN
+		INC( m.refcnt );   (* gets never unloaded *)
+
+		(* link to Unix (dlsym) *)
+		dlsymAdr := m.sb - AdrSize;
+		
+		n := 0;
+		FOR i := 0 TO LEN( m.typeInfo ) - 1 DO
+			name := m.typeInfo[i].name;
+			IF name = "PtrElemDesc" THEN  ptrElemTag := m.typeInfo[i].tag ;  INC( n )  END;
+		END;
+		IF n # 1 THEN
+			error.Ln;
+			error.String( "### 'PtrElemDesc' not found in module Glue" );  error.Ln;
+		END
+	END TreatGlue;
+	
+	
+	PROCEDURE FixTypeDescs( m: Module );
+	VAR i: LONGINT; 
+		
+		PROCEDURE PatchExport( VAR scope: ExportDesc;  tag: LONGINT );
+		VAR i: LONGINT;  t: Address;
+		BEGIN
+			S.GET( S.VAL( Address, scope.dsc ) - AdrSize, t );
+			IF t # tag THEN
+				S.PUT( S.VAL( Address, scope.dsc ) - AdrSize, tag );  i := 0;
+				WHILE i < scope.exports DO
+					IF scope.dsc[i].exports > 0 THEN  PatchExport( scope.dsc[i], tag )  END;
+					INC( i )
+				END
+			END
+		END PatchExport;
+	
+	BEGIN
+		S.PUT( S.VAL( Address, m.typeInfo ) - AdrSize, S.VAL( SET, ptrElemTag ) + arrayMask );
+		FOR i := 0 TO LEN( m.typeInfo ) -1 DO
+			S.PUT( S.VAL( Address, m.typeInfo[i] ) - AdrSize, tdTag );
+		END;
+		S.PUT( S.VAL( Address, m ) - AdrSize,  modTag );
+		PatchExport( m.export, S.VAL( Address, S.VAL( SET, expTag ) + arrayMask ) );
+	END FixTypeDescs;
+
+	
+	PROCEDURE TreatModules( m: Module );
+	VAR i, n: LONGINT;  name: Name;  x: Module;
+	BEGIN
+		n := 0;
+		FOR i := 0 TO LEN( m.typeInfo ) - 1 DO
+			name := m.typeInfo[i].name;
+			IF name = "TypeDesc" THEN  tdTag := m.typeInfo[i].tag;  INC( n )  END;
+			IF name = "Module" THEN  modTag := m.typeInfo[i].tag;  INC( n )  END;
+			IF name = "ExportDesc" THEN  expTag := m.typeInfo[i].tag;  INC( n )  END;
+			IF name = "ProcTableEntry" THEN  procTableEntryTag := m.typeInfo[i].tag;  INC( n )  END;
+			IF name = "ProcOffsetEntry" THEN  procOffsetEntryTag := m.typeInfo[i].tag;  INC( n )  END;
+		END;
+		IF n # 5 THEN
+			error.Ln;
+			error.String( "### not all expected types found in module 'Modules'" );  error.Ln;
+		END;
+		
+		x := modules;
+		WHILE x # NIL DO
+			FixTypeDescs( x );
+			x := x.next
+		END;
+		KernelRoutines[10].adr := ProcByName( KernelRoutines[10].name, m )
+	END TreatModules;
+	
 
 	(* ReadHeader - Read object file header. *)
 
@@ -1316,9 +1386,9 @@ VAR
 						i := 0;
 						WHILE (i < scope.exports) & (scope.dsc[i].fp # fp) DO  INC( i )  END;
 						IF i >= scope.exports THEN
-							Err;  tmpErr := TRUE;  Append( "/", msg );
-							IF name = "@" THEN  Append( "@/",msg );  Append( prevname, msg )
-							ELSE  Append( name, msg )
+							Err;  tmpErr := TRUE;  Strings.Append( msg, "/" );
+							IF name = "@" THEN  Strings.Append( msg, "@/" );  Strings.Append( msg, prevname )
+							ELSE  Strings.Append( msg, name )
 							END;
 						ELSIF (level = EUobjScope) & (link # 0) THEN
 							IF ~(EUProcFlagBit IN S.VAL( SET, link )) THEN
@@ -1539,14 +1609,11 @@ VAR
 					ReadUseBlock( r, m, dataLink^, res, msg ) & ReadTypeBlock( r, m, h, type^ ) &
 					ReadExTableBlock( r, m ) & ReadPtrsInProcBlock( r, m )  & ReadRefBlock( r, m, h )
 				THEN
-					IF m.name = "Glue" THEN  PrepareGlue( m )
+					IF m.name = "Glue" THEN  TreatGlue( m )
 					ELSIF m.name = "Heaps" THEN  GetHeapRoutines( m )
-					ELSIF m.name = "Modules" THEN  
-						FixupModuletypes( m );
-						GetModuleRoutines( m )
+					ELSIF m.name = "Modules" THEN  TreatModules( m );
 					ELSIF m.name = "Objects" THEN  GetObjectRoutines( m )
-					ELSIF m.name = StartModule THEN
-						startModuleBody := S.ADR( m.code[0] )
+					ELSIF m.name = "BootConsole" THEN  entrypoint := S.ADR( m.code[0] )
 					END;
 					IF h.dataLinks # 0 THEN  FixupGlobals( m, dataLink^ )  END;
 					IF h.links # 0 THEN  FixupLinks( m, links^, fixupCounts^, caseTableSize, res )  END;
@@ -1558,15 +1625,15 @@ VAR
 				END
 			END
 		ELSE
-			res := IncompatibleModuleName;  COPY(fileName, msg);  Append(" incompatible module name", msg)
+			res := IncompatibleModuleName;  COPY(fileName, msg);  Strings.Append( msg, " incompatible module name" )
 		END;
-		IF (res # Ok) & (msg[0] = 0X) THEN  COPY(fileName, msg);  Append(" corrupt", msg)  END;
+		IF (res # Ok) & (msg[0] = 0X) THEN  COPY(fileName, msg);  Strings.Append( msg, " corrupt" )  END;
 		IF res # Ok THEN  m := NIL  END;
 		RETURN m
 	END LoadObj;
 
 
-	PROCEDURE Load( CONST name: ARRAY OF CHAR; VAR res: LONGINT; VAR msg:  ARRAY OF CHAR  ): Module;
+	PROCEDURE Load( CONST name: ARRAY OF CHAR; VAR res: LONGINT;  VAR msg:  ARRAY OF CHAR ): Module;
 	VAR f: Files.File;  r: Files.Reader;
 		fname: ARRAY 64 OF CHAR;
 		m: Module;
@@ -1574,7 +1641,7 @@ VAR
 		m := modules;  res := Ok;
 		WHILE (m # NIL ) & (name # m.name) DO  m := m.next  END;
 		IF m = NIL THEN
-			COPY( name, fname );  Append( ObjSuffix, fname );
+			COPY( name, fname );  Strings.Append( fname, ObjSuffix );
 			f := Files.Old( fname );
 			IF f = NIL THEN
 				Error( fname, " not found" );  res := FileNotFound;  RETURN  NIL
@@ -1582,91 +1649,37 @@ VAR
 			Files.OpenReader( r, f, 0 );
 			m := LoadObj( name, fname, r, res, msg )
 		ELSIF ~m.init THEN
-			Error( "", "cyclic import not allowed" );
+			Error( "cyclic import not allowed: ", m.name );
 			m := NIL
 		END;
 		RETURN m
 	END Load;
 
 
+	(* ------------------- Linker ----------------------*)
 
-
-	PROCEDURE Append( CONST src: ARRAY OF CHAR;  VAR dest: ARRAY OF CHAR );
-	VAR i, j, m: LONGINT;
-	BEGIN
-		j := 0;
-		WHILE dest[j] # 0X DO  INC( j )  END;
-		m := LEN( dest ) - 1;  i := 0;
-		WHILE (src[i] # 0X) & (j # m) DO  dest[j] := src[i];  INC( i );  INC( j )  END;
-		dest[j] := 0X
-	END Append;
-
-
-(*	PROCEDURE ShowTD( tag: Address );
-	VAR i, val: LONGINT;
-	BEGIN
-		S.GET( tag - 4, val );  out.Hex( val, -8 );  out.Ln;
-		REPEAT
-			S.GET( tag, val );
-			out.Hex( tag, -8 ); out.Char( ' ' ); out.Hex( val, -8 );  out.Ln;
-			INC( tag, 4 ); INC( i )
-		UNTIL (val = -4) OR (i = 10);
-		out.Ln;
-		out.Update
-	END ShowTD;	*)
 	
-	
-	PROCEDURE MakeTD;
-		(* create temp. type tags which are needed to load the *)
-		(* first modules up to module 'Modules'  *)
-	VAR 
-		exp: ExportPtr;  mod: Module;
-		ptr: POINTER TO RECORD a: ANY  END;
-		proc: ProcTable;  procOfs: ProcOffsetTable;
-		td: TypeDesc;  pTab: PtrTable;
+	PROCEDURE InitKernelRoutines;
+	VAR i: LONGINT;
 	BEGIN
-		NEW( exp );  S.GET( S.VAL( Address, exp ) - AdrSize, expTag );		
-		NEW( td );  S.GET( S.VAL( Address, td ) - AdrSize, tdTag );			
-		NEW( mod );  S.GET( S.VAL( Address, mod ) - AdrSize, modTag );		
-		NEW( ptr );  S.GET( S.VAL( Address, ptr ) - AdrSize, ptrElemTag );		
-		NEW( proc, 1 );  S.GET( S.VAL( Address, proc ) - AdrSize, procTableEntryTag );		
-		NEW( procOfs, 1 );  S.GET( S.VAL( Address, procOfs ) - AdrSize, procOffsetEntryTag );		
-		NEW( pTab, 1 );  S.GET( S.VAL( Address, pTab ) - AdrSize, ptrTableTag );			
-	END MakeTD;
-
-
-	PROCEDURE Init( heap: Address );
-	VAR firstBlock: Address;  i, size: LONGINT;
-	BEGIN
-		FOR i := 0 TO 10 DO  KernelRoutines[0].name := "";  KernelRoutines[0].adr := 0  END;
+		FOR i := 0 TO 10 DO  KernelRoutines[0].adr := 0  END;
 		KernelRoutines[0].name := "NewRec";
 		KernelRoutines[1].name := "NewSys";
 		KernelRoutines[2].name := "NewArr";
 		KernelRoutines[3].name := "CreateProcess";
 		KernelRoutines[4].name := "Await";
+		KernelRoutines[5].name := "";
 		KernelRoutines[6].name := "Lock";
 		KernelRoutines[7].name := "Unlock";
+		KernelRoutines[8].name := "";
+		KernelRoutines[9].name := "";
 		KernelRoutines[10].name := "GetProcedure";
-		modules := NIL;  lastMod := NIL;
-
-		dlsymAdr := 0; startModuleBody := 0;
-
-		FOR i := 0 TO NofPtrFix -1 DO  ptrFix[i] := 0  END;
-		ptrFixx := 0;
-
-		heapAdr := heap + (-heap) MOD B;
-		firstBlock := heapAdr + B - AdrSize;
-		size := heap + BootHeapSize - firstBlock;  DEC( size, size MOD B );
-		S.PUT( firstBlock, firstBlock + AdrSize );
-		S.PUT( firstBlock + AdrSize, size - AdrSize );
-		S.PUT( firstBlock + 2*AdrSize, 0 );
-		AN := firstBlock ;
-		MakeTD
-	END Init;
-
+	END InitKernelRoutines;
+	
+	
 
 	PROCEDURE OutBootfile( CONST bootName: ARRAY OF CHAR );
-	VAR f: Files.File;  w: Files.Writer;  top, from, relocSize, i: LONGINT;  m: Module;
+	VAR f: Files.File;  w: Files.Writer;  top, from, i: LONGINT;  m: Module;
 	BEGIN
 		top := AN;
 		m := modules;
@@ -1681,67 +1694,42 @@ VAR
 		from := heapAdr + B - AdrSize;
 		w.RawLInt( from );  w.RawLInt( top - from );
 		WHILE from < top DO  S.GET( from, i );  w.RawLInt( i );  INC( from, 4 )  END;
-		w.RawLInt( startModuleBody );  (* entrypoint *)
+		w.RawLInt( entrypoint );  
 		w.RawLInt( 0 );
 
 		(* output relocate information *)
-		relocSize := w.Pos( );  w.RawNum( ptrFixx );  i := 0;
-		WHILE i < ptrFixx DO  w.RawNum( ptrFix[i] - heapAdr );  INC( i )  END;
-		w.RawLInt( dlsymAdr - heapAdr );  relocSize := w.Pos( ) - relocSize;
+		w.RawNum( numRelocations );  i := 0;
+		WHILE i < numRelocations DO  w.RawNum( ptrFix[i] - heapAdr );  INC( i )  END;
+		w.RawLInt( dlsymAdr - heapAdr );  
 		w.Update;
 		Files.Register( f );
 
-		out.String( "heap: " );  out.Int( top - heapAdr, 0 );
-		out.String( "  reloc: " );  out.Int( relocSize, 0 );
-		out.String( "  file: " );  out.Int( f.Length( ), 0 )
+		out.String( "used heap space: " );  out.Int( (top - heapAdr) DIV 1024, 0 );
+		out.String( "KB,  relocations: " );  out.Int( numRelocations, 0 );
+		out.String( ",  file: " );  out.Int( f.Length( ), 0 )
 	END OutBootfile;
 
-	PROCEDURE RelocateProcOffsets;	
-	VAR i, j: LONGINT; a: Address;
-	BEGIN
-		FOR i := 0 TO numProcs - 1 DO
-			a := S.ADR( procOffsets[i].data.pcFrom );  j := 0;
-			REPEAT
-				Relocate( a );  INC( a, AdrSize );  INC( j )
-			UNTIL j = 4
-		END
-	END RelocateProcOffsets;
-
-	PROCEDURE RelocatePtrOffsets;
-		(*	
-			pointer offsets are not used by the GC of UnixAos because
-			I found no way to obtain the state (PC, SP, BP) of the
-			active Objects (POSIX threads).
-		*)
-	END RelocatePtrOffsets;
 
 	PROCEDURE Link*( context: Commands.Context );
 	VAR bootFileName, name: Name;
 		m: Module;
 		res: LONGINT;  msg: ARRAY 128 OF CHAR;
-		heap: Address;
 	BEGIN
 		out := context.out;  error := context.error;
 		
-		S.NEW( S.VAL( ANY, heap ), BootHeapSize );
-		IF heap = 0 THEN  
-			error.String( "S.NEW( heap, BootHeapSize ) failed" );  error.Ln;  
-			error.Update;
-			RETURN  
-		END;
-
-		IF ~context.arg.GetString( bootFileName ) OR ~context.arg.GetString( name ) THEN
+		IF ~context.arg.GetString( bootFileName ) OR 
+		    ~context.arg.GetString( name ) OR 
+		    (name # ":=") THEN
 			error.String( "wrong parameter(s), terminating" ); error.Ln;  
 			error.Update;  RETURN
 		END;
+		
 		IF context.arg.GetString( name ) THEN
-			Init( heap );
-			NewArr( S.VAL( ANY, procOffsets ), procOffsetEntryTag, InitTableLen, 1 );
-			numProcs := 0; 
-			NewArr( S.VAL( ANY, ptrOffsets ), ptrTableTag, InitPtrTableLen, 1 );
-			numPtrs := 0; 
-			
 			out.String( "linking " );  out.String( bootFileName );  out.Ln;  
+			InitializeHeap;
+			InitializeModules;
+			InitKernelRoutines;
+						
 			res := Ok;
 			REPEAT
 				out.String( "    " );  out.String( name );  out.Ln;
@@ -1750,8 +1738,8 @@ VAR
 					error.String( "loading module " );  error.String( name ); error.String( "   failed: " );  
 					error.String( msg ) 
 				 END;
-				
 			UNTIL ~context.arg.GetString( name ) OR (m = NIL);
+			
 			IF res = Ok THEN  
 				AssignValue( "Modules", "root", S.VAL( Address, modules ), TRUE );
 	

@@ -126,6 +126,7 @@ TYPE
 		END Join;
 
 	BEGIN {ACTIVE, SAFE}
+		SetContext(context); (* cannot be called in Init because there the process is not created yet *)
 		IF ~exception THEN
 			exception := TRUE; (* catch exceptions from now on *)
 			module := Modules.ThisModule(moduleName, res, msg);
@@ -168,6 +169,7 @@ TYPE
 VAR
 	emptyString : ARRAY 1 OF CHAR;
 	trace: BOOLEAN;
+	defaultContext: Context; (* Fallback. Note that this context would be shared by different users -- may be used for tracing though *)
 
 
 (* Create a ready on a empty string *)
@@ -215,13 +217,22 @@ END Split;
 (**	Can be called by a command to retrieve the context associated with its active object. *)
 
 PROCEDURE GetContext*() : Context;
-VAR object : ANY;
+VAR process: Objects.Process; context: ANY;
 BEGIN
-	object := Objects.ActiveObject();
-	IF (object # NIL) & (object IS Runner) & (object(Runner).state = Loaded) THEN RETURN object(Runner).context;
-	ELSE RETURN NIL;
+	process := Objects.CurrentProcess();
+	context := process.context;
+	IF (context # NIL) & (context IS Context) THEN RETURN context(Context)
+	ELSE RETURN defaultContext
 	END;
 END GetContext;
+
+PROCEDURE SetContext*(context: Context);
+VAR process: Objects.Process;
+BEGIN
+	process := Objects.CurrentProcess();
+	Objects.SetContext(process, context)
+END SetContext;
+
 
 
 (**	Activate a command in its own active object.
@@ -287,6 +298,7 @@ BEGIN
 	emptyString[0] := 0X;
 	Machine.GetConfig("TraceCommands", s);
 	trace := (s[0] = "1");
+	NEW(defaultContext,NIL,NIL,NIL,NIL,NIL);
 END Init;
 
 

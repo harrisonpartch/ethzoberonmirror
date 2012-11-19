@@ -694,7 +694,7 @@ TYPE
 
 		(** Commands.Context.caller will be set to this object when executing a command *)
 		commandCaller*: OBJECT;
-		commandWriter*: Streams.Writer;
+		commandWriter*, errorWriter*: Streams.Writer;
 
 		(** Called whenever the cursor position changes *)
 		onCursorChanged* : PROCEDURE {DELEGATE};
@@ -3660,7 +3660,7 @@ TYPE
 			selectionOk : BOOLEAN;
 			from, to: Texts.TextPosition;
 			commandCaller:OBJECT;
-			commandWriter: Streams.Writer;
+			commandWriter, errorWriter: Streams.Writer;
 		BEGIN
 			Acquire;
 			text.AcquireRead;
@@ -3711,9 +3711,12 @@ TYPE
 				IF (Inputs.Alt * modifierFlags # {}) THEN
 					(* execute AltMMCommand with actual command and its parameters as parameter *)
 					COPY(AltMMCommand, command);
-					commandWriter := NIL;
+					commandWriter := NIL; errorWriter := NIL;
 					i := 0;
-				ELSE commandWriter := SELF.commandWriter;
+				ELSE
+					commandWriter := SELF.commandWriter;
+					errorWriter := SELF.errorWriter;
+					TRACE(errorWriter, SELF.errorWriter);
 				END;
 
 				IF (i < LEN(s)) THEN (* copy parameter string *)
@@ -3746,7 +3749,7 @@ TYPE
 				END;
 
 				NEW(arg, LEN(parameters)); arg.SetRaw(parameters^, 0, LEN(parameters));
-				NEW(context, NIL, arg, commandWriter, commandWriter, commandCaller);
+				NEW(context, NIL, arg, commandWriter, errorWriter, commandCaller);
 
 				IF TraceCommands IN Trace THEN
 					KernelLog.String("WMTextView: Executing command: '"); KernelLog.String(command); KernelLog.String("'");

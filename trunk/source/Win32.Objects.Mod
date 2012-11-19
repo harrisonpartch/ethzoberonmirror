@@ -121,6 +121,7 @@ TYPE
 	Process* = OBJECT(Heaps.ProcessLink)
 	VAR
 		rootedNext : Process; (*  to prevent process to be GCed in WinAos *)
+		context-: ANY;
 		obj-: ProtectedObject;   (* associated active object *)
 		state-: Kernel32.Context;
 		(*
@@ -893,14 +894,21 @@ BEGIN
 	Kernel32.ExitThread(0);
 	Kernel32.Sleep(999999);   (* wait until dependent threads terminated *)
 END TerminateProc;
+
+PROCEDURE SetContext*(process: Process; context: ANY);
+BEGIN
+	process.context := context
+END SetContext;
+
 (* Allocate a new process associated with "obj". Must be outside lock region, because of potential GC. *)
 PROCEDURE NewProcess(body: Body; priority: LONGINT;  flags: SET; obj: ProtectedObject; VAR new: Process);
 VAR t,r: Process;  fn: Heaps.FinalizerNode;
 BEGIN
 	NEW(t);
 	t.handle := 0;
+	r := CurrentProcess();
+	t.context := r.context;
 	IF priority = 0 THEN  (* no priority specified *)
-		r := CurrentProcess();
 		t.priority := r.priority (* inherit priority of creator *)
 	ELSIF priority > 0 THEN  (* positive priority specified *)
 		t.priority := priority

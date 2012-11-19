@@ -72,6 +72,7 @@ TYPE
 	Process* = OBJECT (Heaps.ProcessLink)
 	VAR
 		rootedNext : Process;	(** for rootedProcesses *)
+		context-: ANY; (* context of the process, for generic access to standard readers and writers. Could also be used to represent thread-based global variables *)
 		obj-: ProtectedObject;	(** associated active object *)
 		state-: Machine.State;	(** processor state of suspended process *)
 		sse: Machine.SSEState;	(* fpu and sse state of preempted process (only valid if Preempted IN flag) *)
@@ -1123,14 +1124,21 @@ BEGIN
 	Machine.DisposeStack(t(Process).stack)
 END FinalizeProcess;
 
+PROCEDURE SetContext*(process: Process; context: ANY);
+BEGIN
+	process.context := context
+END SetContext;
+
 (* Allocate a new process associated with "obj". Must be outside lock region, because of potential GC. *)
 PROCEDURE NewProcess(body: Body; flags: SET; obj: ProtectedObject; VAR new: Process);
-VAR t: Process; sp: SYSTEM.ADDRESS; id: LONGINT; fn: Heaps.FinalizerNode;
+VAR t: Process; sp: SYSTEM.ADDRESS; id: LONGINT; fn: Heaps.FinalizerNode; current: Process;
 BEGIN
+	current := CurrentProcess();
 	NEW(t); NEW(fn); (* implicit call Heaps.NewRec *)
 	t.next := NIL; t.prev := NIL; t.rootedNext := NIL;
 	t.waitingOn := NIL; t.flags := flags;
 	t.obj := obj; t.mode := Unknown;
+	IF current # NIL THEN t.context := current.context END;
 	(* initialize the stack *)
 	Machine.NewStack(t.stack, t, sp);
 	IF VeryConservative THEN

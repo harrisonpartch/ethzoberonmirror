@@ -493,7 +493,7 @@ TYPE
 		scratch : ScratchPanel;
 		sidePanel : WMStandardComponents.Panel;
 		logPanel, editPanel: WMStandardComponents.Panel;
-		logWriter: TextWriter;
+		logWriter, errorWriter: TextWriter;
 		searchPanel: WMSearchComponents.SearchPanel;
 
 		errorGrid : WMDiagnostics.DiagnosticsView;
@@ -557,11 +557,15 @@ TYPE
 			logEdit.allowScrollbars.Set(TRUE);
 			logEdit.tv.showBorder.Set(TRUE); logEdit.visible.Set(FALSE);
 			NEW(logWriter, logEdit.text);
+			NEW(errorWriter, logEdit.text);
+			errorWriter.SetFontColor(LONGINT(0FF0000FFH));
 			logWriter.update := OpenLogEditor;
+			errorWriter.update := OpenLogEditor;
 
 			NEW(scratch); scratch.alignment.Set(WMComponents.AlignClient);
 			scratch.editor.tv.commandCaller := window;
 			scratch.editor.tv.commandWriter := logWriter;
+			scratch.editor.tv.errorWriter := errorWriter;
 			scratchPanel.AddContent(scratch);
 
 			sidePanel.AddContent(scratchPanel);
@@ -624,6 +628,7 @@ TYPE
 			editor.tv.onCursorChanged := CursorChanged;
 			editor.tv.commandCaller := window;
 			editor.tv.commandWriter := logWriter;
+			editor.tv.errorWriter := errorWriter;
 			editor.text.onTextChanged.Add(TextChanged);
 			editor.tv.showLineNumbers.Set(settings.showLineNumbers);
 			editor.tv.indicateTabs.Set(settings.indicateTabs);
@@ -645,6 +650,7 @@ TYPE
 			splitEditor.tv.wrapMode.Set(WMTextView.NoWrap);
 			splitEditor.tv.commandCaller := window;
 			splitEditor.tv.commandWriter := logWriter;
+			splitEditor.tv.errorWriter := errorWriter;
 			splitEditor.SetText(editor.text);
 			splitEditor.tv.showLineNumbers.Set(settings.showLineNumbers);
 			splitEditor.tv.indicateTabs.Set(settings.indicateTabs);
