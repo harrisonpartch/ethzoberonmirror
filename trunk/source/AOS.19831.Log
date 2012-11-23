@@ -1,0 +1,56 @@
+Kernel: Initialized and started.
+X11 Display depth = 24
+Default font installedOpenType 0.45 BBPort /3.12.2004  eos, pl
+WindowManager: 24-bit color
+WindowManager: Display resolution: 1432x992x24
+DisplayRefresher installed.
+Autostart: executing FileTrapWriter.Install
+Autostart: executing WMTrapWriter.Install
+{P cpuid= 0, pid= 30 Events: System event log started.}
+WMMacros: Macro file Macros.XML loaded.
+Autostart: executing UpTime.Install
+Uptime monitor started.
+Autostart: executing StartMenu.Open
+Autostart: executing SkinEngine.Unload
+ZeroSkin already loaded
+Autostart: executing WMRestorable.Load Auto.dsk
+{P cpuid= 0, pid= 42 Starting logger}
+WMRestorable: Loading desktop from Auto.dsk...
+Autostart: executing WMNavigate.Open -vs 1 0 0 Navigation:TaskList
+SyntaxHighlighter: Auto-loading SyntaxHighlighter.XML ... done.
+	PETModuleTree@63134	error 258: illegal character in number 
+	PETModuleTree@63134	error 258: illegal character in number 
+	PETModuleTree@63134	error 258: illegal character in number 
+	PETModuleTree@63134	error 258: illegal character in number 
+	PETModuleTree@63134	error 258: illegal character in number 
+	PETModuleTree@63134	error 258: illegal character in number 
+	PETModuleTree@63134	error 258: illegal character in number 
+	PETModuleTree@63134	error 258: illegal character in number 
+	PETModuleTree@63759	error 258: illegal character in number 
+	PETModuleTree@63770	error 258: illegal character in number 
+	PETModuleTree@63831	error 258: illegal character in number 
+	PETModuleTree@63842	error 258: illegal character in number 
+	PETModuleTree@66049	error 270: number too large 
+	PETModuleTree@67035	error 270: number too large 
+	PETModuleTree@67581	error 259: illegal character in string 
+	PETModuleTree@68120	error 259: illegal character in string 
+	PETModuleTree@69299	error 259: illegal character in string 
+	PETModuleTree@70478	error 259: illegal character in string 
+	PETModuleTree@71892	error 258: illegal character in number 
+	PETModuleTree@71892	error 258: illegal character in number 
+	PETModuleTree@71892	error 258: illegal character in number 
+	PETModuleTree@71892	error 258: illegal character in number 
+	PETModuleTree@71892	error 258: illegal character in number 
+	PETModuleTree@71892	error 258: illegal character in number 
+	PETModuleTree@71892	error 258: illegal character in number 
+	PETModuleTree@71892	error 258: illegal character in number 
+	PETModuleTree@72454	error 258: illegal character in number 
+	PETModuleTree@72465	error 258: illegal character in number 
+	PETModuleTree@72523	error 258: illegal character in number 
+	PETModuleTree@72534	error 258: illegal character in number 
+Cleanup
+{P cpuid= 0, pid= 63 Events: System event log shut down.}
+WindowManager: Window manager closed
+{P cpuid= 0, pid= 63 Files: 152 open files}
+Objects 10479 discarded finalizers, 0 pending finalizers
+UnixFiles 156 discarded finalizers, 0 pending finalizers
