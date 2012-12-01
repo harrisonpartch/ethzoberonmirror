@@ -1921,6 +1921,7 @@ TYPE
 			(* used if this designator contains an index operator call, e.g. 'asot.^"[]"(indexList)': *)
 			relatedAsot-: Expression; (* the ASOT on which the index operator is called *)
 			relatedIndexList-: ExpressionList; (* the index list *)
+			modifiers-: Modifier;
 
 		PROCEDURE &InitDesignator*(position: LONGINT);
 		BEGIN
@@ -1928,7 +1929,8 @@ TYPE
 			left := NIL;
 			relatedRhs := NIL;
 			relatedAsot := NIL;
-			relatedIndexList := NIL
+			relatedIndexList := NIL;
+			modifiers := NIL;
 		END InitDesignator;
 
 		PROCEDURE SetLeft*(expression: Expression);
@@ -1946,6 +1948,10 @@ TYPE
 		PROCEDURE SetRelatedIndexList*(relatedIndexList: ExpressionList);
 		BEGIN SELF.relatedIndexList := relatedIndexList
 		END SetRelatedIndexList;
+
+		PROCEDURE SetModifiers*(flags: Modifier);
+		BEGIN modifiers := flags
+		END SetModifiers;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -1996,7 +2002,8 @@ TYPE
 		may designate a function call or a type guard
 	**)
 	ParameterDesignator* = OBJECT(Designator)
-		VAR parameters-: ExpressionList;
+		VAR
+			parameters-: ExpressionList;
 
 		PROCEDURE &InitParameterDesignator(position: LONGINT; left: Designator; parameters: ExpressionList);
 		BEGIN InitDesignator(position); SELF.left := left; SELF.parameters := parameters

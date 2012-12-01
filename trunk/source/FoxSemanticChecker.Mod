@@ -702,7 +702,7 @@ TYPE
 			IF TypeNeedsResolution(x) THEN
 				modifiers := x.modifiers;
 				x.SetRealtime(HasFlag(modifiers,Global.NameRealtime, position));
-				CheckModifiers(modifiers);
+				CheckModifiers(modifiers, TRUE);
 				(* inheritance cycle check
 					example:
 					A=POINTER TO RECORD(B) END;
@@ -807,13 +807,19 @@ TYPE
 			END;
 		END HasValue;
 
-		PROCEDURE CheckModifiers(modifiers: SyntaxTree.Modifier);
+		PROCEDURE CheckModifiers(modifiers: SyntaxTree.Modifier; checkUse: BOOLEAN);
 		VAR this: SyntaxTree.Modifier;
 		BEGIN
 			this := modifiers;
 			WHILE this # NIL DO
 				IF ~this.resolved THEN
+				IF checkUse THEN
 					Error(this.position,Diagnostics.Invalid,"unexpected modifier");
+				ELSE
+					this.SetExpression(ConstantExpression(this.expression));
+					this.Resolved;
+				(*! sanity check for "unqualified" modifiers, as for example used in ActiveCells Engine parameterization *)
+				END;
 				END;
 				this := this.nextModifier
 			END;
@@ -843,7 +849,7 @@ TYPE
 				IF HasValue(modifiers,Global.NameStackAligned,position,value) THEN procedureType.SetStackAlignment(value) END;
 				IF HasFlag(modifiers, Global.NameDelegate,position) THEN procedureType.SetDelegate(TRUE) END;
 				IF HasFlag(modifiers, Global.NameRealtime,position) THEN procedureType.SetRealtime(TRUE) END;
-				CheckModifiers(modifiers);
+				CheckModifiers(modifiers, TRUE);
 				typeFixes.Add(procedureType,currentScope);
 				procedureType.SetHasPointers(procedureType.isDelegate);
 				procedureType.SetState(SyntaxTree.Resolved);
@@ -1012,7 +1018,7 @@ TYPE
 					END
 					*)
 				END;
-				CheckModifiers(modifier);
+				CheckModifiers(modifier, FALSE);
 
 				(* process parameters *)
 				parameter :=x.firstParameter;
@@ -3168,11 +3174,12 @@ TYPE
 				(* error should already have been reported *)
 				result := SyntaxTree.invalidDesignator;
 			ELSIF resolved IS SyntaxTree.Designator THEN
-				result := resolved(SyntaxTree.Designator)
+				result := resolved(SyntaxTree.Designator);
 			ELSE
 				 Error(d.position,Diagnostics.Invalid,"is no designator ! ");
 				 result := SyntaxTree.invalidDesignator;
 			END;
+
 
 			(* result.type might be nil.  *)
 			RETURN result
@@ -5902,6 +5909,14 @@ TYPE
 			ELSE
 				result := expression
 			END;
+			(* check that designator modifier is only used in a place where it is also handled
+			 Currently, this is only at NEW(cell {capabilities}, ...)
+			*)
+			IF (expression # NIL) & (expression IS SyntaxTree.Designator) & (result # NIL) & (result IS SyntaxTree.Designator) THEN
+				IF (expression(SyntaxTree.Designator).modifiers # NIL) & (result(SyntaxTree.Designator).modifiers=NIL) THEN (* modifier not understood during resolving *)
+					Error(expression.position, Diagnostics.Invalid,"invalid modifier.");
+				END;
+			END;
 			RETURN result
 		END ResolveExpression;
 
@@ -6148,7 +6163,7 @@ TYPE
 					IF HasValue(modifiers, Global.NameCodeMemorySize, position, value) THEN END;
 					IF HasValue(modifiers, Global.NameDataMemorySize, position, value) THEN END;
 				END;
-				CheckModifiers(modifiers);
+				CheckModifiers(modifiers, ~InCellNetScope(variable.scope) OR ~(variable.type.resolved IS SyntaxTree.CellType));
 				variable.SetState(SyntaxTree.Resolved);
 			END;
 		END VisitVariable;
@@ -6245,7 +6260,7 @@ TYPE
 				ELSIF HasFlag(modifiers,Global.NameAbstract,position) THEN procedure.SetAbstract(TRUE)
 				END;
 
-				CheckModifiers(modifiers);
+				CheckModifiers(modifiers, TRUE);
 				FixProcedureType(procedureType);
 				currentIsRealtime := procedureType.isRealtime;
 				currentIsBodyProcedure := procedure.isBodyProcedure;
@@ -6378,7 +6393,7 @@ TYPE
 
 			modifiers := procedureType.modifiers;
 			IF HasFlag(modifiers, Global.NameDynamic, position) THEN operator.SetDynamic(TRUE) END;
-			CheckModifiers(modifiers);
+			CheckModifiers(modifiers, TRUE);
 
 			VisitProcedure(operator);
 
@@ -7381,6 +7396,8 @@ TYPE
 			END;
 		END Register;
 
+
+
 		(**
 			implementation: check and resolve an implementation part
 		**)
@@ -7398,18 +7415,7 @@ TYPE
 				procedure := scope(SyntaxTree.ProcedureScope).ownerProcedure;
 				currentIsBodyProcedure := currentIsBodyProcedure OR procedure.isBodyProcedure;
 				currentIsRealtime := currentIsRealtime OR procedure.type.isRealtime;
-				IF (procedure.scope # NIL) &
-					((procedure.scope IS SyntaxTree.ModuleScope)
-					& (procedure.scope(SyntaxTree.ModuleScope).bodyProcedure = procedure)
-					& (procedure.scope(SyntaxTree.ModuleScope).ownerModule.isCellNet)
-					OR
-					 (procedure.scope IS SyntaxTree.CellScope)
-					 & (procedure.scope(SyntaxTree.CellScope).bodyProcedure = procedure)
-					 & (procedure.scope(SyntaxTree.CellScope).ownerCell.isCellNet)
-					 )
-				THEN
-					currentIsCellNet := TRUE
-				END;
+				currentIsCellNet := InCellNetScope(procedure.scope);
 				IF procedure.isInline & ((scope(SyntaxTree.ProcedureScope).body = NIL) OR (scope(SyntaxTree.ProcedureScope).body # NIL) & (scope(SyntaxTree.ProcedureScope).body.code = NIL)) THEN
 					Error(procedure.position,Diagnostics.Invalid,"unsupported inline procedure - must be assembler code")
 				END;
@@ -7653,8 +7659,9 @@ TYPE
 		**)
 		PROCEDURE Module*(x: SyntaxTree.Module);
 		VAR (* nopov *)
-			import: SyntaxTree.Import; modifier: SyntaxTree.Modifier; value,position: LONGINT;
+			import: SyntaxTree.Import; modifier: SyntaxTree.Modifier; value,position: LONGINT; prevIsCellNet: BOOLEAN;
 		BEGIN
+			prevIsCellNet := currentIsCellNet;
 			module := x;
 			ASSERT(x # NIL);
 			global := system.globalScope[x.case];
@@ -7666,9 +7673,10 @@ TYPE
 			FixTypes();
 
 			IF module.isCellNet THEN
+				currentIsCellNet := TRUE;
 				modifier := x.modifiers;
 				IF HasValue(modifier,Global.NameFrequencyDivider,position,value) THEN END;
-				CheckModifiers(modifier);
+				CheckModifiers(modifier, FALSE);
 			END;
 
 			(* nopov *)
@@ -7689,6 +7697,7 @@ TYPE
 
 			Implementations(x);
 			module := NIL;
+			currentIsCellNet := prevIsCellNet;
 		END Module;
 
 
@@ -7842,6 +7851,29 @@ TYPE
 		END;
 		IF i # x THEN RETURN FALSE ELSE RETURN TRUE END;
 	END PowerOf2;
+
+	PROCEDURE IsCellNetScope(scope: SyntaxTree.Scope): BOOLEAN;
+	BEGIN
+		RETURN
+			(scope # NIL) &
+			(scope IS SyntaxTree.ModuleScope)
+			& (scope(SyntaxTree.ModuleScope).ownerModule.isCellNet)
+			OR
+			 (scope # NIL) & (scope IS SyntaxTree.CellScope)
+			 & (scope(SyntaxTree.CellScope).ownerCell.isCellNet)
+	END IsCellNetScope;
+
+	PROCEDURE IsCellScope(scope: SyntaxTree.Scope): BOOLEAN;
+	BEGIN
+		RETURN (scope # NIL) & (scope IS SyntaxTree.CellScope) & ~(scope(SyntaxTree.CellScope).ownerCell.isCellNet)
+	END IsCellScope;
+
+
+	PROCEDURE InCellNetScope(scope: SyntaxTree.Scope): BOOLEAN;
+	BEGIN
+		WHILE (scope # NIL) & ~IsCellScope(scope) & ~IsCellNetScope(scope) DO scope := scope.outerScope END;
+		RETURN (scope # NIL) & IsCellNetScope(scope)
+	END InCellNetScope;
 
 
 	PROCEDURE ToMemoryUnits(system: Global.System; size: LONGINT): LONGINT;

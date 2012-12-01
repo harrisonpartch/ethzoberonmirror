@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5018)";
+	Version = "Aos (rev.5040)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -958,10 +958,20 @@ END ChangeByteOrder;
 			pid := pid DIV 10;		
 		UNTIL i = 3;
 		logfile := Unix.open( S.ADR( name ), Unix.rdwr + Unix.creat + Unix.trunc, Unix.rwrwr );
-		IF Unix.argc < 3 THEN  Trace.Char := Log1  
-		ELSE  Trace.Char := Log2;  standaloneAppl := TRUE 
+		IF Unix.argc < 3 THEN  VerboseLog  
+		ELSE  standaloneAppl := TRUE;  SilentLog
 		END
 	END InitLog;
+	
+	PROCEDURE SilentLog*;
+	BEGIN
+		Trace.Char := Log2
+	END SilentLog;
+	
+	PROCEDURE VerboseLog*;
+	BEGIN
+		Trace.Char := Log1
+	END VerboseLog;
 
 	
 	PROCEDURE Append( VAR a: ARRAY OF CHAR; CONST this: ARRAY OF CHAR );

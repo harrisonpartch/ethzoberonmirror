@@ -74,9 +74,9 @@ CONST
 	(* Default build settings *)
 	DefaultCompiler = "Compiler.Compile";
 	DefaultCompileOptions = "";
-	DefaultTarget = "AMD";
-	DefaultExtension = "Obx";
-	DefaultSymbolFileExtension = "Obx"; (* no separate symbol files *)
+	DefaultTarget = "" (* default chosen by compiler *);
+	DefaultExtension = ""; (* default chosen by compiler *)
+	DefaultSymbolFileExtension = ""; (* default chosen by compiler *)
 	DefaultPath = "";
 	DefaultDisabled = FALSE;
 
@@ -363,7 +363,7 @@ TYPE
 	VAR
 		module : ModuleInfo; (* if source code *)
 
-		name-, uppercaseName : Name;
+		name-, uppercaseName : Files.FileName;
 
 		doCompile : BOOLEAN;
 
@@ -447,7 +447,7 @@ TYPE
 		PROCEDURE ParseModule*(diagnostics : Diagnostics.Diagnostics);
 		VAR
 			reader : Streams.Reader;
-			pre, mid, suf: ARRAY 32 OF CHAR;
+			pre, mid, suf: Files.FileName;
 			message : ARRAY 256 OF CHAR;
 			error : BOOLEAN;
 		BEGIN
@@ -1637,7 +1637,7 @@ TYPE
 		END AddBuild;
 
 		PROCEDURE AddFile(CONST filename : ARRAY OF CHAR;  release : SET; package : Package;  pos : LONGINT);
-		VAR file, f : File; pre, suf : ARRAY 32 OF CHAR;
+		VAR file, f : File; pre, suf : Files.FileName;
 		BEGIN
 			ASSERT(package # NIL);
 			NEW(file, SELF);

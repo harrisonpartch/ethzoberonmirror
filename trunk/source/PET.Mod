@@ -1284,6 +1284,7 @@ TYPE
 
 			(* -- Tabs for the PETPanels *)
 			NEW(tabs); tabs.fillColor.Set(00000CCCCH); tabs.bounds.SetHeight(20); tabs.alignment.Set(WMComponents.AlignTop);
+			tabs.lineHeight.Set(20);
 			panel.AddContent(tabs); tabs.SetExtDragDroppedHandler(DragDroppedHandler);
 
 			panel.AddContent(CreateToolbar());

@@ -412,12 +412,13 @@ TYPE
 	*)
 	Parameter*=OBJECT (Symbol)
 	CONST
-		Boolean=0;Integer=1;
+		Boolean=0;Integer=1;String=2;
 	VAR
 		index-: LONGINT;
 		type-: SHORTINT; (* Integer or Boolean, for the time being *)
 		integer-: LONGINT;
 		boolean-: BOOLEAN;
+		string-: Strings.String;
 
 		PROCEDURE Same(as: Symbol; flags: SET): BOOLEAN;
 		BEGIN
@@ -444,6 +445,12 @@ TYPE
 			type := Integer; integer := i
 		END SetInteger;
 
+		PROCEDURE SetString*(CONST s: ARRAY OF CHAR);
+		BEGIN
+			type := String; string := Strings.NewString(s);
+		END SetString;
+
+
 		PROCEDURE Write(w: Streams.Writer; indent: LONGINT);
 		VAR typeName: SyntaxTree.String;
 		BEGIN
@@ -453,11 +460,13 @@ TYPE
 			w.String(" type=");
 			IF type = Integer THEN w.String("INTEGER")
 			ELSIF type=Boolean THEN w.String("BOOLEAN")
+			ELSIF type=String THEN w.String("STRING");
 			END;
 			w.String(" value=");
 			IF type = Integer THEN w.Int(integer,1)
 			ELSIF type=Boolean THEN
 				IF boolean THEN w.String("TRUE") ELSE w.String("FALSE") END
+			ELSIF type = String THEN w.String("'"); w.String(string^); w.String("'");
 			END;
 			w.Ln;
 			w.Update;
@@ -470,11 +479,14 @@ TYPE
 				&CheckItem(r,"type") & GetString(r,s) & CheckItem(r,"value") THEN
 					IF s= "INTEGER" THEN type := Integer
 					ELSIF s = "BOOLEAN" THEN type := Boolean
+					ELSIF s = "STRING" THEN type := String
 					ELSE RETURN FALSE
 					END;
 					IF (type = Integer) & r.GetInteger(integer,FALSE) THEN
 					ELSIF (type=Boolean) & GetString(r,s) THEN
 						IF s="TRUE" THEN boolean := TRUE ELSE boolean := FALSE END;
+					ELSIF (type=String) & GetString(r,s) THEN
+						string := Strings.NewString(s);
 					ELSE RETURN FALSE
 					END;
 			ELSE RETURN FALSE
@@ -529,6 +541,7 @@ TYPE
 	VAR
 		type-: Type; (* instance type *)
 		parameters-: ParameterList;
+		capabilityParameters-: ParameterList;
 		index-: LONGINT;
 		(* caches: *)
 		instructionMemorySize-, dataMemorySize-: LONGINT;
@@ -557,7 +570,7 @@ TYPE
 		BEGIN
 			InitSymbol(name,scope);
 			type := c;
-			index := -1; SELF.scope := scope; NEW(parameters,4);
+			index := -1; SELF.scope := scope; NEW(parameters,4); NEW(capabilityParameters, 4);
 			ASSERT(scope # NIL);
 			SetType(c);
 		END Init;
@@ -587,6 +600,13 @@ TYPE
 			RETURN parameter
 		END AddParameter;
 
+		PROCEDURE AddCapabilityParameter*(CONST name: ARRAY OF CHAR): Parameter;
+		VAR parameter: Parameter;
+		BEGIN
+			NEW(parameter,name,NIL); capabilityParameters.Add(parameter);
+			RETURN parameter
+		END AddCapabilityParameter;
+
 		PROCEDURE Write(w: Streams.Writer; indent: LONGINT);
 		VAR typeName: Name; parameter: Parameter; i: LONGINT;
 		BEGIN
@@ -606,6 +626,14 @@ TYPE
 				parameter := parameters.GetParameter(i);
 				parameter.Write(w,indent+1);
 			END;
+
+			Indent(w,indent);
+			w.String("capabilityParameters=");w.Int(capabilityParameters.Length(),1); w.Ln;
+			FOR i := 0 TO capabilityParameters.Length()-1 DO
+				parameter := capabilityParameters.GetParameter(i);
+				parameter.Write(w,indent+1);
+			END;
+
 			w.Update;
 		END Write;
 
@@ -627,6 +655,13 @@ TYPE
 					parameter := AddParameter("");
 					IF ~parameter.Read(r) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
 				END;
+				IF ~CheckItem(r,"capabilityParameters") OR ~r.GetInteger(number,FALSE)
+				THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
+				FOR i := 0 TO number-1 DO
+					parameter := AddCapabilityParameter("");
+					IF ~parameter.Read(r) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
+				END;
+
 				RETURN TRUE
 			ELSE IF TraceError THEN HALT(100) ELSE RETURN FALSE END
 			END;

@@ -294,64 +294,22 @@ TYPE
 				IF h # Kernel32.InvalidHandleValue THEN
 					t := 0;  d := 0;
 					REPEAT
+						IF Files.EnumTime IN flags THEN
+							Kernel32.FileTimeToLocalFileTime( FD.ftLastWriteTime, ft );  Kernel32.FileTimeToSystemTime( ft, st );
+							d := LONG( st.wYear - 1900 ) * 200H + LONG( st.wMonth ) * 20H + LONG( st.wDay );  t := LONG( st.wHour ) * 1000H + LONG( st.wMinute ) * 40H + LONG( st.wSecond );
+						END;
+						Join( curPath, "/", FD.cFileName, longname );
 						IF ~(Kernel32.FileAttributeDirectory IN FD.dwFileAttributes) THEN
-							IF Files.EnumTime IN flags THEN
-								Kernel32.FileTimeToLocalFileTime( FD.ftLastWriteTime, ft );  Kernel32.FileTimeToSystemTime( ft, st );
-								d := LONG( st.wYear - 1900 ) * 200H + LONG( st.wMonth ) * 20H + LONG( st.wDay );  t := LONG( st.wHour ) * 1000H + LONG( st.wMinute ) * 40H + LONG( st.wSecond );
-							END;
-							Join( curPath, "/", FD.cFileName, longname );  enum.PutEntry( longname, {}, t, d, FD.nFileSizeLow )
-
-						END
-					UNTIL Kernel32.FindNextFile( h, FD ) = Kernel32.False;
-					Kernel32.FindClose( h )
-				END;
-				i := j;  curPath[i] := Files.PathDelimiter;  INC( i );  curPath[i] := "*";  INC( i );  curPath[i] := 0X;  ConvertChar( curPath, Files.PathDelimiter, PathDelimiter );  h := Kernel32.FindFirstFile( curPath, FD );
-				curPath[j] := 0X;  ConvertChar( curPath, PathDelimiter, Files.PathDelimiter );
-				IF h # Kernel32.InvalidHandleValue THEN
-					t := 0;  d := 0;
-					REPEAT
-						IF Kernel32.FileAttributeDirectory IN FD.dwFileAttributes THEN
-							IF (FD.cFileName # ".") & ((FD.cFileName # "..")) THEN
-								IF Files.EnumTime IN flags THEN
-									Kernel32.FileTimeToLocalFileTime( FD.ftLastWriteTime, ft );  Kernel32.FileTimeToSystemTime( ft, st );
-									d := LONG( st.wYear - 1900 ) * 200H + LONG( st.wMonth ) * 20H + LONG( st.wDay );  t := LONG( st.wHour ) * 1000H + LONG( st.wMinute ) * 40H + LONG( st.wSecond );
-								END;
-								Join( curPath, "/", FD.cFileName, longname );
-
-								enum.PutEntry( longname, {Files.Directory}, t, d, FD.nFileSizeLow )
-
-							END
-						END
+							enum.PutEntry( longname, {}, t, d, FD.nFileSizeLow )
+						ELSIF (FD.cFileName # ".") & ((FD.cFileName # "..")) THEN
+							enum.PutEntry( longname, {Files.Directory}, t, d, FD.nFileSizeLow )
+						END;
 					UNTIL Kernel32.FindNextFile( h, FD ) = Kernel32.False;
 					Kernel32.FindClose( h )
 				END;
 			END EnumeratePath;
 
 		BEGIN {EXCLUSIVE}
-
-		(*
-			attr := Kernel32.GetFileAttributes( prefix );
-			IF ~(Kernel32.FileAttributeDirectory IN attr) THEN RETURN END;
-			*)
-
-		(*
-			IF useprefix THEN
-				Join(SELF.prefix,"",mask0,mask);
-			ELSE
-				COPY( mask0,mask  );
-			END;
-			*)
-			(*
-			IF (prefix # "*") & (prefix[1]=0X) THEN (* windows drive letter *)
-				Join(prefix,"",mask0,mask);
-				(*i := Kernel32.GetDriveType(prefix); KernelLog.String(prefix); KernelLog.Int(i,1); KernelLog.Ln;
-					attr := Kernel32.GetFileAttributes( prefix );
-					IF ~(Kernel32.FileAttributeDirectory IN attr) THEN RETURN END; *)
-			ELSE
-				COPY( mask0,mask  );
-			END;
-			*)
-
 			COPY( mask, path );  ConvertChar( path, Files.PathDelimiter, PathDelimiter );  attr := Kernel32.GetFileAttributes( path );  path := "";
 			IF (Kernel32.FileAttributeDirectory IN attr) & (~(Kernel32.FileAttributeTemporary IN attr)) THEN COPY( mask, path );  COPY( "*", pattern );  ELSE Files.SplitPath( mask, path, pattern );  END;
 			IF TraceFileSystem IN Trace THEN
@@ -361,29 +319,44 @@ TYPE
 			IF enum = NIL THEN RETURN
 			END;
 			IF path = "." THEN COPY( workPath, curPath );  EnumeratePath()
-			ELSIF path = "" THEN
-				COPY( workPath, curPath );  EnumeratePath();
-				IF ~useprefix (* was: prefix ="*"  *) THEN
+			ELSIF IsLocalPath(path) THEN
+				COPY( workPath, curPath );
+				IF path # "" THEN
+					ConvertChar(curPath, PathDelimiter, Files.PathDelimiter);
+					Files.JoinPath(curPath, path, curPath);
+					ConvertChar( curPath, Files.PathDelimiter, PathDelimiter );
+				END;
+				EnumeratePath();
+				IF ~useprefix THEN
 					i := 0;  j := 0;
 					WHILE searchPath[i] # 0X DO
 						IF searchPath[i] # ";" THEN curPath[j] := searchPath[i];  INC( j )
 						ELSIF j > 0 THEN
 							curPath[j] := 0X;
-							IF curPath # workPath THEN EnumeratePath() END;
+							IF curPath # workPath THEN
+								IF path # "" THEN
+									ConvertChar(curPath, PathDelimiter, Files.PathDelimiter);
+									Files.JoinPath(curPath, path, curPath);
+									ConvertChar( curPath, Files.PathDelimiter, PathDelimiter );
+								END;
+								EnumeratePath()
+							END;
 							j := 0
 						END;
 						INC( i )
 					END;
 					IF j > 0 THEN
 						curPath[j] := 0X;
+						IF path # "" THEN
+							ConvertChar(curPath, PathDelimiter, Files.PathDelimiter);
+							Files.JoinPath(curPath, path, curPath);
+							ConvertChar( curPath, Files.PathDelimiter, PathDelimiter );
+						END;
 						IF curPath # workPath THEN EnumeratePath() END
 					END;
-					(*
-				ELSE
-					COPY(path,curPath); ConvertChar( curPath, Files.PathDelimiter, PathDelimiter ); EnumeratePath();
-				*)
 				END;
-			ELSE COPY( path, curPath );  ConvertChar( curPath, Files.PathDelimiter, PathDelimiter );  EnumeratePath()
+			ELSE (* path is an absolute path *)
+				COPY( path, curPath );  ConvertChar( curPath, Files.PathDelimiter, PathDelimiter );  EnumeratePath()
 			END;
 		END Enumerate1;
 
@@ -721,6 +694,15 @@ TYPE
 	END File;
 VAR
 	winFS: WinFileSystem;   (* must be unique *)
+
+	PROCEDURE IsLocalPath(path: ARRAY OF CHAR): BOOLEAN;
+	VAR prefix, name: Files.FileName;
+	BEGIN
+		ConvertChar(path, PathDelimiter, Files.PathDelimiter);
+		Files.SplitName(path, prefix, name);
+		RETURN (prefix = "") & (name[0] # "/")
+	END IsLocalPath;
+
 
 	(* WinAPI functions like e.g. GetCurrentDirectory sometimes yield paths with drive letters in lowercase
 	   which have to be capitalized as they are mapped as filesystems which themselves are case sensitive *)

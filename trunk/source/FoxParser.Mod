@@ -559,8 +559,8 @@ TYPE
 			RETURN expression
 		END RangeExpression;
 
-		(** Designator  = ('self' | 'result' | Identifier [Flags])
-		                  {'.' Identifier  [Flags] | '[' IndexList ']' | '(' [ExpressionList] ')' | '^'}.
+		(** Designator  = ('self' | 'result' | Identifier)
+		                  {'.' Identifier  | '[' IndexList ']' | '(' [ExpressionList] ')' | '^'} [Flags].
 		**)
 		PROCEDURE Designator( ): SyntaxTree.Designator;
 		VAR
@@ -600,6 +600,11 @@ TYPE
 				ELSE EXIT
 				END;
 			END;
+
+			IF Optional(Scanner.LeftBrace) THEN
+				designator.SetModifiers(Flags());
+			END;
+
 			IF Trace THEN E( "Designator" ) END;
 			RETURN designator
 		END Designator;

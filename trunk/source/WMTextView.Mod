@@ -3716,7 +3716,6 @@ TYPE
 				ELSE
 					commandWriter := SELF.commandWriter;
 					errorWriter := SELF.errorWriter;
-					TRACE(errorWriter, SELF.errorWriter);
 				END;
 
 				IF (i < LEN(s)) THEN (* copy parameter string *)
