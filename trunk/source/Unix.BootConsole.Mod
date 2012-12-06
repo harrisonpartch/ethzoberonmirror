@@ -7,17 +7,25 @@ TYPE
 	CommandProc = PROCEDURE;
 
 	CommandThread = OBJECT
-		BEGIN {ACTIVE}
-			Execute( modName, cmdName );
-			Modules.Shutdown( Modules.Reboot )
-		END CommandThread;
+	VAR 
+		mod, cmd: Modules.Name;
+	
+		PROCEDURE &Init( CONST modName, cmdName: Modules.Name );
+		BEGIN
+			mod := modName;  cmd := cmdName
+		END Init;
+		
+	BEGIN {ACTIVE}
+		Execute( mod, cmd );
+		Modules.Shutdown( Modules.Reboot )
+	END CommandThread;
+
 
 VAR
-	modName, cmdName: ARRAY 32 OF CHAR;
 	appl: CommandThread;
 
 
-	PROCEDURE LoadModule( CONST name: ARRAY OF CHAR );
+	PROCEDURE LoadModule( CONST name: Modules.Name );
 	VAR
 		m: Module;  res: LONGINT;  msg: ARRAY 256 OF CHAR;
 	BEGIN
@@ -29,7 +37,7 @@ VAR
 
 
 
-	PROCEDURE Command( CONST cmd: ARRAY OF CHAR );
+	PROCEDURE Command( CONST cmd: Modules.Name );
 	VAR
 		res: LONGINT;
 		s: ARRAY 256 OF CHAR;
@@ -40,7 +48,7 @@ VAR
 
 
 	(** Return the named command. *)
-	PROCEDURE ThisCommand( m: Module;  CONST name: ARRAY OF CHAR ): CommandProc;
+	PROCEDURE ThisCommand( m: Module;  CONST name: Modules.Name ): CommandProc;
 	VAR cmd: Modules.Command; i: LONGINT;  found: BOOLEAN;
 	BEGIN		
 		i := 0;  found := FALSE;
@@ -54,8 +62,8 @@ VAR
 		END
 	END ThisCommand;
 
-	PROCEDURE Execute( CONST modName, procName: ARRAY OF CHAR );
-	VAR m: Module;  cmd: CommandProc;  res: LONGINT;
+	PROCEDURE Execute( CONST modName, procName: Modules.Name );
+	VAR m: Module;  cmd: PROCEDURE;  res: LONGINT;
 		msg: ARRAY 256 OF CHAR;
 	BEGIN
 		m := Modules.ThisModule( modName, res, msg );
@@ -83,10 +91,11 @@ VAR
 		Trace.String( ": " );  Trace.String( msg );  Trace.Ln;
 	END CommandError;
 	
-	PROCEDURE GetCmd( ): BOOLEAN;
+	
+	PROCEDURE TryCommand( ): BOOLEAN;
 	VAR 
-		cmd: ARRAY 128 OF CHAR;
-		i: INTEGER;  
+		cmd: ARRAY 128 OF CHAR; ci: INTEGER;  
+		modName, cmdName: Modules.Name;
 		
 		PROCEDURE IsCharacter( c: CHAR ): BOOLEAN;
 		BEGIN  RETURN (('a' <= c) & (c <= 'z')) OR (( 'A' <= c) & (c <= 'Z'))
@@ -100,8 +109,8 @@ VAR
 		VAR j: LONGINT;  c: CHAR;
 		BEGIN
 			j := -1;
-			IF IsCharacter( cmd[i] ) THEN
-				REPEAT c := cmd[i];  INC( i );  INC( j );  name[j] := c  UNTIL ~IsCharOrDigit( c ) OR (j = 31);
+			IF IsCharacter( cmd[ci] ) THEN
+				REPEAT c := cmd[ci];  INC( ci );  INC( j );  name[j] := c  UNTIL ~IsCharOrDigit( c ) OR (j = 31);
 				IF c = '.' THEN  name[j] := 0X
 				ELSIF c # 0X THEN
 					IF IsCharOrDigit( c ) THEN  CommandError( cmd, "name too long" )
@@ -120,13 +129,24 @@ VAR
 		Unix.GetArgval( "-x", cmd );
 		IF cmd # "" THEN  	
 			Machine.VerboseLog;
-      			i := 0;
-      			IF GetName( modName ) & GetName( cmdName ) THEN  RETURN TRUE  
-      			ELSE  Unix.exit( 1 )
+      			ci := 0;
+	      		IF GetName( modName ) & GetName( cmdName ) THEN  
+	      			IF Glue.debug # {} THEN
+					Trace.String( "Starting " );
+					Trace.String( modName );  Trace.Char( "." );  Trace.String( cmdName );
+					Trace.Ln
+				END;
+				NEW( appl, modName, cmdName );
+      				RETURN TRUE  
+      			ELSE  
+      				(* invalid command string*)
+      				Unix.exit( 1 )
       			END
 		END;
 		RETURN FALSE
-	END GetCmd;
+	END TryCommand;
+	
+	
 	
 	PROCEDURE InitPrelinkedModules;
 	TYPE Body = PROCEDURE;
@@ -148,15 +168,7 @@ VAR
 
 	PROCEDURE StartSystem;
 	BEGIN
-		IF GetCmd()  THEN
-			(* start the procedure specified in the command line (aos  -x M.P) *)
-			IF Glue.debug # {} THEN
-				Trace.String( "Starting " );
-				Trace.String( modName );  Trace.Char( "." );  Trace.String( cmdName );
-				Trace.Ln
-			END;
-			NEW( appl )
-		ELSE
+		IF ~TryCommand()  THEN
 			(* normal system start *)
 			LoadModule( "Clock" );
 			Execute( "XDisplay",  "Install" );
@@ -174,7 +186,6 @@ VAR
 
 BEGIN
 	InitPrelinkedModules;
-(*	unix := StdIO.env;	*)
 	
 	StartSystem;
 	

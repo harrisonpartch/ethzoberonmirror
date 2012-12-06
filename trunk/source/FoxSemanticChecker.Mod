@@ -2089,7 +2089,7 @@ TYPE
 
 		BEGIN
 			result := SyntaxTree.invalidExpression;
-			IF (BaseType(type)=NIL) OR (BaseType(expression.type.resolved) = BaseType(type))  THEN
+			IF (BaseType(type)=NIL) OR (BaseType(expression.type.resolved).SameType(BaseType(type)))  THEN
 				result := expression (* do not convert *)
 			ELSE (* should the search for operators be restricted to the ArrayBase module here ? *)
 				result := NewOperatorCall(position,Global.Conversion,expression,NIL,type);
@@ -7964,6 +7964,8 @@ TYPE
 					result := to.sizeInBits >= this.sizeInBits; (*! weak compatibility: addresses may be assigned with signed integer *)
 				ELSIF (to IS SyntaxTree.RangeType) & (this IS SyntaxTree.RangeType) THEN
 					result := TRUE;
+				ELSIF (to IS SyntaxTree.BooleanType) & (this IS SyntaxTree.BooleanType) THEN
+					result := TRUE;
 				ELSE
 					result := FALSE
 				END;
@@ -8321,7 +8323,8 @@ TYPE
 		ELSIF (from IS SyntaxTree.StringType) THEN
 			IF (to IS SyntaxTree.ArrayType) & (to(SyntaxTree.ArrayType).length = NIL) & (to(SyntaxTree.ArrayType).arrayBase.resolved  IS SyntaxTree.CharacterType) THEN  i := 1  END
 		ELSIF (from IS SyntaxTree.CharacterType) THEN
-			IF (to IS SyntaxTree.ArrayType) & (to(SyntaxTree.ArrayType).length = NIL) & (to(SyntaxTree.ArrayType).arrayBase.resolved IS SyntaxTree.CharacterType) THEN  i := 1
+			IF (to IS SyntaxTree.CharacterType) & (to.sizeInBits = from.sizeInBits) THEN i := 0
+			ELSIF (to IS SyntaxTree.ArrayType) & (to(SyntaxTree.ArrayType).length = NIL) & (to(SyntaxTree.ArrayType).arrayBase.resolved IS SyntaxTree.CharacterType) THEN  i := 1
 			ELSIF to IS SyntaxTree.ByteType THEN i := 1 END
 		ELSIF (from IS SyntaxTree.IntegerType) & (to IS SyntaxTree.ByteType) & (to.sizeInBits = from.sizeInBits) THEN
 			i := 1

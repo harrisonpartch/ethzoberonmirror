@@ -1,9 +1,9 @@
 (* Aos, Copyright 2001, Pieter Muller, ETH Zurich *)
 
-MODULE DNS;   (** AUTHOR "pjm, mvt"; PURPOSE "DNS client"; *)
+MODULE DNS;   (** AUTHOR "pjm, mvt, gf"; PURPOSE "DNS client"; *)
 
 
-IMPORT S := SYSTEM, Out := KernelLog, Unix, Machine, IP;
+IMPORT S := SYSTEM, Out := KernelLog, Unix, IP, Files;
 
 CONST
 	(** Error codes *)
@@ -103,18 +103,34 @@ VAR
 		x := gethostname( S.ADR( name ), S.ADR( len ) );
 		IF x >= 0 THEN  res := Ok  ELSE  res := NotFound  END
 	END GetHostName;
+	
 
+	PROCEDURE GetLocalDomain( VAR dom: ARRAY OF CHAR );
+	VAR f: Files.File;  r: Files.Reader;  buf: ARRAY 256 OF CHAR; ignore: BOOLEAN;
+	BEGIN
+		f := Files.Old( "/etc/resolv.conf" );
+		IF f # NIL THEN
+			Files.OpenReader( r, f, 0 ); 
+			WHILE r.GetString( buf ) & (buf # "domain") DO  
+				IF buf[0] = "#" THEN  r.Ln( buf )  END	(* skip comment *)
+			END;
+			IF buf = "domain" THEN  ignore := r.GetString( buf );
+			ELSE  buf := "unknown.edu"
+			END
+		ELSE  buf := "unknown.edu"
+		END;
+		COPY( buf, dom )
+	END GetLocalDomain;
 
 
 BEGIN
-	(* Get domain name from configuration. *)
-	Machine.GetConfig( "Domain", domain );
+	GetLocalDomain( domain );
 	NDNSReceived := 0;
 	NDNSSent := 0; 
 	NDNSMismatchID := 0;
 	NDNSError := 0;
 	
-	IF Unix.sysinfo.sysname = "Darwin" THEN
+	IF Unix.version = "Darwin" THEN
 		nlib := Unix.libc
 	ELSE
 		nlib := Unix.Dlopen( "libnsl.so.1", 2 );

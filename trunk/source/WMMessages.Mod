@@ -1,7 +1,7 @@
 MODULE WMMessages; (** AUTHOR "TF"; PURPOSE "Support for messages and events"; *)
 
 IMPORT
-	Strings, KernelLog, Objects, Kernel, Locks, D:= Debugging, Modules, Reflection, SYSTEM;
+	Strings, KernelLog, Objects, Kernel, Locks, Modules, Reflection, SYSTEM;
 
 CONST
 	InitialMsgQSize = 64;

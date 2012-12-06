@@ -1,288 +1,367 @@
-MODULE CryptoDES;   (* g.f.	30.7.02 *)
 
-IMPORT S := SYSTEM, Ciphers := CryptoCiphers, U := CryptoUtils, Out := KernelLog, Files;
+MODULE CryptoDES;	(** AUTHOR "G.F."; PUROSE "DES Cipher";	 *)
 
-CONST
-	datafile = "CryptoDES.Data";
+(* based on POLARSSL des.c *)
+
+
+IMPORT S := SYSTEM, U := CryptoUtils, Ciphers := CryptoCiphers;
 
 TYPE
-	Block* = ARRAY 2 OF SET;
-	KeyBlock = ARRAY 32 OF SET;
-
-
+	Sandbox = ARRAY 64 OF SET;
+	BitSwap = ARRAY 16 OF SET;
 VAR
-	skb	: ARRAY 8, 64 OF SET;
-	T	: ARRAY 8, 64 OF SET;
-
-TYPE
-	Cipher* = OBJECT (Ciphers.Cipher)
-			VAR
-				keys: KeyBlock;
-				iv: Block;
-
-				PROCEDURE InitKey*( CONST src: ARRAY OF CHAR;  pos: LONGINT;  keybits: LONGINT );
-				CONST Shifts = {2..7, 9..14};  Mask28 = {0..27};
-				VAR c, d, t, s: SET;  i, j: LONGINT;
-				BEGIN
-					ASSERT( keybits = 64 );
-					InitKey^( src, pos, keybits );
-
-					c := U.LESetFrom( src, pos );
-					d := U.LESetFrom( src, pos + 4 );
-
-					perm( d, c, 4, 0F0F0F0FH );
-					hperm( c );  hperm( d );
-					perm( d, c, 1, 55555555H );
-					perm( c, d, 8, 00FF00FFH );
-					perm( d, c, 1, 55555555H );
-
-					d := S.LSH( d*{0..7}, 16 ) + d*{8..15} + S.LSH( d, -16 )*{0..7} + S.LSH( c, -4 )*{24..27};
-					c := c*Mask28;
-
-					FOR i := 0 TO 15 DO
-						IF i IN Shifts THEN
-							c := (S.LSH( c, -2 ) + S.LSH( c, 26 ))*Mask28;
-							d := (S.LSH( d, -2 ) + S.LSH( d, 26 ))*Mask28;
-						ELSE
-							c := (S.LSH( c, -1 ) + S.LSH( c, 27 ))*Mask28;
-							d := (S.LSH( d, -1 ) + S.LSH( d, 27 ))*Mask28;
-						END;
-						s :=
-							skb[0, sm( c,    0, 3FH )] +
-							skb[1, sm( c,  -6, 03H ) + sm( c,   -7, 3CH )] +
-							skb[2, sm( c, -13, 0FH ) + sm( c, -14, 30H )] +
-							skb[3, sm( c, -20, 01H ) + sm( c, -21, 06H ) + sm( c, -22, 38H )];
-						t :=
-							skb[4, sm( d,    0, 3FH )] +
-							skb[5, sm( d,  -7, 03H ) + sm( d,   -8, 3CH )] +
-							skb[6, sm( d, -15, 3FH )] +
-							skb[7, sm( d, -21, 0FH ) + sm( d, -22, 30H )];
-
-						j := 2*i;
-						keys[j] := S.ROT( S.LSH( t, 16 ) + s*{0..15}, -30 );
-						keys[j+1] := S.ROT( S.LSH( s, -16 ) + t*{16..31}, -26 )
-					END;
-				END InitKey;
-
-				PROCEDURE SetIV*( CONST src: ARRAY OF CHAR;  p: LONGINT );
-				BEGIN
-					SetIV^( src, p );   (* set mode *)
-					U.CharsToBlockLE( src, p, iv )
-				END SetIV;
-
-
-				PROCEDURE Encrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
-				VAR i: LONGINT;  b: Block;
-				BEGIN
-					ASSERT( isKeyInitialized );
-					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
-					i := 0;
-					WHILE i < len DO
-						U.CharsToBlockLE( buf, ofs + i, b );
-						IF mode = Ciphers.CBC THEN  U.XORBlock( b, iv )  END;
-						IP( b[0], b[1] );
-						Encrypt0( b );
-						FP( b[0], b[1] );
-						U.BlockToCharsLE( b, buf, ofs + i );
-						IF mode = Ciphers.CBC THEN  iv := b  END;
-						INC( i, blockSize )
-					END
-				END Encrypt;
-
-				PROCEDURE Encrypt0*( VAR block: Block );
-				VAR r, l: SET;  i: LONGINT;
-				BEGIN
-					r := block[0];  l := block[1];
-					l := S.ROT( l, -29 );  r := S.ROT(r, -29 );
-					FOR i := 0 TO 7 DO
-						Round( l, r, 4*i + 0 );
-						Round( r, l, 4*i + 2 );
-					END;
-					block[0] := S.ROT( l, -3 );  block[1] :=  S.ROT( r, -3 );
-				END Encrypt0;
-
-
-				PROCEDURE Decrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
-				VAR i: LONGINT;  b0, b: Block;
-				BEGIN
-					ASSERT( isKeyInitialized );
-					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
-					i := 0;
-					WHILE i < len DO
-						U.CharsToBlockLE( buf, ofs + i, b );
-						IF mode = Ciphers.CBC THEN  b0 := b  END;
-						IP( b[0], b[1] );
-						Decrypt0( b );
-						FP( b[0], b[1] );
-						IF mode = Ciphers.CBC THEN  U.XORBlock( b, iv );  iv := b0  END;
-						U.BlockToCharsLE( b, buf, ofs + i );
-						INC( i, blockSize )
-					END
-				END Decrypt;
-
-				PROCEDURE Decrypt0*( VAR block: Block );
-				VAR r, l: SET;  i: LONGINT;
-				BEGIN
-					r := block[0];  l := block[1];
-					l := S.ROT( l, -29 );  r := S.ROT(r, -29 );
-					FOR i := 7 TO 0 BY -1 DO
-						Round( l, r, 4*i + 2 );
-						Round( r, l, 4*i + 0 );
-					END;
-					block[0] := S.ROT( l, -3 );  block[1] :=  S.ROT( r, -3 );
-				END Decrypt0;
-
-
-				PROCEDURE Round( VAR l, r: SET;  i: LONGINT );
-				VAR a0, a1, a2, a3, b0, b1, b2, b3: LONGINT;
-				BEGIN
-					split( r / keys[i], b0, b1, b2, b3 );
-					split( S.ROT( r / keys[i + 1], -4 ), a0, a1, a2, a3 );
-					l := l / (  T[0, b0] / T[2, b1] / T[4, b2] / T[6, b3] / T[1, a0] / T[3, a1] / T[5, a2] / T[7, a3] );
-				END Round;
-
-
-				PROCEDURE & Init*;
-				BEGIN
-					SetNameAndBlocksize( "des", 8 );
-				END Init;
-
-			END Cipher;
-
+	SB1-, SB2-, SB3-, SB4-, SB5-, SB6-, SB7-, SB8-: Sandbox;
+	
+	LHs, RHs: BitSwap;
+	
+TYPE 
+	Cipher* = OBJECT (Ciphers.Cipher )
+	VAR
+		ske, skd: ARRAY 32 OF SET;  ski: LONGINT;
+		ivx, ivy: SET;
+	
+		PROCEDURE InitKey*( CONST src: ARRAY OF CHAR;  pos: LONGINT;  keybits: LONGINT );
+		VAR X, Y: SET;  i: LONGINT;
+		BEGIN
+			ASSERT( keybits = 64 );
+			InitKey^( src, pos, keybits );
+			
+			X := U.BESetFrom( src, pos );  Y := U.BESetFrom( src, pos + 4 );
+			
+			ComputeSubkeys( X, Y, ske, 0 );
+			
+			FOR i := 0 TO 31 BY 2 DO  
+				skd[i] := ske[30 - i];  
+				skd[i + 1] := ske[31 - i]
+			END;
+		END InitKey;
+		
+		
+		PROCEDURE SetIV*( CONST src: ARRAY OF CHAR;  p: LONGINT );
+		BEGIN
+			SetIV^( src, p );   (* set mode *)
+			ivx := U.BESetFrom( src, p );  ivy := U.BESetFrom( src, p+4 )
+		END SetIV;
+		
+		
+		PROCEDURE  Encrypt* ( VAR buf: ARRAY OF CHAR; ofs, len: LONGINT );
+		VAR i, r: LONGINT;   X, Y: SET;
+		BEGIN
+			ASSERT( isKeyInitialized );
+			ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
+			i := 0;
+			WHILE i < len DO
+				X := U.BESetFrom( buf, ofs + i );  Y := U.BESetFrom( buf, ofs + i + 4 );
+				IF mode = Ciphers.CBC THEN  X := X / ivx;  Y := Y / ivy   END;
+				IP( X, Y );  
+				ski := 0;
+				FOR r := 0 TO 7 DO  
+					RoundE( Y, X );
+					RoundE( X, Y );
+				END;
+				FP( Y, X );
+				U.BESetToChars( Y, buf, ofs + i );   U.BESetToChars( X, buf, ofs + i + 4); 
+				IF mode = Ciphers.CBC THEN  ivx := Y;  ivy := X  END;
+				INC( i, blockSize )
+			END
+		END Encrypt;	
+		
+		
+		PROCEDURE  Decrypt* ( VAR buf: ARRAY OF CHAR; ofs, len: LONGINT );
+		VAR i, r: LONGINT;  X, Y: SET;  X0, Y0: SET;
+		BEGIN
+			ASSERT( isKeyInitialized );
+			ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
+			i := 0;
+			WHILE i < len DO
+				X := U.BESetFrom( buf, ofs + i );  Y := U.BESetFrom( buf, ofs + i + 4 );
+				IF mode = Ciphers.CBC THEN  X0 := X;  Y0 := Y  END;
+				IP( X, Y );  
+				ski := 0;
+				FOR r := 0 TO 7 DO  
+					RoundD( Y, X );
+					RoundD( X, Y );
+				END;
+				FP( Y, X );
+				IF mode = Ciphers.CBC THEN  
+					Y := Y / ivx;  X := X / ivy  ; 
+					ivx := X0;  ivy := Y0  
+				END;
+				U.BESetToChars( Y, buf, ofs + i );   U.BESetToChars( X, buf, ofs + i + 4); 
+				INC( i, blockSize )
+			END
+		END Decrypt;
+		
+		
+		PROCEDURE RoundE*( VAR X, Y: SET );
+		VAR T: LONGINT;
+		BEGIN
+			T := S.VAL( LONGINT, ske[ski] / X );  INC(ski );
+			Y := Y /	SB8[T MOD 40H] /
+					SB6[T DIV 100H MOD 40H] /
+					SB4[T DIV 10000H MOD 40H] /
+					SB2[T DIV 1000000H MOD 40H];
+			T := S.VAL( LONGINT, ske[ski] / S.ROT( X, -4 ) );  INC( ski );
+			Y := Y /	SB7[T MOD 40H] /
+					SB5[T DIV 100H MOD 40H] /
+					SB3[T DIV 10000H MOD 40H] /
+					SB1[T DIV 1000000H MOD 40H]
+		END RoundE;
+		
+		PROCEDURE RoundD*( VAR X, Y: SET );
+		VAR T: LONGINT;
+		BEGIN
+			T := S.VAL( LONGINT, skd[ski] / X );  INC( ski );
+			Y := Y /	SB8[T MOD 40H] /
+					SB6[T DIV 100H MOD 40H] /
+					SB4[T DIV 10000H MOD 40H] /
+					SB2[T DIV 1000000H MOD 40H];
+			T := S.VAL( LONGINT, skd[ski] / S.ROT( X, -4 ) );  INC(ski );
+			Y := Y /	SB7[T MOD 40H] /
+					SB5[T DIV 100H MOD 40H] /
+					SB3[T DIV 10000H MOD 40H] /
+					SB1[T DIV 1000000H MOD 40H]
+		END RoundD;
+		
+		
+		PROCEDURE & Init*;
+		BEGIN
+			SetNameAndBlocksize( "des", 8 );
+		END Init;
+	
+	END Cipher;
+	
+	
+	
+	
 	PROCEDURE NewCipher*(): Ciphers.Cipher;
 	VAR cipher: Cipher;
 	BEGIN
 		NEW( cipher );  RETURN cipher
 	END NewCipher;
+	
+	
 
 
-
-
-
-	PROCEDURE hperm( VAR a: SET );
-	VAR t: SET;
+			
+	PROCEDURE IP*( VAR X, Y: SET );	(* initial permutation *)
+	VAR T: SET;
 	BEGIN
-		t := (S.LSH( a, 18 ) / a)*S.VAL( SET, LONGINT( 0CCCC0000H ) );
-		a := a / t / S.LSH( t, -18 )
-	END hperm;
-
-	PROCEDURE perm( VAR a, b: SET;  n, m: LONGINT );
-	VAR t: SET;
-	BEGIN
-		t := (S.LSH( a, -n ) / b)*S.VAL( SET, m );
-		b := b / t;
-		a := a / S.LSH( t, n )
-	END perm;
-
-	PROCEDURE sm( s: SET;  n, m: LONGINT ): LONGINT;  (* shift & mask *)
-	BEGIN
-		RETURN  S.VAL( LONGINT, S.LSH( s, n )*S.VAL( SET, m ) );
-	END sm;
-
-
-	PROCEDURE IP*( VAR l, r: SET );
-	BEGIN
-		perm( r, l, 4, 0F0F0F0FH );
-		perm( l, r, 16, 0000FFFFH );
-		perm( r, l, 2, 33333333H );
-		perm( l, r, 8, 00FF00FFH );
-		perm( r, l, 1, 55555555H );
+		T := (S.LSH( X, -4 ) / Y)* S.VAL( SET, 0F0F0F0FH );	Y := Y / T;  X := X / S.LSH( T, 4 );
+		T := (S.LSH( X, -16 ) / Y)* S.VAL( SET, 0000FFFFH );	Y := Y / T;  X := X / S.LSH( T, 16 );
+		T := (S.LSH( Y, -2 ) / X)* S.VAL( SET, 33333333H );	X := X / T;  Y := Y / S.LSH( T, 2 );
+		T := (S.LSH( Y, -8 ) / X)* S.VAL( SET, 00FF00FFH );	X := X / T;  Y := Y / S.LSH( T, 8 );
+		Y := S.ROT( Y, 1 );
+		T := (X / Y) * S.VAL( SET, 0AAAAAAAAH );  Y := Y / T;  X := X / T; 
+		X := S.ROT( X, 1 );			
 	END IP;
-
-	PROCEDURE FP*( VAR l, r: SET );
+		
+	PROCEDURE FP*( VAR X, Y: SET );	(* final permutation *)
+	VAR T: SET;
 	BEGIN
-		perm( r, l, 1, 55555555H );
-		perm( l, r, 8, 00FF00FFH );
-		perm( r, l, 2, 33333333H );
-		perm( l, r, 16, 0000FFFFH );
-		perm( r, l, 4, 0F0F0F0FH );
+		X := S.ROT( X, -1 );
+		T := (X / Y) * S.VAL( SET, 0AAAAAAAAH );  X := X / T;  Y := Y / T;
+		Y := S.ROT( Y, -1 );
+		T := (S.LSH( Y, -8 ) / X)* S.VAL( SET, 00FF00FFH );	X := X / T;  Y := Y / S.LSH( T, 8 );
+		T := (S.LSH( Y, -2 ) / X)* S.VAL( SET, 33333333H );	X := X / T;  Y := Y / S.LSH( T, 2 );
+		T := (S.LSH( X, -16 ) /Y)* S.VAL( SET, 0000FFFFH );	Y := Y / T;  X := X / S.LSH( T, 16 );
+		T := (S.LSH( X, -4 ) / Y)* S.VAL( SET, 0F0F0F0FH );	Y := Y / T;  X := X / S.LSH( T, 4 );
 	END FP;
-
-	PROCEDURE split( s: SET;  VAR i0, i1, i2, i3: LONGINT );   (* split set into 4 index values *)
-	BEGIN
-		i0 := S.VAL( LONGINT, S.LSH( s, -2 ) ) MOD 40H;
-		i1 := S.VAL( LONGINT, S.LSH( s, -10 ) ) MOD 40H;
-		i2 := S.VAL( LONGINT, S.LSH( s, -18 ) ) MOD 40H;
-		i3 := S.VAL( LONGINT, S.LSH( s, -26 ) ) MOD 40H;
-	END split;
-
-
-	PROCEDURE StringToKey*( CONST str: ARRAY OF CHAR; VAR key: ARRAY OF CHAR );
-	VAR i, l, ll, j, k: LONGINT; skey: ARRAY 8 OF SET;  s: SET;  odd: BOOLEAN;
-	BEGIN
-		FOR i := 0 TO 7 DO  skey[i] := {}  END;
-		FOR i := 0 TO LEN( str ) - 1 DO
-			l := ORD( str[i] );
-			IF i MOD 16 < 8 THEN
-				k := i MOD 8;
-				skey[k] := skey[k] / S.VAL( SET, l*2 );
-			ELSE
-				ll := 0; k := 7 - (i MOD 8);
-				FOR j := 0 TO 7 DO
-					ll := 2 * ll;
-					IF ODD( l ) THEN  INC( ll )  END;
-					l := l DIV 2
-				END;
-				skey[k] := skey[k] / S.VAL( SET, ll )
-			END
-		END;
-		(* set odd parity *)
-		FOR i := 0 TO 7 DO
-			s := skey[i];  odd := FALSE;
-			FOR j := 0 TO 7 DO
-				IF j IN s THEN  odd := ~odd  END
-			END;
-			IF ~odd THEN
-				IF 0 IN s THEN  EXCL( s, 0 )  ELSE  INCL( s, 0 )  END;
-				skey[i] := s
-			END;
-		END;
-		FOR i := 0 TO 7 DO  key[i] := CHR( S.VAL( LONGINT, skey[i] ) )  END
-	END StringToKey;
-
-	PROCEDURE Init;
-	VAR
-		i, j, val: LONGINT;
-		r: Files.Reader;
-		f: Files.File;
-		token: ARRAY 64 OF CHAR;
-
-		PROCEDURE FError;
+	
+	
+	
+	PROCEDURE ComputeSubkeys*( X, Y: SET;  VAR sk: ARRAY OF SET; ofs: LONGINT );
+	VAR T: SET; i: LONGINT;
+		
+		PROCEDURE sms( CONST LRHs: BitSwap;  x: SET; rs, ls: LONGINT ): SET;
+		VAR i: LONGINT;
 		BEGIN
-			Out.String( "Format error in " );  Out.String( datafile );  Out.String( ",  pos  " );
-			Out.Int( r.Pos(), 1 );  Out.Ln
-		END FError;
-
+			i := S.VAL( LONGINT, S.LSH( x, -rs ) ) MOD 16;
+			RETURN S.VAL( SET, S.LSH( LRHs[i], ls ) )
+		END sms;
+			
+		PROCEDURE sm( b: SET; shift, mask: LONGINT ): SET;
+		BEGIN
+			RETURN S.LSH( b, shift ) * S.VAL( SET, mask )
+		END sm;
+		
 	BEGIN
-		f := Files.Old( datafile );
-		IF f = NIL THEN
-			Out.String( "File '" );  Out.String( datafile );  Out.String( "' not found" );  Out.Ln
-		ELSE
-			Files.OpenReader( r, f, 0 );  r.SkipWhitespace;  r.Token( token );
-			IF token # "des.skb" THEN  FError;  RETURN   END;
-			FOR i := 0 TO 7 DO
-				FOR j := 0 TO 63 DO
-					IF r.GetInteger( val, TRUE ) THEN  skb[i, j] := S.VAL( SET, val )
-					ELSE  FError;  RETURN
-					END
-				END;
+		T := ( S.LSH( Y, -4 ) / X) * S.VAL( SET,  0F0F0F0FH );  X := X / T;  Y := Y / S.LSH( T, 4 );		
+		T := (Y / X) * S.VAL( SET,  010101010H); X := X / T;  Y := Y / T;
+			
+		X := sms( LHs, X, 0, 3 ) + sms( LHs, X, 8, 2 ) + sms( LHs, X, 16, 1 ) + sms( LHs, X, 24, 0 ) +
+			sms( LHs, X, 5, 7 ) + sms( LHs, X, 13, 6 ) + sms( LHs, X, 21, 5 ) + sms( LHs, X, 29, 4 );
+		Y :=	sms( RHs, Y, 1, 3 ) + sms( RHs, Y, 9, 2 ) + sms( RHs, Y, 17, 1 ) + sms( RHs, Y, 25, 0 ) +
+			sms( RHs, Y, 4, 7 ) + sms( RHs, Y, 12, 6 ) + sms( RHs, Y, 20, 5 ) + sms( RHs, Y, 28, 4 );
+
+		FOR i := 0 TO 15 DO
+			IF i IN {0, 1, 8, 15} THEN
+				X := S.LSH( X, 1 ) + S.LSH( X, -27 );  Y := S.LSH( Y, 1 ) + S.LSH( Y, -27 )
+			ELSE
+				X := S.LSH( X, 2 ) + S.LSH( X, -26 );  Y := S.LSH( Y, 2 ) + S.LSH( Y, -26 )
 			END;
-			r.SkipWhitespace;  r.Token( token );
-			IF token # "des.SPtrans" THEN  FError;  RETURN   END;
-			FOR i := 0 TO 7 DO
-				FOR j := 0 TO 63 DO
-					IF r.GetInteger( val, TRUE ) THEN  T[i, j] := S.VAL( SET, val )
-					ELSE  FError;  RETURN
-					END
-				END;
-			END;
-		END
-	END Init;
+					
+			sk[ofs + 2*i] :=	
+					sm( X, 4,	24000000H ) +	sm( X, 28,	10000000H ) +
+					sm( X, 14,	08000000H ) +	sm( X, 18,	02080000H ) +
+					sm( X, 6,	01000000H ) +	sm( X, 9,	00200000H ) +
+				      	sm( X, -1,	00100000H ) +	sm( X, 10,	00040000H ) +
+					sm( X, 2,	00020000H ) +	sm( X, -10,	00010000H ) +
+					sm( Y,-13,	00002000H ) +	sm( Y, -4,	00001000H ) +
+					sm( Y, 6,	00000800H ) +	sm( Y, -1,	00000400H ) +
+					sm( Y, -14,	00000200H ) +	sm( Y, 0,	00000100H ) +
+					sm( Y, -5,	00000020H ) +	sm( Y, -10,	00000010H ) +
+					sm( Y, -3,	00000008H ) +	sm( Y, -18,	00000004H ) +
+					sm( Y, -26,	00000002H ) +	sm( Y, -24,	00000001H );
+
+	        	sk[ofs + 2*i + 1] :=   
+	        			sm( X, 15,	20000000H ) +	sm( X, 17,	10000000H ) +
+					sm( X, 10,	08000000H ) +	sm( X, 22,	04000000H ) +
+					sm( X, -2,	02000000H ) +	sm( X, 1,	01000000H ) +
+					sm( X, 16,	00200000H ) +	sm( X, 11,	00100000H ) +
+					sm( X, 3,	00080000H ) +	sm( X, -6,	00040000H ) +
+					sm( X, 15,	00020000H ) +	sm( X, -4,	00010000H ) +
+					sm( Y, -2,	00002000H ) +	sm( Y, 8,	00001000H ) +
+					sm( Y, -14,	00000808H ) +	sm( Y, -9,	00000400H ) +
+					sm( Y, 0,	00000200H ) +	sm( Y, 7,	00000100H ) +
+					sm( Y, -7,	00000020H ) +	sm( Y, -3,	00000011H ) +
+					sm( Y, 2,	00000004H ) +	sm( Y, -21,	00000002H );
+			END
+		END ComputeSubkeys;
+
+	
+	PROCEDURE InitializeSandboxes;
+	VAR buf: POINTER TO ARRAY OF CHAR;
+		p: LONGINT;
+		
+		PROCEDURE App( CONST s: ARRAY OF CHAR );
+		VAR i: LONGINT;
+		BEGIN
+			i := 0;
+			WHILE i < LEN( s ) DO  buf[p] := s[i];  INC( p );  INC( i )  END
+		END App;
+		
+		PROCEDURE InitTable( VAR tab: ARRAY OF SET );
+		VAR i, val: LONGINT; c: CHAR;
+		BEGIN
+			p := 0;
+			FOR i := 0 TO LEN(tab) - 1 DO  
+				WHILE buf[p] <= ' ' DO  INC( p )  END;
+				c := buf[p];  INC( p );  val := 0;
+				REPEAT  
+					val := 16* val + (ORD( c ) - ORD( '0' ));
+					c := buf[p];  INC( p )
+				UNTIL c <= ' ';
+				tab[i] := S.VAL( SET, val )
+			END
+		END InitTable;
+	
+	BEGIN
+		NEW( buf, 1024 );
+		p := 0;
+		App( "01010400 00000000 00010000 01010404 01010004 00010404 00000004 00010000 " );
+		App( "00000400 01010400 01010404 00000400 01000404 01010004 01000000 00000004 " );
+		App( "00000404 01000400 01000400 00010400 00010400 01010000 01010000 01000404 " );
+		App( "00010004 01000004 01000004 00010004 00000000 00000404 00010404 01000000 " );
+		App( "00010000 01010404 00000004 01010000 01010400 01000000 01000000 00000400 " );
+		App( "01010004 00010000 00010400 01000004 00000400 00000004 01000404 00010404 " );
+		App( "01010404 00010004 01010000 01000404 01000004 00000404 00010404 01010400 " );
+		App( "00000404 01000400 01000400 00000000 00010004 00010400 00000000 01010004 " );
+		InitTable( SB1 );
+
+		p := 0;
+		App( "80108020 80008000 00008000 00108020 00100000 00000020 80100020 80008020 " );
+		App( "80000020 80108020 80108000 80000000 80008000 00100000 00000020 80100020 " );
+		App( "00108000 00100020 80008020 00000000 80000000 00008000 00108020 80100000 " );
+		App( "00100020 80000020 00000000 00108000 00008020 80108000 80100000 00008020 " );
+		App( "00000000 00108020 80100020 00100000 80008020 80100000 80108000 00008000 " );
+		App( "80100000 80008000 00000020 80108020 00108020 00000020 00008000 80000000 " );
+		App( "00008020 80108000 00100000 80000020 00100020 80008020 80000020 00100020 " );
+		App( "00108000 00000000 80008000 00008020 80000000 80100020 80108020 00108000 " );
+		InitTable( SB2 );
+
+		p := 0;
+		App( "00000208 08020200 00000000 08020008 08000200 00000000 00020208 08000200 " );
+		App( "00020008 08000008 08000008 00020000 08020208 00020008 08020000 00000208 " );
+		App( "08000000 00000008 08020200 00000200 00020200 08020000 08020008 00020208 " );
+		App( "08000208 00020200 00020000 08000208 00000008 08020208 00000200 08000000 " );
+		App( "08020200 08000000 00020008 00000208 00020000 08020200 08000200 00000000 " );
+		App( "00000200 00020008 08020208 08000200 08000008 00000200 00000000 08020008 " );
+		App( "08000208 00020000 08000000 08020208 00000008 00020208 00020200 08000008 " );
+		App( "08020000 08000208 00000208 08020000 00020208 00000008 08020008 00020200 " );
+		InitTable( SB3 );
+
+		p := 0;
+		App( "00802001 00002081 00002081 00000080 00802080 00800081 00800001 00002001 " );
+		App( "00000000 00802000 00802000 00802081 00000081 00000000 00800080 00800001 " );
+		App( "00000001 00002000 00800000 00802001 00000080 00800000 00002001 00002080 " );
+		App( "00800081 00000001 00002080 00800080 00002000 00802080 00802081 00000081 " );
+		App( "00800080 00800001 00802000 00802081 00000081 00000000 00000000 00802000 " );
+		App( "00002080 00800080 00800081 00000001 00802001 00002081 00002081 00000080 " );
+		App( "00802081 00000081 00000001 00002000 00800001 00002001 00802080 00800081 " );
+		App( "00002001 00002080 00800000 00802001 00000080 00800000 00002000 00802080 " );
+		InitTable( SB4 );
+	    
+		p := 0;
+		App( "00000100 02080100 02080000 42000100 00080000 00000100 40000000 02080000 " );
+		App( "40080100 00080000 02000100 40080100 42000100 42080000 00080100 40000000 " );
+		App( "02000000 40080000 40080000 00000000 40000100 42080100 42080100 02000100 " );
+		App( "42080000 40000100 00000000 42000000 02080100 02000000 42000000 00080100 " );
+		App( "00080000 42000100 00000100 02000000 40000000 02080000 42000100 40080100 " );
+		App( "02000100 40000000 42080000 02080100 40080100 00000100 02000000 42080000 " );
+		App( "42080100 00080100 42000000 42080100 02080000 00000000 40080000 42000000 " );
+		App( "00080100 02000100 40000100 00080000 00000000 40080000 02080100 40000100 " );
+		InitTable( SB5 );
+
+		p := 0;
+		App( "20000010 20400000 00004000 20404010 20400000 00000010 20404010 00400000 " );
+		App( "20004000 00404010 00400000 20000010 00400010 20004000 20000000 00004010 " );
+		App( "00000000 00400010 20004010 00004000 00404000 20004010 00000010 20400010 " );
+		App( "20400010 00000000 00404010 20404000 00004010 00404000 20404000 20000000 " );
+		App( "20004000 00000010 20400010 00404000 20404010 00400000 00004010 20000010 " );
+		App( "00400000 20004000 20000000 00004010 20000010 20404010 00404000 20400000 " );
+		App( "00404010 20404000 00000000 20400010 00000010 00004000 20400000 00404010 " );
+		App( "00004000 00400010 20004010 00000000 20404000 20000000 00400010 20004010 " );
+		InitTable( SB6 );
+
+		p := 0;
+		App( "00200000 04200002 04000802 00000000 00000800 04000802 00200802 04200800 " );
+		App( "04200802 00200000 00000000 04000002 00000002 04000000 04200002 00000802 " );
+		App( "04000800 00200802 00200002 04000800 04000002 04200000 04200800 00200002 " );
+		App( "04200000 00000800 00000802 04200802 00200800 00000002 04000000 00200800 " );
+		App( "04000000 00200800 00200000 04000802 04000802 04200002 04200002 00000002 " );
+		App( "00200002 04000000 04000800 00200000 04200800 00000802 00200802 04200800 " );
+		App( "00000802 04000002 04200802 04200000 00200800 00000000 00000002 04200802 " );
+		App( "00000000 00200802 04200000 00000800 04000002 04000800 00000800 00200002 " );
+		InitTable( SB7 );
+
+		p := 0;
+		App( "10001040 00001000 00040000 10041040 10000000 10001040 00000040 10000000 " );
+		App( "00040040 10040000 10041040 00041000 10041000 00041040 00001000 00000040 " );
+		App( "10040000 10000040 10001000 00001040 00041000 00040040 10040040 10041000 " );
+		App( "00001040 00000000 00000000 10040040 10000040 10001000 00041040 00040000 " );
+		App( "00041040 00040000 10041000 00001000 00000040 10040040 00001000 00041040 " );
+		App( "10001000 00000040 10000040 10040000 10040040 10000000 00040000 10001040 " );
+		App( "00000000 10041040 00040040 10000040 10040000 10001000 10001040 00000000 " );
+		App( "10041040 00041000 00041000 00001040 00001040 00040040 10000000 10041000 " );
+		InitTable( SB8 );
+		
+		p := 0;
+		App( "00000000 00000001 00000100 00000101 00010000 00010001 00010100 00010101 " );
+		App( "01000000 01000001 01000100 01000101 01010000 01010001 01010100 01010101 " );
+		InitTable( LHs );
+		
+		p := 0;
+		App( "00000000 01000000 00010000 01010000 00000100 01000100 00010100 01010100 " );
+		App( "00000001 01000001 00010001 01010001 00000101 01000101 00010101 01010101 " );
+		InitTable( RHs );
+		
+	END InitializeSandboxes;
 
 BEGIN
-	ASSERT( S.VAL( LONGINT, {0} ) = 1 );
-	Init
+	InitializeSandboxes
 END CryptoDES.
 
 
+SystemTools.Free CryptoTestCiphers CryptoDES ~
 

@@ -8,6 +8,7 @@ CONST
 
 	(** Activate flags. *)
 	Wait* = 0;	(** Wait until the activated command returns. *)
+	InheritContext*= 1; (** Inherit context (as far as not overwritten) of the caller *)
 
 	Ok* = 0;
 	CommandNotFound* = 3901;
@@ -265,7 +266,7 @@ END Activate;
 *)
 
 PROCEDURE Call*(cmds : ARRAY OF CHAR; flags : SET; VAR res : LONGINT; VAR msg : ARRAY OF CHAR);
-VAR context : Context; arg : Streams.StringReader; i, j, k : LONGINT; mode : ARRAY 5 OF CHAR;
+VAR  outer, context : Context; arg : Streams.StringReader; i, j, k : LONGINT; mode : ARRAY 5 OF CHAR;
 par : POINTER TO ARRAY OF CHAR;
 BEGIN
 	IF trace THEN 	Trace.String("Commands.Call "); Trace.String(cmds); Trace.String("~ "); Trace.Ln END;
@@ -287,7 +288,12 @@ BEGIN
 		IF cmds[i] = ";" THEN INC(i); END;
 		par[j] := 0X; cmds[k] := 0X;
 		NEW(arg, j+1); arg.SetRaw(par^, 0, j+1);
-		NEW(context, NIL, arg, NIL, NIL, NIL);
+		IF InheritContext IN flags THEN
+			outer := GetContext();
+			NEW(context, outer.in, arg, outer.out, outer.error, outer.caller);
+		ELSE
+			NEW(context, NIL, arg, NIL, NIL, NIL)
+		END;
 		Activate(cmds, context, flags, res, msg);
 		IF (res # Ok) THEN EXIT; END;
 	END;

@@ -1,7 +1,7 @@
 MODULE WMDefaultWindows;	(** AUTHOR "TF"; PURPOSE "Decoration windows, background window for WM"; *)
 
 IMPORT
-	Strings, WM := WMWindowManager, WMRectangles, Raster, Graphics := WMGraphics, Math,
+	Strings, WM := WMWindowManager, WMRectangles, Raster, Graphics := WMGraphics,
 	Messages := WMMessages, Inputs, KernelLog, WMGraphicUtilities;
 
 CONST
@@ -216,6 +216,15 @@ TYPE
 				END;
 				RETURN r;
 			END Pow2;
+			
+			PROCEDURE FindNearestPow2 (value: REAL): LONGINT;
+			VAR result: LONGINT;
+			BEGIN
+				result := 1;
+				WHILE result < value DO INC (result, result) END;
+				IF value - result DIV 2 < result - value THEN result := result DIV 2 END;
+				RETURN result;
+			END FindNearestPow2;
 
 		BEGIN
 			ow := master.initialBounds.r - master.initialBounds.l;
@@ -224,12 +233,18 @@ TYPE
 			IF width > ow THEN
 				snapWidth := ENTIER(width / ow + 0.5) * ow
 			ELSE
+				snapWidth := ENTIER ((1 / FindNearestPow2 (ow / width)) * ow);
+(*
 				snapWidth := ENTIER((1 / Pow2(SHORT(ENTIER((Math.ln(ow / width) / Math.ln(2)) + 0.5)))) * ow)
+*)
 			END;
 			IF height > oh THEN
 				snapHeight := ENTIER(height / oh + 0.5) * oh
 			ELSE
+				snapHeight := ENTIER ((1 / FindNearestPow2 (oh / height)) * oh);
+(*
 				snapHeight := ENTIER((1 / Pow2(SHORT(ENTIER((Math.ln(oh / height) / Math.ln(2)) + 0.5)))) * oh)
+*)
 			END;
 			IF (height > snapHeight - draggingSnapRange) & (height < snapHeight + draggingSnapRange) THEN height := snapHeight END;
 			IF (width > snapWidth - draggingSnapRange) & (width < snapWidth + draggingSnapRange) THEN width := snapWidth END;

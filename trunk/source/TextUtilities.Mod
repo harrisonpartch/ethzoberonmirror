@@ -2402,28 +2402,34 @@ BEGIN
 END AddFontFormat;
 
 PROCEDURE GetConfig;
-VAR sectWM, sectFM, e : XML.Element;
+VAR sectFM, e : XML.Element;
 	p : ANY; enum: XMLObjects.Enumerator;
 	f : FormatDescriptor;
 BEGIN
-	sectWM := Configuration.GetNamedElement(Configuration.config.GetRoot(), "Section", "TextFormats");
+	IF Configuration.config # NIL THEN
+		sectFM := Configuration.GetNamedElement(Configuration.config.GetRoot(), "Section", "TextFormats");
+	ELSE
+		sectFM := NIL;
+	END;
 	IF sectFM # NIL THEN
 		enum := sectFM.GetContents();
-		WHILE enum.HasMoreElements() DO
-			p := enum.GetNext();
-			IF p IS XML.Element THEN
-				NEW(f);
-				f.name := p(XML.Element).GetName();
+		IF enum # NIL THEN
+			WHILE enum.HasMoreElements() DO
+				p := enum.GetNext();
+				IF p IS XML.Element THEN
+					NEW(f);
+					f.name := p(XML.Element).GetName();
 
-				e := Configuration.GetNamedElement(p(XML.Element), "Setting", "Load");
-				IF e # NIL THEN f.loadProc := e.GetAttributeValue("Value") END;
+					e := Configuration.GetNamedElement(p(XML.Element), "Setting", "Load");
+					IF e # NIL THEN f.loadProc := e.GetAttributeValue("Value") END;
 
-				e := Configuration.GetNamedElement(p(XML.Element), "Setting", "Store");
-				IF e # NIL THEN f.storeProc := e.GetAttributeValue("Value") END;
+					e := Configuration.GetNamedElement(p(XML.Element), "Setting", "Store");
+					IF e # NIL THEN f.storeProc := e.GetAttributeValue("Value") END;
 
-				AddFontFormat(f);
+					AddFontFormat(f);
+				END
 			END
-		END
+		END;
 	END
 END GetConfig;
 

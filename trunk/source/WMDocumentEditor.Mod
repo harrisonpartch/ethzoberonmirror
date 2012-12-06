@@ -456,33 +456,35 @@ TYPE
 		BEGIN
 			NEW(popup);
 			(* retrieve available Text-Codecs *)
-			elem := Configuration.config.GetRoot();
-			IF elem # NIL THEN
-				enum := elem.GetContents(); enum.Reset();
-				WHILE enum.HasMoreElements() DO
-					ptr := enum.GetNext();
-					IF ptr IS XML.Element THEN
-						str := ptr(XML.Element).GetAttributeValue("name");
-						IF (str # NIL) & (str^ = "Codecs") THEN
-							enum := ptr(XML.Element).GetContents(); enum.Reset();
-							WHILE enum.HasMoreElements() DO
-								ptr := enum.GetNext();
-								IF ptr IS XML.Element THEN
-									str := ptr(XML.Element).GetAttributeValue("name");
-									IF (str # NIL) & (str^ = "Decoder") THEN
-										enum := ptr(XML.Element).GetContents(); enum.Reset();
-										WHILE enum.HasMoreElements() DO
-											ptr := enum.GetNext();
-											IF ptr IS XML.Element THEN
-												str := ptr(XML.Element).GetAttributeValue("name");
-												IF (str # NIL) & (str^ = "Text") THEN
-													enum := ptr(XML.Element).GetContents(); enum.Reset();
-													WHILE enum.HasMoreElements() DO
-														ptr := enum.GetNext();
-														IF ptr IS XML.Element THEN
-															str := ptr(XML.Element).GetAttributeValue("name");
-															NEW(caption, str^);
-															popup.AddParButton(str^, FormatPopupHandler, caption);
+			IF Configuration.config # NIL THEN
+				elem := Configuration.config.GetRoot();
+				IF elem # NIL THEN
+					enum := elem.GetContents(); enum.Reset();
+					WHILE enum.HasMoreElements() DO
+						ptr := enum.GetNext();
+						IF ptr IS XML.Element THEN
+							str := ptr(XML.Element).GetAttributeValue("name");
+							IF (str # NIL) & (str^ = "Codecs") THEN
+								enum := ptr(XML.Element).GetContents(); enum.Reset();
+								WHILE enum.HasMoreElements() DO
+									ptr := enum.GetNext();
+									IF ptr IS XML.Element THEN
+										str := ptr(XML.Element).GetAttributeValue("name");
+										IF (str # NIL) & (str^ = "Decoder") THEN
+											enum := ptr(XML.Element).GetContents(); enum.Reset();
+											WHILE enum.HasMoreElements() DO
+												ptr := enum.GetNext();
+												IF ptr IS XML.Element THEN
+													str := ptr(XML.Element).GetAttributeValue("name");
+													IF (str # NIL) & (str^ = "Text") THEN
+														enum := ptr(XML.Element).GetContents(); enum.Reset();
+														WHILE enum.HasMoreElements() DO
+															ptr := enum.GetNext();
+															IF ptr IS XML.Element THEN
+																str := ptr(XML.Element).GetAttributeValue("name");
+																NEW(caption, str^);
+																popup.AddParButton(str^, FormatPopupHandler, caption);
+															END;
 														END;
 													END;
 												END;

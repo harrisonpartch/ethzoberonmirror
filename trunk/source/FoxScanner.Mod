@@ -263,11 +263,11 @@ TYPE
 
 		(* helper state information *)
 		source-: StringType;
-		reader: Streams.Reader;   (* source *)
+		reader-: Streams.Reader;   (* source *)
 		diagnostics: Diagnostics.Diagnostics;   (* error logging *)
 
 		ch: CHAR;   (* look-ahead character *)
-		position: LONGINT;   (* current position *)
+		position-: LONGINT;   (* current position *)
 		line-: LONGINT;
 
 		error-: BOOLEAN;   (* if error occured during scanning *)

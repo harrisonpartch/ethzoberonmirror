@@ -1,75 +1,155 @@
-(* ETH Oberon, Copyright 2001 ETH Zuerich Institut fuer Computersysteme, ETH Zentrum, CH-8092 Zuerich.
-Refer to the "General ETH Oberon System Source License" contract available at: http://www.oberon.ethz.ch/ *)
 
-MODULE CryptoDES3;   (*	g.f.	2002.07.20 *)
+MODULE CryptoDES3;   (** AUTHOR "G.F."; PUROSE "Triple DES Cipher";	 *)
 
-(* Triple DES Cipher *)
+(*  based on  POLARSSL des.c *)
 
-IMPORT Ciphers := CryptoCiphers, U := CryptoUtils, DES := CryptoDES;
+IMPORT Ciphers := CryptoCiphers, U := CryptoUtils, DES := CryptoDES, S := SYSTEM;
 
+	
+	
 TYPE
-	Block = DES.Block;
-
 	Cipher* = OBJECT (Ciphers.Cipher)
-			VAR c1, c2, c3: DES.Cipher;
-				iv: Block;
+			VAR ske, skd: ARRAY 96 OF SET; ski: LONGINT;
+				ivx, ivy: SET;
 
 				PROCEDURE InitKey*( CONST src: ARRAY OF CHAR;  pos: LONGINT;  keybits: LONGINT );
+				VAR X, Y: SET;  i: LONGINT;
 				BEGIN
 					ASSERT( keybits = 192 );
 					InitKey^( src, pos, 64 );
-					c1.InitKey( src, 0, 64 );  c2.InitKey( src, 8, 64 );  c3.InitKey( src, 16, 64 );
+					
+					X := U.BESetFrom( src, pos );  Y := U.BESetFrom( src, pos + 4 );
+					DES.ComputeSubkeys( X, Y, ske, 0 );
+					
+					X := U.BESetFrom( src, pos + 8 );  Y := U.BESetFrom( src, pos + 12 );
+					DES.ComputeSubkeys( X, Y, skd, 32 );
+					
+					X := U.BESetFrom( src, pos + 16);  Y := U.BESetFrom( src, pos + 20 );
+					DES.ComputeSubkeys( X, Y, ske, 64 );
+					
+					FOR i := 0 TO 30 BY 2 DO
+						skd[i + 0] := ske[94 - i];
+						skd[i + 1] := ske[95 - i];
+						
+						ske[i + 32] := skd[62 - i];
+						ske[i + 33] := skd[63 - i];
+						
+						skd[i + 64] := ske[30 - i];
+						skd[i + 65] := ske[31 - i]
+					END
 				END InitKey;
 
 				PROCEDURE SetIV*( CONST src: ARRAY OF CHAR;  p: LONGINT );
 				BEGIN
 					SetIV^( src, p );   (* set mode *)
-					U.CharsToBlockLE( src, p, iv )
+					ivx := U.BESetFrom( src, p );  ivy := U.BESetFrom( src, p+4 )
 				END SetIV;
 
 				PROCEDURE Encrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
-				VAR i: LONGINT;  b: Block;
+				VAR i, r: LONGINT;  X, Y: SET;
 				BEGIN
 					ASSERT( isKeyInitialized );
 					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
 					i := 0;
 					WHILE i < len DO
-						U.CharsToBlockLE( buf, ofs + i, b );
-						IF mode = Ciphers.CBC THEN  U.XORBlock( b, iv )  END;
-						DES.IP( b[0], b[1] );
-						c1.Encrypt0( b );  c2.Decrypt0( b );  c3.Encrypt0( b );
-						DES.FP( b[0], b[1] );
-						IF mode = Ciphers.CBC THEN  iv := b  END;
-						U.BlockToCharsLE( b, buf, ofs + i );
+						X := U.BESetFrom( buf, ofs + i );  Y := U.BESetFrom( buf, ofs + i + 4 );
+						IF mode = Ciphers.CBC THEN  X := X / ivx;  Y := Y / ivy   END;
+
+						DES.IP( X, Y );
+						ski := 0;
+						FOR r := 0 TO 7 DO  
+							RoundE( Y, X );
+							RoundE( X, Y );
+						END;
+						FOR r := 0 TO 7 DO  
+							RoundE( X, Y );
+							RoundE( Y, X );
+						END;
+						FOR r := 0 TO 7 DO  
+							RoundE( Y, X );
+							RoundE( X, Y );
+						END;
+						DES.FP( Y, X );
+						
+						U.BESetToChars( Y, buf, ofs + i );   U.BESetToChars( X, buf, ofs + i + 4); 
+						IF mode = Ciphers.CBC THEN  ivx := Y;  ivy := X  END;
 						INC( i, blockSize )
 					END
 				END Encrypt;
 
 				PROCEDURE Decrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
-				VAR i: LONGINT;  b0, b: Block;
+				VAR i, r: LONGINT;  X, Y, X0, Y0: SET;
 				BEGIN
 					ASSERT( isKeyInitialized );
 					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
 					i := 0;
 					WHILE i < len DO
-						U.CharsToBlockLE( buf, ofs + i, b );  b0 := b;
-						DES.IP( b[0], b[1] );
-						c3.Decrypt0( b );  c2.Encrypt0( b );  c1.Decrypt0( b );
-						DES.FP( b[0], b[1] );
-						IF mode = Ciphers.CBC THEN  U.XORBlock( b, iv );  iv := b0  END;
-						U.BlockToCharsLE( b, buf, ofs + i );
+						X := U.BESetFrom( buf, ofs + i );  Y := U.BESetFrom( buf, ofs + i + 4 );
+						IF mode = Ciphers.CBC THEN  X0 := X;  Y0 := Y  END;
+						
+						DES.IP( X, Y );
+						ski := 0;
+						FOR r := 0 TO 7 DO  
+							RoundD( Y, X );
+							RoundD( X, Y );
+						END;
+						FOR r := 0 TO 7 DO  
+							RoundD( X, Y );
+							RoundD( Y, X );
+						END;
+						FOR r := 0 TO 7 DO  
+							RoundD( Y, X );
+							RoundD( X, Y );
+						END;
+						DES.FP( Y, X );
+						
+						IF mode = Ciphers.CBC THEN  
+							Y := Y / ivx;  X := X / ivy  ; 
+							ivx := X0;  ivy := Y0  
+						END;
+						U.BESetToChars( Y, buf, ofs + i );   U.BESetToChars( X, buf, ofs + i + 4); 
 						INC( i, blockSize )
 					END
 				END Decrypt;
 
 
+				PROCEDURE RoundE*( VAR X, Y: SET );
+				VAR T: LONGINT;
+				BEGIN
+					T := S.VAL( LONGINT, ske[ski] / X );  INC(ski );
+					Y := Y /	DES.SB8[T MOD 40H] /
+							DES.SB6[T DIV 100H MOD 40H] /
+							DES.SB4[T DIV 10000H MOD 40H] /
+							DES.SB2[T DIV 1000000H MOD 40H];
+					T := S.VAL( LONGINT, ske[ski] / S.ROT( X, -4 ) );  INC( ski );
+					Y := Y /	DES.SB7[T MOD 40H] /
+							DES.SB5[T DIV 100H MOD 40H] /
+							DES.SB3[T DIV 10000H MOD 40H] /
+							DES.SB1[T DIV 1000000H MOD 40H]
+				END RoundE;
+				
+				PROCEDURE RoundD*( VAR X, Y: SET );
+				VAR T: LONGINT;
+				BEGIN
+					T := S.VAL( LONGINT, skd[ski] / X );  INC( ski );
+					Y := Y /	DES.SB8[T MOD 40H] /
+							DES.SB6[T DIV 100H MOD 40H] /
+							DES.SB4[T DIV 10000H MOD 40H] /
+							DES.SB2[T DIV 1000000H MOD 40H];
+					T := S.VAL( LONGINT, skd[ski] / S.ROT( X, -4 ) );  INC(ski );
+					Y := Y /	DES.SB7[T MOD 40H] /
+							DES.SB5[T DIV 100H MOD 40H] /
+							DES.SB3[T DIV 10000H MOD 40H] /
+							DES.SB1[T DIV 1000000H MOD 40H]
+				END RoundD;
+
 				PROCEDURE & Init*;
 				BEGIN
 					SetNameAndBlocksize( "3des", 8 );
-					NEW( c1 );  NEW( c2 );  NEW( c3 )
 				END Init;
 
 			END Cipher;
+			
 
 
 	PROCEDURE NewCipher*( ): Ciphers.Cipher;

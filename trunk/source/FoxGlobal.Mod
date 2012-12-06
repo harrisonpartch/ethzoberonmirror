@@ -124,6 +124,7 @@ VAR
 	(* some handy type variables for backend / checker implementers *)
 	Boolean8-, Boolean32-: SyntaxTree.BooleanType;
 	Integer8-, Integer16-, Integer32-, Integer64-: SyntaxTree.IntegerType;
+	Unsigned7-,Unsigned8-, Unsigned15-, Unsigned16-, Unsigned31-, Unsigned32-, Unsigned63-, Unsigned64-: SyntaxTree.IntegerType;
 	Character8-, Character16-, Character32-: SyntaxTree.CharacterType;
 	Float32-, Float64-: SyntaxTree.FloatType;
 	Complex64-, Complex128-: SyntaxTree.ComplexType;
@@ -164,7 +165,7 @@ TYPE
 			A good concept has to be derived.
 		*)
 
-		addressType-, sizeType-, shortintType-, integerType-, longintType-, hugeintType-, characterType-, setType-, booleanType-, anyType-,byteType-,
+		addressType-, sizeType-, shortintType-, integerType-, longintType-, hugeintType-, characterType-, characterType8-, characterType16-, characterType32-, setType-, booleanType-, anyType-,byteType-,
 		realType-, longrealType-, complexType-, longcomplexType-, objectType-, nilType-, rangeType-: SyntaxTree.Type;
 
 		PROCEDURE &InitSystem*(codeUnit, dataUnit: LONGINT; addressSize, minVarAlign, maxVarAlign, minParAlign, maxParAlign, offsetFirstPar, registerParameters: LONGINT);
@@ -504,24 +505,50 @@ TYPE
 	PROCEDURE SetDefaultDeclarations*(system: System; minBits: LONGINT);
 	BEGIN
 		(* types *)
+		system.longintType := SyntaxTree.NewIntegerType(32, TRUE);
+		system.hugeintType := SyntaxTree.NewIntegerType(64, TRUE);
+		system.realType := SyntaxTree.NewFloatType(32);
+		system.longrealType := SyntaxTree.NewFloatType(64);
+		(*
 		system.longintType := Integer32;
 		system.hugeintType := Integer64;
 		system.realType := Float32;
 		system.longrealType := Float64;
+		*)
 
 		IF minBits = 32 THEN
+			system.shortintType := SyntaxTree.NewIntegerType(32, TRUE);
+			system.integerType := SyntaxTree.NewIntegerType(32, TRUE);
+			system.booleanType := SyntaxTree.NewBooleanType(32);
+			system.byteType := SyntaxTree.NewByteType(32);
+			system.characterType := SyntaxTree.NewCharacterType(32);
+			system.characterType8 := SyntaxTree.NewCharacterType(32);
+			system.characterType16 := SyntaxTree.NewCharacterType(32);
+			system.characterType32 := SyntaxTree.NewCharacterType(32);
+			(*
 			system.shortintType := Integer32;
 			system.integerType := Integer32;
 			system.booleanType := Boolean32;
 			system.byteType := Byte32;
 			system.characterType := Character32;
+			*)
 		ELSE
 			ASSERT(minBits = 8); (* nothing else is currently implemented *)
+			system.shortintType := SyntaxTree.NewIntegerType(8, TRUE);
+			system.integerType := SyntaxTree.NewIntegerType(16, TRUE);
+			system.booleanType := SyntaxTree.NewBooleanType(8);
+			system.byteType := SyntaxTree.NewByteType(8);
+			system.characterType := SyntaxTree.NewCharacterType(8);;
+			system.characterType8 := SyntaxTree.NewCharacterType(8);;
+			system.characterType16 := SyntaxTree.NewCharacterType(16);;
+			system.characterType32 := SyntaxTree.NewCharacterType(32);;
+			(*
 			system.shortintType := Integer8;
 			system.integerType := Integer16;
 			system.booleanType := Boolean8;
 			system.byteType := Byte8;
 			system.characterType := Character8;
+			*)
 		END;
 
 		system.anyType := SyntaxTree.NewAnyType(system.addressSize);
@@ -568,11 +595,10 @@ TYPE
 		NewBuiltin(systemMsk,"MSK",system.systemScope,TRUE);
 
 		(* Set up system types *)
-		system.characterType := Character8;
 		DeclareType(system.characterType,"CHAR",system.globalScope);
-		DeclareType(Character8,"CHAR8",system.globalScope);
-		DeclareType(Character16,"CHAR16",system.globalScope);
-		DeclareType(Character32,"CHAR32",system.globalScope);
+		DeclareType(system.characterType8,"CHAR8",system.globalScope);
+		DeclareType(system.characterType16,"CHAR16",system.globalScope);
+		DeclareType(system.characterType32,"CHAR32",system.globalScope);
 		DeclareType(system.rangeType,"RANGE",system.globalScope);
 		DeclareType(system.shortintType,"SHORTINT",system.globalScope);
 		DeclareType(system.integerType,"INTEGER",system.globalScope);
@@ -1056,19 +1082,48 @@ TYPE
 
 	PROCEDURE GetIntegerType*(system: System; this: HUGEINT): SyntaxTree.IntegerType;
 
-		PROCEDURE InBounds(type: SyntaxTree.Type): BOOLEAN;
+		PROCEDURE InBounds(type: SyntaxTree.IntegerType): BOOLEAN;
 		VAR m: HUGEINT;
 		BEGIN
-			m := Runtime.AslH(1,system.SizeOf(type)-1);
-			RETURN (this < m) & (-this <= m)
+			IF type.signed THEN
+				m := Runtime.AslH(1,system.SizeOf(type)-1);
+				RETURN (this < m) & (-this <= m)
+			ELSE
+				m := Runtime.AslH(1,system.SizeOf(type));
+				RETURN (this < m) & (this >= 0)
+			END;
 		END InBounds;
 
 	BEGIN
-		IF InBounds(Integer8) THEN RETURN Integer8
-		ELSIF InBounds(Integer16) THEN RETURN Integer16
-		ELSIF InBounds(Integer32) THEN RETURN Integer32
-		ELSE RETURN Integer64
+		IF (this < 0) OR TRUE (* temporarily unsigned unsupported *) THEN
+			IF InBounds(Integer8) THEN RETURN Integer8
+			ELSIF InBounds(Integer16) THEN RETURN Integer16
+			ELSIF InBounds(Integer32) THEN RETURN Integer32
+			ELSE RETURN Integer64
+			END;
+		ELSE
+			IF InBounds(Unsigned7) THEN RETURN Unsigned7
+			ELSIF InBounds(Unsigned8) THEN RETURN Unsigned8
+			ELSIF InBounds(Unsigned15) THEN RETURN Unsigned15
+			ELSIF InBounds(Unsigned16) THEN RETURN Unsigned16
+			ELSIF InBounds(Unsigned31) THEN RETURN Unsigned31
+			ELSIF InBounds(Unsigned32) THEN RETURN Unsigned32
+			ELSIF InBounds(Unsigned63) THEN RETURN Unsigned63
+			ELSE RETURN Unsigned64
+			END;
 		END;
+		(*
+		ELSIF InBounds(Integer8) THEN RETURN Integer8
+		ELSIF InBounds (Unsigned8) THEN RETURN Unsigned8
+		ELSIF InBounds (Unsigned15) THEN RETURN Unsigned15
+		ELSIF InBounds(Integer16) THEN RETURN Integer16
+		ELSIF InBounds (Unsigned16) THEN RETURN Unsigned16
+		ELSIF InBounds(Integer32) THEN RETURN Integer32
+		ELSIF InBounds(Unsigned32) THEN RETURN Unsigned32
+		*)
+		(*ELSIF InBounds(Integer64) THEN RETURN Integer64
+		ELSE RETURN Unsigned64
+		*)
 	END GetIntegerType;
 
 	PROCEDURE NewIntegerValue*(system: System; position: LONGINT; hugeint: HUGEINT): SyntaxTree.Value;
@@ -1123,6 +1178,15 @@ TYPE
 			WHILE toSize >= fromSize DO
 				toSize := toSize DIV 2; INC(distance);
 			END;
+			IF (from IS SyntaxTree.IntegerType) & (to IS SyntaxTree.IntegerType) THEN
+				IF  ~(to(SyntaxTree.IntegerType).signed) &  from(SyntaxTree.IntegerType).signed THEN
+					distance := MAX(LONGINT)
+				ELSIF (to(SyntaxTree.IntegerType).signed) & ~from(SyntaxTree.IntegerType).signed THEN
+					IF distance = 0 (* same or smaller size! *) THEN distance := MAX(LONGINT)
+					ELSE INC(distance)
+					END;
+				END;
+			END;
 		ELSIF (from IS SyntaxTree.IntegerType) & (to IS SyntaxTree.FloatType) THEN
 			IF toSize = 64 THEN distance := 1 ELSE distance := 0 END;
 			toSize := 64;
@@ -1132,6 +1196,7 @@ TYPE
 		ELSIF (from IS SyntaxTree.RangeType) & (to IS SyntaxTree.RangeType) THEN
 			distance := 0;
 		END;
+
 		IF distance < 0 THEN distance := MAX(LONGINT) END;
 		RETURN distance
 	END BasicTypeDistance;
@@ -1281,6 +1346,14 @@ TYPE
 		Integer16 := SyntaxTree.NewIntegerType(16, TRUE);
 		Integer32 := SyntaxTree.NewIntegerType(32, TRUE);
 		Integer64 := SyntaxTree.NewIntegerType(64, TRUE);
+		Unsigned7 := SyntaxTree.NewIntegerType(7, FALSE);
+		Unsigned8 := SyntaxTree.NewIntegerType(8, FALSE);
+		Unsigned15 := SyntaxTree.NewIntegerType(15, FALSE);
+		Unsigned16 := SyntaxTree.NewIntegerType(16, FALSE);
+		Unsigned31 := SyntaxTree.NewIntegerType(31, FALSE);
+		Unsigned32 := SyntaxTree.NewIntegerType(32, FALSE);
+		Unsigned63 := SyntaxTree.NewIntegerType(63, FALSE);
+		Unsigned64 := SyntaxTree.NewIntegerType(64, FALSE);
 		Float32 := SyntaxTree.NewFloatType(32);
 		Float64 := SyntaxTree.NewFloatType(64);
 		Complex64 := SyntaxTree.NewComplexType(Float32);

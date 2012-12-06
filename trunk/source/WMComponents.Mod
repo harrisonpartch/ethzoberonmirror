@@ -44,7 +44,7 @@ IMPORT
 	XML, XMLScanner, XMLParser, XMLObjects, Codecs, Localization, Repositories,
 	Messages := WMMessages, Rectangles := WMRectangles,
 	WMEvents, WMProperties, WMGraphics, Strings, WM := WMWindowManager, Raster,
-	Commands, Modules,D := Debugging, Kernel, Locks, SYSTEM, Objects, WMDropTarget;
+	Commands, Modules, Kernel, Locks, SYSTEM, Objects, WMDropTarget;
 
 CONST
 	Ok* = 0;
@@ -379,7 +379,6 @@ TYPE
 			ELSIF c IS Component THEN
 				IF (sequencer # c(Component).sequencer) THEN c(Component).SetSequencer(sequencer) END;
 			ELSIF ~(c IS XML.Comment) THEN
-				D.String("WMComponents.Component.AddContent: content of type "); D.Type(c); D.String(" ignored"); D.Ln;
 				RETURN
 			END;
 			Acquire;

@@ -155,7 +155,7 @@ CONST
 
 TYPE
 	Parser* = OBJECT
-	VAR scanner: Scanner.Scanner;
+	VAR scanner-: Scanner.Scanner;
 		symbol-: Scanner.Symbol;
 		diagnostics: Diagnostics.Diagnostics;
 		currentScope: SyntaxTree.Scope;
@@ -262,7 +262,7 @@ TYPE
 		END SkipComments;
 
 		(** Get next symbol from scanner and store it in object-local variable 'symbol' *)
-		PROCEDURE NextSymbol;
+		PROCEDURE NextSymbol*;
 		VAR comment: SyntaxTree.Comment;
 		BEGIN
 			error := ~scanner.GetNextSymbol(symbol) OR error;
@@ -781,7 +781,7 @@ TYPE
 			                     | '<' | '.<' | '<=' | '.<=' | '>' | '.>' | '>=' | '.>='
 			                     | 'in' | 'is'
 		**)
-		PROCEDURE Expression( ): SyntaxTree.Expression;
+		PROCEDURE Expression*( ): SyntaxTree.Expression;
 		VAR expression, rightExpression: SyntaxTree.Expression;  operator: LONGINT;  position: LONGINT;
 		BEGIN
 			IF Trace THEN S( "Expression" ) END;
@@ -839,7 +839,7 @@ TYPE
                      | 'code' {any} 'end'
                      ].
 		**)
-		PROCEDURE Statement( statements: SyntaxTree.StatementSequence; outer: SyntaxTree.Statement): BOOLEAN;
+		PROCEDURE Statement*( statements: SyntaxTree.StatementSequence; outer: SyntaxTree.Statement): BOOLEAN;
 		VAR qualifiedIdentifier: SyntaxTree.QualifiedIdentifier;  expression: SyntaxTree.Expression; designator: SyntaxTree.Designator;  statement: SyntaxTree.Statement;
 			ifStatement: SyntaxTree.IfStatement; elsifPart: SyntaxTree.IfPart;   statementSequence: SyntaxTree.StatementSequence;  withStatement: SyntaxTree.WithStatement;
 			withPart: SyntaxTree.WithPart; caller: SyntaxTree.ProcedureCallStatement;
@@ -1034,14 +1034,14 @@ TYPE
 			| Scanner.Finally: result := FALSE  (* end block by finally statement *)
 			| Scanner.Semicolon: result := FALSE (* allow the empty statement *)
 			(* builtin pseudo procedures are resolved by checker *)
-			ELSE Error( symbol.start, Scanner.Semicolon, "" ); result := FALSE;
+			ELSE (* Error( symbol.start, Scanner.Semicolon, "" ); *) result := FALSE;
 			END;
 			IF Trace THEN E( "Statement" ) END;
 			RETURN result
 		END Statement;
 
 		(** StatementSequence = Statement {';' Statement}. **)
-		PROCEDURE StatementSequence(outer: SyntaxTree.Statement ): SyntaxTree.StatementSequence;
+		PROCEDURE StatementSequence*(outer: SyntaxTree.Statement ): SyntaxTree.StatementSequence;
 		VAR statements: SyntaxTree.StatementSequence; b: BOOLEAN;
 		BEGIN
 			IF Trace THEN S( "StatementSequence" ) END;

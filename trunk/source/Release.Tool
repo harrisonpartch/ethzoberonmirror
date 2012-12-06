@@ -660,7 +660,7 @@ PACKAGE ApplicationsMini ARCHIVE "ApplicationsMini.zip" SOURCE "ApplicationsMini
 	Installer.Mod InstallerPackages.XML
 
 	CryptoBigNumbers.Mod CryptoBase64.Mod CryptoUtils.Mod CryptoCiphers.Mod CryptoARC4.Mod
-	CryptoDES.Mod CryptoDES3.Mod CryptoDES.Data
+	CryptoDES.Mod CryptoDES3.Mod 
 	CryptoHashes.Mod CryptoMD5.Mod CryptoSHA1.Mod CryptoSHA256.Mod
 	CryptoPrimes.Mod CryptoDSA.Mod CryptoDiffieHellman.Mod
 	CryptoAES.Mod

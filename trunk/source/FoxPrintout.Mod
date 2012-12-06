@@ -1380,7 +1380,7 @@ TYPE
 			END
 		END Statement;
 
-		PROCEDURE StatementSequence(x: SyntaxTree.StatementSequence);
+		PROCEDURE StatementSequence*(x: SyntaxTree.StatementSequence);
 		VAR statement: SyntaxTree.Statement;  i: LONGINT;
 		BEGIN
 			IF singleStatement THEN

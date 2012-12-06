@@ -799,12 +799,16 @@ TYPE
 
 		PROCEDURE & InitIntegerType(sizeInBits: LONGINT; signed: BOOLEAN);
 		BEGIN
-			InitNumberType("@Integer",sizeInBits);
+			IF signed THEN
+				InitNumberType("@Integer",sizeInBits);
+			ELSE
+				InitNumberType("@Unsigned",sizeInBits);
+			END;
 			SELF.signed := signed;
 		END InitIntegerType;
 
 		PROCEDURE SameType*(this: Type): BOOLEAN;
-		BEGIN RETURN (this = SELF) OR (this.sizeInBits = sizeInBits) & (this IS IntegerType) & (this(IntegerType).signed = signed)
+		BEGIN RETURN (this = SELF) OR (this IS IntegerType) & (this.sizeInBits = sizeInBits) & (this(IntegerType).signed = signed)
 			OR (this IS SizeType) & (this.sizeInBits=sizeInBits)
 		END SameType;
 

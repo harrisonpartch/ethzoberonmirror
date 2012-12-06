@@ -4,7 +4,7 @@ IMPORT
 	Inputs, Strings, XML, PositionDebugging, UTF8Strings, Texts, TextUtilities, UndoManager, HostClipboard, KernelLog,
 	Types, Models,
 	Raster, WMRectangles, WMGraphics, WMGraphicUtilities, WMEvents, WMProperties, WMDropTarget,
-	WMWindowManager, WMComponents, WMStandardComponents, WMTextView, WMInputMethods, D:= Debugging, Reals;
+	WMWindowManager, WMComponents, WMStandardComponents, WMTextView, WMInputMethods, Reals;
 
 CONST
 	(* Editor types *)

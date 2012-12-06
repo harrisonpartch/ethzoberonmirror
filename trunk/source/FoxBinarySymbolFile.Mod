@@ -134,6 +134,13 @@ CONST
 		sfTypeComplex = 46H;
 		sfTypeLongcomplex = 47H;
 
+		(*
+		sfTypeUnsigned8=48H;
+		sfTypeUnsigned16=49H;
+		sfTypeUnsigned32=4AH;
+		sfTypeUnsigned64=4BH;
+		*)
+
 		(* workaround: handle inlined operators *)
 		sfInline = 0ABH;
 
@@ -739,7 +746,11 @@ TYPE
 						value := SyntaxTree.NewCharacterValue(-1,CHR(i));
 					END;
 				ELSIF type IS SyntaxTree.IntegerType THEN
-					IF size <=32 THEN
+					IF (size = 32) & ~type(SyntaxTree.IntegerType).signed THEN
+						R.RawHInt(huge);
+						IF TraceImport IN Trace THEN  D.Str("InConst / Unsigned32 / "); D.Ln END;
+						value := SyntaxTree.NewIntegerValue (-1,huge);
+					ELSIF size <=32 THEN
 						R.RawNum(i);
 						IF TraceImport IN Trace THEN  D.Str("InConst / Int"); D.Int(size,1); D.String(" "); D.Int(i,1); D.Ln END;
 						value := SyntaxTree.NewIntegerValue(-1,i);
@@ -1516,13 +1527,19 @@ TYPE
 		BEGIN
 			(*Built-In types*)
 			InitBasic(system.booleanType,sfTypeBoolean);
-			InitBasic(Global.Character8,sfTypeChar8);
+			InitBasic(system.characterType,sfTypeChar8);
 			InitBasic(Global.Character16,sfTypeChar16);
 			InitBasic(Global.Character32,sfTypeChar32);
-			InitBasic(Global.Integer8, sfTypeShortint);
-			InitBasic(Global.Integer16, sfTypeInteger);
-			InitBasic(Global.Integer32, sfTypeLongint);
-			InitBasic(Global.Integer64, sfTypeHugeint);
+			InitBasic(system.shortintType, sfTypeShortint);
+			InitBasic(system.integerType, sfTypeInteger);
+			InitBasic(system.longintType, sfTypeLongint);
+			InitBasic(system.hugeintType, sfTypeHugeint);
+			(*
+			InitBasic(Global.Unsigned8, sfTypeUnsigned8);
+			InitBasic(Global.Unsigned16, sfTypeUnsigned16);
+			InitBasic(Global.Unsigned32, sfTypeUnsigned32);
+			InitBasic(Global.Unsigned64, sfTypeUnsigned64);
+			*)
 			InitBasic(Global.Float32, sfTypeReal);
 			InitBasic(Global.Float64, sfTypeLongreal);
 			InitBasic(system.setType, sfTypeSet);
@@ -1607,8 +1624,11 @@ TYPE
 				ELSIF type = Global.Char16 THEN  w.RawNum(ORD(v(SyntaxTree.CharacterValue).value));
 				ELSIF type = Global.Char32 THEN w.RawNum(ORD(v(SyntaxTree.CharacterValue).value));
 				*)
-				ELSIF (type IS SyntaxTree.IntegerType) & (type.sizeInBits <= 32) THEN w.RawNum(v(SyntaxTree.IntegerValue).value);
 				ELSIF (type IS SyntaxTree.IntegerType) & (type.sizeInBits = 64) THEN w.RawHInt(v(SyntaxTree.IntegerValue).hvalue);
+				(*
+				ELSIF (type IS SyntaxTree.IntegerType) & (type.sizeInBits = 32) & ~type(SyntaxTree.IntegerType).signed  THEN w.RawHInt(v(SyntaxTree.IntegerValue).hvalue);
+				*)
+				ELSIF (type IS SyntaxTree.IntegerType) & (type.sizeInBits <= 32)  THEN w.RawNum(v(SyntaxTree.IntegerValue).value);
 				ELSIF type IS SyntaxTree.SetType THEN   w.RawNum(SYSTEM.VAL(LONGINT,v(SyntaxTree.SetValue).value));
 				ELSIF type IS SyntaxTree.FloatType THEN
 					IF type.sizeInBits = 32 THEN w.RawReal(SHORT(v(SyntaxTree.RealValue).value));
@@ -1747,25 +1767,49 @@ TYPE
 							END;
 						END
 					ELSIF type IS SyntaxTree.IntegerType THEN
-						IF size = 8 THEN
-							w.RawNum(sfTypeShortint);
-							IF TraceExport IN Trace THEN
-								D.Str("Type / Basic / Shortint"); D.Ln
+						IF type(SyntaxTree.IntegerType).signed THEN
+							IF size = 8 THEN
+								w.RawNum(sfTypeShortint);
+								IF TraceExport IN Trace THEN
+									D.Str("Type / Basic / Shortint"); D.Ln
+								END;
+							ELSIF size = 16 THEN
+								w.RawNum(sfTypeInteger);
+								IF TraceExport IN Trace THEN
+									D.Str("Type / Basic / Integer"); D.Ln
+								END;
+							ELSIF size = 32 THEN
+								w.RawNum(sfTypeLongint);
+								IF TraceExport IN Trace THEN
+									D.Str("Type / Basic / Longint"); D.Ln
+								END;
+							ELSIF size = 64 THEN w.RawNum(sfTypeHugeint);
+								IF TraceExport IN Trace THEN
+									D.Str("Type / Basic / Hugeint"); D.Ln
+								END;
 							END;
-						ELSIF size = 16 THEN
-							w.RawNum(sfTypeInteger);
-							IF TraceExport IN Trace THEN
-								D.Str("Type / Basic / Integer"); D.Ln
+						(*ELSE
+							IF size = 8 THEN
+								w.RawNum(sfTypeUnsigned8);
+								IF TraceExport IN Trace THEN
+									D.Str("Type / Basic / Unsigned8"); D.Ln
+								END;
+							ELSIF size = 16 THEN
+								w.RawNum(sfTypeUnsigned16);
+								IF TraceExport IN Trace THEN
+									D.Str("Type / Basic / Unsigned16"); D.Ln
+								END;
+							ELSIF size = 32 THEN
+								w.RawNum(sfTypeUnsigned32);
+								IF TraceExport IN Trace THEN
+									D.Str("Type / Basic / Unsigned32"); D.Ln
+								END;
+							ELSIF size = 64 THEN w.RawNum(sfTypeUnsigned64);
+								IF TraceExport IN Trace THEN
+									D.Str("Type / Basic / Unsigned64"); D.Ln
+								END;
 							END;
-						ELSIF size = 32 THEN
-							w.RawNum(sfTypeLongint);
-							IF TraceExport IN Trace THEN
-								D.Str("Type / Basic / Longint"); D.Ln
-							END;
-						ELSIF size = 64 THEN w.RawNum(sfTypeHugeint);
-							IF TraceExport IN Trace THEN
-								D.Str("Type / Basic / Hugeint"); D.Ln
-							END;
+						*)
 						END;
 					ELSIF type IS SyntaxTree.FloatType THEN
 						IF size = 32 THEN

@@ -41,7 +41,7 @@ TYPE
 
 		(* frame buffer parameters *)
 		adr: SYSTEM.ADDRESS; VAR x,y: SYSTEM.SIZE; w,h,depth: SYSTEM.SIZE;
-		info: GraphicsModeInfo
+		info: GraphicsModeInfo;
 
 	PROCEDURE MakeFont*(VAR font: Font);
 	VAR buf: Buffer; pos: LONGINT;
@@ -316,64 +316,7 @@ TYPE
 
 	PROCEDURE Mask(buf: SYSTEM.ADDRESS; bitof, stride, x, y, w, h, adr, dstride, depth: SYSTEM.SIZE);
 	CONST SetSize = MAX (SET) + 1;
-	VAR p, i, bitofs: SYSTEM.ADDRESS; s: SET; dadr: SYSTEM.ADDRESS; d: SYSTEM.SIZE;
-	VAR con : BOOLEAN;
-	VAR tmp : SYSTEM.SIZE;
-	BEGIN
-			con := FALSE;
-			IF (w > 0) & (h > 0) THEN
-			i := buf MOD SYSTEM.SIZEOF (SET);
-			bitofs := bitof + i * 8;
-			p := buf-i + bitofs DIV SetSize * SYSTEM.SIZEOF (SET);	(* p always aligned to 32-bit boundary *)
-			bitofs := bitofs MOD SetSize; stride := stride*8;
-			LOOP
-				SYSTEM.GET(p, s);
-				i := bitofs;
-				LOOP
-					IF (i MOD SetSize) IN s THEN
-						dadr := adr+(y*dstride+(x+i-bitofs)*depth);
-						FOR d := 0 TO depth-1 DO
-							SYSTEM.PUT8(dadr+d,0FFH);
-						END;
-					END;
-					INC(i);
-					IF i-bitofs = w THEN
-						 EXIT
-					END;
-					IF i MOD SetSize = 0 THEN
-						SYSTEM.GET(p+i DIV 8, s)
-					END;
-
-				END;
-				DEC(h);
-				IF h = 0 THEN
-					EXIT
-				END;
-				INC(y);
-				IF (bitofs >= stride) THEN
-					DEC(bitofs, stride);
-				ELSE
-					con := TRUE;
-				END;
-
-				IF (bitofs >= SetSize) OR ( con) THEN	(* moved outside s *)
-					con := FALSE;
-					bitofs := stride - bitofs; (* now we have the dec as positive number *)
-					DEC(p, bitofs);
-					bitofs := SetSize  -bitofs;
-				END;
-			END;
-		END;
-	END Mask;
-
-
-
-(*
-
-	PROCEDURE Mask(buf: SYSTEM.ADDRESS; bitof, stride, x, y, w, h, adr, dstride, depth: SYSTEM.SIZE);
-	CONST SetSize = MAX (SET) + 1;
-	VAR p, i, bitofs: SYSTEM.ADDRESS; s: SET; dadr: SYSTEM.ADDRESS; d: SYSTEM.SIZE;
-	VAR tmp : SYSTEM.SIZE;
+	VAR p, i, dadr: SYSTEM.ADDRESS; s: SET; space,d: LONGINT; bitofs: SYSTEM.SIZE;
 	BEGIN
 		IF (w > 0) & (h > 0) THEN
 			i := buf MOD SYSTEM.SIZEOF (SET);
@@ -395,25 +338,14 @@ TYPE
 				END;
 				DEC(h);
 				IF h = 0 THEN EXIT END;
-				INC(y); INC(bitofs, -stride);
+				INC(y); INC(bitofs, stride);
 				IF (bitofs >= SetSize) OR (bitofs < 0) THEN	(* moved outside s *)
-(*					TRACE(bitofs,-stride);
-					TRACE(bitofs DIV SetSize * SYSTEM.SIZEOF (SET));
-					TRACE(bitofs DIV SetSize);
-					TRACE(SetSize * SYSTEM.SIZEOF (SET));
-					TRACE(p);*)
-
-
-					INC(p, bitofs); bitofs := bitofs MOD SetSize;
-(*					TRACE(p);
-					TRACE(bitofs);*)
+					INC(p, bitofs DIV SetSize * SYSTEM.SIZEOF (SET)); bitofs := bitofs MOD SetSize
 				END
 			END
 		END
 	END Mask;
 
-
-*)
 
 	PROCEDURE RenderChar0(c: CHAR; adr: SYSTEM.ADDRESS; VAR x,y: SYSTEM.SIZE; w,h,depth: SYSTEM.SIZE );
 	VAR char: Char; stride,pw,ph: LONGINT;
@@ -452,11 +384,12 @@ TYPE
 				pw := SYSTEM.GET8(char.buffer);
 				ph := SYSTEM.GET8(char.buffer+1);
 				stride := (pw + 7) DIV 8;
-				Mask(char.buffer, 16+stride*(char.h-1)*8, stride, x+char.x, y+font.height-char.y-char.h, char.w, char.h, adr, w*depth DIV 8, depth DIV 8);
+				Mask(char.buffer, 16+stride*(char.h-1)*8, -stride, x+char.x, y+font.height-char.y-char.h, char.w, char.h, adr, w*depth DIV 8, depth DIV 8)
 			END;
 			INC(x,char.dx);
 		END;
 	END RenderChar0;
+
 
 	PROCEDURE RenderChar(c: CHAR);
 	BEGIN

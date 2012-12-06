@@ -134,13 +134,21 @@ IMPORT
 		Ecb2(context, "CryptoDES", input, output, key, 8, 64 );
 	END DesEcb2;
 
-	PROCEDURE Des3Ecb2*(context : Commands.Context);
+(*	PROCEDURE Des3Ecb2*(context : Commands.Context);
 		VAR input, output, key: ARRAY 64 OF CHAR;
 	BEGIN
 		key := "0123456789ABCDEF11111111111111110000000000000000";
 		input := "1111111111111111";		output := "4A5B2F42AA771925";
 		Ecb2(context, "CryptoDES3", input, output, key, 8, 192 );
-	END Des3Ecb2;
+	END Des3Ecb2;  *)
+	
+	PROCEDURE Des3Ecb2*(context : Commands.Context);
+		VAR input, output, key: ARRAY 64 OF CHAR;
+	BEGIN
+		key := "0123456789ABCDEF23456789ABCDEF01456789ABCDEF0123";
+		input := "4E6F772069732074";		output := "314F8327FA7A09A8";
+		Ecb2(context, "CryptoDES3", input, output, key, 8, 192 );
+	END Des3Ecb2; 
 
 	PROCEDURE  IdeaEcb2*(context : Commands.Context);
 		VAR input, output, key: ARRAY 64 OF CHAR;
@@ -162,7 +170,7 @@ IMPORT
 		VAR input, output, key, iv: ARRAY 64 OF CHAR;
 	BEGIN
 		key := "0123456789ABCDEF";		iv := "0123456789ABCDEF";
-		input := "4E6F772069732074";		output := "E5C7CDDE872BF27C";
+		input := "4E6F772069732074";		output := "96C3D4A6DC1C0117";
 		Cbc2(context, "CryptoDES", input, output, key, iv, 8, 64 );
 	END DesCbc2;
 
@@ -177,7 +185,7 @@ IMPORT
 END CryptoTestCiphers.
 
 
-     SystemTools.Free  CryptoTestCiphers CryptoDES CryptoIDEA CryptoARC4 CryptoDES3  ~
+     SystemTools.Free  CryptoTestCiphers CryptoDES3 CryptoDES CryptoIDEA CryptoARC4   ~
 
      CryptoTestCiphers.DesEcb2 ~
      CryptoTestCiphers.Des3Ecb2 ~

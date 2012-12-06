@@ -1203,7 +1203,7 @@ TYPE
 					operand.extra := stepOp;
 				ELSIF type IS SyntaxTree.ComplexType THEN
 					componentType := type(SyntaxTree.ComplexType).componentType;
-					ASSERT((componentType = system.realType) OR (componentType = system.longrealType));
+					ASSERT((componentType.SameType(system.realType)) OR (componentType.SameType(system.longrealType)));
 					MakeMemory(firstOp, operand.op, IntermediateCode.GetType(system, componentType), 0);
 					MakeMemory(lastOp, operand.op, IntermediateCode.GetType(system, componentType), ToMemoryUnits(system, system.SizeOf(componentType)));
 					ReleaseOperand(operand);
@@ -3002,14 +3002,26 @@ TYPE
 
 			PROCEDURE IsImmediate(x: IntermediateCode.Operand): BOOLEAN;
 			BEGIN
-				RETURN (x.mode = IntermediateCode.ModeImmediate) & (x.symbol.name = "");
+				RETURN (x.mode = IntermediateCode.ModeImmediate)  & (x.symbol.name = "");
 			END IsImmediate;
+
+			PROCEDURE IsAddress(x: IntermediateCode.Operand): BOOLEAN;
+			BEGIN
+				RETURN (x.mode = IntermediateCode.ModeImmediate) & (x.symbol.name # "")
+			END IsAddress;
+
 
 
 			PROCEDURE AddInt(VAR res: IntermediateCode.Operand; x,y: IntermediateCode.Operand);
 			BEGIN
 				IF IsImmediate(x) & IsImmediate(y) THEN
 					IntermediateCode.InitImmediate(res,x.type,x.intValue+y.intValue);
+				ELSIF IsAddress(x) & IsImmediate(y) THEN
+					IntermediateCode.InitAddress(res,x.type,x.symbol.name, x.symbol.fingerprint, x.symbolOffset);
+					IntermediateCode.AddOffset(res, LONGINT(y.intValue));
+				ELSIF IsAddress(y) & IsImmediate(x) THEN
+					IntermediateCode.InitAddress(res,y.type,y.symbol.name, y.symbol.fingerprint, y.symbolOffset);
+					IntermediateCode.AddOffset(res, LONGINT(x.intValue));
 				ELSE
 					IF res.mode # IntermediateCode.ModeRegister THEN
 						IntermediateCode.InitRegister(res,x.type,IntermediateCode.GeneralPurposeRegister,AcquireRegister(x.type,IntermediateCode.GeneralPurposeRegister));
@@ -3054,24 +3066,16 @@ TYPE
 			END;
 
 			maxDim := x.parameters.Length()-1;
-			IntermediateCode.InitImmediate(res,addressType,0);
 			FOR i := 0 TO maxDim DO
 				e := x.parameters.GetExpression(i);
 				Evaluate(e,index);
 				Convert(index.op,addressType);
-				(*
-				IF i = 0 THEN
-					ReuseCopy(res,index.op);
-				ELSE
-				*)
-					AddInt(res,res,index.op);
-				(*
-				END;
-				*)
 
 				IF i = 0 THEN
+					ReuseCopy(res, index.op);
 					Designate(x.left,array);
 					type := x.left.type.resolved;
+				ELSE AddInt(res, res, index.op);
 				END;
 
 				length := Length(type(SyntaxTree.ArrayType),array.dimOffset+i,array.tag);

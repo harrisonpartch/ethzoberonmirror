@@ -268,6 +268,16 @@ VAR
 			INC( pos, 4 )
 		END
 	END BlockToCharsLE;
+	
+	PROCEDURE BESetToChars*( CONST v: SET;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
+	VAR val: LONGINT;
+	BEGIN
+		val := S.VAL( LONGINT, v );
+		buf[pos + 3] := CHR( val MOD 256 );  val := val DIV 256;
+		buf[pos + 2] := CHR( val MOD 256 );  val := val DIV 256;
+		buf[pos + 1] := CHR( val MOD 256 );  val := val DIV 256;
+		buf[pos + 0] := CHR( val MOD 256 );
+	END BESetToChars;
 
 
 	PROCEDURE BESetFrom*( CONST buf: ARRAY OF CHAR;  pos: LONGINT ): SET;

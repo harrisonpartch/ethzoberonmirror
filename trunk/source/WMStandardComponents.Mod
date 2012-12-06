@@ -3,7 +3,7 @@ MODULE WMStandardComponents;	(** AUTHOR "TF"; PURPOSE "Standard components"; *)
 IMPORT
 	KernelLog, Kernel, Types, Models, Repositories, WMComponents, Strings, Files,
 	WMGraphics, WMGraphicUtilities, WMRectangles,
-	WMEvents, XML, Inputs, WMProperties, WMWindowManager,Modules,  D:= Debugging;
+	WMEvents, XML, Inputs, WMProperties, WMWindowManager,Modules;
 
 TYPE
 	(* Local type-alias for convenience *)

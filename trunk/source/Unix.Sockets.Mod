@@ -1,22 +1,22 @@
 
 
-MODULE Sockets;
+MODULE Sockets;	(** AUTHOR "G.F.";  PURPOSE "Interface to Unix sockets" *)
 
-(*BD, 13.2.96 "NetBase.Mod"*)
+(* derived from NetBase.Mod,  BD / 13.2.96 *)
 
 (*	1998.04.27	g.f.	Linux PPC version	*)
 (*	1099.05.17	g.f.	adapted to Threads	*)
 (*	1999.11.22	g.f.	Solaris x86 version	*)
 (*	2000.02.18	g.f.	adapted to Solaris 8	*)
 (*	2001.01.06	g.f.	[c] - flag for new compiler	*)
-(*	2007.07.06	g.f.	IP address format converted to IP.Adr,  works only with ipv4 ! *)
+(*	2007.07.06	g.f.	IP address format converted to IP.Adr *)
 
 IMPORT S := SYSTEM, Unix, Trace, IP;
 
 CONST
 
 	(*listen *)
-	backlog = 5;		(* max number of pending connections *)
+	Backlog = 5;		(* max number of pending connections *)
 
 
 TYPE
@@ -222,7 +222,7 @@ VAR
 	PROCEDURE Listen*( s: LONGINT ): BOOLEAN;
 	VAR err: LONGINT;
 	BEGIN
-		err := listen( s, backlog );
+		err := listen( s, Backlog );
 		RETURN err = 0 
 	END Listen;
 
@@ -317,7 +317,7 @@ VAR
 		FOR i := 0 TO LEN( readfds ) - 1  DO readfds[i] := {} END;
 		INCL( readfds[s DIV 32],  s MOD 32 );
 		res := Unix.select( s+1, S.VAL( Unix.FdSetPtr, S.ADR( readfds ) ), NIL, NIL, timeout );
-		IF res <= 0 THEN  RETURN FALSE  ELSE  RETURN TRUE  END;
+		RETURN res > 0 
 	END Requested;
 	
 	
@@ -334,7 +334,7 @@ VAR
 			res := Unix.select( s+1, S.VAL( Unix.FdSetPtr, S.ADR( readfds ) ), NIL, NIL, timeout );
 			IF res < 0 THEN  err := Unix.errno()  END
 		UNTIL (res >= 0) OR (err # Unix.EINTR);
-		IF res <= 0 THEN  RETURN FALSE  ELSE  RETURN TRUE  END;
+		RETURN res > 0 
 	END AwaitPacket;
 
 	
@@ -399,7 +399,7 @@ VAR
 	PROCEDURE Init;
 	VAR slib: LONGINT;
 	BEGIN
-		IF Unix.sysinfo.sysname = "SunOS" THEN
+		IF Unix.version = "Solaris" THEN
 			slib := Unix.Dlopen( "libsocket.so.1", 2 );
 			IF slib = 0 THEN  slib := Unix.Dlopen( "libsocket.so", 2 )  END;
 			IF slib = 0 THEN  Trace.StringLn( "Unix.Dlopen( 'libsocket.so' ) failed")  END;
