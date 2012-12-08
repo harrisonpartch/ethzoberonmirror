@@ -124,7 +124,7 @@ VAR
 	(* some handy type variables for backend / checker implementers *)
 	Boolean8-, Boolean32-: SyntaxTree.BooleanType;
 	Integer8-, Integer16-, Integer32-, Integer64-: SyntaxTree.IntegerType;
-	Unsigned7-,Unsigned8-, Unsigned15-, Unsigned16-, Unsigned31-, Unsigned32-, Unsigned63-, Unsigned64-: SyntaxTree.IntegerType;
+	Unsigned8-, Unsigned16-, Unsigned32-, Unsigned64-: SyntaxTree.IntegerType;
 	Character8-, Character16-, Character32-: SyntaxTree.CharacterType;
 	Float32-, Float64-: SyntaxTree.FloatType;
 	Complex64-, Complex128-: SyntaxTree.ComplexType;
@@ -1080,57 +1080,55 @@ TYPE
 		IF system.SizeOf(type) = 32 THEN RETURN MIN(REAL) ELSE RETURN MIN(LONGREAL) END;
 	END MinFloat;
 
-	PROCEDURE GetIntegerType*(system: System; this: HUGEINT): SyntaxTree.IntegerType;
+	PROCEDURE IsUnsignedInteger*(this: HUGEINT; sizeInBits: LONGINT): BOOLEAN;
+	VAR m: HUGEINT;
+	BEGIN
+		m := Runtime.AslH(1,sizeInBits);
+		RETURN (this >= 0) & (this < m)
+	END IsUnsignedInteger;
 
-		PROCEDURE InBounds(type: SyntaxTree.IntegerType): BOOLEAN;
-		VAR m: HUGEINT;
+	PROCEDURE IsSignedInteger*(this: HUGEINT; sizeInBits: LONGINT): BOOLEAN;
+	VAR m: HUGEINT;
+	BEGIN
+			m := Runtime.AslH(1,sizeInBits-1);
+			RETURN (this < m) & (-this <= m)
+	END IsSignedInteger;
+
+	PROCEDURE GetSignedIntegerType*(system: System; this: HUGEINT): SyntaxTree.IntegerType;
+
+		(* code snippets for unsigned
+		ELSE
+			m := Runtime.AslH(1,system.SizeOf(type));
+			RETURN (this >= 0) & (this < m)
+		END;
+
+		PROCEDURE Bits(x: HUGEINT): BOOLEAN;
 		BEGIN
-			IF type.signed THEN
-				m := Runtime.AslH(1,system.SizeOf(type)-1);
-				RETURN (this < m) & (-this <= m)
-			ELSE
-				m := Runtime.AslH(1,system.SizeOf(type));
-				RETURN (this < m) & (this >= 0)
-			END;
-		END InBounds;
+			WHILE x > 0 DO INC(bits); x := x DIV 2 END;
+		END Bits;
+
+		IF a = MIN(HUGEINT) THEN (* -a does not work on lowest possible number, ~a+1 would overflow *)
+			RETURN Integer[64]
+		ELSIF a < 0 THEN
+			RETURN Integer[Bits(-a-1)+1]
+		ELSE
+			RETURN Unisgned[Bits(a)]
+		END;
+		*)
 
 	BEGIN
-		IF (this < 0) OR TRUE (* temporarily unsigned unsupported *) THEN
-			IF InBounds(Integer8) THEN RETURN Integer8
-			ELSIF InBounds(Integer16) THEN RETURN Integer16
-			ELSIF InBounds(Integer32) THEN RETURN Integer32
-			ELSE RETURN Integer64
-			END;
-		ELSE
-			IF InBounds(Unsigned7) THEN RETURN Unsigned7
-			ELSIF InBounds(Unsigned8) THEN RETURN Unsigned8
-			ELSIF InBounds(Unsigned15) THEN RETURN Unsigned15
-			ELSIF InBounds(Unsigned16) THEN RETURN Unsigned16
-			ELSIF InBounds(Unsigned31) THEN RETURN Unsigned31
-			ELSIF InBounds(Unsigned32) THEN RETURN Unsigned32
-			ELSIF InBounds(Unsigned63) THEN RETURN Unsigned63
-			ELSE RETURN Unsigned64
-			END;
+		IF IsSignedInteger(this,8) THEN RETURN Integer8
+		ELSIF IsSignedInteger(this, 16) THEN RETURN Integer16
+		ELSIF IsSignedInteger(this, 32) THEN RETURN Integer32
+		ELSE RETURN Integer64
 		END;
-		(*
-		ELSIF InBounds(Integer8) THEN RETURN Integer8
-		ELSIF InBounds (Unsigned8) THEN RETURN Unsigned8
-		ELSIF InBounds (Unsigned15) THEN RETURN Unsigned15
-		ELSIF InBounds(Integer16) THEN RETURN Integer16
-		ELSIF InBounds (Unsigned16) THEN RETURN Unsigned16
-		ELSIF InBounds(Integer32) THEN RETURN Integer32
-		ELSIF InBounds(Unsigned32) THEN RETURN Unsigned32
-		*)
-		(*ELSIF InBounds(Integer64) THEN RETURN Integer64
-		ELSE RETURN Unsigned64
-		*)
-	END GetIntegerType;
+	END GetSignedIntegerType;
 
 	PROCEDURE NewIntegerValue*(system: System; position: LONGINT; hugeint: HUGEINT): SyntaxTree.Value;
 	VAR value: SyntaxTree.IntegerValue;
 	BEGIN
 		value := SyntaxTree.NewIntegerValue(position,hugeint);
-		value.SetType(GetIntegerType(system,hugeint));
+		value.SetType(GetSignedIntegerType(system,hugeint));
 		RETURN value
 	END NewIntegerValue;
 
@@ -1177,15 +1175,6 @@ TYPE
 			(from IS SyntaxTree.FloatType) & (to IS SyntaxTree.FloatType) THEN
 			WHILE toSize >= fromSize DO
 				toSize := toSize DIV 2; INC(distance);
-			END;
-			IF (from IS SyntaxTree.IntegerType) & (to IS SyntaxTree.IntegerType) THEN
-				IF  ~(to(SyntaxTree.IntegerType).signed) &  from(SyntaxTree.IntegerType).signed THEN
-					distance := MAX(LONGINT)
-				ELSIF (to(SyntaxTree.IntegerType).signed) & ~from(SyntaxTree.IntegerType).signed THEN
-					IF distance = 0 (* same or smaller size! *) THEN distance := MAX(LONGINT)
-					ELSE INC(distance)
-					END;
-				END;
 			END;
 		ELSIF (from IS SyntaxTree.IntegerType) & (to IS SyntaxTree.FloatType) THEN
 			IF toSize = 64 THEN distance := 1 ELSE distance := 0 END;
@@ -1346,13 +1335,9 @@ TYPE
 		Integer16 := SyntaxTree.NewIntegerType(16, TRUE);
 		Integer32 := SyntaxTree.NewIntegerType(32, TRUE);
 		Integer64 := SyntaxTree.NewIntegerType(64, TRUE);
-		Unsigned7 := SyntaxTree.NewIntegerType(7, FALSE);
 		Unsigned8 := SyntaxTree.NewIntegerType(8, FALSE);
-		Unsigned15 := SyntaxTree.NewIntegerType(15, FALSE);
 		Unsigned16 := SyntaxTree.NewIntegerType(16, FALSE);
-		Unsigned31 := SyntaxTree.NewIntegerType(31, FALSE);
 		Unsigned32 := SyntaxTree.NewIntegerType(32, FALSE);
-		Unsigned63 := SyntaxTree.NewIntegerType(63, FALSE);
 		Unsigned64 := SyntaxTree.NewIntegerType(64, FALSE);
 		Float32 := SyntaxTree.NewFloatType(32);
 		Float64 := SyntaxTree.NewFloatType(64);

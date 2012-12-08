@@ -1512,6 +1512,7 @@ TYPE
 				- formal is of open array type
 			if compatible the return true else report error and return false
 		**)
+
 		PROCEDURE ParameterCompatible(formal: SyntaxTree.Parameter; actual: SyntaxTree.Expression): BOOLEAN;
 		VAR formalType, actualType: SyntaxTree.Type; result,error: BOOLEAN;
 		BEGIN
@@ -1607,7 +1608,9 @@ TYPE
 					Printout.Info("left",left);
 					Printout.Info("right",right);
 				END;
-
+			ELSIF (leftType IS SyntaxTree.AddressType) & IsAddressValue(right) THEN
+				right.SetType(system.addressType);
+				result := TRUE;
 			ELSIF ~CompatibleTo(system,rightType,leftType) THEN
 				Error(left.position,Diagnostics.Invalid,"incompatible assignment");
 				IF VerboseErrorMessage THEN
@@ -1630,7 +1633,7 @@ TYPE
 		VAR hugeint: HUGEINT;
 		BEGIN
 			hugeint := value(SyntaxTree.IntegerValue).hvalue;
-			value.SetType(Global.GetIntegerType(system,hugeint));
+			value.SetType(Global.GetSignedIntegerType(system,hugeint));
 			resolvedExpression := value
 		END VisitIntegerValue;
 
@@ -2008,7 +2011,7 @@ TYPE
 							int := -left.resolved(SyntaxTree.IntegerValue).hvalue;
 							value := SyntaxTree.NewIntegerValue(unaryExpression.position,int);
 							result.SetResolved(value);
-							type := Global.GetIntegerType(system,int);
+							type := Global.GetSignedIntegerType(system,int);
 							value.SetType(type);
 						ELSE
 							type := left.type
@@ -4508,6 +4511,15 @@ TYPE
 			RETURN result;
 		END CheckIntegerValue;
 
+		PROCEDURE IsAddressValue(x: SyntaxTree.Expression): BOOLEAN;
+		BEGIN
+			IF (x.resolved # NIL) & (x.resolved IS SyntaxTree.IntegerValue) THEN
+				RETURN Global.IsUnsignedInteger(x.resolved(SyntaxTree.IntegerValue).hvalue, system.addressType.sizeInBits)
+			ELSE
+				RETURN FALSE
+			END
+		END IsAddressValue;
+
 		PROCEDURE CheckEnumerationValue(x: SyntaxTree.Expression; VAR value: LONGINT): BOOLEAN;
 		VAR result: BOOLEAN;
 		BEGIN
@@ -4935,7 +4947,7 @@ TYPE
 						type := type0;
 						IF IsIntegerValue(parameter0,i0) THEN
 							result.SetResolved(SyntaxTree.NewIntegerValue(position,ABS(i0)));
-							type := Global.GetIntegerType(system,ABS(i0));
+							type := Global.GetSignedIntegerType(system,ABS(i0));
 						ELSIF IsRealValue(parameter0,r) THEN
 							result.SetResolved(SyntaxTree.NewRealValue(position,ABS(r)));
 						END;
@@ -4954,7 +4966,7 @@ TYPE
 								i0 := ASH(i0,i1);
 								result.SetResolved(SyntaxTree.NewIntegerValue(position,i0));
 								result := ResolveExpression(result);
-								type := Global.GetIntegerType(system,i0);
+								type := Global.GetSignedIntegerType(system,i0);
 							END;
 						END;
 
@@ -5003,7 +5015,7 @@ TYPE
 					IF CheckRealType(parameter0) THEN
 						IF IsRealValue(parameter0,r) THEN
 							result.SetResolved(SyntaxTree.NewIntegerValue(position,ENTIER(r)));
-							type := Global.GetIntegerType(system,ENTIER(r));
+							type := Global.GetSignedIntegerType(system,ENTIER(r));
 						END
 					END;
 				(* ---- ENTIERH ----- *)
@@ -5200,7 +5212,7 @@ TYPE
 						(* IF CheckCharacterType(parameter0) THEN*)
 						 IF IsCharacterValue(parameter0,c)THEN
 							result.SetResolved(Global.NewIntegerValue(system,position,ORD(c)));
-							type := Global.GetIntegerType(system,ORD(c));
+							type := Global.GetSignedIntegerType(system,ORD(c));
 						END;
 					ELSE Error(parameter0.position, Diagnostics.Invalid, "incompatible parameter");
 					END;
@@ -7960,7 +7972,7 @@ TYPE
 					result := IsCharacterType(this)
 				ELSIF (to IS SyntaxTree.SizeType) & ((this IS SyntaxTree.SizeType) OR (this IS SyntaxTree.IntegerType) OR (this IS SyntaxTree.AddressType)) THEN
 					result := to.sizeInBits >= this.sizeInBits (*! weak compatibility: signed size type may be assigned with unsigned address type of same size *)
-				ELSIF (to IS SyntaxTree.AddressType) & ((this IS SyntaxTree.AddressType) OR (this IS SyntaxTree.IntegerType) OR (this IS SyntaxTree.SizeType)) THEN
+				ELSIF (to IS SyntaxTree.AddressType) & ((this IS SyntaxTree.AddressType) OR (this IS SyntaxTree.IntegerType) OR (this IS SyntaxTree.SizeType) OR IsPointerType(this)) THEN
 					result := to.sizeInBits >= this.sizeInBits; (*! weak compatibility: addresses may be assigned with signed integer *)
 				ELSIF (to IS SyntaxTree.RangeType) & (this IS SyntaxTree.RangeType) THEN
 					result := TRUE;

@@ -225,7 +225,9 @@ TYPE
 		BEGIN
 			WHILE ~error & (symbol.token = Scanner.Comment) DO
 				comment := SyntaxTree.NewComment(symbol.start, currentScope, symbol.string^,symbol.stringLength);
-				moduleScope.AddComment(comment);
+				IF moduleScope # NIL THEN
+					moduleScope.AddComment(comment);
+				END;
 				IF recentComment = NIL THEN
 					recentComment := comment;
 					IF symbol.line = recentLine THEN

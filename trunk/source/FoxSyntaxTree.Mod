@@ -1633,7 +1633,7 @@ TYPE
 					result := result & (callingConvention = this.callingConvention);
 					IF result THEN
 						p1 := firstParameter; p2 := this.firstParameter;
-						WHILE (p1 # NIL) & (p2 # NIL) & (p1.access # Hidden) & (p2.access # Hidden) & (p1.kind = p2.kind) & (p1.type.SameType(p2.type) OR p1.type.SameType(p2.type.resolved)) DO
+						WHILE (p1 # NIL) & (p2 # NIL) & (p1.access # Hidden) & (p2.access # Hidden) & (p1.kind = p2.kind) & (p1.type.SameType(p2.type) OR (p2.type.resolved # NIL) & p1.type.SameType(p2.type.resolved)) DO
 							p1 := p1.nextParameter; p2 := p2.nextParameter
 						END;
 						result := ((p1=NIL) OR (p1.access = Hidden)) & ((p2=NIL)  OR (p2.access= Hidden));

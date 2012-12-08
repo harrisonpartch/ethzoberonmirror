@@ -1341,9 +1341,9 @@ TYPE
 			ELSE
 				WMWindowManager.DefaultAddWindow(SELF);
 				IF context # NIL THEN
-					NEW(s, context.arg.Available());
+					NEW(s, (*context.arg.Pos()+*)context.arg.Available());
 					context.arg.SkipWhitespace();
-					context.arg.Bytes(s^, context.arg.Pos(), context.arg.Available(), len);
+					context.arg.Bytes(s^, 0 (*context.arg.Pos()*), context.arg.Available(), len);
 					(* Only automatically open the Com Port if a paramater was passed *)
 					IF (len > 0) & (s[0] # 0X) THEN
 						terminal.settingsEdit.SetAsString(s^);
