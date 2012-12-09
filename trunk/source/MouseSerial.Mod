@@ -113,8 +113,8 @@ TYPE
 							keys := lastkeys * {1};
 							IF 5 IN mbuf[0] THEN INCL(keys, 2) END;
 							IF 4 IN mbuf[0] THEN INCL(keys, 0) END;
-							dx := LONG(SYSTEM.VAL(SHORTINT, SYSTEM.LSH(mbuf[0] * {0,1}, 6) + mbuf[1] * {0..5}));
-							dy := LONG(SYSTEM.VAL(SHORTINT, SYSTEM.LSH(mbuf[0] * {2,3}, 4) + mbuf[2] * {0..5}));
+							dx := LONG(SYSTEM.VAL(SHORTINT, LSH(mbuf[0] * {0,1}, 6) + mbuf[1] * {0..5}));
+							dy := LONG(SYSTEM.VAL(SHORTINT, LSH(mbuf[0] * {2,3}, 4) + mbuf[2] * {0..5}));
 						|MSC1, MSC2, MSC3, MSC4:
 							keys := {0..2} - (mbuf[0] * {0..2});
 							dx := LONG(SYSTEM.VAL(SHORTINT, mbuf[1])) + LONG(SYSTEM.VAL(SHORTINT, mbuf[3]));
@@ -132,8 +132,8 @@ TYPE
 							IF 3 IN mbuf[3] THEN INCL(keys, 3) END;
 							IF 4 IN mbuf[3] THEN INCL(keys, 1) END;
 							IF ~(3 IN mbuf[3]) & (mbuf[3] * {0..2} # {}) THEN INCL(keys, 4) END;
-							dx := LONG(SYSTEM.VAL(SHORTINT, SYSTEM.LSH(mbuf[0] * {0,1}, 6) + mbuf[1] * {0..7}));
-							dy := LONG(SYSTEM.VAL(SHORTINT, SYSTEM.LSH(mbuf[0] * {2,3}, 4) + mbuf[2] * {0..7}));
+							dx := LONG(SYSTEM.VAL(SHORTINT, LSH(mbuf[0] * {0,1}, 6) + mbuf[1] * {0..7}));
+							dy := LONG(SYSTEM.VAL(SHORTINT, LSH(mbuf[0] * {2,3}, 4) + mbuf[2] * {0..7}));
 					ELSE
 						(* ignore *)
 					END;

@@ -265,11 +265,11 @@ TYPE StateWindow= OBJECT(WMComponents.FormWindow)
 	END SetInterval;
 
 
-	PROCEDURE Variables(refs: Bytes;  i: LONGINT; base: SYSTEM.ADDRESS; w:Streams.Writer);
+	PROCEDURE Variables(refs: Bytes;  i: LONGINT; base: ADDRESS; w:Streams.Writer);
 	VAR
 		mode, ch: CHAR;
 		m, type, n, lval, size, tmp1, tdadr: LONGINT;
-		adr, tmp2: SYSTEM.ADDRESS;
+		adr, tmp2: ADDRESS;
 		etc: BOOLEAN;
 		sval: SHORTINT;
 		ival: INTEGER;
@@ -380,7 +380,7 @@ TYPE StateWindow= OBJECT(WMComponents.FormWindow)
 
 
 	(* FindProc - Find a procedure in the reference block.  Return index of name, or -1 if not found. *)
-	PROCEDURE FindProc(refs: Bytes;  ofs: SYSTEM.ADDRESS): LONGINT;
+	PROCEDURE FindProc(refs: Bytes;  ofs: ADDRESS): LONGINT;
 	VAR i, m, t, proc: LONGINT;  ch: CHAR;
 	BEGIN
 		proc := -1;  i := 0;  m := LEN(refs^);
@@ -414,7 +414,7 @@ TYPE StateWindow= OBJECT(WMComponents.FormWindow)
 		RETURN proc
 	END FindProc;
 
-	PROCEDURE WriteProc(mod: Modules.Module;  pc, fp: SYSTEM.ADDRESS;  VAR refs: Bytes;  VAR refpos: LONGINT; VAR base: SYSTEM.ADDRESS; w: Streams.Writer);
+	PROCEDURE WriteProc(mod: Modules.Module;  pc, fp: ADDRESS;  VAR refs: Bytes;  VAR refpos: LONGINT; VAR base: ADDRESS; w: Streams.Writer);
 	VAR ch: CHAR;
 	BEGIN
 		refpos := -1;
@@ -425,7 +425,7 @@ TYPE StateWindow= OBJECT(WMComponents.FormWindow)
 			END
 		ELSE
 			w.String(mod.name);
-			DEC(pc, SYSTEM.ADR(mod.code[0]));
+			DEC(pc, ADDRESSOF(mod.code[0]));
 			refs := SYSTEM.VAL(Bytes, mod.refs);
 			IF (refs # NIL) & (LEN(mod.refs) # 0) THEN
 				refpos := FindProc(refs, pc);

@@ -169,7 +169,7 @@ VAR
 				(* output values *)
 				Val( "CS", int.CS );  Val( "DS", int.DS );  Val( "ES", int.ES );  Val( "SS", int.SS );   (* Val("CR0", int.CR[0]);*)
 				(*
-			Val("FPU", SYSTEM.VAL(LONGINT, int.FPU[1] * {0..15} + SYSTEM.LSH(int.FPU[2], 16))); w.Ln;
+			Val("FPU", SYSTEM.VAL(LONGINT, int.FPU[1] * {0..15} + LSH(int.FPU[2], 16))); w.Ln;
 			*)
 
 				Val( "PC", int.PC );  Val( "ESI", int.ESI );  Val( "EDI", int.EDI );  Val( "ESP", int.SP );
@@ -198,8 +198,8 @@ VAR
 
 			w.String( "Process:" );  Reflection.WriteProcess( w, p );  w.Ln;
 			(*IF exc.halt = 1301 THEN	(* lock timeout - see Machine *)
-			KernelLog.Memory(SYSTEM.ADR(Machine.trapState[0]), LEN(Machine.trapState) *
-				(SYSTEM.ADR(Machine.trapState[1]) - SYSTEM.ADR(Machine.trapState[0])));
+			KernelLog.Memory(ADDRESSOF(Machine.trapState[0]), LEN(Machine.trapState) *
+				(ADDRESSOF(Machine.trapState[1]) - ADDRESSOF(Machine.trapState[0])));
 			w.Hex(SYSTEM.VAL(LONGINT, Machine.trapLocksBusy), 8); w.Ln
 		END;
 		IF (int.INT = Machine.PF) & (ABS(int.PC-exc.CR[2]) < 100H) THEN	(* PF close to EIP *)

@@ -18,7 +18,7 @@ TYPE
 	BodyProc* = Modules.CommandProc;   (** Thread body procedure. *)
 	Thread* = POINTER TO RECORD (Kernel32.Object)
 		id, prio, GCCount: LONGINT;
-		stackBottom*: Kernel32.ADDRESS;
+		stackBottom*: ADDRESS;
 		name*: ARRAY 64 OF CHAR;   (** Name of thread. *)
 		proc: BodyProc;
 		next: Thread;
@@ -205,8 +205,8 @@ VAR
 	(* starting address of user stack for current thread, called stack top in TIB.H *)
 	064H, 08BH, 005H, 004H, 000H, 000H, 000H;   (* MOV EAX, FS:[4] *)
 
-	PROCEDURE StackBottom( ): Kernel32.ADDRESS;
-	VAR x: Kernel32.ADDRESS;
+	PROCEDURE StackBottom( ): ADDRESS;
+	VAR x: ADDRESS;
 	BEGIN
 		stackBottom();  SYSTEM.GETREG( SYSTEM.EAX, x );  RETURN x
 	END StackBottom;
@@ -345,14 +345,14 @@ VAR
 				ELSE EXIT
 				END
 			END;
-			(* push cont.Eip *) break[0] := 68X;  SYSTEM.MOVE( SYSTEM.ADR( cont.EIP ), SYSTEM.ADR( break[1] ), 4 );
+			(* push cont.Eip *) break[0] := 68X;  SYSTEM.MOVE( ADDRESSOF( cont.EIP ), ADDRESSOF( break[1] ), 4 );
 			(* push ebp *) break[5] := 055X;
 			(* mov ebp, esp *) break[6] := 08BX;  break[7] := 0ECX;
 			(* push 13 *) break[8] := 06AX;  break[9] := 0DX;
 			(* int 3 *) break[10] := 0CCX;
 			(* mov esp, ebp *) break[11] := 08BX;  break[12] := 0E5X;
 			(* pop ebp *) break[13] := 05DX;
-			(* ret *) break[14] := 0C3X;  cont.EIP := SYSTEM.ADR( break[0] );  Kernel32.SetThreadContext( t.handle, cont );
+			(* ret *) break[14] := 0C3X;  cont.EIP := ADDRESSOF( break[0] );  Kernel32.SetThreadContext( t.handle, cont );
 			t.state := running;  Kernel32.ResumeThread( t.handle );   (*  INC( Kernel.GClevel ); *)
 			Kernel32.LeaveCriticalSection( moduleCS )
 		ELSE HALT( 99 )
@@ -544,7 +544,7 @@ VAR
 	END EndAtomic;
 
 	PROCEDURE CheckStacks( );
-	VAR t: Thread;  cont: Kernel32.Context;  sp, p, bottom: Kernel32.ADDRESS;
+	VAR t: Thread;  cont: Kernel32.Context;  sp, p, bottom: ADDRESS;
 	BEGIN
 		t := threads;   (*! remove if removing check stacks *)
 		WHILE (t # NIL ) DO

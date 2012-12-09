@@ -378,17 +378,17 @@ VAR
 		ASSERT( (protocol = 4) OR (protocol = 6) );
 		IF protocol = IPv4 THEN  (* index check *)
 			IF ~(ofs + 4 <= LEN( arr )) THEN  RETURN NilAdr  END;
-			S.MOVE( S.ADR( arr[ofs] ), S.ADR( adr.ipv4Adr ), 4 );
+			S.MOVE( ADDRESSOF( arr[ofs] ), ADDRESSOF( adr.ipv4Adr ), 4 );
 			IF LSBfirst THEN  SwapEndian( adr.ipv4Adr )  END;
 			adr.usedProtocol := IPv4;
 		ELSIF protocol = IPv6 THEN
 			IF ~(ofs + 16 <= LEN( arr )) THEN  RETURN NilAdr  END;
-			S.MOVE( S.ADR( arr[ofs] ), S.ADR( adr.ipv6Adr ), 16 );
+			S.MOVE( ADDRESSOF( arr[ofs] ), ADDRESSOF( adr.ipv6Adr ), 16 );
 			IF LSBfirst THEN
 				FOR i := 0 TO 3 DO
-					S.MOVE( S.ADR( adr.ipv6Adr[i*4] ), S.ADR( swapTemp ), 4 );
+					S.MOVE( ADDRESSOF( adr.ipv6Adr[i*4] ), ADDRESSOF( swapTemp ), 4 );
 					SwapEndian( swapTemp );
-					S.MOVE( S.ADR( swapTemp ), S.ADR( adr.ipv6Adr[i*4] ), 4 );
+					S.MOVE( ADDRESSOF( swapTemp ), ADDRESSOF( adr.ipv6Adr[i*4] ), 4 );
 				END;
 			END;
 			adr.usedProtocol := IPv6;
@@ -416,17 +416,17 @@ VAR
 		| IPv4:
 				IF ~(ofs + 4 <= LEN( arr )) THEN  tempAdr := NilAdr  END;
 				IF LSBfirst THEN  SwapEndian( tempAdr.ipv4Adr )  END;
-				S.MOVE( S.ADR( tempAdr.ipv4Adr ), S.ADR( arr[ofs] ), 4 );
+				S.MOVE( ADDRESSOF( tempAdr.ipv4Adr ), ADDRESSOF( arr[ofs] ), 4 );
 		| IPv6:
 				IF ~(ofs + 16 <= LEN( arr )) THEN  tempAdr := NilAdr  END;
 				IF LSBfirst THEN
 					FOR i := 0 TO 3 DO
-						S.MOVE( S.ADR( tempAdr.ipv6Adr[i*4] ), S.ADR( swapTemp ), 4 );
+						S.MOVE( ADDRESSOF( tempAdr.ipv6Adr[i*4] ), ADDRESSOF( swapTemp ), 4 );
 						SwapEndian( swapTemp );
-						S.MOVE( S.ADR( swapTemp ), S.ADR( tempAdr.ipv6Adr[i*4] ), 4 );
+						S.MOVE( ADDRESSOF( swapTemp ), ADDRESSOF( tempAdr.ipv6Adr[i*4] ), 4 );
 					END;
 				END;
-				S.MOVE( S.ADR( adr.ipv6Adr ), S.ADR( arr[ofs] ), 16 );
+				S.MOVE( ADDRESSOF( adr.ipv6Adr ), ADDRESSOF( arr[ofs] ), 16 );
 		ELSE
 		END;
 	END AdrToArray;

@@ -25,7 +25,7 @@ TYPE
 			IF sock # WSock32.InvalidSocket THEN
 				sadr.sinFamily := WSock32.PFINet;  sadr.sinAddr := 0;
 				IF lport # NilPort THEN sadr.sinPort := WSock32.htons( SHORT( lport ) ) ELSE sadr.sinPort := 0 END;
-				res := WSock32.bind( sock, sadr, SYSTEM.SIZEOF( WSock32.sockaddrIn ) );
+				res := WSock32.bind( sock, sadr, SIZEOF( WSock32.sockaddrIn ) );
 				IF res # Ok THEN
 					err := WSock32.WSAGetLastError(); (*  AosWinsock.DispError( err ); *)  SockFinalizer( SELF );  res := unknown;
 				ELSE (*  Kernel.RegisterObject( SELF, SockFinalizer, FALSE ); *)  res := Ok
@@ -48,9 +48,9 @@ TYPE
 		BEGIN
 			ASSERT ( LEN( data ) >= (ofs + len) );
 			IF (fip.usedProtocol = IP.IPv4) THEN
-				SYSTEM.MOVE( SYSTEM.ADR( fip ), SYSTEM.ADR( sadr.sinAddr ), IPAdrLen );
+				SYSTEM.MOVE( ADDRESSOF( fip ), ADDRESSOF( sadr.sinAddr ), IPAdrLen );
 				sadr.sinFamily := WSock32.PFINet;  sadr.sinPort := WSock32.htons( SHORT( fport ) );
-				res := WSock32.sendto( sock, data[ofs], len, 0, sadr, SYSTEM.SIZEOF( WSock32.sockaddrIn ) );
+				res := WSock32.sendto( sock, data[ofs], len, 0, sadr, SIZEOF( WSock32.sockaddrIn ) );
 				(* account that sendto returns number of bytes sent to the socket (Alexey) *)
 				IF res = len THEN res := Ok; ELSE err := WSock32.WSAGetLastError(); res := unknown;  END;
 			ELSE res := unknown;
@@ -80,7 +80,7 @@ TYPE
 		ret: LONGINT;  fdset: WSock32.FDSet; avail: BOOLEAN; time: WSock32.TimeVal;
 		BEGIN
 			ASSERT ( ofs+size <= LEN( data ) );
-			l := SYSTEM.SIZEOF( WSock32.sockaddrIn );
+			l := SIZEOF( WSock32.sockaddrIn );
 
 			IF ms=-1 THEN (* do, as if data was available to invoke blocking call of recvfrom *)
 				avail := TRUE;
@@ -111,7 +111,7 @@ TYPE
 			END;
 
 			fport := WSock32.ntohs( sadr.sinPort );
-			SYSTEM.MOVE( SYSTEM.ADR( sadr.sinAddr ), SYSTEM.ADR( fip ), IPAdrLen );
+			SYSTEM.MOVE( ADDRESSOF( sadr.sinAddr ), ADDRESSOF( fip ), IPAdrLen );
 
 			(*? Problem - Windows XP does not fill in the Fip.UseProtocol field for IPv4 packets ! done manually here*)
 			IF fip.ipv4Adr # 0 THEN fip.usedProtocol := IP.IPv4 END;

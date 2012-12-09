@@ -27,15 +27,15 @@ TYPE
 			offscreen*: LONGINT;	(** number of non-visible lines at the bottom of the display. *)
 			format*: LONGINT;	(** format for Transfer. *)
 			unit*: LONGINT;	(** approximate square pixel size = unit/36000 mm. *)
-			fbadr-: SYSTEM.ADDRESS; fbsize-, fbstride-: LONGINT; (** frame buffer address, size and stride *)
+			fbadr-: ADDRESS; fbsize-, fbstride-: LONGINT; (** frame buffer address, size and stride *)
 
 		(** Transfer a block of pixels in "raw" display format to (op = set) or from (op = get) the display.  Pixels in the rectangular area are transferred from left to right and top to bottom.  The pixels are transferred to or from "buf", starting at "ofs".  The line byte increment is "stride", which may be positive, negative or zero. *)
 		PROCEDURE Transfer*(VAR buf: ARRAY OF CHAR; ofs, stride, x, y, w, h, op: LONGINT);
-		VAR bufadr, buflow, bufhigh, dispadr: SYSTEM.ADDRESS;
+		VAR bufadr, buflow, bufhigh, dispadr: ADDRESS;
 		BEGIN
 			IF w > 0 THEN
 				ASSERT(fbadr # 0);
-				bufadr := SYSTEM.ADR(buf[ofs]);
+				bufadr := ADDRESSOF(buf[ofs]);
 				dispadr := fbadr + ((y*width)+x)*format;
 				ASSERT((dispadr >= fbadr) & ((((y+h-1)*width)+x+ w)*format <=  fbsize));	(* display index check *)
 				w := w * format;	(* convert to bytes *)
@@ -47,7 +47,7 @@ TYPE
 							DEC(h)
 						END
 					|get:
-						buflow := SYSTEM.ADR(buf[0]); bufhigh := buflow + LEN(buf);
+						buflow := ADDRESSOF(buf[0]); bufhigh := buflow + LEN(buf);
 						WHILE h > 0 DO
 							ASSERT((bufadr >= buflow) & (bufadr+w <= bufhigh));	(* index check *)
 							SYSTEM.MOVE(dispadr, bufadr, w);
@@ -74,12 +74,12 @@ TYPE
 		(** Transfer a block of pixels from a 1-bit mask to the display.  Pixels in the rectangular area are transferred from left to right and top to bottom.  The pixels are transferred from "buf", starting at bit offset "bitofs".  The line byte increment is "stride", which may be positive, negative or zero. "fg" and "bg" specify the colors for value 1 and 0 pixels respectively. *)
 		PROCEDURE Mask*(VAR buf: ARRAY OF CHAR; bitof, stride, fg, bg, x, y, w, h: LONGINT);
 		CONST SetSize = MAX (SET) + 1;
-		VAR p, i, bitofs: SYSTEM.ADDRESS; s: SET;
+		VAR p, i, bitofs: ADDRESS; s: SET;
 		BEGIN
 			IF (w > 0) & (h > 0) THEN
-				i := SYSTEM.ADR(buf[0]) MOD SYSTEM.SIZEOF (SET);
+				i := ADDRESSOF(buf[0]) MOD SIZEOF (SET);
 				bitofs := bitof + i * 8;
-				p := SYSTEM.ADR(buf[0])-i + bitofs DIV SetSize * SYSTEM.SIZEOF (SET);	(* p always aligned to 32-bit boundary *)
+				p := ADDRESSOF(buf[0])-i + bitofs DIV SetSize * SIZEOF (SET);	(* p always aligned to 32-bit boundary *)
 				bitofs := bitofs MOD SetSize; stride := stride*8;
 				LOOP
 					SYSTEM.GET(p, s); i := bitofs;
@@ -97,7 +97,7 @@ TYPE
 					IF h = 0 THEN EXIT END;
 					INC(y); INC(bitofs, stride);
 					IF (bitofs >= SetSize) OR (bitofs < 0) THEN	(* moved outside s *)
-						INC(p, bitofs DIV SetSize * SYSTEM.SIZEOF (SET)); bitofs := bitofs MOD SetSize
+						INC(p, bitofs DIV SetSize * SIZEOF (SET)); bitofs := bitofs MOD SetSize
 					END
 				END
 			END
@@ -134,7 +134,7 @@ TYPE
 		END IndexToColor;
 
 		(** Initialize a linear frame buffer for Transfer. *)
-		PROCEDURE InitFrameBuffer*(adr: SYSTEM.ADDRESS; size: LONGINT);
+		PROCEDURE InitFrameBuffer*(adr: ADDRESS; size: LONGINT);
 		BEGIN
 			ASSERT(width*(height+offscreen)*format <= size);
 			fbadr := adr; fbsize := size; fbstride := width*format
@@ -167,7 +167,7 @@ VAR
 	buf: POINTER TO ARRAY OF CHAR;
 
 PROCEDURE Fill0(d: Display; col, x, y, w, h: LONGINT);
-VAR j, w0, h0, s: LONGINT; p: SYSTEM.ADDRESS; t, c: SET; invert: BOOLEAN;
+VAR j, w0, h0, s: LONGINT; p: ADDRESS; t, c: SET; invert: BOOLEAN;
 BEGIN {EXCLUSIVE}
 	IF (w > 0) & (h > 0) & (col >= 0) THEN	(* opaque or invert *)
 		invert := ASH(col, 1) < 0;
@@ -192,7 +192,7 @@ BEGIN {EXCLUSIVE}
 		ASSERT(h0 > 0);
 		IF h < h0 THEN h0 := h END;
 		IF ~invert THEN
-			p := SYSTEM.ADR(buf[0]);
+			p := ADDRESSOF(buf[0]);
 			FOR j := 0 TO (w0*h0-1) DIV s DO SYSTEM.PUT32(p, c); INC(p, s) END
 		ELSE
 			IF c = {} THEN c := {0..31} END
@@ -200,7 +200,7 @@ BEGIN {EXCLUSIVE}
 		LOOP
 			IF invert THEN
 				d.Transfer(buf^, 0, w0, x, y, w, h0, get);
-				p := SYSTEM.ADR(buf[0]);
+				p := ADDRESSOF(buf[0]);
 				FOR j := 0 TO (w0*h0-1) DIV s DO
 					t := SYSTEM.VAL (SET, SYSTEM.GET32(p)); SYSTEM.PUT32(p, t / c); INC(p, s)
 				END

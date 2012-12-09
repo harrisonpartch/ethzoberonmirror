@@ -229,7 +229,7 @@ TYPE
 				String("@MyUtilities::HuffmanNode::AddNode()")
 			END;
 			(* we read our codewords from MSb to LSb *)
-			digit := SYSTEM.LSH(restCodeword, -(length - 1)); (* we need the length-rightmost bits: right shift of length-1 *)
+			digit := LSH(restCodeword, -(length - 1)); (* we need the length-rightmost bits: right shift of length-1 *)
 			restCodeword := restCodeword MOD Power(2, length - 1); (* only the (length-1)rightmost bits are used *)
 
 			IF (length = 1) THEN
@@ -451,7 +451,7 @@ TYPE
 		LOOP
 			IF (x > 0) THEN
 				INC(ret);
-				x := SYSTEM.LSH(x, -1)
+				x := LSH(x, -1)
 			ELSE
 				EXIT
 			END
@@ -473,7 +473,7 @@ TYPE
 			mantissa := -1 * mantissa
 		END;
 		one := 1;
-		res := mantissa / SYSTEM.LSH(one, -1*(exponent - 788));
+		res := mantissa / LSH(one, -1*(exponent - 788));
 		RETURN ScaleUpHuge(res)
 	END Float32Unpack;
 
@@ -676,7 +676,7 @@ TYPE
 			IF Machine.HIntToLInt(h) MOD 2 = 1 THEN
 				res := i
 			END;
-			h := SYSTEM.LSH(h, -1)
+			h := LSH(h, -1)
 		END;
 		RETURN res
 	END HighestBit;
@@ -698,7 +698,7 @@ TYPE
 			ELSE
 				sign := 1
 			END;
-			res := SYSTEM.LSH(res, -Ny);
+			res := LSH(res, -Ny);
 			(* rebuild sign *)
 			res := sign * res;
 			RETURN res
@@ -736,7 +736,7 @@ TYPE
 			RETURN 0
 		ELSE
 			n := Ny DIV 2;
-			divident := SYSTEM.LSH(LONG(LONG(1)), n);
+			divident := LSH(LONG(LONG(1)), n);
 			a := Machine.DivH(a, divident);
 			b := Machine.DivH(b, divident);
 			RETURN a * b
@@ -984,6 +984,6 @@ TYPE
 
 BEGIN
 	Ny := Nx; (* necessary for some reason *)
-	ScaleFactor := SYSTEM.LSH(LONG(LONG(1)), Ny DIV 2);
+	ScaleFactor := LSH(LONG(LONG(1)), Ny DIV 2);
 	ScaleFactor := ScaleFactor * ScaleFactor;
 END OGGUtilities.

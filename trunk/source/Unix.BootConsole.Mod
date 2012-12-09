@@ -158,7 +158,7 @@ VAR
 			IF trace THEN
 				Trace.String( "Initializing " );  Trace.String( m.name ); Trace.Ln
 			END;
-			body := S.VAL( Body, S.ADR( m.code[0] ) );
+			body := S.VAL( Body, ADDRESSOF( m.code[0] ) );
 			body;	
 			IF m.name = "Glue" THEN  trace := Glue.debug # {}  END;
 			m := m.next

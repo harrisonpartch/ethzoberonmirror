@@ -125,7 +125,7 @@ MODULE PCOFPE; (** AUTHOR "ejz"; PURPOSE "Parallel Compiler: PE object file plug
 				len := sect.used - SELF.ofs;
 				IF len > 0 THEN
 					IF len > size THEN len := size END;
-					SYSTEM.MOVE(SYSTEM.ADR(sect.data[SELF.ofs]), SYSTEM.ADR(buf[ofs]), len);
+					SYSTEM.MOVE(ADDRESSOF(sect.data[SELF.ofs]), ADDRESSOF(buf[ofs]), len);
 					INC(SELF.ofs, len)
 				END;
 				IF len < min THEN
@@ -160,7 +160,7 @@ MODULE PCOFPE; (** AUTHOR "ejz"; PURPOSE "Parallel Compiler: PE object file plug
 			BEGIN
 				res := Streams.Ok; IF len <= 0 THEN RETURN END;
 				IF (SELF.ofs + len) > sect.len THEN sect.Resize(SELF.ofs + len) END;
-				SYSTEM.MOVE(SYSTEM.ADR(buf[ofs]), SYSTEM.ADR(sect.data[SELF.ofs]), len);
+				SYSTEM.MOVE(ADDRESSOF(buf[ofs]), ADDRESSOF(sect.data[SELF.ofs]), len);
 				INC(SELF.ofs, len);
 				IF SELF.ofs > sect.used THEN sect.used := SELF.ofs END
 			END Send;
@@ -197,7 +197,7 @@ MODULE PCOFPE; (** AUTHOR "ejz"; PURPOSE "Parallel Compiler: PE object file plug
 				ASSERT(min > len);
 				min := Align(min, PageSize); NEW(data, min); i := len;
 				IF i > 0 THEN
-					SYSTEM.MOVE(SYSTEM.ADR(SELF.data[0]), SYSTEM.ADR(data[0]), i)
+					SYSTEM.MOVE(ADDRESSOF(SELF.data[0]), ADDRESSOF(data[0]), i)
 				END;
 				WHILE i < min DO data[i] := 0X; INC(i) END;
 				SELF.data := data; len := min
@@ -675,7 +675,7 @@ ASSERT(code.data[offset-1] # 0E8X);
 				END;
 				IF exppos >= explen THEN
 					NEW(explist2, 2*explen);
-					SYSTEM.MOVE(SYSTEM.ADR(explist[0]), SYSTEM.ADR(explist2[0]), 4*explen);
+					SYSTEM.MOVE(ADDRESSOF(explist[0]), ADDRESSOF(explist2[0]), 4*explen);
 					explist := explist2; explen := 2*explen
 				END;
 				explist[exppos] := fp; INC(exppos);
@@ -880,7 +880,7 @@ ASSERT(code.data[offset-1] # 0E8X);
 						WHILE l # NIL DO
 							offset := l.offset*addressFactor;
 							F.SetPos(offset);
-							AddImportReloc(code, offset, obj, FALSE, TRUE, SYSTEM.GET32(SYSTEM.ADR(code.data[offset])) # 0);
+							AddImportReloc(code, offset, obj, FALSE, TRUE, SYSTEM.GET32(ADDRESSOF(code.data[offset])) # 0);
 							l := l.next
 						END;
 						F.Update()
@@ -1211,7 +1211,7 @@ ASSERT(code.data[offset-1] # 0E8X);
 					mod := mod.next
 				END;
 				i := 0;
-				WHILE i < SYSTEM.SIZEOF(ImageImportDescriptor) DO
+				WHILE i < SIZEOF(ImageImportDescriptor) DO
 					W.Char(0X); INC(i)
 				END;
 				optHdr.DataDirectory[ImageDirectoryEntryImport].Size := W.Pos();
@@ -1262,7 +1262,7 @@ ASSERT(code.data[offset-1] # 0E8X);
 					W.SetPos(idata.used);
 					PutName(W, mod.name);
 					W.Update();
-					mod := mod.next; INC(i, SYSTEM.SIZEOF(ImageImportDescriptor))
+					mod := mod.next; INC(i, SIZEOF(ImageImportDescriptor))
 				END;
 				sect := sects;
 				WHILE sect # NIL DO
@@ -1396,7 +1396,7 @@ ASSERT(code.data[offset-1] # 0E8X);
 							BeginBlock(W, x, blockva, blocksize, blockfix)
 						END;
 						bak := x; DEC(x, blockva);
-						W.RawInt(SHORT(x + SYSTEM.LSH(SYSTEM.VAL(LONGINT, ImageRelBasedHighLow), 12)));
+						W.RawInt(SHORT(x + LSH(SYSTEM.VAL(LONGINT, ImageRelBasedHighLow), 12)));
 						INC(blocksize, 2);
 						r := r.next
 					END;
@@ -1431,7 +1431,7 @@ KernelLog.String("PCOFPE "); KernelLog.String(file);
 				i := W.Pos(); WHILE i < 60 DO W.Char(0X); INC(i) END;
 				W.RawLInt(128);
 				i := W.Pos(); WHILE i < 128 DO W.Char(0X); INC(i) END;
-				size := 128 + 4 + SYSTEM.SIZEOF(ImageFileHeader) + SYSTEM.SIZEOF(ImageOptionalHeader) + SELF.fileHdr.NumberOfSections*SYSTEM.SIZEOF(ImageSectionHeader);
+				size := 128 + 4 + SIZEOF(ImageFileHeader) + SIZEOF(ImageOptionalHeader) + SELF.fileHdr.NumberOfSections*SIZEOF(ImageSectionHeader);
 				size := Align(size, DefaultFileAlign);
 				SELF.optHdr.SizeOfHeaders := size;
 				size := Align(size, DefaultSectionAlign);
@@ -1489,7 +1489,7 @@ KernelLog.String("PCOFPE "); KernelLog.String(file);
 				SELF.fileHdr.TimeDateStamp := TimeDateStamp();
 				SELF.fileHdr.PointerToSymbolTable := 0;
 				SELF.fileHdr.NumberOfSymbols := 0;
-				SELF.fileHdr.SizeOfOptionalHeader := SYSTEM.SIZEOF(ImageOptionalHeader);
+				SELF.fileHdr.SizeOfOptionalHeader := SIZEOF(ImageOptionalHeader);
 				s := {ImageFileExecutableImage, ImageFile32BitMachine, ImageFileLineNumsStripped, ImageFileLocalSymsStripped};
 				IF mode = ModeEXE THEN
 					INCL(s, ImageFileRelocsStripped)

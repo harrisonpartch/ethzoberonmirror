@@ -8,7 +8,7 @@ IMPORT Kernel32, KernelLog, Commands, Strings, SYSTEM, Options;
 	VAR bool: LONGINT;  start: Kernel32.StartupInfo;  pi: Kernel32.ProcessInformation;  result: LONGINT;
 	BEGIN
 		result := -1;
-		start.cb := SYSTEM.SIZEOF( Kernel32.StartupInfo );
+		start.cb := SIZEOF( Kernel32.StartupInfo );
 		start.dwFlags := {Kernel32.StartFUseShowWindow};
 		IF visible THEN start.wShowWindow := 1; ELSE start.wShowWindow := 0; END;
 

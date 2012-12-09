@@ -213,7 +213,7 @@ VAR
 (** ========== Symbol Table Checker ============== *)
 (** ---------- Fingerprinting -------------- *)
 PROCEDURE FPrint(VAR fp: LONGINT; val: LONGINT);
-BEGIN fp:=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ROT(fp, 7)) / SYSTEM.VAL(SET, val))
+BEGIN fp:=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ROT(fp, 7)) / SYSTEM.VAL(SET, val))
 END FPrint;
 
 PROCEDURE FPrintSet(VAR fp: LONGINT; set: SET);
@@ -227,7 +227,7 @@ END FPrintReal;
 PROCEDURE FPrintLReal(VAR fp: LONGINT; lr: LONGREAL);
 	VAR l, h: LONGINT;
 BEGIN
-	SYSTEM.GET(SYSTEM.ADR(lr)+4, l); SYSTEM.GET(SYSTEM.ADR(lr), h);
+	SYSTEM.GET(ADDRESSOF(lr)+4, l); SYSTEM.GET(ADDRESSOF(lr), h);
 	FPrint(fp, l); FPrint(fp, h);
 END FPrintLReal;
 

@@ -22,8 +22,8 @@ IMPORT SYSTEM, Machine, KernelLog, ASPI := SymbiosASPI, Disks, Plugins;
 
 		PROCEDURE Transfer*(op, block, num: LONGINT; VAR data: ARRAY OF CHAR; ofs: LONGINT; VAR res: LONGINT);
 		BEGIN
-			IF op = Disks.Read THEN res := ReadBlocks(drive, block, num, SYSTEM.ADR(data[ofs]), 0)
-			ELSIF op = Disks.Write THEN res := WriteBlocks(drive, block, num, SYSTEM.ADR(data[ofs]), 0)
+			IF op = Disks.Read THEN res := ReadBlocks(drive, block, num, ADDRESSOF(data[ofs]), 0)
+			ELSIF op = Disks.Write THEN res := WriteBlocks(drive, block, num, ADDRESSOF(data[ofs]), 0)
 			END
 		END Transfer;
 
@@ -64,7 +64,7 @@ IMPORT SYSTEM, Machine, KernelLog, ASPI := SymbiosASPI, Disks, Plugins;
 
 (* ReadBlocks - Read disk blocks *)
 
-	PROCEDURE ReadBlocks(drive, sec, num: LONGINT; adr: SYSTEM.ADDRESS; offset: LONGINT): LONGINT;
+	PROCEDURE ReadBlocks(drive, sec, num: LONGINT; adr: ADDRESS; offset: LONGINT): LONGINT;
 	VAR srb: ASPI.ExecIOCmdSRB; err: LONGINT;
 	BEGIN
 		err := 0;
@@ -82,7 +82,7 @@ IMPORT SYSTEM, Machine, KernelLog, ASPI := SymbiosASPI, Disks, Plugins;
 		srb.BufPointer :=  Machine.Ensure32BitAddress (adr);
 		srb.SenseLen := 0X;
 		srb.CDBLen := 0AX;
-		srb.CDB[0] := 28X; srb.CDB[1] := SYSTEM.LSH(devs[drive].lun, 5);
+		srb.CDB[0] := 28X; srb.CDB[1] := LSH(devs[drive].lun, 5);
 		srb.CDB[2] := CHR(sec DIV 1000000H); srb.CDB[3] := CHR((sec DIV 10000H) MOD 100H);
 		srb.CDB[4] := CHR((sec DIV 100H) MOD 100H); srb.CDB[5] := CHR(sec MOD 100H);
 		srb.CDB[6] := 0X;
@@ -98,7 +98,7 @@ IMPORT SYSTEM, Machine, KernelLog, ASPI := SymbiosASPI, Disks, Plugins;
 
 (* WriteBlocks - Write disk blocks *)
 
-	PROCEDURE WriteBlocks(drive, sec, num: LONGINT; adr: SYSTEM.ADDRESS; offset: LONGINT): LONGINT;
+	PROCEDURE WriteBlocks(drive, sec, num: LONGINT; adr: ADDRESS; offset: LONGINT): LONGINT;
 	VAR srb: ASPI.ExecIOCmdSRB; err: LONGINT;
 	BEGIN
 		err := 0;
@@ -117,7 +117,7 @@ IMPORT SYSTEM, Machine, KernelLog, ASPI := SymbiosASPI, Disks, Plugins;
 		srb.BufPointer :=  Machine.Ensure32BitAddress (adr);
 		srb.SenseLen := 0X;
 		srb.CDBLen := 0AX;
-		srb.CDB[0] := 2AX; srb.CDB[1] := SYSTEM.LSH(devs[drive].lun, 5);
+		srb.CDB[0] := 2AX; srb.CDB[1] := LSH(devs[drive].lun, 5);
 		srb.CDB[2] := CHR(sec DIV 1000000H); srb.CDB[3] := CHR((sec DIV 10000H) MOD 100H);
 		srb.CDB[4] := CHR((sec DIV 100H) MOD 100H); srb.CDB[5] := CHR(sec MOD 100H);
 		srb.CDB[6] := 0X;
@@ -138,10 +138,10 @@ IMPORT SYSTEM, Machine, KernelLog, ASPI := SymbiosASPI, Disks, Plugins;
 		pp, lpp: Part;
 		pd: ARRAY 512 OF CHAR;
 	BEGIN
-		res := ReadBlocks(drive, 0, 1, SYSTEM.ADR(pd[0]), 0); ASSERT(res = 0);
+		res := ReadBlocks(drive, 0, 1, ADDRESSOF(pd[0]), 0); ASSERT(res = 0);
 		res := -1; devs[drive].obstart := -1; devs[drive].obend := -1;
 		IF (pd[510] = 055X) &  (pd[511] = 0AAX) THEN
-			p :=  Machine.Ensure32BitAddress (1BEH+SYSTEM.ADR(pd[0])); lcyl := -1;
+			p :=  Machine.Ensure32BitAddress (1BEH+ADDRESSOF(pd[0])); lcyl := -1;
 			FOR i := 0 TO 3 DO
 				IF chsdebug THEN KernelLog.String("Partition"); KernelLog.Int(i, 1); KernelLog.Ln END;
 				pp := SYSTEM.VAL(Part, p);
@@ -257,10 +257,10 @@ IMPORT SYSTEM, Machine, KernelLog, ASPI := SymbiosASPI, Disks, Plugins;
 		srb.Target := devs[drive].target;
 		srb.Lun := devs[drive].lun;
 		srb.BufLen := 8;
-		srb.BufPointer := Machine.Ensure32BitAddress (SYSTEM.ADR(buf[0]));
+		srb.BufPointer := Machine.Ensure32BitAddress (ADDRESSOF(buf[0]));
 		srb.SenseLen := 0X;
 		srb.CDBLen := 0AX;
-		srb.CDB[0] := 25X; srb.CDB[1] := SYSTEM.LSH(devs[drive].lun, 5); srb.CDB[2] := 0X; srb.CDB[3] := 0X;
+		srb.CDB[0] := 25X; srb.CDB[1] := LSH(devs[drive].lun, 5); srb.CDB[2] := 0X; srb.CDB[3] := 0X;
 		srb.CDB[4] := 0X; srb.CDB[5] := 0X; srb.CDB[6] := 0X; srb.CDB[7] := 0X; srb.CDB[8] := 0X; srb.CDB[9] := 0X;
 		srb.meas := NIL;
 		srb.Status := 55X;
@@ -279,7 +279,7 @@ IMPORT SYSTEM, Machine, KernelLog, ASPI := SymbiosASPI, Disks, Plugins;
 	BEGIN
 		numdevs := 0;
 		res := ASPI.GetASPISupportInfo();
-		IF CHR(SYSTEM.LSH(res, -8)) = ASPI.SSComp THEN
+		IF CHR(LSH(res, -8)) = ASPI.SSComp THEN
 			res := res MOD 100H;
 			NEW(srb); ha := 0;
 			WHILE ha < res DO

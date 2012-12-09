@@ -93,10 +93,10 @@ MODULE JPEG2000Decoder;
 			 HL (horizontal left) - HR (horizontal right) - VU (vertical up) - VD (vertical down) - <Diagonals>, where the internal order of <Diagonals> is
 			 not specified in more detail
 		*)
-		ENTROPY_SIGHL = SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS - 1);	(* HL: horizontal left neighbor *)
-		ENTROPY_SIGHR = SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS - 2);	(* HR: horizontal right neighbor *)
-		ENTROPY_SIGVU = SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS - 3);	(* VU: vertical upper neighbor *)
-		ENTROPY_SIGVD = SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS - 4);	(* VD: vertical lower neighbor *)
+		ENTROPY_SIGHL = LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS - 1);	(* HL: horizontal left neighbor *)
+		ENTROPY_SIGHR = LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS - 2);	(* HR: horizontal right neighbor *)
+		ENTROPY_SIGVU = LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS - 3);	(* VU: vertical upper neighbor *)
+		ENTROPY_SIGVD = LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS - 4);	(* VD: vertical lower neighbor *)
 
 
 		(* Mask to extract the context of the sign lut (and discarding the xor bit) *)
@@ -107,35 +107,35 @@ MODULE JPEG2000Decoder;
 
 		(* First-row coefficient values *)
 		(* Flag for the significane a first-row coefficient (in the state register) *)
-		STATE_SIG_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 14));
+		STATE_SIG_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 14));
 		(* Flag to indicate if a first-row coefficient has been visited in the decoding of the current bit-plane *)
-		STATE_VISITED_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 13));
+		STATE_VISITED_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 13));
 		(* Flag to indicate if a first-row coefficient is in the magnitude refinement phase *)
-		STATE_MAGREF_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 12));
+		STATE_MAGREF_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 12));
 		(* 1 if the horizontal left neighbor has a negative sign, 0 else *)
-		STATE_H_L_SIGN_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 11));
+		STATE_H_L_SIGN_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 11));
 		(* 1 if the horizontal right neighbor has a negative sign, 0 else *)
-		STATE_H_R_SIGN_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 10));
+		STATE_H_R_SIGN_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 10));
 		(* 1 if the vertical-up neighbor has a negative sign, 0 else *)
-		STATE_V_U_SIGN_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 9));
+		STATE_V_U_SIGN_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 9));
 		(* 1 if the vertical_down neighbor has a negative sign, 0 else *)
-		STATE_V_D_SIGN_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 8));
+		STATE_V_D_SIGN_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 8));
 
 		(* 1 if the horizontal left neighbor is significant already, 0 else *)
-		STATE_H_L_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 7));
+		STATE_H_L_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 7));
 		(* 1 if the horizontal right neighbor is significant already, 0 else *)
-		STATE_H_R_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 6));
+		STATE_H_R_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 6));
 		(* 1 if the vertical-up neighbor is significant already, 0 else *)
-		STATE_V_U_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 5));
+		STATE_V_U_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 5));
 		(* 1 if the vertical_down neighbor is significant already, 0 else *)
-		STATE_V_D_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 4));
+		STATE_V_D_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 4));
 
 		(* 1 if the diagonal upper left neighbor is significant already, 0 else *)
-		STATE_D_UL_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 3));
+		STATE_D_UL_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 3));
 		(* 1 if the diagonal upper right neighbor is significant already, 0 else *)
-		STATE_D_UR_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 2));
+		STATE_D_UR_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 2));
 		(* 1 if the diagonal lower left neighbor  is significant already, 0 else *)
-		STATE_D_DL_R1 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 1));
+		STATE_D_DL_R1 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), 1));
 		(* 1 if the diagonal lower right neighbor is significant already, 0 else *)
 		STATE_D_DR_R1 = SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1));
 		(* Mask to extract the zero-bin context vector of a first-row coefficient *)
@@ -150,41 +150,41 @@ MODULE JPEG2000Decoder;
 
 		(* And the same stuff for the second-row coefficient *)
 		(* Flag for the significane a second-row coefficient (in the state register) *)
-		STATE_SIG_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_SIG_R1), STATE_SEP));
+		STATE_SIG_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_SIG_R1), STATE_SEP));
 		(* Flag to indicate if a second-row coefficient has been visited in the decoding of the current bit-plane *)
-		STATE_VISITED_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_VISITED_R1), STATE_SEP));
+		STATE_VISITED_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_VISITED_R1), STATE_SEP));
 		(* Flag to indicate if a second-row coefficient is in the magnitude refinement phase *)
-		STATE_MAGREF_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_MAGREF_R1), STATE_SEP));
+		STATE_MAGREF_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_MAGREF_R1), STATE_SEP));
 		(* 1 if the horizontal left neighbor has a negative sign, 0 else *)
-		STATE_H_L_SIGN_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_H_L_SIGN_R1), STATE_SEP));
+		STATE_H_L_SIGN_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_H_L_SIGN_R1), STATE_SEP));
 		(* 1 if the horizontal right neighbor has a negative sign, 0 else *)
-		STATE_H_R_SIGN_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_H_R_SIGN_R1), STATE_SEP));
+		STATE_H_R_SIGN_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_H_R_SIGN_R1), STATE_SEP));
 		(* 1 if the vertical-up neighbor has a negative sign, 0 else *)
-		STATE_V_U_SIGN_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_V_U_SIGN_R1), STATE_SEP));
+		STATE_V_U_SIGN_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_V_U_SIGN_R1), STATE_SEP));
 		(* 1 if the vertical_down neighbor has a negative sign, 0 else *)
-		STATE_V_D_SIGN_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_V_D_SIGN_R1), STATE_SEP));
+		STATE_V_D_SIGN_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_V_D_SIGN_R1), STATE_SEP));
 
 		(* 1 if the horizontal left neighbor is significant already, 0 else *)
-		STATE_H_L_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_H_L_R1), STATE_SEP));
+		STATE_H_L_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_H_L_R1), STATE_SEP));
 		(* 1 if the horizontal right neighbor is significant already, 0 else *)
-		STATE_H_R_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_H_R_R1), STATE_SEP));
+		STATE_H_R_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_H_R_R1), STATE_SEP));
 		(* 1 if the vertical-up neighbor is significant already, 0 else *)
-		STATE_V_U_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_V_U_R1), STATE_SEP));
+		STATE_V_U_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_V_U_R1), STATE_SEP));
 		(* 1 if the vertical_down neighbor is significant already, 0 else *)
-		STATE_V_D_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_V_D_R1), STATE_SEP));
+		STATE_V_D_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_V_D_R1), STATE_SEP));
 
 		(* 1 if the diagonal upper left neighbor is significant already, 0 else *)
-		STATE_D_UL_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_D_UL_R1), STATE_SEP));
+		STATE_D_UL_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_D_UL_R1), STATE_SEP));
 		(* 1 if the diagonal upper right neighbor is significant already, 0 else *)
-		STATE_D_UR_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_D_UR_R1), STATE_SEP));
+		STATE_D_UR_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_D_UR_R1), STATE_SEP));
 		(* 1 if the diagonal lower left neighbor  is significant already, 0 else *)
-		STATE_D_DL_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_D_DL_R1), STATE_SEP));
+		STATE_D_DL_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_D_DL_R1), STATE_SEP));
 		(* 1 if the diagonal lower right neighbor is significant already, 0 else *)
-		STATE_D_DR_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_D_DR_R1), STATE_SEP));
+		STATE_D_DR_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_D_DR_R1), STATE_SEP));
 		(* Mask to extract the zero-bin context vector of a first-row coefficient *)
-		STATE_VECT_MASK_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, STATE_VECT_MASK_R1), STATE_SEP));
+		STATE_VECT_MASK_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, STATE_VECT_MASK_R1), STATE_SEP));
 		(* Mask to extract the sign context vector of a first-row coefficient *)
-		SIGN_VECT_MASK_R2 = SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, SIGN_VECT_MASK_R1), STATE_SEP));
+		SIGN_VECT_MASK_R2 = SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, SIGN_VECT_MASK_R1), STATE_SEP));
 		(*
 			How much we need to shift the state vector of a first row coefficient
 			so that the sign context vector starts at the LSB.
@@ -320,8 +320,8 @@ MODULE JPEG2000Decoder;
 			(** Resets the contexts to their initial index and mps values *)
 			PROCEDURE ResetContexts;
 				BEGIN
-					SYSTEM.MOVE(SYSTEM.ADR(initIdx[0]), SYSTEM.ADR(index[0]), LEN(initIdx)*SYSTEM.SIZEOF(LONGINT));
-					SYSTEM.MOVE(SYSTEM.ADR(initMps[0]), SYSTEM.ADR(mps[0]), LEN(initMps)*SYSTEM.SIZEOF(LONGINT));
+					SYSTEM.MOVE(ADDRESSOF(initIdx[0]), ADDRESSOF(index[0]), LEN(initIdx)*SIZEOF(LONGINT));
+					SYSTEM.MOVE(ADDRESSOF(initMps[0]), ADDRESSOF(mps[0]), LEN(initMps)*SIZEOF(LONGINT));
 			END ResetContexts;
 
 			(**
@@ -332,7 +332,7 @@ MODULE JPEG2000Decoder;
 				VAR
 					chigh, d : LONGINT;
 				BEGIN
-					chigh := SYSTEM.LSH(c, -16);
+					chigh := LSH(c, -16);
 
 					a := a - MQPROB[index[cx]];
 
@@ -350,7 +350,7 @@ MODULE JPEG2000Decoder;
 
 						(* Update the original 'c register' *)
 						(* c := (c BITWISE-AND 0x0000FFFF) BITWISE-OR (chigh << 16) *)
-						c := SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, c) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 0000FFFFH))) + SYSTEM.VAL(SET, SYSTEM.LSH(chigh, 16)));
+						c := SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, c) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 0000FFFFH))) + SYSTEM.VAL(SET, LSH(chigh, 16)));
 						d := LpsExchange(cx);
 						Renormd();
 					END;
@@ -366,8 +366,8 @@ MODULE JPEG2000Decoder;
 							ByteIn();
 						END;
 
-						a := SYSTEM.LSH(a, 1);
-						c := SYSTEM.LSH(c, 1);
+						a := LSH(a, 1);
+						c := LSH(c, 1);
 						DEC(ct);
 					UNTIL (SYSTEM.VAL(SET, a) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 00008000H))) # {};
 			END Renormd;
@@ -432,7 +432,7 @@ MODULE JPEG2000Decoder;
 								markerFound := TRUE;
 								ct := 8;
 							ELSE
-								c := c + SYSTEM.VAL(LONGINT, 0FE00H) - SYSTEM.LSH(b, 9);
+								c := c + SYSTEM.VAL(LONGINT, 0FE00H) - LSH(b, 9);
 								ct := 7;
 							END;
 						ELSE
@@ -441,7 +441,7 @@ MODULE JPEG2000Decoder;
 								NOTE: The Standard specifies here: c = c + 0xFE00 - (B << 8). But we use an BITWISE-XOR operation instead of the subtraction.
 								That's ok because no carry overs can occur since we subtract from 0xFF00
 							*)
-							c := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, c) + ({8..15} / SYSTEM.VAL(SET, SYSTEM.LSH(b, 8))));
+							c := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, c) + ({8..15} / SYSTEM.VAL(SET, LSH(b, 8))));
 
 							ct := 8;
 						END;
@@ -457,9 +457,9 @@ MODULE JPEG2000Decoder;
 
 					b := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, br.Read()) * {0..7}); (* Converts -1 to 0xFF *)
 					(* c := (b BITWISE-XOR 0xFF) << 16 *)
-					c := SYSTEM.LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, b) / {0..7}), 16);
+					c := LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, b) / {0..7}), 16);
 					ByteIn();
-					c := SYSTEM.LSH(c, 7);
+					c := LSH(c, 7);
 					ct := ct - 7;
 					a := SYSTEM.VAL(LONGINT, 00008000H);
 			END InitDec;
@@ -533,18 +533,18 @@ MODULE JPEG2000Decoder;
 						of 'k' bits. Worst case is smallest LPS probability 'q' that causes
 						a renormalization of 'k' bits
 					*)
-					q := SYSTEM.LSH(8000H, -k);
+					q := LSH(8000H, -k);
 
 					(* Check that we can decode an LPS interval of probability 'q' *)
 					DEC(a, q);
 
-					IF SYSTEM.LSH(c, -16) < a THEN
+					IF LSH(c, -16) < a THEN
 						(* Error: MPS interval decoded *)
 						RETURN FALSE;
 					END;
 
 					(* OK: LPS interval decoded *)
-					c := c - SYSTEM.LSH(a, 16);
+					c := c - LSH(a, 16);
 
 					(*
 						Here 'a' can not be smaller than 'q' because the minimum value
@@ -765,8 +765,8 @@ MODULE JPEG2000Decoder;
 							curDataBlk.scanw := curCblkInfo.width;
 						END;
 
-						Machine.Fill32(SYSTEM.ADR(data[0]), LEN(data^)*SYSTEM.SIZEOF(LONGINT), 0);
-						Machine.Fill32(SYSTEM.ADR(state[0]), LEN(state^)*SYSTEM.SIZEOF(SET), 0);
+						Machine.Fill32(ADDRESSOF(data[0]), LEN(data^)*SIZEOF(LONGINT), 0);
+						Machine.Fill32(ADDRESSOF(state[0]), LEN(state^)*SIZEOF(SET), 0);
 
 						(* Restart MQ-Decoder *)
 						IF codedCblk[cblkIdx].nseg > 1 THEN
@@ -938,8 +938,8 @@ MODULE JPEG2000Decoder;
 						(* See if we have to enlarge the state array *)
 						curTile := cr.CurrentTile();
 
-						maxCblkWidth := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), decSpec.GetMaxCblkWidthExp(curTile));
-						maxCblkHeight := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), decSpec.GetMaxCblkHeightExp(curTile));
+						maxCblkWidth := LSH(SYSTEM.VAL(LONGINT, 1), decSpec.GetMaxCblkWidthExp(curTile));
+						maxCblkHeight := LSH(SYSTEM.VAL(LONGINT, 1), decSpec.GetMaxCblkHeightExp(curTile));
 						maxSize := (maxCblkWidth + 2 * ENTROPY_ARRAYOFF) * (((maxCblkHeight + 1 ) DIV 2)+ 2 * ENTROPY_ARRAYOFF);
 
 						IF (state = NIL) OR (LEN(state^) < maxSize) THEN
@@ -1007,7 +1007,7 @@ MODULE JPEG2000Decoder;
 					(* Get local reference to data *)
 					data := cblk(DataBlkInt).data;
 
-					setMask := SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 3), curBp - 1));
+					setMask := SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 3), curBp - 1));
 					rowWidthState := cblkInfo.width + 2 * ENTROPY_ARRAYOFF;
 					(* Cache rowStart (of the extended arrays) *)
 					rowStartState := rowWidthState + ENTROPY_ARRAYOFF;
@@ -1045,15 +1045,15 @@ MODULE JPEG2000Decoder;
 								(* Did the coefficient just become significant? If not, move on *)
 								IF mq.Decode(zeroLUT[SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R1)]) = 1 THEN
 									(* Coefficient has become significant -> decode sign bit *)
-									ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
+									ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
 
 
 									sign := SYSTEM.VAL(LONGINT,
 												SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-												/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+												/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 											);
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									IF ~vertCausal THEN
@@ -1122,15 +1122,15 @@ MODULE JPEG2000Decoder;
 							THEN
 
 								(* Did the coefficient just become significant? If not, move on *)
-								IF mq.Decode(zeroLUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R2), -STATE_SEP)]) = 1 THEN
+								IF mq.Decode(zeroLUT[LSH(SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R2), -STATE_SEP)]) = 1 THEN
 									(* Coefficient has become significant -> decode sign bit *)
-									ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
+									ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
 									sign := SYSTEM.VAL(LONGINT,
 												SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-												/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+												/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 											);
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									(* Lower diagonal neighbors *)
@@ -1194,13 +1194,13 @@ MODULE JPEG2000Decoder;
 								(* Did the coefficient just become significant? If not, move on *)
 								IF mq.Decode(zeroLUT[SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R1)]) = 1 THEN
 									(* Coefficient has become significant -> decode sign bit *)
-									ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
+									ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
 									sign := SYSTEM.VAL(LONGINT,
 												SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-												/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+												/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 											);
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 										(* Upper diagonal neighbors *)
@@ -1260,16 +1260,16 @@ MODULE JPEG2000Decoder;
 							THEN
 
 								(* Did the coefficient just become significant? If not, move on *)
-								IF mq.Decode(zeroLUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R2), -STATE_SEP)]) = 1 THEN
+								IF mq.Decode(zeroLUT[LSH(SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R2), -STATE_SEP)]) = 1 THEN
 									(* Coefficient has become significant -> decode sign bit *)
-									ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
+									ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
 									sign := SYSTEM.VAL(LONGINT,
 												SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-												/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+												/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 											);
 
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									(* Lower diagonal neighbors *)
@@ -1365,7 +1365,7 @@ MODULE JPEG2000Decoder;
 					(* Get local reference to data *)
 					data := cblk(DataBlkInt).data;
 
-					setMask := SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 3), curBp - 1));
+					setMask := SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 3), curBp - 1));
 					rowWidthState := cblkInfo.width + 2 * ENTROPY_ARRAYOFF;
 					(* Cache rowStart (of the extended arrays) *)
 					rowStartState := rowWidthState + ENTROPY_ARRAYOFF;
@@ -1404,7 +1404,7 @@ MODULE JPEG2000Decoder;
 									(* Coefficient has become significant -> decode sign bit *)
 									sign := dbr.NextBit();
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									IF ~vertCausal THEN
@@ -1476,7 +1476,7 @@ MODULE JPEG2000Decoder;
 									(* Coefficient has become significant -> decode sign bit *)
 									sign := dbr.NextBit();
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									(* Lower diagonal neighbors *)
@@ -1541,7 +1541,7 @@ MODULE JPEG2000Decoder;
 									(* Coefficient has become significant -> decode sign bit *)
 									sign := dbr.NextBit();
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									(* Upper diagonal neighbors *)
@@ -1604,7 +1604,7 @@ MODULE JPEG2000Decoder;
 									(* Coefficient has become significant -> decode sign bit *)
 									sign := dbr.NextBit();
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									(* Lower diagonal neighbors *)
@@ -1693,8 +1693,8 @@ MODULE JPEG2000Decoder;
 					(* Get local reference to data *)
 					data := cblk(DataBlkInt).data;
 
-					setMask := SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), curBp - 1));
-					resetMask := SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, -1), curBp + 1));
+					setMask := SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), curBp - 1));
+					resetMask := SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, -1), curBp + 1));
 
 					rowWidthState := cblkInfo.width + 2 * ENTROPY_ARRAYOFF;
 					(* Cache rowStart (of the extended arrays) *)
@@ -1746,7 +1746,7 @@ MODULE JPEG2000Decoder;
 								END;
 
 								tmpDataSample := SYSTEM.VAL(SET, data[dataIdx]) * resetMask;
-								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, SYSTEM.LSH(bit, curBp)) + setMask);
+								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, LSH(bit, curBp)) + setMask);
 							END;
 
 							(* Scan 2nd row *)
@@ -1771,7 +1771,7 @@ MODULE JPEG2000Decoder;
 								END;
 
 								tmpDataSample := SYSTEM.VAL(SET, data[dataIdx]) * resetMask;
-								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, SYSTEM.LSH(bit, curBp)) + setMask);
+								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, LSH(bit, curBp)) + setMask);
 							END;
 
 							(* Scan 3rd row *)
@@ -1799,7 +1799,7 @@ MODULE JPEG2000Decoder;
 								END;
 
 								tmpDataSample := SYSTEM.VAL(SET, data[dataIdx]) * resetMask;
-								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, SYSTEM.LSH(bit, curBp)) + setMask);
+								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, LSH(bit, curBp)) + setMask);
 							END;
 
 							(* Scan 4th row *)
@@ -1824,7 +1824,7 @@ MODULE JPEG2000Decoder;
 								END;
 
 								tmpDataSample := SYSTEM.VAL(SET, data[dataIdx]) * resetMask;
-								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, SYSTEM.LSH(bit, curBp)) + setMask);
+								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, LSH(bit, curBp)) + setMask);
 							END;
 
 						END;
@@ -1875,8 +1875,8 @@ MODULE JPEG2000Decoder;
 					(* Get local reference to data *)
 					data := cblk(DataBlkInt).data;
 
-					setMask := SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), curBp - 1));
-					resetMask := SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, -1), curBp + 1));
+					setMask := SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), curBp - 1));
+					resetMask := SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, -1), curBp + 1));
 
 					rowWidthState := cblkInfo.width + 2 * ENTROPY_ARRAYOFF;
 					(* Cache rowStart (of the extended arrays) *)
@@ -1913,7 +1913,7 @@ MODULE JPEG2000Decoder;
 							THEN
 								bit := dbr.NextBit();
 								tmpDataSample := SYSTEM.VAL(SET, data[dataIdx]) * resetMask;
-								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, SYSTEM.LSH(bit, curBp)) + setMask);
+								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, LSH(bit, curBp)) + setMask);
 								(* No need to set IN_MAG_REF since all magnitude refinement passes to follow are "raw" *)
 							END;
 
@@ -1926,7 +1926,7 @@ MODULE JPEG2000Decoder;
 							THEN
 								bit := dbr.NextBit();
 								tmpDataSample := SYSTEM.VAL(SET, data[dataIdx]) * resetMask;
-								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, SYSTEM.LSH(bit, curBp)) + setMask);
+								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, LSH(bit, curBp)) + setMask);
 								(* No need to set IN_MAG_REF since all magnitude refinement passes to follow are "raw" *)
 							END;
 
@@ -1941,7 +1941,7 @@ MODULE JPEG2000Decoder;
 							THEN
 								bit := dbr.NextBit();
 								tmpDataSample := SYSTEM.VAL(SET, data[dataIdx]) * resetMask;
-								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, SYSTEM.LSH(bit, curBp)) + setMask);
+								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, LSH(bit, curBp)) + setMask);
 								(* No need to set IN_MAG_REF since all magnitude refinement passes to follow are "raw" *)
 							END;
 
@@ -1954,7 +1954,7 @@ MODULE JPEG2000Decoder;
 							THEN
 								bit := dbr.NextBit();
 								tmpDataSample := SYSTEM.VAL(SET, data[dataIdx]) * resetMask;
-								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, SYSTEM.LSH(bit, curBp)) + setMask);
+								data[dataIdx] := SYSTEM.VAL(LONGINT, tmpDataSample + SYSTEM.VAL(SET, LSH(bit, curBp)) + setMask);
 							END;
 						END;
 
@@ -1998,7 +1998,7 @@ MODULE JPEG2000Decoder;
 					(* Get local reference to data *)
 					data := cblk(DataBlkInt).data;
 
-					setMask := SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 3), curBp - 1));
+					setMask := SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 3), curBp - 1));
 					rowWidthState := cblkInfo.width + 2 * ENTROPY_ARRAYOFF;
 					(* Cache row start *)
 					rowStartState := rowWidthState + ENTROPY_ARRAYOFF;
@@ -2040,7 +2040,7 @@ MODULE JPEG2000Decoder;
 									(* Not all four bits of the coefficients of this stripe are 0 *)
 									(* Determine first non-zero coefficient bit *)
 									stripeStartIdx := mq.Decode(ENTROPY_UNICTX);
-									stripeStartIdx := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(stripeStartIdx, 1)) + SYSTEM.VAL(SET, mq.Decode(ENTROPY_UNICTX)));
+									stripeStartIdx := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(stripeStartIdx, 1)) + SYSTEM.VAL(SET, mq.Decode(ENTROPY_UNICTX)));
 
 									(* Handle the first non-zero coefficient separately *)
 									IF stripeStartIdx > 1 THEN
@@ -2055,14 +2055,14 @@ MODULE JPEG2000Decoder;
 									(* See if the first non-zero coefficient is in top or bottom part of stripe *)
 									IF ~ODD(stripeStartIdx) THEN
 										(* Coefficient has become significant -> decode sign bit *)
-										ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, tmpCurState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
+										ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, tmpCurState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
 
 										sign := SYSTEM.VAL(LONGINT,
 													SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-													/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+													/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 												);
 
-										data[tmpDataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+										data[tmpDataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 										(* Update state information*)
 										IF (stripeStartIdx # 0) OR ~vertCausal THEN
@@ -2116,13 +2116,13 @@ MODULE JPEG2000Decoder;
 
 									ELSE
 										(* Coefficient has become significant -> decode sign bit *)
-										ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, tmpCurState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
+										ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, tmpCurState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
 										sign := SYSTEM.VAL(LONGINT,
 													SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-													/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+													/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 												);
 
-										data[tmpDataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+										data[tmpDataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 										(* Update state information*)
 										(* Lower diagonal neighbors *)
@@ -2190,15 +2190,15 @@ MODULE JPEG2000Decoder;
 								(* Did the coefficient just become significant? If not, move on *)
 								IF mq.Decode(zeroLUT[SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R1)]) = 1 THEN
 									(* Coefficient has become significant -> decode sign bit *)
-									ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
+									ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
 
 
 									sign := SYSTEM.VAL(LONGINT,
 												SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-												/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+												/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 											);
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									IF ~vertCausal THEN
@@ -2264,15 +2264,15 @@ MODULE JPEG2000Decoder;
 							THEN
 
 								(* Did the coefficient just become significant? If not, move on *)
-								IF mq.Decode(zeroLUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R2), -STATE_SEP)]) = 1 THEN
+								IF mq.Decode(zeroLUT[LSH(SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R2), -STATE_SEP)]) = 1 THEN
 									(* Coefficient has become significant -> decode sign bit *)
-									ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
+									ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
 									sign := SYSTEM.VAL(LONGINT,
 												SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-												/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+												/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 											);
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									(* Lower diagonal neighbors *)
@@ -2336,13 +2336,13 @@ MODULE JPEG2000Decoder;
 								(* Did the coefficient just become significant? If not, move on *)
 								IF mq.Decode(zeroLUT[SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R1)]) = 1 THEN
 									(* Coefficient has become significant -> decode sign bit *)
-									ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
+									ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R1), -SIGN_VECT_SHIFT_R1)];
 									sign := SYSTEM.VAL(LONGINT,
 												SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-												/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+												/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 											);
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									(* Upper diagonal neighbors *)
@@ -2398,15 +2398,15 @@ MODULE JPEG2000Decoder;
 								& (curState * STATE_VISITED_R2 = {})
 							THEN
 								(* Did the coefficient just become significant? If not, move on *)
-								IF mq.Decode(zeroLUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R2), -STATE_SEP)]) = 1 THEN
+								IF mq.Decode(zeroLUT[LSH(SYSTEM.VAL(LONGINT, curState * STATE_VECT_MASK_R2), -STATE_SEP)]) = 1 THEN
 									(* Coefficient has become significant -> decode sign bit *)
-									ctx := ENTROPY_SIGN_LUT[SYSTEM.LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
+									ctx := ENTROPY_SIGN_LUT[LSH(SYSTEM.VAL(LONGINT, curState*SIGN_VECT_MASK_R2), -SIGN_VECT_SHIFT_R2)];
 									sign := SYSTEM.VAL(LONGINT,
 												SYSTEM.VAL(SET, mq.Decode(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ctx) * SIGN_LUT_MASK)))
-												/ SYSTEM.VAL(SET, SYSTEM.LSH(ctx, -J2KU.LONGINT_BITS + 1))
+												/ SYSTEM.VAL(SET, LSH(ctx, -J2KU.LONGINT_BITS + 1))
 											);
 
-									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
+									data[dataIdx] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(sign, J2KU.LONGINT_BITS - 1)) + setMask);
 
 									(* Update state information*)
 									(* Lower diagonal neighbors *)
@@ -2470,9 +2470,9 @@ MODULE JPEG2000Decoder;
 					IF segUsed THEN
 						(* Assemble 4 bits *)
 						symbol := SYSTEM.VAL(LONGINT,
-											SYSTEM.VAL(SET, SYSTEM.LSH(mq.Decode(ENTROPY_UNICTX), 3))
-											+ SYSTEM.VAL(SET, SYSTEM.LSH(mq.Decode(ENTROPY_UNICTX), 2))
-											+ SYSTEM.VAL(SET, SYSTEM.LSH(mq.Decode(ENTROPY_UNICTX), 1))
+											SYSTEM.VAL(SET, LSH(mq.Decode(ENTROPY_UNICTX), 3))
+											+ SYSTEM.VAL(SET, LSH(mq.Decode(ENTROPY_UNICTX), 2))
+											+ SYSTEM.VAL(SET, LSH(mq.Decode(ENTROPY_UNICTX), 1))
 											+ SYSTEM.VAL(SET, mq.Decode(ENTROPY_UNICTX))
 								);
 						(* The segmentation symbol is 1010 (or 0xA) *)
@@ -2506,8 +2506,8 @@ MODULE JPEG2000Decoder;
 					data := dataBlk(DataBlkInt).data;
 					scanw := dataBlk.scanw;
 
-					setmask := SYSTEM.LSH(1, bp);
-					resetmask := SYSTEM.LSH(-1, bp);
+					setmask := LSH(1, bp);
+					resetmask := LSH(-1, bp);
 					(* Mask to extract magnitude bits, without sign bit *)
 					mbmask := SYSTEM.VAL(LONGINT, J2KU.LONGINT_SIGN_BIT / SYSTEM.VAL(SET, resetmask));
 
@@ -2619,10 +2619,10 @@ MODULE JPEG2000Decoder;
 							shift := decSpec.GetROIShift(curTile, comp);
 							magBits := cblkInfo[cblkIdx].subbinfo.magbits;
 
-							mask3 := SYSTEM.VAL(SET, SYSTEM.LSH(J2KU.SWAP_MASK, (J2KU.LONGINT_BITS - 1)- magBits));
+							mask3 := SYSTEM.VAL(SET, LSH(J2KU.SWAP_MASK, (J2KU.LONGINT_BITS - 1)- magBits));
 							mask2 := -mask3;
 							mask1 := mask3 * (-J2KU.LONGINT_SIGN_BIT);
-							approx := SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), (J2KU.LONGINT_BITS - 2) - magBits));
+							approx := SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), (J2KU.LONGINT_BITS - 2) - magBits));
 
 							(* For every coefficient see if it belongs to the background or a ROI *)
 							FOR i := 0 TO height - 1 DO
@@ -2634,7 +2634,7 @@ MODULE JPEG2000Decoder;
 										(* Need to shift the coefficient *)
 										data[idx] := SYSTEM.VAL(LONGINT,
 														(tmp * J2KU.LONGINT_SIGN_BIT)	(* extract sign *)
-														+ SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, tmp), shift)));
+														+ SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, tmp), shift)));
 
 									ELSIF (tmp * mask2) # {} THEN
 										(* The number of decoded magnitude bits is greater than the maximum number of magnitude bits -> need to truncate & set approximation bit *)
@@ -2842,7 +2842,7 @@ MODULE JPEG2000Decoder;
 
 					(* Set default data type (LONGINT) *)
 					FOR j := 0 TO ntiles - 1 DO
-						Machine.Fill32(SYSTEM.ADR(dataTypes[j][0]), ncomp*SYSTEM.SIZEOF(LONGINT), DATA_LONGINT);
+						Machine.Fill32(ADDRESSOF(dataTypes[j][0]), ncomp*SIZEOF(LONGINT), DATA_LONGINT);
 					END;
 
 					NEW(utBitDepth, ncomp);
@@ -2904,7 +2904,7 @@ MODULE JPEG2000Decoder;
 			PROCEDURE CalculateStepSizes (tile : LONGINT);
 				CONST
 					(* The normalization factor for the manitssa (2^11, since 11 bits are used to represent the mantissa *)
-					NORM_FACT = SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), 11);
+					NORM_FACT = LSH(SYSTEM.VAL(LONGINT, 1), 11);
 				VAR
 					ntiles, ncomp, i, ndec, r: LONGINT;
 					qStyle, exp : LONGINT;
@@ -2950,21 +2950,21 @@ MODULE JPEG2000Decoder;
 									(* Resolution level 0 *)
 									exp := decSpec.GetQuantExponent(tile, i, 0, J2KU.SUB_LL);
 									mant := decSpec.GetQuantMantissa(tile, i, 0, J2KU.SUB_LL);
-									preStep[tile][i][0][0] := ((1 + (mant / NORM_FACT)) / SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), exp));
+									preStep[tile][i][0][0] := ((1 + (mant / NORM_FACT)) / LSH(SYSTEM.VAL(LONGINT, 1), exp));
 
 									(* Now the other resolution levels *)
 									FOR r := 1 TO ndec DO
 										exp := decSpec.GetQuantExponent(tile, i, r, J2KU.SUB_HL);
 										mant := decSpec.GetQuantMantissa(tile, i, r, J2KU.SUB_HL);
-										preStep[tile][i][r][0] := ((1 + (mant / NORM_FACT)) / SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), exp));
+										preStep[tile][i][r][0] := ((1 + (mant / NORM_FACT)) / LSH(SYSTEM.VAL(LONGINT, 1), exp));
 
 										exp := decSpec.GetQuantExponent(tile, i, r, J2KU.SUB_LH);
 										mant := decSpec.GetQuantMantissa(tile, i, r, J2KU.SUB_LH);
-										preStep[tile][i][r][1] := ((1 + (mant / NORM_FACT)) / SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), exp));
+										preStep[tile][i][r][1] := ((1 + (mant / NORM_FACT)) / LSH(SYSTEM.VAL(LONGINT, 1), exp));
 
 										exp := decSpec.GetQuantExponent(tile, i, r, J2KU.SUB_HH);
 										mant := decSpec.GetQuantMantissa(tile, i, r, J2KU.SUB_HH);
-										preStep[tile][i][r][2] := ((1 + (mant / NORM_FACT)) / SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), exp));
+										preStep[tile][i][r][2] := ((1 + (mant / NORM_FACT)) / LSH(SYSTEM.VAL(LONGINT, 1), exp));
 									END;
 							|	J2KCS.QUANT_DER:
 									(* The values for the NL-LL band are signalled only *)
@@ -2981,7 +2981,7 @@ MODULE JPEG2000Decoder;
 									exp := decSpec.GetQuantExponent(tile, i, 0, J2KU.SUB_LL);
 									mant := decSpec.GetQuantMantissa(tile, i, 0, J2KU.SUB_LL);
 
-									preStep[tile][i][0][0] := ((1 + (mant / NORM_FACT)) / SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), exp));
+									preStep[tile][i][0][0] := ((1 + (mant / NORM_FACT)) / LSH(SYSTEM.VAL(LONGINT, 1), exp));
 							ELSE
 								KernelLog.String("ERROR (Dequantizer.CalculateStepSizes) : Unknown quantization style");
 								KernelLog.Ln();
@@ -3149,9 +3149,9 @@ MODULE JPEG2000Decoder;
 										FOR j := 0 TO height - 1 DO
 											FOR i := 0 TO width - 1 DO
 												IF srcData[dataIdxIn] >= 0 THEN
-													srcData[dataIdxIn] := SYSTEM.LSH(srcData[dataIdxIn], -shift);
+													srcData[dataIdxIn] := LSH(srcData[dataIdxIn], -shift);
 												ELSE
-													srcData[dataIdxIn] := -SYSTEM.LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, srcData[dataIdxIn]) / J2KU.LONGINT_SIGN_BIT), -shift);
+													srcData[dataIdxIn] := -LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, srcData[dataIdxIn]) / J2KU.LONGINT_SIGN_BIT), -shift);
 												END;
 
 												INC(dataIdxIn);
@@ -3167,9 +3167,9 @@ MODULE JPEG2000Decoder;
 										FOR j := 0 TO height - 1 DO
 											FOR i := 0 TO width - 1 DO
 												IF srcData[dataIdxIn] >= 0 THEN
-													realData[dataIdxOut] := SYSTEM.LSH(srcData[dataIdxIn], -shift);
+													realData[dataIdxOut] := LSH(srcData[dataIdxIn], -shift);
 												ELSE
-													realData[dataIdxOut] := -SYSTEM.LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, srcData[dataIdxIn]) / J2KU.LONGINT_SIGN_BIT), -shift);
+													realData[dataIdxOut] := -LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, srcData[dataIdxIn]) / J2KU.LONGINT_SIGN_BIT), -shift);
 												END;
 
 												INC(dataIdxIn);
@@ -3198,15 +3198,15 @@ MODULE JPEG2000Decoder;
 								(* Derived exponent *)
 								ndec := decSpec.GetNumDecLevels(curTile, comp);
 								step := preStep[curTile][comp][0][0]
-										* SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tBitDepth[comp] + gainLog + ndec - subbInfo.declevel);
+										* LSH(SYSTEM.VAL(LONGINT, 1), tBitDepth[comp] + gainLog + ndec - subbInfo.declevel);
 							ELSE
 								(* Values are singalled for each resolution level and subband *)
 								step := preStep[curTile][comp][subbInfo.reslevel][subbInfo.index]
-										* SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tBitDepth[comp] + gainLog);
+										* LSH(SYSTEM.VAL(LONGINT, 1), tBitDepth[comp] + gainLog);
 							END;
 
 							(* Adjust the step to the number of magnitude bits *)
-							step := step / SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), shift);
+							step := step / LSH(SYSTEM.VAL(LONGINT, 1), shift);
 
 							CASE dataTypes[curTile][comp] OF
 								|	DATA_LONGINT :
@@ -3752,14 +3752,14 @@ MODULE JPEG2000Decoder;
 								dataInt := reconstructedComps[curTile][c](DataBlkInt).data;
 
 								FOR h := 0 TO subbInfo.height - 1 DO
-									Machine.Fill32(SYSTEM.ADR(dataInt[offset]), width*SYSTEM.SIZEOF(LONGINT), 0);
+									Machine.Fill32(ADDRESSOF(dataInt[offset]), width*SIZEOF(LONGINT), 0);
 									INC(offset, scanw);
 								END;
 							ELSIF reconstructedComps[curTile][c] IS DataBlkReal THEN
 								dataReal := reconstructedComps[curTile][c](DataBlkReal).data;
 
 								FOR h := 0 TO subbInfo.height - 1 DO
-									Machine.Fill32(SYSTEM.ADR(dataReal[offset]), width*SYSTEM.SIZEOF(REAL), 0);
+									Machine.Fill32(ADDRESSOF(dataReal[offset]), width*SIZEOF(REAL), 0);
 									INC(offset, scanw);
 								END;
 							END;
@@ -3802,7 +3802,7 @@ MODULE JPEG2000Decoder;
 									dataInt := recComp(DataBlkInt).data;
 
 									FOR i := 0 TO dataCblkInfoArr[j].height - 1 DO
-										SYSTEM.MOVE(SYSTEM.ADR(dataCblk.data[rowStartCblk]), SYSTEM.ADR(dataInt[rowStartComp]), dataCblkInfoArr[j].width * SYSTEM.SIZEOF(LONGINT));
+										SYSTEM.MOVE(ADDRESSOF(dataCblk.data[rowStartCblk]), ADDRESSOF(dataInt[rowStartComp]), dataCblkInfoArr[j].width * SIZEOF(LONGINT));
 										INC(rowStartComp, recComp.scanw);
 										INC(rowStartCblk, dataCblk.scanw);
 									END;
@@ -3812,7 +3812,7 @@ MODULE JPEG2000Decoder;
 									dataReal := recComp(DataBlkReal).data;
 
 									FOR i := 0 TO dataCblkInfoArr[j].height - 1 DO
-										SYSTEM.MOVE(SYSTEM.ADR(dataCblk.data[rowStartCblk]), SYSTEM.ADR(dataReal[rowStartComp]), dataCblkInfoArr[j].width * SYSTEM.SIZEOF(REAL));
+										SYSTEM.MOVE(ADDRESSOF(dataCblk.data[rowStartCblk]), ADDRESSOF(dataReal[rowStartComp]), dataCblkInfoArr[j].width * SIZEOF(REAL));
 										INC(rowStartComp, recComp.scanw);
 										INC(rowStartCblk, dataCblk.scanw);
 									END;
@@ -4102,13 +4102,13 @@ MODULE JPEG2000Decoder;
 								NEW(compInt.data, compSize);
 								deq.SetDataType(curTile, i, DATA_LONGINT);
 								reconstructedComps[curTile][i] := compInt;
-								(*Machine.Fill32(SYSTEM.ADR(compInt.data[0]), compSize*SYSTEM.SIZEOF(LONGINT), 0);*)
+								(*Machine.Fill32(ADDRESSOF(compInt.data[0]), compSize*SIZEOF(LONGINT), 0);*)
 							ELSIF transType = J2KCS.TRANS_9X7_IRREV THEN
 								NEW(compReal);
 								NEW(compReal.data, compSize);
 								deq.SetDataType(curTile, i, DATA_REAL);
 								reconstructedComps[curTile][i] := compReal;
-								(*Machine.Fill32(SYSTEM.ADR(compReal.data[0]), compSize*SYSTEM.SIZEOF(REAL), 0);*)
+								(*Machine.Fill32(ADDRESSOF(compReal.data[0]), compSize*SIZEOF(REAL), 0);*)
 							END;
 
 							reconstructedComps[curTile][i].offset := 0;
@@ -4207,7 +4207,7 @@ MODULE JPEG2000Decoder;
 								IF ~ODD(ulcx) THEN
 									(* The first coefficient is a low-pass coefficient *)
 									FOR i := 0 TO height - 1 DO
-										SYSTEM.MOVE(SYSTEM.ADR(dataInt[tmpOffset]), SYSTEM.ADR(bufInt[0]), width*SYSTEM.SIZEOF(LONGINT));
+										SYSTEM.MOVE(ADDRESSOF(dataInt[tmpOffset]), ADDRESSOF(bufInt[0]), width*SIZEOF(LONGINT));
 										(* If the width is odd then #(low-pass coefficients) = #(high-pass coefficients) + 1 *)
 										filterRev.SynthesizeLPF(bufInt, 0, 1, bufInt, (width+1) DIV 2, 1, dataInt, tmpOffset, 1, width);
 										INC(tmpOffset, recComp.scanw);
@@ -4215,7 +4215,7 @@ MODULE JPEG2000Decoder;
 								ELSE
 									(* The first coefficient is a high-pass coefficient *)
 									FOR i := 0 TO height - 1 DO
-										SYSTEM.MOVE(SYSTEM.ADR(dataInt[tmpOffset]), SYSTEM.ADR(bufInt[0]), width*SYSTEM.SIZEOF(LONGINT));
+										SYSTEM.MOVE(ADDRESSOF(dataInt[tmpOffset]), ADDRESSOF(bufInt[0]), width*SIZEOF(LONGINT));
 										(* If the width is odd then #(high-pass coefficients) = #(low-pass coefficients) + 1 *)
 										filterRev.SynthesizeHPF(bufInt, 0, 1, bufInt, width DIV 2, 1, dataInt, tmpOffset, 1, width);
 										INC(tmpOffset, recComp.scanw);
@@ -4264,7 +4264,7 @@ MODULE JPEG2000Decoder;
 								IF ~ODD(ulcx) THEN
 									(* The first coefficient is a low-pass coefficient *)
 									FOR i := 0 TO height - 1 DO
-										SYSTEM.MOVE(SYSTEM.ADR(dataReal[tmpOffset]), SYSTEM.ADR(bufReal[0]), width*SYSTEM.SIZEOF(REAL));
+										SYSTEM.MOVE(ADDRESSOF(dataReal[tmpOffset]), ADDRESSOF(bufReal[0]), width*SIZEOF(REAL));
 										(* If the width is odd then #(low-pass coefficients) = #(high-pass coefficients) + 1 *)
 										filterIrrev.SynthesizeLPF(bufReal, 0, 1, bufReal, (width+1) DIV 2, 1, dataReal, tmpOffset, 1, width);
 										INC(tmpOffset, recComp.scanw);
@@ -4272,7 +4272,7 @@ MODULE JPEG2000Decoder;
 								ELSE
 									(* The first coefficient is a high-pass coefficient *)
 									FOR i := 0 TO height - 1 DO
-										SYSTEM.MOVE(SYSTEM.ADR(dataReal[tmpOffset]), SYSTEM.ADR(bufReal[0]), width*SYSTEM.SIZEOF(REAL));
+										SYSTEM.MOVE(ADDRESSOF(dataReal[tmpOffset]), ADDRESSOF(bufReal[0]), width*SIZEOF(REAL));
 										(* If the width is odd then #(high-pass coefficients) = #(low-pass coefficients) + 1 *)
 										filterIrrev.SynthesizeHPF(bufReal, 0, 1, bufReal, width DIV 2, 1, dataReal, tmpOffset, 1, width);
 										INC(tmpOffset, recComp.scanw);
@@ -5001,7 +5001,7 @@ MODULE JPEG2000Decoder;
 						lastBoxFound := TRUE;
 					ELSIF curBoxLen = 1 THEN
 						(* --- XLBox --- *)
-						tmp := SYSTEM.LSH(s.Net32(), 32);
+						tmp := LSH(s.Net32(), 32);
 						curBoxLen := tmp + s.Net32();
 						curBoxContLen := curBoxLen - 16;
 					ELSE
@@ -5031,7 +5031,7 @@ MODULE JPEG2000Decoder;
 					minV := s.Net32();	(* NOTE: Unused *)
 
 					(* --- CLi --- *)
-					clLength := SYSTEM.LSH(curBoxContLen - 8, -2);
+					clLength := LSH(curBoxContLen - 8, -2);
 
 					(* Compatibility list must at least contain 1 element *)
 					IF clLength <= 0 THEN
@@ -5438,33 +5438,33 @@ MODULE JPEG2000Decoder;
 					CASE imgFmt OF
 							Codecs.ImgFmtGrey :
 								tmp := imgInfo.GetBitDepth(0);	(* This returns the original component bit-depth, before any transformation has been done *)
-								maxVal0 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
-								levShift0 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
+								maxVal0 := LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
+								levShift0 := LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
 								ncomp := 1;
 						|	Codecs.ImgFmtRGB :
 								tmp := imgInfo.GetBitDepth(0);	(* This returns the original component bit-depth, before any transformation has been done *)
-								maxVal0 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
-								levShift0 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
+								maxVal0 := LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
+								levShift0 := LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
 								tmp := imgInfo.GetBitDepth(1);
-								maxVal1 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
-								levShift1 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
+								maxVal1 := LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
+								levShift1 := LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
 								tmp := imgInfo.GetBitDepth(2);
-								maxVal2 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
-								levShift2 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
+								maxVal2 := LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
+								levShift2 := LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
 								ncomp := 3;
 						|	Codecs.ImgFmtRGBA :
 								tmp := imgInfo.GetBitDepth(0);	(* This returns the original component bit-depth, before any transformation has been done *)
-								maxVal0 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
-								levShift0 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
+								maxVal0 := LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
+								levShift0 := LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
 								tmp := imgInfo.GetBitDepth(1);
-								maxVal1 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
-								levShift1 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
+								maxVal1 := LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
+								levShift1 := LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
 								tmp := imgInfo.GetBitDepth(2);
-								maxVal2 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
-								levShift2 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
+								maxVal2 := LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
+								levShift2 := LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
 								tmp := imgInfo.GetBitDepth(3);
-								maxVal3 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
-								levShift3 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
+								maxVal3 := LSH(SYSTEM.VAL(LONGINT, 1), tmp) - 1;
+								levShift3 := LSH(SYSTEM.VAL(LONGINT, 1), tmp - 1);
 								ncomp := 4;
 						ELSE
 							KernelLog.String("ERROR (ImageProducer.ProduceImage) : Invalid image format encounterd");
@@ -5536,9 +5536,9 @@ MODULE JPEG2000Decoder;
 													tmp0 := 0;
 												END;
 												lineBuf[w] := SYSTEM.VAL(LONGINT,
-																			SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 000000FFH), 24))
-																			+ SYSTEM.VAL(SET, SYSTEM.LSH(tmp0, 16))
-																			+ SYSTEM.VAL(SET, SYSTEM.LSH(tmp0, 8))
+																			SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 000000FFH), 24))
+																			+ SYSTEM.VAL(SET, LSH(tmp0, 16))
+																			+ SYSTEM.VAL(SET, LSH(tmp0, 8))
 																			+ SYSTEM.VAL(SET, tmp0));
 												INC(pos);
 											END;
@@ -5569,9 +5569,9 @@ MODULE JPEG2000Decoder;
 													tmp2 := 0;
 												END;
 												lineBuf[w] := SYSTEM.VAL(LONGINT,
-																			SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 000000FFH), 24))
-																			+ SYSTEM.VAL(SET, SYSTEM.LSH(tmp0, 16))
-																			+ SYSTEM.VAL(SET, SYSTEM.LSH(tmp1, 8))
+																			SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 000000FFH), 24))
+																			+ SYSTEM.VAL(SET, LSH(tmp0, 16))
+																			+ SYSTEM.VAL(SET, LSH(tmp1, 8))
 																			+ SYSTEM.VAL(SET, tmp2));
 												INC(pos);
 											END;
@@ -5610,9 +5610,9 @@ MODULE JPEG2000Decoder;
 													tmp3 := 0;
 												END;
 												lineBuf[w] := SYSTEM.VAL(LONGINT,
-																			SYSTEM.VAL(SET, SYSTEM.LSH(tmp0, 24))
-																			+ SYSTEM.VAL(SET, SYSTEM.LSH(tmp1, 16))
-																			+ SYSTEM.VAL(SET, SYSTEM.LSH(tmp2, 8))
+																			SYSTEM.VAL(SET, LSH(tmp0, 24))
+																			+ SYSTEM.VAL(SET, LSH(tmp1, 16))
+																			+ SYSTEM.VAL(SET, LSH(tmp2, 8))
 																			+ SYSTEM.VAL(SET, tmp3));
 
 												INC(pos);
@@ -5701,18 +5701,18 @@ MODULE JPEG2000Decoder;
 
 			PROCEDURE SetPixelsRGB565 (pixelBuf : J2KU.LongIntArrayPtr; xOffset, yOffset, length : LONGINT);
 				VAR
-					adr: SYSTEM.ADDRESS; int, i : LONGINT;
+					adr: ADDRESS; int, i : LONGINT;
 					r, g, b : LONGINT;
 				BEGIN
 					adr := img.adr + (img.width*yOffset + xOffset)*2;
 
 					FOR i := 0 TO length - 1 DO
-						IF (SYSTEM.VAL(SET, SYSTEM.LSH(pixelBuf[i], -24)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000000FFH) ))# {} THEN	(* model alpha as brightness *)
-							r := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET,SYSTEM.LSH(pixelBuf[i], -16)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000000FFH)));
-							g := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET,SYSTEM.LSH(pixelBuf[i], -8)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000000FFH)));
+						IF (SYSTEM.VAL(SET, LSH(pixelBuf[i], -24)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000000FFH) ))# {} THEN	(* model alpha as brightness *)
+							r := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET,LSH(pixelBuf[i], -16)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000000FFH)));
+							g := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET,LSH(pixelBuf[i], -8)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000000FFH)));
 							b := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, pixelBuf[i]) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000000FFH)));
-							int := SYSTEM.LSH(b, -3) + SYSTEM.LSH(SYSTEM.LSH(g, -2), 5) + SYSTEM.LSH(SYSTEM.LSH(r, -3), 11);
-							SYSTEM.PUT(adr, CHR(int)); SYSTEM.PUT(adr+1, CHR(SYSTEM.LSH(int, -8)));
+							int := LSH(b, -3) + LSH(LSH(g, -2), 5) + LSH(LSH(r, -3), 11);
+							SYSTEM.PUT(adr, CHR(int)); SYSTEM.PUT(adr+1, CHR(LSH(int, -8)));
 						END;
 						INC(adr, 2);
 					END;
@@ -5721,15 +5721,15 @@ MODULE JPEG2000Decoder;
 
 			PROCEDURE SetPixelsRGB888 (pixelBuf : J2KU.LongIntArrayPtr; xOffset, yOffset, length : LONGINT);
 				VAR
-					adr: SYSTEM.ADDRESS; i : LONGINT;
+					adr: ADDRESS; i : LONGINT;
 				BEGIN
 					adr := img.adr + (img.width*yOffset + xOffset)*3;
 
 					FOR i := 0 TO length - 1 DO
 						IF (SYSTEM.VAL(SET, pixelBuf[i]) * {23..31}) # {} THEN		(* model alpha as brightness *)
 							SYSTEM.PUT(adr, CHR(pixelBuf[i]));
-							SYSTEM.PUT(adr + 1, CHR(SYSTEM.LSH(pixelBuf[i], -8)));
-							SYSTEM.PUT(adr + 2, CHR(SYSTEM.LSH(pixelBuf[i], -16)));
+							SYSTEM.PUT(adr + 1, CHR(LSH(pixelBuf[i], -8)));
+							SYSTEM.PUT(adr + 2, CHR(LSH(pixelBuf[i], -16)));
 						END;
 						INC(adr, 3);
 					END;
@@ -5738,15 +5738,15 @@ MODULE JPEG2000Decoder;
 
 			PROCEDURE SetPixelsRGBA8888 (pixelBuf : J2KU.LongIntArrayPtr; xOffset, yOffset, length : LONGINT);
 				VAR
-					adr: SYSTEM.ADDRESS; i : LONGINT;
+					adr: ADDRESS; i : LONGINT;
 				BEGIN
 					adr := img.adr + (img.width*yOffset + xOffset)*4;
 
 					FOR i := 0 TO length - 1 DO
 						SYSTEM.PUT(adr, CHR(pixelBuf[i]));
-						SYSTEM.PUT(adr + 1, CHR(SYSTEM.LSH(pixelBuf[i], -8)));
-						SYSTEM.PUT(adr + 2, CHR(SYSTEM.LSH(pixelBuf[i], -16)));
-						SYSTEM.PUT(adr + 3, CHR(SYSTEM.LSH(pixelBuf[i], -24)));
+						SYSTEM.PUT(adr + 1, CHR(LSH(pixelBuf[i], -8)));
+						SYSTEM.PUT(adr + 2, CHR(LSH(pixelBuf[i], -16)));
+						SYSTEM.PUT(adr + 3, CHR(LSH(pixelBuf[i], -24)));
 						INC(adr, 4);
 					END;
 			END SetPixelsRGBA8888;
@@ -6348,7 +6348,7 @@ MODULE JPEG2000Decoder;
 		(* Tables used to determine the proper context depending on the neighbor states *)
 		ENTROPY_ZEROLL_LUT, ENTROPY_ZEROHL_LUT, ENTROPY_ZEROHH_LUT : J2KU.LongIntArrayPtr;
 		(* Table used in sign decoding process *)
-		ENTROPY_SIGN_LUT : ARRAY SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_SIGN_BITS) OF LONGINT;
+		ENTROPY_SIGN_LUT : ARRAY LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_SIGN_BITS) OF LONGINT;
 
 		(* --- END Variables used by entropy decoder --- *)
 
@@ -6411,9 +6411,9 @@ MODULE JPEG2000Decoder;
 		(* The context vector contains the significance of each neighbor of a coefficient in the follwing order: *)
 		(* HL - HR - VU - VD - DUL - DUR - DDL - DDR *)
 
-		NEW(ENTROPY_ZEROLL_LUT, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS));
-		NEW(ENTROPY_ZEROHL_LUT, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS));
-		NEW(ENTROPY_ZEROHH_LUT, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS));
+		NEW(ENTROPY_ZEROLL_LUT, LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS));
+		NEW(ENTROPY_ZEROHL_LUT, LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS));
+		NEW(ENTROPY_ZEROHH_LUT, LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_ZERO_BITS));
 
 		(* LL / LH subband *)
 		(* 2 horizontal significant *)
@@ -6424,8 +6424,8 @@ MODULE JPEG2000Decoder;
 		(* 1 horizontal significant, at least 1 vertical significant *)
 		FOR i := 1 TO 3 DO
 			FOR j := 0 TO 15 DO
-				ENTROPY_ZEROLL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGHL) + SYSTEM.VAL(SET, SYSTEM.LSH(i, 4))) + SYSTEM.VAL(SET, j))] := 7;
-				ENTROPY_ZEROLL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGHR) + SYSTEM.VAL(SET, SYSTEM.LSH(i, 4))) + SYSTEM.VAL(SET, j))] := 7
+				ENTROPY_ZEROLL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGHL) + SYSTEM.VAL(SET, LSH(i, 4))) + SYSTEM.VAL(SET, j))] := 7;
+				ENTROPY_ZEROLL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGHR) + SYSTEM.VAL(SET, LSH(i, 4))) + SYSTEM.VAL(SET, j))] := 7
 			END;
 		END;
 
@@ -6469,15 +6469,15 @@ MODULE JPEG2000Decoder;
 		(* 2 vertical significant *)
 		FOR i := 0 TO 3 DO
 			FOR j := 0 TO 15 DO
-				ENTROPY_ZEROHL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGVU) +  SYSTEM.VAL(SET, ENTROPY_SIGVD)) + SYSTEM.VAL(SET, SYSTEM.LSH(i, 6) ) + SYSTEM.VAL(SET, j))] := 8;
+				ENTROPY_ZEROHL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGVU) +  SYSTEM.VAL(SET, ENTROPY_SIGVD)) + SYSTEM.VAL(SET, LSH(i, 6) ) + SYSTEM.VAL(SET, j))] := 8;
 			END;
 		END;
 
 		(* 1 vertical significant, at least 1 horizontal significant *)
 		FOR i := 1 TO 3 DO
 			FOR j := 0 TO 15 DO
-				ENTROPY_ZEROHL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGVU) + SYSTEM.VAL(SET, SYSTEM.LSH(i, 6))) + SYSTEM.VAL(SET, j))] := 7;
-				ENTROPY_ZEROHL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGVD) + SYSTEM.VAL(SET, SYSTEM.LSH(i, 6))) + SYSTEM.VAL(SET, j))] := 7
+				ENTROPY_ZEROHL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGVU) + SYSTEM.VAL(SET, LSH(i, 6))) + SYSTEM.VAL(SET, j))] := 7;
+				ENTROPY_ZEROHL_LUT[SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, ENTROPY_SIGVD) + SYSTEM.VAL(SET, LSH(i, 6))) + SYSTEM.VAL(SET, j))] := 7
 			END;
 		END;
 
@@ -6521,14 +6521,14 @@ MODULE JPEG2000Decoder;
 		(* At least 3 diagonal significant *)
 		FOR i := 0 TO 15 DO
 			FOR j := 0 TO LEN(threeAtLeast) - 1 DO
-				ENTROPY_ZEROHH_LUT[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, 4)) + SYSTEM.VAL(SET, threeAtLeast[j]))] := 8;
+				ENTROPY_ZEROHH_LUT[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, 4)) + SYSTEM.VAL(SET, threeAtLeast[j]))] := 8;
 			END;
 		END;
 
 		(* 2 diagonal significant, at least 1 horizontal or vertical significant *)
 		FOR i := 1 TO 15 DO
 			FOR j := 0 TO LEN(twoBits) - 1 DO
-				ENTROPY_ZEROHH_LUT[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, 4)) + SYSTEM.VAL(SET, twoBits[j]))] := 7;
+				ENTROPY_ZEROHH_LUT[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, 4)) + SYSTEM.VAL(SET, twoBits[j]))] := 7;
 			END;
 		END;
 
@@ -6540,14 +6540,14 @@ MODULE JPEG2000Decoder;
 		(* 1 diagonal significant, at least 2 horizontal or vertical significant *)
 		FOR i := 0 TO LEN(twoAtLeast) - 1 DO
 			FOR j := 0 TO LEN(oneBit) - 1 DO
-				ENTROPY_ZEROHH_LUT[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(twoAtLeast[i], 4)) + SYSTEM.VAL(SET, oneBit[j]))] := 5;
+				ENTROPY_ZEROHH_LUT[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(twoAtLeast[i], 4)) + SYSTEM.VAL(SET, oneBit[j]))] := 5;
 			END;
 		END;
 
 		(* 1 diagonal significant, 1 horizontal or vertical significant *)
 		FOR i := 0 TO LEN(oneBit) - 1 DO
 			FOR j := 0 TO LEN(oneBit) - 1 DO
-				ENTROPY_ZEROHH_LUT[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(oneBit[i], 4)) + SYSTEM.VAL(SET, oneBit[j]))] := 4;
+				ENTROPY_ZEROHH_LUT[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(oneBit[i], 4)) + SYSTEM.VAL(SET, oneBit[j]))] := 4;
 			END;
 		END;
 
@@ -6558,12 +6558,12 @@ MODULE JPEG2000Decoder;
 
 		(* 0 diagonal significant, at least 2 horizontal or vertical significant *)
 		FOR i := 0 TO LEN(twoAtLeast) - 1 DO
-			ENTROPY_ZEROHH_LUT[SYSTEM.LSH(twoAtLeast[i], 4)] := 2;
+			ENTROPY_ZEROHH_LUT[LSH(twoAtLeast[i], 4)] := 2;
 		END;
 
 		(* 0 diagonal significant, 1 horizontal or vertical significant *)
 		FOR i := 0 TO LEN(oneBit) - 1 DO
-			ENTROPY_ZEROHH_LUT[SYSTEM.LSH(oneBit[i], 4)] := 1;
+			ENTROPY_ZEROHH_LUT[LSH(oneBit[i], 4)] := 1;
 		END;
 
 		(* 0 horizontal significant, 0 vertical significant, 0 diagonal significant *)
@@ -6581,32 +6581,32 @@ MODULE JPEG2000Decoder;
 		*)
 
 		(* Horizontal contrib. 1, vertical contrib. 1 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(2, 2)) + SYSTEM.VAL(SET, 2))] := 13;
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(2, 2)) + SYSTEM.VAL(SET, 2))] := 13;
 		(* Horizontal contrib. 1, vertical contrib. 0 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(2, 2)) + SYSTEM.VAL(SET, 1))] := 12;
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(2, 2)) + SYSTEM.VAL(SET, 1))] := 12;
 		(* Horizontal contrib. 1, vertical contrib. -1 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(2, 2)) + SYSTEM.VAL(SET, 0))] := 11;
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(2, 2)) + SYSTEM.VAL(SET, 0))] := 11;
 		(* Horizontal contrib. 0, vertical contrib. 1 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(1, 2)) + SYSTEM.VAL(SET, 2))] := 10;
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(1, 2)) + SYSTEM.VAL(SET, 2))] := 10;
 		(* Horizontal contrib. 0, vertical contrib. 0 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(1, 2)) + SYSTEM.VAL(SET, 1))] := 9;
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(1, 2)) + SYSTEM.VAL(SET, 1))] := 9;
 		(* Horizontal contrib. 0, vertical contrib. -1 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(1, 2)) + SYSTEM.VAL(SET, 0))] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 10)) + J2KU.LONGINT_SIGN_BIT);
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(1, 2)) + SYSTEM.VAL(SET, 0))] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 10)) + J2KU.LONGINT_SIGN_BIT);
 		(* Horizontal contrib. -1, vertical contrib. 1 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(0, 2)) + SYSTEM.VAL(SET, 2))] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 11)) + J2KU.LONGINT_SIGN_BIT);
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(0, 2)) + SYSTEM.VAL(SET, 2))] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 11)) + J2KU.LONGINT_SIGN_BIT);
 		(* Horizontal contrib. -1, vertical contrib. 0 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(0, 2)) + SYSTEM.VAL(SET, 1))] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 12)) + J2KU.LONGINT_SIGN_BIT);
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(0, 2)) + SYSTEM.VAL(SET, 1))] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 12)) + J2KU.LONGINT_SIGN_BIT);
 		(* Horizontal contrib. -1, vertical contrib. -1 *)
-		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(0, 2)) + SYSTEM.VAL(SET, 0))] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 13)) + J2KU.LONGINT_SIGN_BIT);
+		tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(0, 2)) + SYSTEM.VAL(SET, 0))] := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 13)) + J2KU.LONGINT_SIGN_BIT);
 
-		FOR i := 0 TO SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_SIGN_BITS) - 1 DO
-			hlsig := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, -7)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
-			hrsig := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, -6)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
-			vusig := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, -5)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
-			vdsig := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, -4)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
-			hl := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, -3)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
-			hr := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, -2)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
-			vu := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(i, -1)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
+		FOR i := 0 TO LSH(SYSTEM.VAL(LONGINT, 1), ENTROPY_SIGN_BITS) - 1 DO
+			hlsig := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, -7)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
+			hrsig := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, -6)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
+			vusig := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, -5)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
+			vdsig := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, -4)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
+			hl := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, -3)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
+			hr := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, -2)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
+			vu := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(i, -1)) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
 			vd := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, i) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 1)));
 
 			h := hl * (1 - 2 * hlsig) + hr * (1 - 2 * hrsig);
@@ -6617,7 +6617,7 @@ MODULE JPEG2000Decoder;
 			IF v > 1 THEN v := 1; END;
 			IF v < -1 THEN v := -1 END;
 
-			ENTROPY_SIGN_LUT[i] := tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(h+1, 2)) + SYSTEM.VAL(SET, v+1))]
+			ENTROPY_SIGN_LUT[i] := tmpSignLut[SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(h+1, 2)) + SYSTEM.VAL(SET, v+1))]
 		END;
 
 		(* Initialize the initial states and MPS symbols for each context. These arrays will be passed on to the MQ-Decoder *)
@@ -6729,7 +6729,7 @@ MODULE JPEG2000Decoder;
 			CASE ttype OF
 					MCT_NONE :
 						(* The bit depths of the transformed and un-transformed components are equal *)
-						SYSTEM.MOVE(SYSTEM.ADR(utdepth[0]), SYSTEM.ADR(tdepth[0]), LEN(utdepth)*SYSTEM.SIZEOF(LONGINT));
+						SYSTEM.MOVE(ADDRESSOF(utdepth[0]), ADDRESSOF(tdepth[0]), LEN(utdepth)*SIZEOF(LONGINT));
 				|	MCT_RCT :
 						(*
 							The formulas are:
@@ -6741,18 +6741,18 @@ MODULE JPEG2000Decoder;
 							which calculates ceil(log2(x)), for any x >= 1, x integer
 						*)
 						(* Precalculate the 2^utdepth[x] *)
-						pow2ut0 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), utdepth[0]);
-						pow2ut1 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), utdepth[1]);
-						pow2ut2 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), utdepth[2]);
+						pow2ut0 := LSH(SYSTEM.VAL(LONGINT, 1), utdepth[0]);
+						pow2ut1 := LSH(SYSTEM.VAL(LONGINT, 1), utdepth[1]);
+						pow2ut2 := LSH(SYSTEM.VAL(LONGINT, 1), utdepth[2]);
 
 						tdepth[0] := J2KU.Log2Floor(pow2ut0 + 2*pow2ut1 + pow2ut2 - 1) - 1;
 						tdepth[1] := J2KU.Log2Floor(pow2ut2 + pow2ut1 - 1) + 1;
 						tdepth[2] := J2KU.Log2Floor(pow2ut0 + pow2ut1 - 1) + 1;
 				|	MCT_ICT :
 						(* Precalculate the 2^utdepth[x] *)
-						pow2ut0 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), utdepth[0]);
-						pow2ut1 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), utdepth[1]);
-						pow2ut2 := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), utdepth[2]);
+						pow2ut0 := LSH(SYSTEM.VAL(LONGINT, 1), utdepth[0]);
+						pow2ut1 := LSH(SYSTEM.VAL(LONGINT, 1), utdepth[1]);
+						pow2ut2 := LSH(SYSTEM.VAL(LONGINT, 1), utdepth[2]);
 
 						tdepth[0] := J2KU.Log2Floor(ENTIER(pow2ut0*0.299072
 														+ pow2ut1*0.586914

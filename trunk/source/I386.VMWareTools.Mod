@@ -140,7 +140,7 @@ VAR i, t : LONGINT; text : ARRAY 50 OF CHAR;
 BEGIN
 	FOR i := 0 TO 9 DO
 		t := GetDeviceInformation(i * 4);
-		SYSTEM.PUT32(SYSTEM.ADR(text[0]) + i * 4, t);
+		SYSTEM.PUT32(ADDRESSOF(text[0]) + i * 4, t);
 	END;
 	KernelLog.String(text);
 END DevId;
@@ -153,7 +153,7 @@ BEGIN
 	SendLength(l);
 	t := 0;
 	FOR i := 0 TO (l - 1) DIV 4 DO
-		t := SYSTEM.GET32(SYSTEM.ADR(text[i * 4]));
+		t := SYSTEM.GET32(ADDRESSOF(text[i * 4]));
 		Send4Chars(t);
 	END;
 END SetTextToClipBoard;
@@ -164,7 +164,7 @@ BEGIN
 	l := ReceiveLength();
 	IF (l > 0) & (l < 10000H) THEN
 		NEW(s, l + 5);
-		f := SYSTEM.ADR(s[0]);
+		f := ADDRESSOF(s[0]);
 		FOR i := 0 TO (l - 1) DIV 4 DO
 			t := Receive4Chars();
 			SYSTEM.PUT32(f + i * 4, t);

@@ -452,7 +452,7 @@ MODULE ZlibInflate;	(** eos  **)
 
 	PROCEDURE Dump (VAR s: Stream; bits: LONGINT);
 	BEGIN
-		s.buf := SYSTEM.LSH(s.buf, -bits); DEC(s.bits, bits)
+		s.buf := LSH(s.buf, -bits); DEC(s.bits, bits)
 	END Dump;
 
 	PROCEDURE NeedOut (VAR s: Stream; VAR wavail: LONGINT): BOOLEAN;
@@ -541,7 +541,7 @@ MODULE ZlibInflate;	(** eos  **)
 						IF -index < len THEN	(* crosses window bounds *)
 							INC(len, index);
 							IF s.write - index <= WindowSize + index THEN	(* no overlap *)
-								SYSTEM.MOVE(SYSTEM.ADR(s.window[WindowSize + index]), SYSTEM.ADR(s.window[s.write]), -index);
+								SYSTEM.MOVE(ADDRESSOF(s.window[WindowSize + index]), ADDRESSOF(s.window[s.write]), -index);
 								DEC(s.write, index)
 							ELSE	(* be safe *)
 								index := WindowSize + index;
@@ -556,7 +556,7 @@ MODULE ZlibInflate;	(** eos  **)
 					END;
 					IF len > 0 THEN
 						IF index + len <= s.write THEN	(* no overlap *)
-							SYSTEM.MOVE(SYSTEM.ADR(s.window[index]), SYSTEM.ADR(s.window[s.write]), len);
+							SYSTEM.MOVE(ADDRESSOF(s.window[index]), ADDRESSOF(s.window[s.write]), len);
 							INC(s.write, len);
 						ELSE
 							REPEAT
@@ -976,7 +976,7 @@ MODULE ZlibInflate;	(** eos  **)
 	PROCEDURE SetBlockDict (VAR s: Stream; VAR dict: ARRAY OF CHAR; offset, len: LONGINT);
 	BEGIN
 		ASSERT((len <= WindowSize) & (offset + len <= LEN(dict)), 100);
-		SYSTEM.MOVE(SYSTEM.ADR(dict[0]), SYSTEM.ADR(s.window[0]), len);
+		SYSTEM.MOVE(ADDRESSOF(dict[0]), ADDRESSOF(s.window[0]), len);
 		s.read := len; s.write := len
 	END SetBlockDict;
 

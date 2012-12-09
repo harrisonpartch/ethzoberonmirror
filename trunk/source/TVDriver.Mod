@@ -293,7 +293,7 @@ TYPE
 	(** Each VideoCaptureDevice must have a tuner, an audio and a vbiBuffer object. These can be accessed
 			via the appropriate GetXXX procedures *)
 
-		PROCEDURE & Init* (base: SYSTEM.ADDRESS; irq, product, rev: LONGINT);
+		PROCEDURE & Init* (base: ADDRESS; irq, product, rev: LONGINT);
 		BEGIN HALT(99);	(** abstract *)
 		END Init;
 
@@ -394,7 +394,7 @@ TYPE
 	(** Set the video data buffer. *)
 	(** addr:	physical address of target buffer for video data. *)
 	(** width:	line length of video frame buffer *)
-		PROCEDURE SetVideo* (addr: SYSTEM.ADDRESS; width: LONGINT);
+		PROCEDURE SetVideo* (addr: ADDRESS; width: LONGINT);
 		BEGIN HALT(99);	(** abstract *)
 		END SetVideo;
 

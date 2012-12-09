@@ -30,37 +30,37 @@ VAR
 	Nentries, Nlookups, NlookupsRep: LONGINT;
 	Ncollisions: ARRAY 10 OF LONGINT;
 
-PROCEDURE GetClass(p: ANY): SYSTEM.ADDRESS;
-VAR class: SYSTEM.ADDRESS;
+PROCEDURE GetClass(p: ANY): ADDRESS;
+VAR class: ADDRESS;
 BEGIN
-	SYSTEM.GET (SYSTEM.VAL (SYSTEM.ADDRESS, p), class);
+	SYSTEM.GET (SYSTEM.VAL (ADDRESS, p), class);
 	RETURN class
 END GetClass;
 
-PROCEDURE GetInterface(p: ANY): SYSTEM.ADDRESS;
-VAR interface: SYSTEM.ADDRESS;
+PROCEDURE GetInterface(p: ANY): ADDRESS;
+VAR interface: ADDRESS;
 BEGIN
-	SYSTEM.GET (SYSTEM.VAL (SYSTEM.ADDRESS, p) - SYSTEM.SIZEOF (SYSTEM.ADDRESS), interface);
-	SYSTEM.GET (interface - SYSTEM.SIZEOF (SYSTEM.ADDRESS) * 2, interface);
+	SYSTEM.GET (SYSTEM.VAL (ADDRESS, p) - SIZEOF (ADDRESS), interface);
+	SYSTEM.GET (interface - SIZEOF (ADDRESS) * 2, interface);
 	RETURN interface
 END GetInterface;
 
-PROCEDURE HashA*(val1, val2: SYSTEM.ADDRESS): SYSTEM.ADDRESS;
-VAR x: SYSTEM.ADDRESS;
+PROCEDURE HashA*(val1, val2: ADDRESS): ADDRESS;
+VAR x: ADDRESS;
 BEGIN
-	x := SYSTEM.VAL(SYSTEM.ADDRESS, SYSTEM.VAL(SET, ASH(val1,1)) / SYSTEM.VAL(SET, val2));
+	x := SYSTEM.VAL(ADDRESS, SYSTEM.VAL(SET, ASH(val1,1)) / SYSTEM.VAL(SET, val2));
 	RETURN x MOD TableSize
 END HashA;
 
-PROCEDURE HashB*(val1, val2: SYSTEM.ADDRESS): SYSTEM.ADDRESS;
-VAR val: SYSTEM.ADDRESS;
+PROCEDURE HashB*(val1, val2: ADDRESS): ADDRESS;
+VAR val: ADDRESS;
 BEGIN
 	val := ASH(val2,1);
-	RETURN SYSTEM.VAL(SYSTEM.ADDRESS, SYSTEM.VAL(SET, val) / SYSTEM.VAL(SET, val2)) MOD (TableSize-1) + 1
+	RETURN SYSTEM.VAL(ADDRESS, SYSTEM.VAL(SET, val) / SYSTEM.VAL(SET, val2)) MOD (TableSize-1) + 1
 END HashB;
 
 PROCEDURE Register(vt: ANY);
-	VAR class, intf, hash, step: SYSTEM.ADDRESS; count: LONGINT; q: ANY;
+	VAR class, intf, hash, step: ADDRESS; count: LONGINT; q: ANY;
 BEGIN {EXCLUSIVE}
 	ASSERT(Nentries < TableSize, 1000);
 	class := GetClass(vt);
@@ -80,8 +80,8 @@ BEGIN {EXCLUSIVE}
 	INC(Ncollisions[count])
 END Register;
 
-PROCEDURE Lookup(class, intf: SYSTEM.ADDRESS): ANY;
-	VAR vt: ANY; hash, step: SYSTEM.ADDRESS;
+PROCEDURE Lookup(class, intf: ADDRESS): ANY;
+	VAR vt: ANY; hash, step: ADDRESS;
 BEGIN	(* can run concurrent with Register *)
 	Machine.AtomicInc(Nlookups);
 	hash := HashA(class, intf);
@@ -105,13 +105,13 @@ BEGIN
 END Cleanup;
 
 PROCEDURE Init;
-VAR i: LONGINT; lookup: PROCEDURE(class, intf: SYSTEM.ADDRESS): ANY; register: PROCEDURE(vt: ANY);
+VAR i: LONGINT; lookup: PROCEDURE(class, intf: ADDRESS): ANY; register: PROCEDURE(vt: ANY);
 BEGIN
 	FOR i := 0 TO TableSize-1 DO  table[i] := NIL  END;
 	register := Register; lookup := Lookup;
 	Modules.InstallTermHandler(Cleanup);
-	Modules.kernelProc[8] := SYSTEM.VAL(SYSTEM.ADDRESS, lookup);	(*245*)
-	Modules.kernelProc[9] := SYSTEM.VAL(SYSTEM.ADDRESS, register);	(*244*)
+	Modules.kernelProc[8] := SYSTEM.VAL(ADDRESS, lookup);	(*245*)
+	Modules.kernelProc[9] := SYSTEM.VAL(ADDRESS, register);	(*244*)
 END Init;
 
 BEGIN

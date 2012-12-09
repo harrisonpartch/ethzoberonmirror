@@ -7,7 +7,7 @@ IMPORT
 	StringPool, PCDebug, PCBT, PCLIR, PCM, PCT, PCOM, Diagnostics;
 
 CONST
-	AddressSize = SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	AddressSize = SIZEOF(ADDRESS);
 
 	TraceUse = FALSE;
 	Optimize = FALSE;
@@ -435,7 +435,7 @@ VAR commands: ARRAY 128 OF PCT.Proc;
 		END
 	END OutPtrs;
 
-	PROCEDURE FixupList(l: PCBT.Fixup;  addressFactor: LONGINT; base: SYSTEM.ADDRESS; sentinel: LONGINT; prev: PCBT.Fixup; VAR tail: PCBT.Fixup);
+	PROCEDURE FixupList(l: PCBT.Fixup;  addressFactor: LONGINT; base: ADDRESS; sentinel: LONGINT; prev: PCBT.Fixup; VAR tail: PCBT.Fixup);
 	(* Insert fixup list into code *)
 		VAR offset: LONGINT;
 	BEGIN
@@ -458,9 +458,9 @@ VAR commands: ARRAY 128 OF PCT.Proc;
 	END FixupList;
 
 	PROCEDURE InsertFixupLists(addressFactor: LONGINT);
-		VAR p: PCBT.Procedure; i: LONGINT; codebase: SYSTEM.ADDRESS; dummy : PCBT.Fixup;
+		VAR p: PCBT.Procedure; i: LONGINT; codebase: ADDRESS; dummy : PCBT.Fixup;
 	BEGIN
-		codebase := SYSTEM.ADR(code[0]);
+		codebase := ADDRESSOF(code[0]);
 		FOR i := 0 TO PCBT.NofSysCalls-1 DO
 			IF i # PCBT.casetable THEN
 				FixupList(adr.syscalls[i], addressFactor, codebase, Sentinel, NIL, dummy)
@@ -475,7 +475,7 @@ VAR commands: ARRAY 128 OF PCT.Proc;
 	END InsertFixupLists;
 
 	PROCEDURE EntryBlock(addressFactor: LONGINT);
-	VAR nofEntries, firstOffset: LONGINT; codebase: SYSTEM.ADDRESS;
+	VAR nofEntries, firstOffset: LONGINT; codebase: ADDRESS;
 
 		PROCEDURE Traverse(p: PCBT.Procedure);
 		VAR prev, tail : PCBT.Fixup;
@@ -501,7 +501,7 @@ VAR commands: ARRAY 128 OF PCT.Proc;
 	BEGIN
 		PCM.ObjW(R, 82X);
 		nofEntries := 0;
-		codebase := SYSTEM.ADR(code[0]);
+		codebase := ADDRESSOF(code[0]);
 		firstOffset := -1;
 		Traverse(adr.OwnProcs);
 (*
@@ -904,7 +904,7 @@ VAR commands: ARRAY 128 OF PCT.Proc;
 			END;
 			IF exppos >= explen THEN
 				NEW(explist2, 2*explen);
-				SYSTEM.MOVE(SYSTEM.ADR(explist[0]), SYSTEM.ADR(explist2[0]), 4*explen);
+				SYSTEM.MOVE(ADDRESSOF(explist[0]), ADDRESSOF(explist2[0]), 4*explen);
 				explist := explist2; explen := 2*explen
 			END;
 			explist[exppos] := fp; INC(exppos);
@@ -1061,7 +1061,7 @@ VAR commands: ARRAY 128 OF PCT.Proc;
 
 (* ug *)	upperPartTdSize := AddressSize * (MaxTags + size.nofMethods + 1 + 1); (* tags, methods, methods end marker (sentinel), address of TypeInfo *)
 (* ug *)	(* lowerPartTdSize := AddressSize * (1 + nofptrs + 1); (* recsize, no. pointers and sentinel *)  *)
-(* ug *)	lowerPartTdSize := AddressSize * (2 + (4 + nofptrs) + 1); (* SYSTEM.SIZEOF(Heaps.StaticTypeDesc), data part of dynamic array of pointer offsets,
+(* ug *)	lowerPartTdSize := AddressSize * (2 + (4 + nofptrs) + 1); (* SIZEOF(Heaps.StaticTypeDesc), data part of dynamic array of pointer offsets,
 																 padding field to observe 0 mod 8 boundary of dynamic array *)
 (* ug *)	tdSize := upperPartTdSize + lowerPartTdSize;
 

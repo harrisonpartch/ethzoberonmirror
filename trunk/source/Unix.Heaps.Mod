@@ -6,16 +6,16 @@ MODULE Heaps;	(** AUTHOR "G.F."; PURPOSE "Heap management and garbage collector"
 IMPORT S := SYSTEM, Trace, Unix, Machine;
 
 TYPE
-	Address = S.ADDRESS;
-	Size = S.SIZE;
+	Address = ADDRESS;
+	Size = SIZE;
 
 
 CONST
 	Stats* = TRUE; (* maintain statistical counters *)
 
 	
-	AdrSize = S.SIZEOF( S.ADDRESS );
-	SizeSize = S.SIZEOF( S.SIZE );
+	AdrSize = SIZEOF( ADDRESS );
+	SizeSize = SIZEOF( SIZE );
 
 
 	FlagsOfs = AdrSize * 3;			(* flags offset in TypeDesc *)
@@ -68,7 +68,7 @@ CONST
 
 TYPE
 	FreeBlock = POINTER TO RECORD
-				tag: Address;  (* = S.ADR( size ) *)
+				tag: Address;  (* = ADDRESSOF( size ) *)
 				size: Size;
 				next{UNTRACED}: FreeBlock;
 			END;
@@ -171,7 +171,7 @@ VAR
 		PROCEDURE MarkDelegate( p: Finalizer );
 		VAR pointer: ANY;
 		BEGIN
-			S.GET( S.ADR( p ) + AdrSize, pointer );
+			S.GET( ADDRESSOF( p ) + AdrSize, pointer );
 			IF pointer # NIL THEN  Mark( pointer )  END
 		END MarkDelegate;
 
@@ -268,7 +268,7 @@ VAR
 	BEGIN
 		IF rootObject = NIL THEN (* nothing *)
 		(*
-		ELSIF CheckPointer(SYSTEM.VAL(SYSTEM.ADDRESS,rootObject)) THEN
+		ELSIF CheckPointer(SYSTEM.VAL(ADDRESS,rootObject)) THEN
 			(* object in heap, must be fully marked and traversed *)
 			Mark(rootObject)
 		ELSE
@@ -817,7 +817,7 @@ VAR
 		
 		(* create the pointer for the dynamic array of pointer offsets, the dynamic array of pointer offsets 
 		    is stored in the static type descriptor, it has no header part *)
-		INC( p, S.SIZEOF(StaticTypeDesc) );
+		INC( p, SIZEOF(StaticTypeDesc) );
 		IF p MOD (2 * AdrSize) # 0 THEN  INC( p, AdrSize )  END;
 		S.PUT( p + 3 * AdrSize, numPtrs ); (* internal structure of dynamic array without pointers: the first 3 fields are unused *)
 		sTB.pointerOffsets := S.VAL( PointerOffsets, p ); (* the fourth field contains the dimension of the array *)

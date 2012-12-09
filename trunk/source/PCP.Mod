@@ -1188,19 +1188,19 @@ TYPE
 					ELSE
 						IF a.e IS PCB.Const THEN
 							con := a.e( PCB.Const ).con;
-							IF type = PCT.Int8 THEN s := SHORT( SHORT( con.int ) );  SYSTEM.MOVE( SYSTEM.ADR( s ), SYSTEM.ADR( bytes[pos] ), size );
-							ELSIF type = PCT.Int16 THEN i := SHORT( con.int );  SYSTEM.MOVE( SYSTEM.ADR( i ), SYSTEM.ADR( bytes[pos] ), size );
-							ELSIF type = PCT.Int32 THEN l := con.int;  SYSTEM.MOVE( SYSTEM.ADR( l ), SYSTEM.ADR( bytes[pos] ), size );
-							ELSIF type = PCT.Float32 THEN r := SHORT( con.real );  SYSTEM.MOVE( SYSTEM.ADR( r ), SYSTEM.ADR( bytes[pos] ), size );
-							ELSIF type = PCT.Float64 THEN x := con.real;  SYSTEM.MOVE( SYSTEM.ADR( x ), SYSTEM.ADR( bytes[pos] ), size );
+							IF type = PCT.Int8 THEN s := SHORT( SHORT( con.int ) );  SYSTEM.MOVE( ADDRESSOF( s ), ADDRESSOF( bytes[pos] ), size );
+							ELSIF type = PCT.Int16 THEN i := SHORT( con.int );  SYSTEM.MOVE( ADDRESSOF( i ), ADDRESSOF( bytes[pos] ), size );
+							ELSIF type = PCT.Int32 THEN l := con.int;  SYSTEM.MOVE( ADDRESSOF( l ), ADDRESSOF( bytes[pos] ), size );
+							ELSIF type = PCT.Float32 THEN r := SHORT( con.real );  SYSTEM.MOVE( ADDRESSOF( r ), ADDRESSOF( bytes[pos] ), size );
+							ELSIF type = PCT.Float64 THEN x := con.real;  SYSTEM.MOVE( ADDRESSOF( x ), ADDRESSOF( bytes[pos] ), size );
 							ELSE PCM.Error( 200, a.pos, "basic types only" );
 							END;
 						ELSE
-							IF type = PCT.Int8 THEN s := -1;  SYSTEM.MOVE( SYSTEM.ADR( s ), SYSTEM.ADR( bytes[pos] ), size );
-							ELSIF type = PCT.Int16 THEN i := -1;  SYSTEM.MOVE( SYSTEM.ADR( i ), SYSTEM.ADR( bytes[pos] ), size );
-							ELSIF type = PCT.Int32 THEN l := -1;  SYSTEM.MOVE( SYSTEM.ADR( l ), SYSTEM.ADR( bytes[pos] ), size );
-							ELSIF type = PCT.Float32 THEN r := -1;  SYSTEM.MOVE( SYSTEM.ADR( r ), SYSTEM.ADR( bytes[pos] ), size );
-							ELSIF type = PCT.Float64 THEN x := -1;  SYSTEM.MOVE( SYSTEM.ADR( x ), SYSTEM.ADR( bytes[pos] ), size );
+							IF type = PCT.Int8 THEN s := -1;  SYSTEM.MOVE( ADDRESSOF( s ), ADDRESSOF( bytes[pos] ), size );
+							ELSIF type = PCT.Int16 THEN i := -1;  SYSTEM.MOVE( ADDRESSOF( i ), ADDRESSOF( bytes[pos] ), size );
+							ELSIF type = PCT.Int32 THEN l := -1;  SYSTEM.MOVE( ADDRESSOF( l ), ADDRESSOF( bytes[pos] ), size );
+							ELSIF type = PCT.Float32 THEN r := -1;  SYSTEM.MOVE( ADDRESSOF( r ), ADDRESSOF( bytes[pos] ), size );
+							ELSIF type = PCT.Float64 THEN x := -1;  SYSTEM.MOVE( ADDRESSOF( x ), ADDRESSOF( bytes[pos] ), size );
 							ELSE PCM.Error( 200, a.pos, "basic types only" );
 							END;
 						END;

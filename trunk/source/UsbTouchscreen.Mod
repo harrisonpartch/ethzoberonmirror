@@ -275,7 +275,7 @@ TYPE
 
 					temp := SYSTEM.VAL(LONGINT,(SYSTEM.VAL(SET, temp) * {(index MOD 8)..(endIndex MOD 8)}));
 					bitsToShift := index MOD 8;
-					rv := SYSTEM.VAL(LONGINT,SYSTEM.LSH(SYSTEM.VAL(CHAR,temp),-bitsToShift));
+					rv := SYSTEM.VAL(LONGINT,LSH(SYSTEM.VAL(CHAR,temp),-bitsToShift));
 
 
 				END;
@@ -294,7 +294,7 @@ TYPE
 				*)
 				indexEightAligned := SYSTEM.VAL(LONGINT,SYSTEM.VAL(SET,index)+{0..2});
 				temp := ReadBitsBuffer(indexEightAligned+1,endIndex-indexEightAligned, localBuf);
-				temp := SYSTEM.LSH(temp,indexEightAligned-index+1);
+				temp := LSH(temp,indexEightAligned-index+1);
 				rv := temp + ReadBitsBuffer(index, indexEightAligned-index+1,localBuf);
 			END;
 			RETURN rv;

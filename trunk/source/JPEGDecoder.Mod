@@ -1334,7 +1334,7 @@ VAR
 			END;
 
 			(*getBuffer := BIT.LLSH(getBuffer, 8);*)
-			getBuffer := SYSTEM.LSH(getBuffer, 8);
+			getBuffer := LSH(getBuffer, 8);
 			x := ORD(c);
 			k := 128;
 			i := 8;
@@ -1527,7 +1527,7 @@ VAR
 						END;
 						(*IF ~checkBitBuffer(state,s) THEN RETURN FALSE END;*)
 
-						helpSet := SYSTEM.VAL(SET,SYSTEM.LSH(state.cur.getBuffer,SHORT(-(state.cur.bitsLeft-s))));
+						helpSet := SYSTEM.VAL(SET,LSH(state.cur.getBuffer,SHORT(-(state.cur.bitsLeft-s))));
 						helpSet2:={};
 						FOR i:=0 TO s - 1 DO INCL(helpSet2,SHORT(i)) END;
 						helpSet := helpSet * helpSet2;
@@ -2376,7 +2376,7 @@ KernelLog.String("  MCUColNum"); KernelLog.Int(lastMCUCol - cInfo.coef.MCUColNum
 		WHILE row >= 1 DO
 			inptr := inputArray.row[i]; INC(i);
 			outptr := outputArray.row[j]; INC(j);
-			SYSTEM.MOVE(SYSTEM.ADR(inptr[0]),SYSTEM.ADR(outptr[0]),numCols);
+			SYSTEM.MOVE(ADDRESSOF(inptr[0]),ADDRESSOF(outptr[0]),numCols);
 			(*
 			FOR x:= 0 TO numCols - 1 DO
 				outptr[x] := inptr[x];
@@ -2969,7 +2969,7 @@ KernelLog.String("  MCUColNum"); KernelLog.Int(lastMCUCol - cInfo.coef.MCUColNum
 		l1 := LEN(src);
 		l2 := LEN(dest);
 		IF l2 < l1 THEN l1 := l2 END;
-		SYSTEM.MOVE(SYSTEM.ADR(src[0]),SYSTEM.ADR(dest[0]),l1);
+		SYSTEM.MOVE(ADDRESSOF(src[0]),ADDRESSOF(dest[0]),l1);
 	END Copy;
 
 

@@ -211,7 +211,7 @@ TYPE
 			mod : Modules.Module;
 			str : ARRAY 256 OF CHAR;
 			t0, t1 : HUGEINT;
-			pc : SYSTEM.ADDRESS;
+			pc : ADDRESS;
 
 			PROCEDURE SetText(line, cell : LONGINT; CONST str : ARRAY OF CHAR);
 			VAR s : Strings.String;
@@ -252,7 +252,7 @@ TYPE
 				sw.Reset; ProcessInfo.WriteMode(processes[i].mode, sw); sw.Get(str); SetText(i, 4, str);
 
 				(* PC - 5 *)
-				IF mod # NIL THEN DEC(pc, SYSTEM.ADR(mod.code[0])) END;
+				IF mod # NIL THEN DEC(pc, ADDRESSOF(mod.code[0])) END;
 				Strings.IntToStr(SYSTEM.VAL (LONGINT, pc), str); SetText(i, 5, str);
 
 				(* active object type - 6 *)

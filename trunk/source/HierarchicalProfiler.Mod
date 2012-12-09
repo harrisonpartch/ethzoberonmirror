@@ -38,7 +38,7 @@ TYPE
 
 	Name = ARRAY 256 OF CHAR;
 
-	Sample =  ARRAY MaxUnwindingDepth OF SYSTEM.ADDRESS;
+	Sample =  ARRAY MaxUnwindingDepth OF ADDRESS;
 	Samples = POINTER TO ARRAY OF Sample; (* HUGE!! *)
 
 	SampleInfo = RECORD
@@ -295,7 +295,7 @@ END MergeChildNode;
 
 (* Add 'sample' to 'profile' *)
 PROCEDURE AddSample(profile : Node; type, info : LONGINT; CONST sampleInfo : SampleInfo; CONST sample : Sample);
-VAR node : Node; module : Modules.Module; pc,startpc : SYSTEM.ADDRESS; nodeName, name : Name; i : LONGINT;
+VAR node : Node; module : Modules.Module; pc,startpc : ADDRESS; nodeName, name : Name; i : LONGINT;
 
 	PROCEDURE GenerateNodeName(module : Modules.Module; CONST procedureName : ARRAY OF CHAR) : Name;
 	VAR name : Name;
@@ -318,14 +318,14 @@ VAR node : Node; module : Modules.Module; pc,startpc : SYSTEM.ADDRESS; nodeName,
 	VAR
 		name : Name; nbr : ARRAY 16 OF CHAR;
 		module : Modules.Module; typeDescriptor : Modules.TypeDesc;
-		adr : SYSTEM.ADDRESS;
+		adr : ADDRESS;
 	BEGIN
 		IF (process # NIL) THEN
 			name := "Thread ID=";
 			Strings.IntToStr(process.id, nbr); Strings.AppendX(name, nbr);
 			Strings.AppendX(name, " [");
 			IF (process.obj # NIL) THEN
-				SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, process.obj)-SYSTEM.SIZEOF(SYSTEM.ADDRESS), adr);
+				SYSTEM.GET(SYSTEM.VAL(ADDRESS, process.obj)-SIZEOF(ADDRESS), adr);
 				Modules.ThisTypeByAdr(adr, module, typeDescriptor);
 				IF (module # NIL) THEN
 					Strings.AppendX(name, module.name); Strings.AppendX(name, ".");
@@ -388,7 +388,7 @@ BEGIN
 	END;
 END AddSample;
 
-PROCEDURE HandleTimer(id: LONGINT; process : Objects.Process;  pc, bp, lowAdr, highAdr : SYSTEM.ADDRESS);
+PROCEDURE HandleTimer(id: LONGINT; process : Objects.Process;  pc, bp, lowAdr, highAdr : ADDRESS);
 VAR index, depth : LONGINT;
 BEGIN
 	(* acquire lock that protects currentIndex *)
@@ -411,7 +411,7 @@ BEGIN
 	samples[index][0] := pc;
 	depth := 1;
 	WHILE (bp # 0) & (lowAdr <= bp) & Machine.LessOrEqual(bp, highAdr) & (depth < MaxUnwindingDepth) DO
-		SYSTEM.GET(bp + SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+		SYSTEM.GET(bp + SIZEOF(ADDRESS), pc);
 		SYSTEM.GET(bp, bp);
 		samples[index][depth] := pc;
 		INC(depth);
@@ -509,7 +509,7 @@ END CreateProfile;
 (** Returns the size of the sampling buffer in bytes for a given maximum sampling time in seconds *)
 PROCEDURE GetBufferSize*(time : LONGINT) : LONGINT;
 BEGIN
-	RETURN time * Kernel.Second * Machine.NumberOfProcessors() * MaxUnwindingDepth * SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	RETURN time * Kernel.Second * Machine.NumberOfProcessors() * MaxUnwindingDepth * SIZEOF(ADDRESS);
 END GetBufferSize;
 
 (**	Generate hierarchical profile of the last profiler run's data. Returns NIL if no data available *)

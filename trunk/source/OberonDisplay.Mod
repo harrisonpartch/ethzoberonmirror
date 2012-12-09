@@ -195,7 +195,7 @@ TYPE
 		BEGIN
 			Raster.InitMode(mode, Raster.srcCopy);
 			IF Flip THEN
-				Raster.Init(bufimg, w, h, disp.img.fmt, -stride, SYSTEM.ADR(buf[ofs]) + (h-1)*stride);
+				Raster.Init(bufimg, w, h, disp.img.fmt, -stride, ADDRESSOF(buf[ofs]) + (h-1)*stride);
 				IF op = Displays.get THEN
 					Raster.Copy(disp.img, bufimg, x, height-y-h, x+w, height-y, 0, 0, mode)
 				ELSIF op = Displays.set THEN
@@ -204,7 +204,7 @@ TYPE
 				ELSE (* skip *)
 				END
 			ELSE
-				Raster.Init(bufimg, w, h, disp.img.fmt, stride, SYSTEM.ADR(buf[ofs]));
+				Raster.Init(bufimg, w, h, disp.img.fmt, stride, ADDRESSOF(buf[ofs]));
 				IF op = Displays.get THEN
 					Raster.Copy(disp.img, bufimg, x, y, x+w, y+h, 0, 0, mode)
 				ELSIF op = Displays.set THEN
@@ -253,15 +253,15 @@ TYPE
 		END Dot;
 
 		PROCEDURE Mask*(VAR buf : ARRAY OF CHAR; bitofs, stride, fg, bg, x, y, w, h : LONGINT);
-		VAR p: SYSTEM.ADDRESS; i, y0, h0 : LONGINT; s : SET; pixel, fgp, bgp : Raster.Pixel;
+		VAR p: ADDRESS; i, y0, h0 : LONGINT; s : SET; pixel, fgp, bgp : Raster.Pixel;
 		BEGIN
 			IF Flip THEN
 				Mask^(buf, bitofs, stride, fg, bg, x, y, w, h)	(* supermethod not exclusive *)
 			ELSE
 				IF (w > 0) & (h > 0) THEN
-					i := SYSTEM.VAL (LONGINT, SYSTEM.ADR(buf[0])) MOD 4;
+					i := SYSTEM.VAL (LONGINT, ADDRESSOF(buf[0])) MOD 4;
 					INC(bitofs, i * 8);
-					p := SYSTEM.ADR(buf[0])-i + bitofs DIV 32 * 4;	(* p always aligned to 32-bit boundary *)
+					p := ADDRESSOF(buf[0])-i + bitofs DIV 32 * 4;	(* p always aligned to 32-bit boundary *)
 					bitofs := bitofs MOD 32; stride := stride*8;
 					IF ASH(fg, 1) < 0 THEN	(* invert *)
 						Raster.InitMode(mode, Raster.InvDst)

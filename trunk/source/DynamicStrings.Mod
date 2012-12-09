@@ -212,7 +212,7 @@ TYPE
 			index := 0;
 			i := 0; ch := ds.buffer[0]; index := 0;
 			WHILE (ch # 0X) DO
-				index :=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ROT(index, 7)) / SYSTEM.VAL(SET, LONG(ORD(ch))));
+				index :=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ROT(index, 7)) / SYSTEM.VAL(SET, LONG(ORD(ch))));
 				INC(i); ch := ds.buffer[i]
 			END;
 			index := index MOD HashTableSize;

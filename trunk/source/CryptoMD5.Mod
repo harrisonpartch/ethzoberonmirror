@@ -102,28 +102,28 @@ VAR
 	VAR f: LONGINT;
 	BEGIN
 		f := S.VAL( LI, (S.VAL( SET, b ) * S.VAL( SET, c )) + ((-S.VAL( SET, b )) * S.VAL( SET, d )) );
-		a := S.ROT( a + f + x + t, s ) + b
+		a := ROT( a + f + x + t, s ) + b
 	END F1;
 
 	PROCEDURE F2( VAR a: LONGINT;  b, c, d, x, s, t: LONGINT );
 	VAR f: LONGINT;
 	BEGIN
 		f := S.VAL( LI, (S.VAL( SET, b ) * S.VAL( SET, d )) + (S.VAL( SET, c ) * (-S.VAL( SET, d ))) );
-		a := S.ROT( a + f + x + t, s ) + b
+		a := ROT( a + f + x + t, s ) + b
 	END F2;
 
 	PROCEDURE F3( VAR a: LONGINT;  b, c, d, x, s, t: LONGINT );
 	VAR f: LONGINT;
 	BEGIN
 		f := S.VAL( LI, S.VAL( SET, b ) / S.VAL( SET, c ) / S.VAL( SET, d ) );
-		a := S.ROT( a + f + x + t, s ) + b
+		a := ROT( a + f + x + t, s ) + b
 	END F3;
 
 	PROCEDURE F4( VAR a: LONGINT;  b, c, d, x, s, t: LONGINT );
 	VAR f: LONGINT;
 	BEGIN
 		f := S.VAL( LI, S.VAL( SET, c ) / (S.VAL( SET, b ) + (-S.VAL( SET, d ))) );
-		a := S.ROT( a + f + x + t, s ) + b
+		a := ROT( a + f + x + t, s ) + b
 	END F4;
 
 	PROCEDURE MD5( CONST X: Buffer; VAR A, B, C, D: LONGINT );

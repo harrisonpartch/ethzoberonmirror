@@ -1311,7 +1311,7 @@ TYPE
 							samp := -32767;
 						END;
 
-						SYSTEM.PUT(SYSTEM.ADR(out[128 * ss  + 4 * i ]),SHORT(samp));
+						SYSTEM.PUT(ADDRESSOF(out[128 * ss  + 4 * i ]),SHORT(samp));
 
 					END;
 
@@ -1360,7 +1360,7 @@ TYPE
 							samp := -32767;
 						END;
 
-						SYSTEM.PUT(SYSTEM.ADR(out[128 * ss  + 4 * i + 2*1 ]),SHORT(samp));
+						SYSTEM.PUT(ADDRESSOF(out[128 * ss  + 4 * i + 2*1 ]),SHORT(samp));
 
 					END;
 				END;

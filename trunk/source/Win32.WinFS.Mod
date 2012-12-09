@@ -514,7 +514,7 @@ TYPE
 				n := buffer.len - r.bpos;
 				IF (n > 0) THEN
 					IF n > len THEN n := len END;
-					SYSTEM.MOVE( SYSTEM.ADR( buffer.data[r.bpos] ), SYSTEM.ADR( x[ofs] ), n );
+					SYSTEM.MOVE( ADDRESSOF( buffer.data[r.bpos] ), ADDRESSOF( x[ofs] ), n );
 					INC( pos, n );  INC( ofs, n );  DEC( len, n );
 					r.apos := pos DIV BufferSize;  r.bpos := pos MOD BufferSize;
 				ELSE
@@ -545,7 +545,7 @@ TYPE
 				IF buffer.apos # r.apos THEN ReadBuffer( r.apos ) END;
 				n := BufferSize - r.bpos;
 				IF n > len THEN n := len END;
-				SYSTEM.MOVE( SYSTEM.ADR( x[ofs] ), SYSTEM.ADR( buffer.data[r.bpos] ), n );
+				SYSTEM.MOVE( ADDRESSOF( x[ofs] ), ADDRESSOF( buffer.data[r.bpos] ), n );
 				IF (r.bpos + n) > buffer.len THEN buffer.len := r.bpos + n END;
 				INC( pos, n );  INC( ofs, n );  DEC( len, n );  r.apos := pos DIV BufferSize;  r.bpos := pos MOD BufferSize;
 				IF pos > fsize THEN fsize := pos END;
@@ -1013,7 +1013,7 @@ VAR
 	BEGIN
 		ConvertChar( name, Files.PathDelimiter, PathDelimiter );  ret := Kernel32.GetFullPathName( name, Kernel32.MaxPath, fullName, fileNamePart );
 		IF (ret > 0) & CheckPath( fullName ) & (fileNamePart # Kernel32.NULL) THEN
-			ok := TRUE;  stream := FALSE;  i := fileNamePart - SYSTEM.ADR( fullName );  fullName[i - 1] := 0X;  ch := fullName[i];
+			ok := TRUE;  stream := FALSE;  i := fileNamePart - ADDRESSOF( fullName );  fullName[i - 1] := 0X;  ch := fullName[i];
 			WHILE (ch # 0X) & ok DO
 				IF ch = ":" THEN
 					IF stream THEN ok := FALSE ELSE stream := TRUE END

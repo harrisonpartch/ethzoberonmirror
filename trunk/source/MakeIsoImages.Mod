@@ -735,7 +735,7 @@ TYPE
 			rec: DirectoryRecordPtr;
 			cur: Node;
 			ofs: LONGINT;
-			bufAdr, recAdr: SYSTEM.ADDRESS;
+			bufAdr, recAdr: ADDRESS;
 			buf: POINTER TO ARRAY OF CHAR;
 			time: Dates.DateTime;
 			len: LONGINT;
@@ -743,11 +743,11 @@ TYPE
 		BEGIN
 			time := Dates.Now();
 			NEW(buf, dir.size);
-			bufAdr := SYSTEM.ADR(buf^); recAdr := bufAdr;
+			bufAdr := ADDRESSOF(buf^); recAdr := bufAdr;
 
 			(* add record for self reference *)
 			rec := SYSTEM.VAL(DirectoryRecordPtr, recAdr);
-			ASSERT(SYSTEM.ADR(rec^) = SYSTEM.VAL(LONGINT, rec));
+			ASSERT(ADDRESSOF(rec^) = SYSTEM.VAL(LONGINT, rec));
 			rec.Len := 22X;
 			SetBothByteOrder32(dir.lba, rec.Lba);
 			SetBothByteOrder32(dir.size, rec.Size);
@@ -844,7 +844,7 @@ TYPE
 			END;
 			ConvertIdentToUTF8(voldescr.StdIdent, LEN(voldescr.StdIdent), FALSE, tmp);
 			ASSERT(tmp = ISO9660Id);
-			SYSTEM.MOVE(SYSTEM.ADR(voldescr.RootDirRecord), SYSTEM.ADR(rootRec), 22H);
+			SYSTEM.MOVE(ADDRESSOF(voldescr.RootDirRecord), ADDRESSOF(rootRec), 22H);
 			ConvertIdentToUTF8(voldescr.VolIdent, LEN(voldescr.VolIdent), treeType = Joliet, name);
 			NEW(root, NIL, Strings.NewString(name), NIL, 0);
 			root.size := Utils.ConvertLE32Int(rootRec.Size);
@@ -873,7 +873,7 @@ TYPE
 			index := 2*22H; (* skip parent and self reference*)
 			WHILE buf[index] > 0X DO
 				len := ORD(buf[index]);
-				SYSTEM.MOVE(SYSTEM.ADR(buf[index]), SYSTEM.ADR(dirRec), len);
+				SYSTEM.MOVE(ADDRESSOF(buf[index]), ADDRESSOF(dirRec), len);
 				size := Utils.ConvertLE32Int(dirRec.Size);
 				lba := Utils.ConvertLE32Int(dirRec.Lba);
 				ConvertIdentToUTF8(dirRec.Ident, ORD(dirRec.IdentLen), tree.type = Joliet, name);
@@ -952,7 +952,7 @@ TYPE
 			UNTIL  (buf[0] = 1X) OR (total > ofs + 10*SectorSize);
 			IF buf[0] # 1X THEN RETURN ErrNoIsoImage END;
 
-			pvd := SYSTEM.VAL(PSVolumeDescriptorPtr, SYSTEM.ADR(buf[0]));
+			pvd := SYSTEM.VAL(PSVolumeDescriptorPtr, ADDRESSOF(buf[0]));
 
 			ConvertIdentToUTF8(pvd.StdIdent, LEN(pvd.StdIdent), FALSE, tmp);
 
@@ -1058,8 +1058,8 @@ TYPE
 			i, len, bytesWritten : LONGINT;
 		BEGIN
 			NEW(buf, MaxLen); (* max record length *)
-			rec := SYSTEM.VAL(PathTableRecordPtr, SYSTEM.ADR(buf^));
-			ASSERT(SYSTEM.ADR(rec^) = SYSTEM.VAL(LONGINT, rec));
+			rec := SYSTEM.VAL(PathTableRecordPtr, ADDRESSOF(buf^));
+			ASSERT(ADDRESSOF(rec^) = SYSTEM.VAL(LONGINT, rec));
 
 			(* first write entry for root record *)
 			rec.IdentLen := 1X;
@@ -1174,7 +1174,7 @@ TYPE
 				entry.Checksum := 0;(* init checksum to zero *)
 				entry.KeyBytes[0] := 55X; entry.KeyBytes[1] := 0AAX; (* key bytes *)
 				entry.Checksum := CalcChecksum16(SYSTEM.VAL(BootCatalogEntry, entry)); (* update the checksum *)
-				w.Bytes(SYSTEM.VAL(BootCatalogEntry, entry), 0, SYSTEM.SIZEOF(BCValidationEntry));
+				w.Bytes(SYSTEM.VAL(BootCatalogEntry, entry), 0, SIZEOF(BCValidationEntry));
 
 				(* initial / default entry *)
 				IF root.bootable THEN
@@ -1188,7 +1188,7 @@ TYPE
 				entry2.Unused1 := 0X;
 				entry2.SectorCount := 1;
 				entry2.LoadRBA := root.loadRBA;
-				w.Bytes(SYSTEM.VAL(BootCatalogEntry, entry2), 0, SYSTEM.SIZEOF(BCInitialDefaultEntry));
+				w.Bytes(SYSTEM.VAL(BootCatalogEntry, entry2), 0, SIZEOF(BCInitialDefaultEntry));
 
 				IF (size MOD SectorSize) # 0 THEN
 					Pad(w, SectorSize - (size MOD SectorSize));
@@ -1207,10 +1207,10 @@ TYPE
 				file := Files.Old(root.image^);
 				IF file # NIL THEN
 					Files.OpenReader(r, file, 0);
-					NEW(buf, SYSTEM.SIZEOF(PartitionTable));
-					r.Bytes(buf^, 0, SYSTEM.SIZEOF(PartitionTable), bytesRead);
-					ASSERT(bytesRead = SYSTEM.SIZEOF(PartitionTable));
-					SYSTEM.MOVE(SYSTEM.ADR(buf^), SYSTEM.ADR(table), SYSTEM.SIZEOF(PartitionTable));
+					NEW(buf, SIZEOF(PartitionTable));
+					r.Bytes(buf^, 0, SIZEOF(PartitionTable), bytesRead);
+					ASSERT(bytesRead = SIZEOF(PartitionTable));
+					SYSTEM.MOVE(ADDRESSOF(buf^), ADDRESSOF(table), SIZEOF(PartitionTable));
 
 					FOR i := 0 TO NumPartitions-1 DO
 						IF  table[i].BootIndicator = Bootable THEN
@@ -1437,7 +1437,7 @@ VAR
 	rec: DirectoryRecord;
 	time: Dates.DateTime;
 	dtBuf: ARRAY 20 OF CHAR;
-	srcAdr, dstAdr: SYSTEM.ADDRESS;
+	srcAdr, dstAdr: ADDRESS;
 	ucs2: BOOLEAN;
 BEGIN
 	time := Dates.Now();
@@ -1481,7 +1481,7 @@ BEGIN
 	rec.Flags := FFDirectory; (* directory *)
 	SetBothByteOrder16(1, rec.VolSeqNo);
 	rec.IdentLen := 1X; rec.Ident[0] := 0X;
-	srcAdr := SYSTEM.ADR(rec); dstAdr := SYSTEM.ADR(descr.RootDirRecord);
+	srcAdr := ADDRESSOF(rec); dstAdr := ADDRESSOF(descr.RootDirRecord);
 	SYSTEM.MOVE(srcAdr, dstAdr, ORD(rec.Len)); INC(dstAdr, 22H);
 
 	SetStringWithPadding("", descr.VolSetIdent, ' ', ucs2);
@@ -1815,7 +1815,7 @@ BEGIN
 	UNTIL  (buf[0] = type) OR (sec > startsec + NumSystemSectors + 10);
 
 	IF buf[0] = type THEN
-		SYSTEM.MOVE(SYSTEM.ADR(buf[0]), SYSTEM.ADR(descr), SYSTEM.SIZEOF(PSVolumeDescriptor));
+		SYSTEM.MOVE(ADDRESSOF(buf[0]), ADDRESSOF(descr), SIZEOF(PSVolumeDescriptor));
 		ConvertIdentToUTF8(descr.StdIdent, LEN(descr.StdIdent), FALSE, tmp);
 		IF tmp = ISO9660Id THEN RETURN ResOk END;
 	END;

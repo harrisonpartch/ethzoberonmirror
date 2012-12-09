@@ -16,7 +16,7 @@ MODULE X11;   (* 1993-95 / rc *)
 IMPORT S := SYSTEM, Trace, Machine, Unix, Modules;
 
 TYPE
-	Address = S.ADDRESS;
+	Address = ADDRESS;
 
 	Pixmap* = Address;
 

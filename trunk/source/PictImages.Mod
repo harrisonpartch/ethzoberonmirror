@@ -35,7 +35,7 @@ MODULE PictImages; (** non-portable *)	(* eos  **)
 
 	(* pack/unpack procedures for 1 and 4 bit formats *)
 
-	PROCEDURE PackP1 (VAR fmt: Raster.Format0; adr: SYSTEM.ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
+	PROCEDURE PackP1 (VAR fmt: Raster.Format0; adr: ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
 		VAR b: CHAR;
 	BEGIN
 		SYSTEM.GET(adr, b);
@@ -50,7 +50,7 @@ MODULE PictImages; (** non-portable *)	(* eos  **)
 		END
 	END PackP1;
 
-	PROCEDURE UnpackP1 (VAR fmt: Raster.Format0; adr: SYSTEM.ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
+	PROCEDURE UnpackP1 (VAR fmt: Raster.Format0; adr: ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
 		VAR b: CHAR;
 	BEGIN
 		SYSTEM.GET(adr, b);
@@ -59,7 +59,7 @@ MODULE PictImages; (** non-portable *)	(* eos  **)
 		END
 	END UnpackP1;
 
-	PROCEDURE PackP4 (VAR fmt: Raster.Format0; adr: SYSTEM.ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
+	PROCEDURE PackP4 (VAR fmt: Raster.Format0; adr: ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
 		VAR b: CHAR; i: LONGINT;
 	BEGIN
 		SYSTEM.GET(adr, b);
@@ -69,7 +69,7 @@ MODULE PictImages; (** non-portable *)	(* eos  **)
 		END
 	END PackP4;
 
-	PROCEDURE UnpackP4 (VAR fmt: Raster.Format0; adr: SYSTEM.ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
+	PROCEDURE UnpackP4 (VAR fmt: Raster.Format0; adr: ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
 		VAR b: CHAR;
 	BEGIN
 		SYSTEM.GET(adr, b); pix := fmt.pal.col[ASH(ORD(b), -bit) MOD 10H]
@@ -79,7 +79,7 @@ MODULE PictImages; (** non-portable *)	(* eos  **)
 	PROCEDURE LoadPict (img: Raster.Image; VAR fname: ARRAY OF CHAR; VAR done: BOOLEAN);
 		VAR
 			file: Files.File; r: Files.Reader; id, w, h, depth: INTEGER; gen: ARRAY 64 OF CHAR; i, n: LONGINT;
-			adr, a: SYSTEM.ADDRESS; pal: Raster.Palette; red, green, blue, byte: CHAR; fmt: Raster.Format;
+			adr, a: ADDRESS; pal: Raster.Palette; red, green, blue, byte: CHAR; fmt: Raster.Format;
 	BEGIN
 		file := Files.Old(fname);
 		IF file # NIL THEN
@@ -239,7 +239,7 @@ MODULE PictImages; (** non-portable *)	(* eos  **)
 	BEGIN
 		IF x IS Raster.PictureTransferParameters THEN WITH x:Raster.PictureTransferParameters DO
 			LoadPict(x.img, x.name, x.done);
-			Raster.Init(x.img, x.img.width, x.img.height, x.img.fmt, -x.img.bpr, SYSTEM.ADR(x.img.mem[0]) + (x.img.height-1)*x.img.bpr);
+			Raster.Init(x.img, x.img.width, x.img.height, x.img.fmt, -x.img.bpr, ADDRESSOF(x.img.mem[0]) + (x.img.height-1)*x.img.bpr);
 		END END;
 		RETURN NIL
 	END AosLoad;
@@ -257,7 +257,7 @@ MODULE PictImages; (** non-portable *)	(* eos  **)
 	(**--- Oberon Patterns ---**)
 
 	(** create image from Oberon pattern (format=A1) **)
-	PROCEDURE PatternToImage* (pat: SYSTEM.ADDRESS): Raster.Image;
+	PROCEDURE PatternToImage* (pat: ADDRESS): Raster.Image;
 		VAR w, h: INTEGER; byte: CHAR; img: Raster.Image;
 	BEGIN
 		ASSERT(pat # 0, 100);
@@ -270,11 +270,11 @@ MODULE PictImages; (** non-portable *)	(* eos  **)
 
 	(** initialize pattern from sets **)
 	PROCEDURE NewPattern* (w, h: LONGINT; VAR image: ARRAY OF SET): Raster.Image;
-		VAR bpr, y: LONGINT; sa, da: SYSTEM.ADDRESS; img: Raster.Image;
+		VAR bpr, y: LONGINT; sa, da: ADDRESS; img: Raster.Image;
 	BEGIN
 		bpr := (w+7) DIV 8;
 		NEW(img); Raster.Create(img, w, h, Raster.A1);
-		y := 0; sa := SYSTEM.ADR(image[0]); da := img.adr;
+		y := 0; sa := ADDRESSOF(image[0]); da := img.adr;
 		WHILE y < h DO
 			SYSTEM.MOVE(sa, da, bpr); INC(sa, 4); INC(da, bpr); INC(y)
 		END;

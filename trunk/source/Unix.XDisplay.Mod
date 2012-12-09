@@ -26,7 +26,7 @@ VAR
 
 
 TYPE
-	Address = S.ADDRESS;
+	Address = ADDRESS;
 	
 	RGB =	RECORD
 				r, g, b: INTEGER
@@ -58,7 +58,7 @@ TYPE
 					IF (rect.x <= 0) & (rect.y <= 0) & (rect.w >= d.width) & (rect.h >= d.height) THEN
 						X11.SetClipMask( d.xdisp, d.gc, X11.None ) (* no clipping *)
 					ELSE
-						X11.SetClipRectangles( d.xdisp, d.gc, 0, 0, S.ADR( rect ), 1, X11.YXBanded )
+						X11.SetClipRectangles( d.xdisp, d.gc, 0, 0, ADDRESSOF( rect ), 1, X11.YXBanded )
 					END;
 					Machine.Release( Machine.X11 )
 				END;
@@ -172,12 +172,12 @@ TYPE
 						NEW( imgBuffer, 4*w*h );	(* create buffer outside lock to avoid deadlock *)
 					END;
 			
-					bp := S.ADR( buf[ofs] );  
+					bp := ADDRESSOF( buf[ofs] );  
 					IF op = Set THEN
 						Machine.Acquire( Machine.X11 );
 						image := X11.CreateImage( xdisp, visual, depth, X11.ZPixmap, 0, 0, w, h, 32, 0 );
 						imp := S.VAL( X11.ImagePtr, image );
-						imp.data := S.ADR( imgBuffer[0] );  ip := imp.data;
+						imp.data := ADDRESSOF( imgBuffer[0] );  ip := imp.data;
 						IF imp.byteOrder = 0 THEN
 							FOR line := 0 TO h - 1  DO
 								PutLine( xformat, w, ip, bp );
@@ -238,9 +238,9 @@ TYPE
 						Machine.Acquire( Machine.X11 );
 						image := X11.CreateImage( xdisp, visual, depth, X11.ZPixmap, 0, 0, w, h, 32, 0 );
 						imp := S.VAL( X11.ImagePtr, image );
-						imp.data := S.ADR( imgBuffer[0] );
-						i := S.ADR( buf[0] ) MOD 4;  INC( bitofs, i*8 );
-						p := S.ADR( buf[0] ) - i + bitofs DIV 32*4;   (* p always aligned to 32-bit boundary *)
+						imp.data := ADDRESSOF( imgBuffer[0] );
+						i := ADDRESSOF( buf[0] ) MOD 4;  INC( bitofs, i*8 );
+						p := ADDRESSOF( buf[0] ) - i + bitofs DIV 32*4;   (* p always aligned to 32-bit boundary *)
 						bitofs := bitofs MOD 32;  stride := stride*8;
 						ix := 0; iy := 0; ih := h;
 						LOOP
@@ -317,11 +317,11 @@ TYPE
 					xcol.red := 256*red;  xcol.green := 256*green;  xcol.blue := 256*blue;
 					Machine.Acquire( Machine.X11 );
 					IF depth > 8 THEN
-						res := X11.AllocColor( xdisp, cmap, S.ADR( xcol ) );
+						res := X11.AllocColor( xdisp, cmap, ADDRESSOF( xcol ) );
 						IF res # 0 THEN  pixel[col] := xcol.pixel  END
 					ELSE
 						xcol.flags := CHR( X11.DoAll );  xcol.pixel := pixel[col];
-						X11.StoreColor( xdisp, cmap, S.ADR( xcol ) ) 
+						X11.StoreColor( xdisp, cmap, ADDRESSOF( xcol ) ) 
 					END;
 					Machine.Release( Machine.X11 )
 				END SetColor;
@@ -338,7 +338,7 @@ TYPE
 				PROCEDURE ColorToPixel*( col: LONGINT ): LONGINT;
 				VAR r, g, b, i, ii, x, y, z, m, min: LONGINT;  rc: RGB;
 				BEGIN
-					r := S.LSH( col, -16 ) MOD 256;  g := S.LSH( col, -8 ) MOD 256;  b := col MOD 256;
+					r := LSH( col, -16 ) MOD 256;  g := LSH( col, -8 ) MOD 256;  b := col MOD 256;
 					CASE xformat OF
 					color8888, color888:
 								IF bigEndian THEN  RETURN ASH( b, 16 ) + ASH( g, 8 ) + r
@@ -395,15 +395,15 @@ TYPE
 					primary := X11.CreateSimpleWindow( xdisp, root, 0, 0,
 											     			screenw - 16, screenh - 32, 0,
 														foreground, background );
-					X11.StoreName( xdisp, primary, S.ADR( winName ) );
-					X11.SetIconName( xdisp, primary, S.ADR( iconName ) );
+					X11.StoreName( xdisp, primary, ADDRESSOF( winName ) );
+					X11.SetIconName( xdisp, primary, ADDRESSOF( iconName ) );
 					X11.SetCommand( xdisp, primary, Unix.argv, Unix.argc );
 					X11.SelectInput( xdisp, primary, X11.ExposureMask );
 					
 					
 					(* set wm_delete_events if in windowed mode *)
 					wmDelete := Api.InternAtom(xdisp, "WM_DELETE_WINDOW", Api.True);   
-					res := Api.SetWMProtocols(xdisp, primary, S.ADR(wmDelete), 1);
+					res := Api.SetWMProtocols(xdisp, primary, ADDRESSOF(wmDelete), 1);
 							
 					X11.MapRaised( xdisp, primary );
 					REPEAT  Api.NextEvent( xdisp, event )
@@ -638,10 +638,10 @@ VAR
 			INC( desti, destb );  DEC( srci, srcw )
 		END;
 		Machine.Acquire( Machine.X11 );
-		pixmap := X11.CreateBitmapFromData( d.xdisp, d.primary, S.ADR( data[0] ), w, h );
+		pixmap := X11.CreateBitmapFromData( d.xdisp, d.primary, ADDRESSOF( data[0] ), w, h );
 		Machine.Release( Machine.X11 );
 		IF pixmap = 0 THEN  HALT( 99 )  END;
-		pat := S.VAL( X11.PatternPtr, Unix.malloc( S.SIZEOF( X11.PatternDesc ) ) );
+		pat := S.VAL( X11.PatternPtr, Unix.malloc( SIZEOF( X11.PatternDesc ) ) );
 		pat.x := 0;  pat.y := 0;  pat.w := width;  pat.h := height;  pat.pixmap := pixmap;
 		RETURN S.VAL( LONGINT, pat )
 	END NewPattern;
@@ -663,7 +663,7 @@ VAR
 	BEGIN
 		Unix.GetArgval( "-display", dispname );
 		IF dispname = "" THEN
-			adr := Unix.getenv( S.ADR( "DISPLAY" ) );
+			adr := Unix.getenv( ADDRESSOF( "DISPLAY" ) );
 			IF adr # 0 THEN
 				i := 0;
 				REPEAT  S.GET( adr, ch );  INC( adr );  dispname[i] := ch;  INC( i )   UNTIL ch = 0X;
@@ -748,7 +748,7 @@ VAR
 		msk := S.VAL( X11.PatternPtr, NewPattern( d, image, 16, 16 ) );
 		
 		Machine.Acquire( Machine.X11 );
-		noCursor := X11.CreatePixmapCursor( d.xdisp, src.pixmap, msk.pixmap, S.ADR( fg ), S.ADR( bg ), 1, 1 );
+		noCursor := X11.CreatePixmapCursor( d.xdisp, src.pixmap, msk.pixmap, ADDRESSOF( fg ), ADDRESSOF( bg ), 1, 1 );
 		X11.DefineCursor( d.xdisp, d.primary, noCursor );
 		Machine.Release( Machine.X11 )
 	END SuppressX11Cursors;

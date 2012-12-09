@@ -433,7 +433,7 @@ TYPE
 				buf := sndtail;
 				IF LEN(buf.data^) - (buf.ofs+buf.len) >= len0 THEN	(* last buffer has space for data *)
 					IF SystemMove THEN
-						SYSTEM.MOVE(SYSTEM.ADR(data[ofs]), SYSTEM.ADR(buf.data[buf.ofs+buf.len]), len0)
+						SYSTEM.MOVE(ADDRESSOF(data[ofs]), ADDRESSOF(buf.data[buf.ofs+buf.len]), len0)
 					ELSE
 						Network.Copy(data, buf.data^, ofs, buf.ofs+buf.len, len0)
 					END;
@@ -451,7 +451,7 @@ TYPE
 						ASSERT(LEN(buf.data^) >= len0)	(* index check *)
 					END;
 					IF SystemMove THEN
-						SYSTEM.MOVE(SYSTEM.ADR(data[ofs]), SYSTEM.ADR(buf.data[0]), len0)
+						SYSTEM.MOVE(ADDRESSOF(data[ofs]), ADDRESSOF(buf.data[0]), len0)
 					ELSE
 						Network.Copy(data, buf.data^, ofs, 0, len0)
 					END;
@@ -484,7 +484,7 @@ TYPE
 						(* read all available data until user buffer is full *)
 						rlen := Strings.Min(rcvhead.len, size);
 						IF SystemMove THEN
-							SYSTEM.MOVE(SYSTEM.ADR(rcvhead.data[rcvhead.ofs]), SYSTEM.ADR(data[ofs]), rlen);
+							SYSTEM.MOVE(ADDRESSOF(rcvhead.data[rcvhead.ofs]), ADDRESSOF(data[ofs]), rlen);
 						ELSE
 							Network.Copy(rcvhead.data, data, rcvhead.ofs, ofs, rlen);
 						END;
@@ -513,7 +513,7 @@ TYPE
 						END;
 						rlen := Strings.Min(rcvheadFragment.len, size);
 						IF SystemMove THEN
-							SYSTEM.MOVE(SYSTEM.ADR(rcvheadFragment.data[rcvheadFragment.ofs]), SYSTEM.ADR(data[ofs]), rlen);
+							SYSTEM.MOVE(ADDRESSOF(rcvheadFragment.data[rcvheadFragment.ofs]), ADDRESSOF(data[ofs]), rlen);
 						ELSE
 							Network.Copy(rcvheadFragment.data, data, rcvheadFragment.ofs, ofs, rlen);
 						END;
@@ -1317,8 +1317,8 @@ BEGIN
 		WriteTime(Kernel.GetTicks()); KernelLog.Char(" ");
 		KernelLog.String(msg); TraceConnection(p);
 		IF TracePacket THEN
-			KernelLog.Memory(SYSTEM.ADR(hdr[0]), hlen);
-			KernelLog.Memory(SYSTEM.ADR(data[ofs]), len)
+			KernelLog.Memory(ADDRESSOF(hdr[0]), hlen);
+			KernelLog.Memory(ADDRESSOF(data[ofs]), len)
 		END
 	END
 END TraceTCP;
@@ -1441,7 +1441,7 @@ BEGIN
 				ASSERT(len <= LEN(data^));
 				ASSERT(buf.len-off <= len);	(* index check *)
 				IF SystemMove THEN
-					SYSTEM.MOVE(SYSTEM.ADR(buf.data[off+buf.ofs]), SYSTEM.ADR(data[0]), buf.len-off)
+					SYSTEM.MOVE(ADDRESSOF(buf.data[off+buf.ofs]), ADDRESSOF(data[0]), buf.len-off)
 				ELSE
 					Network.Copy(buf.data^, data^, off+buf.ofs, 0, buf.len-off)
 				END;
@@ -1450,7 +1450,7 @@ BEGIN
 					buf := buf.next; IF left <= buf.len THEN x := left ELSE x := buf.len END;
 					ASSERT(off+x <= len);	(* index check *)
 					IF SystemMove THEN
-						SYSTEM.MOVE(SYSTEM.ADR(buf.data[buf.ofs]), SYSTEM.ADR(data[off]), x)
+						SYSTEM.MOVE(ADDRESSOF(buf.data[buf.ofs]), ADDRESSOF(data[off]), x)
 					ELSE
 						Network.Copy(buf.data^, data^, buf.ofs, off, x)
 					END;

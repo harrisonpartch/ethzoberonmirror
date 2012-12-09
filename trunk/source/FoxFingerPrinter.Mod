@@ -548,7 +548,7 @@ TYPE
 		VAR fingerprint: FingerPrint; fp: LONGINT; name: ARRAY 256 OF CHAR;
 		BEGIN
 			IF Trace THEN TraceEnter("Method");
-				D.Address(SYSTEM.VAL(SYSTEM.ADDRESS,procedure));
+				D.Address(SYSTEM.VAL(ADDRESS,procedure));
 				procedure.GetName(name);
 				TraceIndent; D.Str("name = "); D.Str(name); D.Ln;
 			END;
@@ -1185,7 +1185,7 @@ TYPE
 	(* fp = fp <*> val *)
 	PROCEDURE FPNumber*(VAR fp: LONGINT; val: LONGINT);
 	BEGIN
-		fp:=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ROT(fp, 7)) / SYSTEM.VAL(SET, val))
+		fp:=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ROT(fp, 7)) / SYSTEM.VAL(SET, val))
 	END FPNumber;
 
 	(* fp = fp <*> set *)
@@ -1202,7 +1202,7 @@ TYPE
 	PROCEDURE FPLongReal*(VAR fp: LONGINT; lr: LONGREAL);
 		VAR l, h: LONGINT;
 	BEGIN
-		SYSTEM.GET(SYSTEM.ADR(lr)+4, l); SYSTEM.GET(SYSTEM.ADR(lr), h);
+		SYSTEM.GET(ADDRESSOF(lr)+4, l); SYSTEM.GET(ADDRESSOF(lr), h);
 		FPNumber(fp, l); FPNumber(fp, h);
 	END FPLongReal;
 
@@ -1210,7 +1210,7 @@ TYPE
 	PROCEDURE FPHugeInt*(VAR fp: LONGINT; huge: HUGEINT);
 	VAR l, h: LONGINT;
 	BEGIN
-		SYSTEM.GET(SYSTEM.ADR(huge)+4, l); SYSTEM.GET(SYSTEM.ADR(huge), h);
+		SYSTEM.GET(ADDRESSOF(huge)+4, l); SYSTEM.GET(ADDRESSOF(huge), h);
 		FPNumber(fp, l); FPNumber(fp, h);
 	END FPHugeInt;
 

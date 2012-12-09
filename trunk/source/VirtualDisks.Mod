@@ -137,11 +137,11 @@ TYPE
 		BEGIN
 			IF op = Disks.Read THEN
 				ASSERT((block  + num) * blockSize <= LEN(memory));
-				SYSTEM.MOVE(SYSTEM.ADR(memory[0]) + block * blockSize, SYSTEM.ADR(data[ofs]), num * blockSize);
+				SYSTEM.MOVE(ADDRESSOF(memory[0]) + block * blockSize, ADDRESSOF(data[ofs]), num * blockSize);
 				res := Disks.Ok;
 			ELSIF op = Disks.Write THEN
 				ASSERT((block + num) * blockSize <=LEN(memory));
-				SYSTEM.MOVE(SYSTEM.ADR(data[ofs]), SYSTEM.ADR(memory[0]) + block * blockSize, num * blockSize);
+				SYSTEM.MOVE(ADDRESSOF(data[ofs]), ADDRESSOF(memory[0]) + block * blockSize, num * blockSize);
 				res := Disks.Ok;
 			ELSE
 				res := Disks.Unsupported;

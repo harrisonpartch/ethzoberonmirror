@@ -21,7 +21,7 @@ MODULE OpenTypeFonts; (** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType
 
 	TYPE
 		RasterData* = RECORD (OType.RasterData)
-			adr*: SYSTEM.ADDRESS;							(* base address of pattern *)
+			adr*: ADDRESS;							(* base address of pattern *)
 			bpr*: LONGINT;									(* number of bytes per row *)
 			len*: LONGINT;									(* pattern length *)
 		END;
@@ -40,7 +40,7 @@ MODULE OpenTypeFonts; (** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType
 
 	(* fill rectangle in pattern *)
 	PROCEDURE FillRect*(llx, lly, urx, ury, opacity: INTEGER; VAR data: OType.RasterData0);
-		VAR x0, x1, h, n: INTEGER; adr, a: SYSTEM.ADDRESS; mask: SET; byte: CHAR;
+		VAR x0, x1, h, n: INTEGER; adr, a: ADDRESS; mask: SET; byte: CHAR;
 	BEGIN
 		WITH data: RasterData DO
 			x0 := llx DIV 8; x1 := urx DIV 8;
@@ -153,7 +153,7 @@ MODULE OpenTypeFonts; (** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType
 					IF Glyph.hby < ymin THEN ymin := Glyph.hby END;
 					IF Glyph.hbx + Glyph.rw > xmax THEN xmax := Glyph.hbx + Glyph.rw END;
 					IF Glyph.hby + Glyph.rh > ymax THEN ymax := Glyph.hby + Glyph.rh END;
-					data.rect := FillRect; data.adr := SYSTEM.ADR(Pattern); data.bpr := (Glyph.rw+7) DIV 8; data.len := LEN(Pattern);
+					data.rect := FillRect; data.adr := ADDRESSOF(Pattern); data.bpr := (Glyph.rw+7) DIV 8; data.len := LEN(Pattern);
 					bytes := Glyph.rh * data.bpr;
 					ASSERT(bytes < LEN(Pattern));
 					k := 0; REPEAT Pattern[k] := 0X; INC(k) UNTIL k = bytes;

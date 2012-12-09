@@ -263,9 +263,9 @@ BEGIN
 	codeArr := code; length := codelen; hdrLength := codelen DIV 4; addressFactor := 4
 END GetCode;
 
-PROCEDURE LSH(v, s: LONGINT): SET;
-BEGIN RETURN SYSTEM.VAL(SET, SYSTEM.LSH(v,s))
-END LSH;
+PROCEDURE Lsh(v, s: LONGINT): SET;
+BEGIN RETURN SYSTEM.VAL(SET, LSH(v,s))
+END Lsh;
 
 (*
 PROCEDURE CheckCondition(c: SET);
@@ -328,10 +328,10 @@ VAR rot: LONGINT;
 BEGIN
 	rot := 0; imm := SYSTEM.VAL(SET, immediate);
 	WHILE (rot < 32) & (ODD(rot) OR (imm * { 8..31} # {})) DO
-		imm := SYSTEM.ROT(imm, 1); INC(rot)
+		imm := ROT(imm, 1); INC(rot)
 	END;
 	IF (rot < 32) THEN
-		imm := imm + SYSTEM.VAL(SET, SYSTEM.LSH(rot DIV 2, 8));
+		imm := imm + SYSTEM.VAL(SET, Lsh(rot DIV 2, 8));
 		RETURN TRUE
 	ELSE
 		imm := {};
@@ -346,130 +346,130 @@ END MakeA1Register;
 
 PROCEDURE MakeA1RegSHIFTReg*(reg, shiftreg: LONGINT; mode: SET): SET;
 BEGIN CheckReg(reg); CheckReg(shiftreg); CheckSet(mode, ShiftMask);
-	RETURN LSH(shiftreg, 8) + mode + A1ShiftReg + SYSTEM.VAL(SET, reg)
+	RETURN Lsh(shiftreg, 8) + mode + A1ShiftReg + SYSTEM.VAL(SET, reg)
 END MakeA1RegSHIFTReg;
 
 PROCEDURE MakeA1RegSHIFTImm*(reg, imm: LONGINT; mode: SET): SET;
 BEGIN CheckReg(reg); CheckImm(imm, 20H); CheckSet(mode, ShiftMask);
-	RETURN LSH(imm, 7) + mode + A1ShiftImm + SYSTEM.VAL(SET, reg)
+	RETURN Lsh(imm, 7) + mode + A1ShiftImm + SYSTEM.VAL(SET, reg)
 END MakeA1RegSHIFTImm;
 
 (** ADC - add with carry (rD <- rN + shifterOperand + carry) *)
 PROCEDURE ADC*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opADC + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opADC + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END ADC;
 
 (** ADD -  add (rD <- rN + shifterOperand) *)
 PROCEDURE ADD*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opADD + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opADD + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END ADD;
 
 (** AND - bitwise and (rD <- rN AND shifterOperand) *)
 PROCEDURE AND*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
 BEGIN CheckSet(shifterOperand, {0..11});
-	Code(cond + opAND + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+	Code(cond + opAND + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END AND;
 
 (** BIC - clears bits (rD <- rN AND NOT shifterOperand) *)
 PROCEDURE BIC*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opBIC + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opBIC + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END BIC;
 
 (** CMN - compare negative (CC updated based on rN + shifterOperand) *)
 PROCEDURE CMN*(cond, addrMode: SET; rN: LONGINT; shifterOperand: SET);
-BEGIN Code(cond + opCMN + addrMode + LSH(rN, 16) + shifterOperand)
+BEGIN Code(cond + opCMN + addrMode + Lsh(rN, 16) + shifterOperand)
 END CMN;
 
 (** CMP - compare (CC updateed based on rN - shifterOperand) *)
 PROCEDURE CMP*(cond, addrMode: SET; rN: LONGINT; shifterOperand: SET);
-BEGIN Code(cond + opCMP + addrMode + LSH(rN, 16) + shifterOperand)
+BEGIN Code(cond + opCMP + addrMode + Lsh(rN, 16) + shifterOperand)
 END CMP;
 
 (** EOR - XOr (rD <- rN XOR shifterOperand) *)
 PROCEDURE EOR*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opEOR + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opEOR + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END EOR;
 
 (** MOV - move (rD <- shifterOperand) *)
 PROCEDURE MOV*(cond, addrMode: SET; rD: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opMOV + addrMode + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opMOV + addrMode + Lsh(rD, 12) + shifterOperand + S)
 END MOV;
 
 (** MVN - move negative (rD <- NOT shifterOperand) *)
 PROCEDURE MVN*(cond, addrMode: SET; rD: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opMVN + addrMode + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opMVN + addrMode + Lsh(rD, 12) + shifterOperand + S)
 END MVN;
 
 (** ORR - bitwise OR (rD <- rN OR shifterOperand) *)
 PROCEDURE ORR*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opORR + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opORR + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END ORR;
 
 (** RSB -  reverse subtract (rD <- shifterOperand - rN) *)
 PROCEDURE RSB*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opRSB + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opRSB + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END RSB;
 
 (** RSC -  reverse subtract with carry (rD <- shifterOperand - rN - NOT(carry)) *)
 PROCEDURE RSC*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opRSC + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opRSC + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END RSC;
 
 (** SBC - subtract with carry (rD <- rN - shifterOperand - NOT(carry))*)
 PROCEDURE SBC*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opSBC + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opSBC + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END SBC;
 
 (** SUB -  subtract (rD <- rN - shifterOperand) *)
 PROCEDURE SUB*(cond, addrMode: SET; rD, rN: LONGINT; shifterOperand, S: SET);
-BEGIN Code(cond + opSUB + addrMode + LSH(rN, 16) + LSH(rD, 12) + shifterOperand + S)
+BEGIN Code(cond + opSUB + addrMode + Lsh(rN, 16) + Lsh(rD, 12) + shifterOperand + S)
 END SUB;
 
 (** TEQ -  test equivalence (CC updated based on rN XOR shifterOperand) *)
 PROCEDURE TEQ*(cond, addrMode: SET; rN: LONGINT; shifterOperand: SET);
-BEGIN Code(cond + opTEQ + addrMode + LSH(rN, 16) + shifterOperand)
+BEGIN Code(cond + opTEQ + addrMode + Lsh(rN, 16) + shifterOperand)
 END TEQ;
 
 (** TST -  test (CC updated based on rN AND shifterOperand) *)
 PROCEDURE TST*(cond, addrMode: SET; rN: LONGINT; shifterOperand: SET);
-BEGIN Code(cond + opTST + addrMode + LSH(rN, 16) + shifterOperand)
+BEGIN Code(cond + opTST + addrMode + Lsh(rN, 16) + shifterOperand)
 END TST;
 
 (**----------------------- Multiply  Instructions -----------------------*)
 (** MLA - multiply accumulate (rD <- (rM * rS) + rN) *)
 PROCEDURE MLA*(cond: SET; rD, rM, rS, rN: LONGINT; S: SET);
 BEGIN ASSERT(rD # rM, NONORTHOGONALITYEXCEPTION);
-	Code(cond + opMLA + LSH(rD, 16) + LSH(rN, 12) + LSH(rS, 8) + LSH(rM, 0) + S)
+	Code(cond + opMLA + Lsh(rD, 16) + Lsh(rN, 12) + Lsh(rS, 8) + Lsh(rM, 0) + S)
 END MLA;
 
 (** MUL - multiply (rD <- rM * rS) *)
 PROCEDURE MUL*(cond: SET; rD, rM, rS: LONGINT; S: SET);
 BEGIN ASSERT(rD # rM, NONORTHOGONALITYEXCEPTION);
-	Code(cond + opMUL + LSH(rD, 16) + LSH(rS, 8) + LSH(rM, 0) + S)
+	Code(cond + opMUL + Lsh(rD, 16) + Lsh(rS, 8) + Lsh(rM, 0) + S)
 END MUL;
 
 (** SMLAL - signed multiply accumulate long (rDLo <- (rA * rB)[31:0] + rDLo, rDHi <- (rA * rB)[63:32] + rDHi + carry) *)
 PROCEDURE SMLAL*(cond: SET; rDHi, rDLo, rM, rS: LONGINT; S: SET);
 BEGIN ASSERT((rDHi # rDLo) & (rDHi # rM) & (rDLo # rM), NONORTHOGONALITYEXCEPTION);
-	Code(cond + opSMLAL + LSH(rDHi, 16) + LSH(rDLo, 12) + LSH(rS, 8) + LSH(rM, 0) + S)
+	Code(cond + opSMLAL + Lsh(rDHi, 16) + Lsh(rDLo, 12) + Lsh(rS, 8) + Lsh(rM, 0) + S)
 END SMLAL;
 
 (** SMULL - signed multiply long (rDLo <- (rM * rS)[31:0], rDHi <- (rM * rS)[63:32]) *)
 PROCEDURE SMULL*(cond: SET; rDHi, rDLo, rM, rS: LONGINT; S: SET);
 BEGIN ASSERT((rDHi # rDLo) & (rDHi # rM) & (rDLo # rM), NONORTHOGONALITYEXCEPTION);
-	Code(cond + opSMULL + LSH(rDHi, 16) + LSH(rDLo, 12) + LSH(rS, 8) + LSH(rM, 0) + S)
+	Code(cond + opSMULL + Lsh(rDHi, 16) + Lsh(rDLo, 12) + Lsh(rS, 8) + Lsh(rM, 0) + S)
 END SMULL;
 
 (** UMLAL - unsigned multiply accumulate long (rDLo <- (rM*rS)[31:0] + rDLo, rDHi <- (rM*rS)[63:32] + rDHi + carry) *)
 PROCEDURE UMLAL*(cond: SET; rDLo, rDHi, rM, rS: LONGINT; S: SET);
 BEGIN ASSERT((rDHi # rDLo) & (rDHi # rM) & (rDLo # rM), NONORTHOGONALITYEXCEPTION);
-	Code(cond + opUMLAL + LSH(rDHi, 16) + LSH(rDLo, 12) + LSH(rS, 8) + LSH(rM, 0) + S)
+	Code(cond + opUMLAL + Lsh(rDHi, 16) + Lsh(rDLo, 12) + Lsh(rS, 8) + Lsh(rM, 0) + S)
 END UMLAL;
 
 (** UMULL - unsigned multply long (rDLo <- (rM*rS)[31:0], rDHi <- (rM*rS)[63:32]) *)
 PROCEDURE UMULL*(cond: SET; rDLo, rDHi, rM, rS: LONGINT; S: SET);
 BEGIN ASSERT((rDHi # rDLo) & (rDHi # rM) & (rDLo # rM), NONORTHOGONALITYEXCEPTION);
-	Code(cond + opUMULL + LSH(rDHi, 16) + LSH(rDLo, 12) + LSH(rS, 8) + LSH(rM, 0) + S)
+	Code(cond + opUMULL + Lsh(rDHi, 16) + Lsh(rDLo, 12) + Lsh(rS, 8) + Lsh(rM, 0) + S)
 END UMULL;
 
 (**------------------------- Branch  Instructions  -------------------------*)
@@ -509,38 +509,38 @@ END MakeA2Register;
 
 PROCEDURE MakeA2ScaledRegister*(reg: LONGINT; mode: SET; shift: LONGINT): SET;
 BEGIN CheckReg(reg); CheckImm(shift, 20H); CheckSet(mode, ShiftMask);
-	RETURN LSH(shift, 7) + mode + LSH(reg, 0)
+	RETURN Lsh(shift, 7) + mode + Lsh(reg, 0)
 END MakeA2ScaledRegister;
 
 (** LDM - uses Addressing Mode 4 *)
 PROCEDURE LDM*(cond, addrMode: SET; rD: LONGINT; registers, W: SET);
-BEGIN Code(cond + opLDM + addrMode + LSH(rD, 16) + registers + W)
+BEGIN Code(cond + opLDM + addrMode + Lsh(rD, 16) + registers + W)
 END LDM;
 
 (** LDR - uses Addressing Mode 2 *)
 PROCEDURE LDR*(cond, addrMode: SET; rD, rAdr: LONGINT; address: SET);
-BEGIN Code(cond + opLDR + addrMode + LSH(rAdr, 16) + LSH(rD, 12) + address)
+BEGIN Code(cond + opLDR + addrMode + Lsh(rAdr, 16) + Lsh(rD, 12) + address)
 END LDR;
 
 (** LDRH - uses Addressing Mode 3 *)
 PROCEDURE LDRH*(cond, addrMode: SET; rD, rAdr: LONGINT; address: SET);
-BEGIN Code(cond + opLDRH + addrMode + LSH(rAdr, 16) + LSH(rD, 12) + address)
+BEGIN Code(cond + opLDRH + addrMode + Lsh(rAdr, 16) + Lsh(rD, 12) + address)
 END LDRH;
 
 (** STM - uses Addressing Mode 4 *)
 PROCEDURE STM*(cond, addrMode: SET; rD: LONGINT; registers, W: SET);
-BEGIN Code(cond + opSTM + addrMode + LSH(rD, 16) + registers + W)
+BEGIN Code(cond + opSTM + addrMode + Lsh(rD, 16) + registers + W)
 END STM;
 
 (** STR - uses Addressing Mode 2 *)
 PROCEDURE STR*(cond, addrMode: SET; rAdr, rS: LONGINT; address: SET);
-BEGIN Code(cond + opSTR + addrMode + LSH(rAdr, 16) + LSH(rS, 12) + address)
+BEGIN Code(cond + opSTR + addrMode + Lsh(rAdr, 16) + Lsh(rS, 12) + address)
 END STR;
 
 (** STRH - uses Addressing Mode 3 *)
 PROCEDURE STRH*(cond, addrMode: SET; rAdr, rS: LONGINT; address: SET);
 BEGIN ASSERT(address*{6,5}={}, NONORTHOGONALITYEXCEPTION);
-	Code(cond + opSTRH + addrMode + LSH(rAdr, 16) + LSH(rS, 12) + address)
+	Code(cond + opSTRH + addrMode + Lsh(rAdr, 16) + Lsh(rS, 12) + address)
 END STRH;
 
 (**--------------------------- Miscellaneous -----------------------------*)
@@ -548,7 +548,7 @@ END STRH;
 (** SWI - software interrupt *)
 PROCEDURE SWI*(cond: SET; code: LONGINT);
 BEGIN CheckImm(code, 1000000H);
-	Code(cond + opSWI + Mask24*LSH(code, 0))
+	Code(cond + opSWI + Mask24*Lsh(code, 0))
 END SWI;
 
 (** DCD - puts a 32bit value into the code *)
@@ -591,7 +591,7 @@ BEGIN
 END CheckCallback;
 
 PROCEDURE ExtractRegister(code: SET; pos: LONGINT): LONGINT;
-BEGIN RETURN SYSTEM.LSH(SYSTEM.VAL(LONGINT, code), -pos) MOD 10H
+BEGIN RETURN LSH(SYSTEM.VAL(LONGINT, code), -pos) MOD 10H
 END ExtractRegister;
 
 PROCEDURE FixLoad*(pc: LONGINT; address: LONGINT);
@@ -700,7 +700,7 @@ BEGIN
 		PCM.Error(244, Diagnostics.Invalid, "Code too long.");
 	ELSIF (codelen-start > 0) THEN
 		NEW(b, codelen-start);
-		SYSTEM.MOVE(SYSTEM.ADR(code[start]), SYSTEM.ADR(b[0]), codelen-start);
+		SYSTEM.MOVE(ADDRESSOF(code[start]), ADDRESSOF(b[0]), codelen-start);
 		f.WriteBytes(r, b^, 0, codelen-start);
 		Files.Register(f);
 	ELSIF (codelen - start < 0) THEN HALT(MAX(INTEGER)) (* show stack*)

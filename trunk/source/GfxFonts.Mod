@@ -64,7 +64,7 @@ MODULE GfxFonts; (** non-portable *)	(* eos  *)
 		RasterChar = POINTER TO RasterCharDesc;
 		RasterCharDesc = RECORD
 			dx, x, y, w, h: INTEGER;
-			adr: SYSTEM.ADDRESS;
+			adr: ADDRESS;
 		END;
 		RasterFile = POINTER TO RasterFileDesc;
 		RasterFileDesc = RECORD
@@ -569,7 +569,7 @@ MODULE GfxFonts; (** non-portable *)	(* eos  *)
 	PROCEDURE LoadRaster (VAR name: ARRAY OF CHAR): RasterFile;
 		VAR
 			rfile: RasterFile; file: Files.File; r: Files.Reader; id, ch: CHAR; type: SHORTINT; height, runs, i, j: INTEGER;
-			beg, end: ARRAY 32 OF INTEGER; size: LONGINT; adr: SYSTEM.ADDRESS;
+			beg, end: ARRAY 32 OF INTEGER; size: LONGINT; adr: ADDRESS;
 	BEGIN
 		rfile := NIL;
 		file := Files.Old(name);
@@ -600,7 +600,7 @@ MODULE GfxFonts; (** non-portable *)	(* eos  *)
 				INC(i)
 			END;
 			NEW(rfile.mem, size);
-			i := 0; adr := SYSTEM.ADR(rfile.mem[0]);
+			i := 0; adr := ADDRESSOF(rfile.mem[0]);
 			WHILE i < runs DO
 				j := beg[i];
 				WHILE j < end[i] DO

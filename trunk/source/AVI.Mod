@@ -174,7 +174,7 @@ IMPORT
 							(* We found the correct chunk *)
 							IF len > 0 THEN
 								done := TRUE;
-								bufAdr := SYSTEM.ADR( buf[0] );
+								bufAdr := ADDRESSOF( buf[0] );
 								r.Bytes( buf, 0, len, chunkSize );
 								buf[len] := CHR( 0 ); buf[len+1] := CHR( 0 ); buf[len+2] := CHR( 0 ); buf[len+3] := CHR( 0 );
 								ASSERT( len = chunkSize );
@@ -1322,23 +1322,23 @@ VAR
 	temp: LONGINT;
 	bufAdr: LONGINT;
 BEGIN
-	bufAdr := SYSTEM.ADR( buf[0] );
+	bufAdr := ADDRESSOF( buf[0] );
 	posInLONGINT := index MOD 32;
 	nbit := ( posInLONGINT+ n ) - 32;
 
 	IF nbit > 0 THEN
 		(* We have to read two 32 bit values *)
-		temp := SYSTEM.LSH( index - posInLONGINT , -3 ) + bufAdr;
+		temp := LSH( index - posInLONGINT , -3 ) + bufAdr;
 		bufa := Machine.ChangeByteOrder( SYSTEM.GET32( temp ) );
 		bufb := Machine.ChangeByteOrder( SYSTEM.GET32( temp + 4 ) );
 
-		 temp := SYSTEM.LSH( SYSTEM.LSH( bufa, posInLONGINT ),  nbit - posInLONGINT );
-		RETURN SYSTEM.VAL( LONGINT, SYSTEM.VAL( SET, SYSTEM.LSH( bufb, nbit - 32 ) ) + SYSTEM.VAL( SET, temp ) )
+		 temp := LSH( LSH( bufa, posInLONGINT ),  nbit - posInLONGINT );
+		RETURN SYSTEM.VAL( LONGINT, SYSTEM.VAL( SET, LSH( bufb, nbit - 32 ) ) + SYSTEM.VAL( SET, temp ) )
 	ELSE
 		(* Reading one 32 value is sufficient *)
-		bufa := Machine.ChangeByteOrder( SYSTEM.GET32( SYSTEM.LSH( index - posInLONGINT, -3 ) + bufAdr ) );
+		bufa := Machine.ChangeByteOrder( SYSTEM.GET32( LSH( index - posInLONGINT, -3 ) + bufAdr ) );
 
-		RETURN SYSTEM.LSH( SYSTEM.LSH( bufa, posInLONGINT ),  n - 32 )
+		RETURN LSH( LSH( bufa, posInLONGINT ),  n - 32 )
 	END;
 END ShowBits;
 

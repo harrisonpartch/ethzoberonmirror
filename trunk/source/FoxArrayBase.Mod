@@ -4,16 +4,16 @@ MODULE FoxArrayBase; (* stubs for array base runtime - can only be compiled by o
 IMPORT SYSTEM, KernelLog, Heaps, Math, MathL;
 
 TYPE
-	ADDRESS = LONGINT;
+	Address = LONGINT;
 
-	UnaryAALoop = PROCEDURE ( ladr, dadr, linc, dinc, len: ADDRESS );
-	UnaryASLoop = PROCEDURE ( ladr, dadr, linc, len: ADDRESS );
-	UnarySALoop = PROCEDURE ( ladr, dadr, dinc, len: ADDRESS );
-	BinaryAAALoop = PROCEDURE ( ladr, radr, dadr, linc, rinc, dinc, len: ADDRESS );
-	BinaryASALoop = PROCEDURE ( ladr, radr, dadr, linc, dinc, len: ADDRESS );
-	BinaryAASLoop = PROCEDURE ( ladr, radr, dadr, linc, rinc, len: ADDRESS );
-	BinaryAABLoop = PROCEDURE ( ladr, radr, linc, rinc, len: ADDRESS ): BOOLEAN;
-	BinaryASBLoop = PROCEDURE ( ladr, radr, linc, len: ADDRESS ): BOOLEAN;
+	UnaryAALoop = PROCEDURE ( ladr, dadr, linc, dinc, len: Address );
+	UnaryASLoop = PROCEDURE ( ladr, dadr, linc, len: Address );
+	UnarySALoop = PROCEDURE ( ladr, dadr, dinc, len: Address );
+	BinaryAAALoop = PROCEDURE ( ladr, radr, dadr, linc, rinc, dinc, len: Address );
+	BinaryASALoop = PROCEDURE ( ladr, radr, dadr, linc, dinc, len: Address );
+	BinaryAASLoop = PROCEDURE ( ladr, radr, dadr, linc, rinc, len: Address );
+	BinaryAABLoop = PROCEDURE ( ladr, radr, linc, rinc, len: Address ): BOOLEAN;
+	BinaryASBLoop = PROCEDURE ( ladr, radr, linc, len: Address ): BOOLEAN;
 CONST
 	debug = FALSE;   (* warning: debug=true -> a lot of output is generated -> traps are not displayed in Oberon (Kernel overflow) *)
 	statistics= FALSE;
@@ -21,7 +21,7 @@ CONST
 
 	ArrDataArrayOffset=16; (* offset of data in array with pointers *)
 
-	AddressSize=SYSTEM.SIZEOF(ADDRESS);
+	AddressSize=SIZEOF(Address);
 	MathPtrOffset=0*AddressSize;
 	MathAdrOffset=1*AddressSize;
 	MathFlagsOffset=2*AddressSize;
@@ -178,7 +178,7 @@ VAR
 	END Err;
 
 	(* get increment of dimension dim *)
-	PROCEDURE GetIncr(base,dim: ADDRESS): LONGINT;
+	PROCEDURE GetIncr(base,dim: Address): LONGINT;
 	VAR result: LONGINT;
 	BEGIN
 		SYSTEM.GET(base+MathIncrOffset+8*dim,result);
@@ -186,13 +186,13 @@ VAR
 	END GetIncr;
 
 	(* set increment of dimension dim *)
-	PROCEDURE PutInc(base,dim,val: ADDRESS);
+	PROCEDURE PutInc(base,dim,val: Address);
 	BEGIN
 		SYSTEM.PUT(base+MathIncrOffset+8*dim,val)
 	END PutInc;
 
 	(* get length of dimension dim *)
-	PROCEDURE GetLen(base,dim: ADDRESS): LONGINT;
+	PROCEDURE GetLen(base,dim: Address): LONGINT;
 	VAR result: LONGINT;
 	BEGIN
 		SYSTEM.GET(base+MathLenOffset+8*dim,result);
@@ -200,13 +200,13 @@ VAR
 	END GetLen;
 
 	(* set length of dimension dim *)
-	PROCEDURE PutLen(base,dim,val: ADDRESS);
+	PROCEDURE PutLen(base,dim,val: Address);
 	BEGIN
 		SYSTEM.PUT(base+MathLenOffset+8*dim,val)
 	END PutLen;
 
 	(* get data address *)
-	PROCEDURE GetAdr(base: ADDRESS): ADDRESS;
+	PROCEDURE GetAdr(base: Address): Address;
 	VAR result: LONGINT;
 	BEGIN
 		SYSTEM.GET(base+MathAdrOffset,result);
@@ -214,13 +214,13 @@ VAR
 	END GetAdr;
 
 	(* set data address *)
-	PROCEDURE PutAdr(base,value: ADDRESS);
+	PROCEDURE PutAdr(base,value: Address);
 	BEGIN
 		SYSTEM.PUT(base+MathAdrOffset,value)
 	END PutAdr;
 
 	(* get data base pointer (GC protection) *)
-	PROCEDURE GetPtr(base: ADDRESS): ADDRESS;
+	PROCEDURE GetPtr(base: Address): Address;
 	VAR result: LONGINT;
 	BEGIN
 		SYSTEM.GET(base+MathPtrOffset,result);
@@ -228,40 +228,40 @@ VAR
 	END GetPtr;
 
 	(* set data base pointer (GC protection) *)
-	PROCEDURE PutPtr(base,value: ADDRESS);
+	PROCEDURE PutPtr(base,value: Address);
 	BEGIN
 		SYSTEM.PUT(base+MathPtrOffset,value)
 	END PutPtr;
 
-	PROCEDURE GetSize( base: ADDRESS ): LONGINT;
+	PROCEDURE GetSize( base: Address ): LONGINT;
 	VAR dim: LONGINT;
 	BEGIN
 		IF base = 0 THEN RETURN 0 ELSE SYSTEM.GET( base + MathElementSizeOffset, dim );  RETURN dim;  END;
 	END GetSize;
 
-	PROCEDURE PutSize( base: ADDRESS;  dim: LONGINT );
+	PROCEDURE PutSize( base: Address;  dim: LONGINT );
 	BEGIN
 		SYSTEM.PUT( base + MathElementSizeOffset, dim );
 	END PutSize;
 
-	PROCEDURE GetDim( base: ADDRESS ): LONGINT;
+	PROCEDURE GetDim( base: Address ): LONGINT;
 	VAR dim: LONGINT;
 	BEGIN
 		IF base = 0 THEN RETURN 0 ELSE SYSTEM.GET( base + MathDimOffset, dim );  RETURN dim;  END;
 	END GetDim;
 
-	PROCEDURE GetFlags( base: ADDRESS ): SET;
+	PROCEDURE GetFlags( base: Address ): SET;
 	VAR set: SET;
 	BEGIN
 		SYSTEM.GET( base + MathFlagsOffset, set );  RETURN set;
 	END GetFlags;
 
-	PROCEDURE PutDim( base: ADDRESS;  dim: LONGINT );
+	PROCEDURE PutDim( base: Address;  dim: LONGINT );
 	BEGIN
 		SYSTEM.PUT( base + MathDimOffset, dim );
 	END PutDim;
 
-	PROCEDURE PutFlags( base: ADDRESS;  flags: SET );
+	PROCEDURE PutFlags( base: Address;  flags: SET );
 	BEGIN
 		SYSTEM.PUT( base + MathFlagsOffset, flags );
 	END PutFlags;
@@ -384,7 +384,7 @@ VAR
 
  (* find the largest block with a regular pattern of the form offset+{i*li: 0<=i<len}. d is dimension applying to the resulting loop *)
 
-	PROCEDURE FindPattern1( left, dim: ADDRESS;  VAR d, len, linc: LONGINT );
+	PROCEDURE FindPattern1( left, dim: Address;  VAR d, len, linc: LONGINT );
 	BEGIN
 		d := dim - 1;  len := GetLen( left, d );
 		WHILE (len = 1) & (d > 0) DO DEC( d );  len := GetLen( left, d );
@@ -401,7 +401,7 @@ VAR
 	END FindPattern1;
 
 (* find the largest block with a regular pattern of the form offset+{i*linc: 0<=i<len} for two arrays simultaneously. d is dimension applying to the resulting loop *)
-	PROCEDURE FindPattern2( left, right: ADDRESS;  dim: LONGINT;
+	PROCEDURE FindPattern2( left, right: Address;  dim: LONGINT;
 												 VAR d, len, linc, ri: LONGINT );
 	(* geometric precondition: lengths must coincide *)
 	BEGIN
@@ -419,7 +419,7 @@ VAR
 	END FindPattern2;
 
 (* find the largest block with a regular pattern of the form offset+{i*linc: 0<=i<len} for three arrays simultaneously. d is dimension applying to the resulting loop *)
-	PROCEDURE FindPattern3( left, right, dest: ADDRESS;  dim: LONGINT;
+	PROCEDURE FindPattern3( left, right, dest: Address;  dim: LONGINT;
 												 VAR d, len, linc, ri, di: LONGINT );
 	(* geometric precondition: lengths must coincide *)
 	BEGIN
@@ -440,7 +440,7 @@ VAR
 		END;
 	END FindPattern3;
 
-	PROCEDURE Reverse( src: ADDRESS;  dim: LONGINT );
+	PROCEDURE Reverse( src: Address;  dim: LONGINT );
 	VAR d, sl, sr: LONGINT;
 	BEGIN
 		d := 0;  sl := GetAdr( src );
@@ -452,7 +452,7 @@ VAR
 	END Reverse;
 
 (* check if forward copy may be performed *)
-	PROCEDURE CopyUpCompatible( dest, src: ADDRESS;  VAR modes: SET );
+	PROCEDURE CopyUpCompatible( dest, src: Address;  VAR modes: SET );
 	VAR d, sl, sr, dl, dr: LONGINT;  dim: LONGINT;
 		(* precondition: len(src,i)=len(dest,i) *)
 		(* for forward src -> dest copy compatibility src must not be overwritten before src is copied.
@@ -484,7 +484,7 @@ Sufficient (but not necessary) conditions:
 		END;
 	END CopyUpCompatible;
 
-	PROCEDURE AllocateTemp( VAR dest: ADDRESS;  src: ADDRESS;
+	PROCEDURE AllocateTemp( VAR dest: Address;  src: Address;
 												  Size: LONGINT ): ANY;
 	(* allocate a temporary block containing both descriptor and data *)
 	VAR d, len, i: LONGINT;  p: ANY;  dim: LONGINT;
@@ -492,9 +492,9 @@ Sufficient (but not necessary) conditions:
 		IF statistics THEN INC( allocTemp ) END;
 		d := 0;  len := Size;  dim := GetDim( src );
 		WHILE (d < dim) DO len := len * GetLen( src, d );  INC( d );  END;
-		INC( len, 2 * dim * SYSTEM.SIZEOF( LONGINT ) + MathLenOffset );  SYSTEM.NEW( p, len );
+		INC( len, 2 * dim * SIZEOF( LONGINT ) + MathLenOffset );  SYSTEM.NEW( p, len );
 		dest := SYSTEM.VAL( LONGINT, p );
-		PutAdr( dest, dest + dim * 2 * SYSTEM.SIZEOF( LONGINT ) + MathLenOffset );
+		PutAdr( dest, dest + dim * 2 * SIZEOF( LONGINT ) + MathLenOffset );
 		PutPtr( dest, dest );  PutDim( dest, dim );  len := Size;
 		FOR i := 0 TO dim - 1 DO
 			PutInc( dest, i, len );  PutLen( dest, i, GetLen( src, i ) );
@@ -508,13 +508,13 @@ Sufficient (but not necessary) conditions:
 	(*** procedures to traverse arrays and apply operators *)
 
 (** apply unary operator to array:  array -> array *)
-	PROCEDURE ApplyUnaryAAOp( d, l: ADDRESS;  elementSize: LONGINT;
+	PROCEDURE ApplyUnaryAAOp( d, l: Address;  elementSize: LONGINT;
 														Loop: UnaryAALoop );
 	VAR loopd, looplen, loopli, loopdi: LONGINT;  p: ANY;  glen: LONGINT;
 		origdest: LONGINT;  modes: SET;
 	VAR dest, left, dim: LONGINT;
 
-		PROCEDURE Traverse( dim: LONGINT;  ladr, dadr: ADDRESS );
+		PROCEDURE Traverse( dim: LONGINT;  ladr, dadr: Address );
 		VAR len: LONGINT;  linc, dinc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN
@@ -562,11 +562,11 @@ Sufficient (but not necessary) conditions:
 	END ApplyUnaryAAOp;
 
 (** apply unary operator to array:  array -> scalar *)
-	PROCEDURE ApplyUnaryASOp( dest, l: ADDRESS;  Loop: UnaryASLoop );
+	PROCEDURE ApplyUnaryASOp( dest, l: Address;  Loop: UnaryASLoop );
 	VAR loopd, looplen, loopli: LONGINT;  glen: LONGINT;
 	VAR left, dim: LONGINT;
 
-		PROCEDURE Traverse( dim: LONGINT;  ladr: ADDRESS );
+		PROCEDURE Traverse( dim: LONGINT;  ladr: Address );
 		VAR len: LONGINT;  linc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN
@@ -594,11 +594,11 @@ Sufficient (but not necessary) conditions:
 	END ApplyUnaryASOp;
 
 (** apply unary operator to array:  scalar -> array *)
-	PROCEDURE ApplyUnarySAOp( d, right: ADDRESS;  Loop: UnarySALoop );
+	PROCEDURE ApplyUnarySAOp( d, right: Address;  Loop: UnarySALoop );
 	VAR loopd, looplen, loopdi: LONGINT;  glen: LONGINT;
 	VAR dest, dim: LONGINT;
 
-		PROCEDURE Traverse( dim: LONGINT;  dadr: ADDRESS );
+		PROCEDURE Traverse( dim: LONGINT;  dadr: Address );
 		VAR len: LONGINT;  dinc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN
@@ -628,12 +628,12 @@ Sufficient (but not necessary) conditions:
 (** apply binary operator : array x array -> array *)
 
 
-	PROCEDURE ApplyBinaryAAAOp( d, l, r: ADDRESS;  elementSize: LONGINT;
+	PROCEDURE ApplyBinaryAAAOp( d, l, r: Address;  elementSize: LONGINT;
 														    Loop: BinaryAAALoop );
 	VAR loopd, looplen, loopli, loopri, loopdi: LONGINT;  p: ANY;  glen: LONGINT;
-		origdest: LONGINT;  modes: SET;  left, right, dest: ADDRESS;  dim: LONGINT;
+		origdest: LONGINT;  modes: SET;  left, right, dest: Address;  dim: LONGINT;
 
-		PROCEDURE Traverse( dim: LONGINT;  ladr, radr, dadr: ADDRESS );
+		PROCEDURE Traverse( dim: LONGINT;  ladr, radr, dadr: Address );
 		VAR len: LONGINT;  linc, rinc, dinc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN
@@ -685,13 +685,13 @@ Sufficient (but not necessary) conditions:
 
 (** apply binary operator: array x scalar -> array *)
 
-	PROCEDURE ApplyBinaryASAOp( d, l, right: ADDRESS;
+	PROCEDURE ApplyBinaryASAOp( d, l, right: Address;
 														   elementSize: LONGINT;
 														   Loop: BinaryASALoop );
 	VAR loopd, looplen, loopli, loopdi: LONGINT;  p: ANY;  glen: LONGINT;
 		origdest: LONGINT;  modes: SET;  dest, left, dim: LONGINT;
 
-		PROCEDURE Traverse( dim: LONGINT;  ladr, dadr: ADDRESS );
+		PROCEDURE Traverse( dim: LONGINT;  ladr, dadr: Address );
 		VAR len: LONGINT;  linc, dinc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN
@@ -743,11 +743,11 @@ Sufficient (but not necessary) conditions:
 
 (** apply binary operator: array x array -> scalar *)
 
-	PROCEDURE ApplyBinaryAASOp( dest, l, r: ADDRESS;  Loop: BinaryAASLoop );
+	PROCEDURE ApplyBinaryAASOp( dest, l, r: Address;  Loop: BinaryAASLoop );
 	VAR loopd, looplen, loopli, loopri: LONGINT;  glen: LONGINT;
 		left, right, dim: LONGINT;
 
-		PROCEDURE Traverse( dim: LONGINT;  ladr, radr: ADDRESS );
+		PROCEDURE Traverse( dim: LONGINT;  ladr, radr: Address );
 		VAR len: LONGINT;  linc, rinc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN
@@ -786,11 +786,11 @@ Sufficient (but not necessary) conditions:
 
 (** special binary operator: array x array -> boolean *)
 
-	PROCEDURE ApplyBinaryAABOp( l, r: ADDRESS;
+	PROCEDURE ApplyBinaryAABOp( l, r: Address;
 														    Loop: BinaryAABLoop; geometryMismatchDefault: BOOLEAN ): BOOLEAN;
 	VAR loopd, looplen, loopli, loopri: LONGINT;  left, right, dim: LONGINT;
 
-		PROCEDURE Traverse( dim: LONGINT;  ladr, radr: ADDRESS ): BOOLEAN;
+		PROCEDURE Traverse( dim: LONGINT;  ladr, radr: Address ): BOOLEAN;
 		VAR len: LONGINT;  linc, rinc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN RETURN Loop( ladr, radr, loopli, loopri, looplen );
@@ -821,11 +821,11 @@ Sufficient (but not necessary) conditions:
 
 (** special binary operator: array x scalar -> boolean *)
 
-	PROCEDURE ApplyBinaryASBOp( l, right: ADDRESS;
+	PROCEDURE ApplyBinaryASBOp( l, right: Address;
 														   Loop: BinaryASBLoop ): BOOLEAN;
 	VAR loopd, looplen, loopli: LONGINT;  left, dim: LONGINT;
 
-		PROCEDURE Traverse( dim: LONGINT;  ladr: ADDRESS ): BOOLEAN;
+		PROCEDURE Traverse( dim: LONGINT;  ladr: Address ): BOOLEAN;
 		VAR len: LONGINT;  linc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN RETURN Loop( ladr, right, loopli, looplen );
@@ -1010,7 +1010,7 @@ Sufficient (but not necessary) conditions:
 			END;
 		END Loop;
 
-		PROCEDURE Traverse( dim: LONGINT;  ladr, dadr: ADDRESS );
+		PROCEDURE Traverse( dim: LONGINT;  ladr, dadr: Address );
 		VAR len: LONGINT;  linc, dinc: LONGINT;
 		BEGIN
 			IF dim = loopd THEN
@@ -1112,7 +1112,7 @@ Sufficient (but not necessary) conditions:
 		END;
 	END AllocateSame;
 
-	PROCEDURE TempDescCopy( src: ADDRESS ): ANY;
+	PROCEDURE TempDescCopy( src: Address ): ANY;
 	VAR p: ANY;  dim: LONGINT;
 	BEGIN
 		dim := GetDim( src );  SYSTEM.NEW( p, dim * 8 + MathLenOffset );
@@ -1120,14 +1120,14 @@ Sufficient (but not necessary) conditions:
 		PutPtr( src, 0 );  PutFlags( src, {} );  RETURN p;
 	END TempDescCopy;
 
-	PROCEDURE CopyArraySelf*( dest, src: ADDRESS;  elementsize: LONGINT );
+	PROCEDURE CopyArraySelf*( dest, src: Address;  elementsize: LONGINT );
 	VAR p: ANY;
 	BEGIN
 		ASSERT( src = dest );  p := TempDescCopy( src );
 		CopyArray( dest, SYSTEM.VAL( LONGINT, p ), elementsize );
 	END CopyArraySelf;
 
-	PROCEDURE CopyArray*( dest: ADDRESS;  src: ADDRESS; elementsize: LONGINT );
+	PROCEDURE CopyArray*( dest: Address;  src: Address; elementsize: LONGINT );
 	VAR p: ANY; srcdim, destdim: LONGINT;
 	BEGIN
 		ASSERT( dest # 0 );   (* impossible unless compiler error *)
@@ -1147,12 +1147,12 @@ Sufficient (but not necessary) conditions:
 		END;
 	END CopyArray;
 
-	PROCEDURE CopyTensorSelf*( VAR dest: ADDRESS; src: ADDRESS; elementsize: LONGINT );
+	PROCEDURE CopyTensorSelf*( VAR dest: Address; src: Address; elementsize: LONGINT );
 	BEGIN
 		dest := 0;  CopyTensor( dest, src, elementsize );
 	END CopyTensorSelf;
 
-	PROCEDURE CopyTensor*( VAR dest: ADDRESS;  src: ADDRESS;
+	PROCEDURE CopyTensor*( VAR dest: Address;  src: Address;
 												 elementsize: LONGINT );
 	VAR p: ANY;
 	BEGIN
@@ -1166,7 +1166,7 @@ Sufficient (but not necessary) conditions:
 	END CopyTensor;
 
 	(* copy descriptor of src to that of dest. If not existent then create.*)
-	PROCEDURE ShallowCopy*(VAR dest: ADDRESS; src: ADDRESS);
+	PROCEDURE ShallowCopy*(VAR dest: Address; src: Address);
 	VAR ptr: ANY;
 
 		PROCEDURE UseTypeDescriptor;
@@ -1178,7 +1178,7 @@ Sufficient (but not necessary) conditions:
 
 		PROCEDURE CopyDescriptor;
 		BEGIN
-			SYSTEM.MOVE( src , dest, MathLenOffset + SYSTEM.SIZEOF(ADDRESS) *  GetDim( src ) *2 );
+			SYSTEM.MOVE( src , dest, MathLenOffset + SIZEOF(Address) *  GetDim( src ) *2 );
 		END CopyDescriptor;
 
 	BEGIN
@@ -1222,8 +1222,8 @@ Sufficient (but not necessary) conditions:
 			KernelLog.String( "DescriptorCopy from " );  KernelLog.Int( src, 1 );  KernelLog.String( " to " );
 			KernelLog.Int( dest, 1 );  KernelLog.Ln;
 		END;
-		SYSTEM.MOVE( src, dest, 2*SYSTEM.SIZEOF(ADDRESS) );   (* adr and ptr *)
-		SYSTEM.MOVE( src + MathLenOffset, dest + MathLenOffset, SYSTEM.SIZEOF(ADDRESS) *  GetDim( src ) *2 );   (* lens and increments *)
+		SYSTEM.MOVE( src, dest, 2*SIZEOF(Address) );   (* adr and ptr *)
+		SYSTEM.MOVE( src + MathLenOffset, dest + MathLenOffset, SIZEOF(Address) *  GetDim( src ) *2 );   (* lens and increments *)
 	END DescriptorCopy;
 
 	PROCEDURE ZeroCopy*(CONST src: ARRAY [?]; VAR dest: ARRAY [?]);
@@ -1231,7 +1231,7 @@ Sufficient (but not necessary) conditions:
 	BEGIN
 		s := SYSTEM.VAL(LONGINT,src); d := SYSTEM.VAL(LONGINT,dest);
 		ShallowCopy(d,s);
-		SYSTEM.PUT(SYSTEM.ADR(dest),d);
+		SYSTEM.PUT(ADDRESSOF(dest),d);
 	END ZeroCopy;
 
 	PROCEDURE SameShape( l, r: LONGINT ): BOOLEAN;
@@ -1247,7 +1247,7 @@ Sufficient (but not necessary) conditions:
 	END SameShape;
 
 	(*
-	PROCEDURE ZeroCopyArray*( dest: ADDRESS;  src: ADDRESS; elementsize: LONGINT );
+	PROCEDURE ZeroCopyArray*( dest: Address;  src: Address; elementsize: LONGINT );
 	(*
 		called as ZeroCopy(A,B,Size) with enhanced arrays A,B
 		check if deep copy can be avoided and if so then do a shallow copy
@@ -1267,15 +1267,15 @@ Sufficient (but not necessary) conditions:
 		END;
 	END ZeroCopyArray;
 
-	PROCEDURE ZeroCopyTensor*( VAR dest: ADDRESS;  src: ADDRESS; elementsize: LONGINT );
+	PROCEDURE ZeroCopyTensor*( VAR dest: Address;  src: Address; elementsize: LONGINT );
 	(*
 		called as ZeroCopy(A,B,Size) with A,B: ARRAY [?] OF ...
 		check if deep copy can be avoided and if so then do a shallow copy
 	*)
 	BEGIN
 		IF debug THEN
-			KernelLog.String( "ZeroCopy2: " );  KernelLog.String( "SYSTEM.ADR(dest) " );  KernelLog.Int( SYSTEM.ADR( dest ), 10 );
-			KernelLog.Ln;  KernelLog.String( "SYSTEM.ADR(src) " );  KernelLog.Int( SYSTEM.ADR( src ), 10 );  KernelLog.Ln;
+			KernelLog.String( "ZeroCopy2: " );  KernelLog.String( "ADDRESSOF(dest) " );  KernelLog.Int( ADDRESSOF( dest ), 10 );
+			KernelLog.Ln;  KernelLog.String( "ADDRESSOF(src) " );  KernelLog.Int( ADDRESSOF( src ), 10 );  KernelLog.Ln;
 			KernelLog.String( "dest " );  KernelLog.Int( dest, 10 );  KernelLog.Ln;  KernelLog.String( "src " );
 			KernelLog.Int( src, 10 );  KernelLog.Ln;  KernelLog.String( "elementsize" );
 			KernelLog.Int( elementsize, 10 );  KernelLog.Ln;
@@ -1333,13 +1333,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF SHORTINT ): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( INTEGER ),ConvertASAILoop );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( INTEGER ),ConvertASAILoop );
 		RETURN RESULT
 	END "@Convert";
 
 	OPERATOR "LONG"*(CONST src: ARRAY [ ? ] OF SHORTINT ): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( INTEGER ),ConvertASAILoop );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( INTEGER ),ConvertASAILoop );
 		RETURN RESULT
 	END "LONG";
 
@@ -1354,7 +1354,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF SHORTINT ): ARRAY [?] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ),ConvertLoopSL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ),ConvertLoopSL );
 		RETURN RESULT
 	END "@Convert";
 
@@ -1370,7 +1370,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF SHORTINT ): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( REAL ), ConvertLoopSR );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( REAL ), ConvertLoopSR );
 		RETURN RESULT
 	END "@Convert";
 
@@ -1386,7 +1386,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF SHORTINT ):  ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGREAL ), ConvertLoopSX );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGREAL ), ConvertLoopSX );
 		RETURN RESULT
 	END "@Convert";
 
@@ -1402,13 +1402,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( SHORTINT ), ConvertLoopIS );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( SHORTINT ), ConvertLoopIS );
 		RETURN RESULT
 	END "@Convert";
 
 	OPERATOR "SHORT"*(CONST src: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( SHORTINT ), ConvertLoopIS );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( SHORTINT ), ConvertLoopIS );
 		RETURN RESULT
 	END "SHORT";
 
@@ -1424,13 +1424,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ), ConvertLoopIL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ), ConvertLoopIL );
 		RETURN RESULT
 	END "@Convert";
 
 	OPERATOR "LONG"*(CONST src: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ), ConvertLoopIL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ), ConvertLoopIL );
 		RETURN RESULT
 	END "LONG";
 
@@ -1446,7 +1446,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF INTEGER ):  ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( REAL ), ConvertLoopIR );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( REAL ), ConvertLoopIR );
 		RETURN RESULT
 	END "@Convert";
 
@@ -1462,7 +1462,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF INTEGER ):  ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGREAL ), ConvertLoopIX );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGREAL ), ConvertLoopIX );
 		RETURN RESULT
 	END "@Convert";
 
@@ -1478,13 +1478,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( INTEGER ),ConvertLoopLI );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( INTEGER ),ConvertLoopLI );
 		RETURN RESULT
 	END "@Convert";
 
 	OPERATOR "SHORT"*(CONST src: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( INTEGER ),ConvertLoopLI );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( INTEGER ),ConvertLoopLI );
 		RETURN RESULT
 	END "SHORT";
 
@@ -1500,7 +1500,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( REAL ), ConvertLoopLR );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( REAL ), ConvertLoopLR );
 		RETURN RESULT
 	END "@Convert";
 
@@ -1516,7 +1516,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGREAL ), ConvertLoopLX );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGREAL ), ConvertLoopLX );
 		RETURN RESULT
 	END "@Convert";
 
@@ -1532,13 +1532,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF REAL ):  ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ), ConvertLoopRL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ), ConvertLoopRL );
 		RETURN RESULT
 	END "@Convert";
 
 	OPERATOR "ENTIER"*(CONST src: ARRAY [ ? ] OF REAL ):  ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ), ConvertLoopRL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ), ConvertLoopRL );
 		RETURN RESULT
 	END "ENTIER";
 
@@ -1554,13 +1554,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF REAL ):  ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGREAL ), ConvertLoopRX );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGREAL ), ConvertLoopRX );
 		RETURN RESULT
 	END "@Convert";
 
 	OPERATOR "LONG"*(CONST src: ARRAY [ ? ] OF REAL ):  ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGREAL ), ConvertLoopRX );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGREAL ), ConvertLoopRX );
 		RETURN RESULT
 	END "LONG";
 
@@ -1576,13 +1576,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF LONGREAL ):  ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( REAL ), ConvertLoopXR );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( REAL ), ConvertLoopXR );
 		RETURN RESULT
 	END "@Convert";
 
 	OPERATOR "SHORT"*(CONST src: ARRAY [ ? ] OF LONGREAL ):  ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( REAL ), ConvertLoopXR );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( REAL ), ConvertLoopXR );
 		RETURN RESULT
 	END "SHORT";
 
@@ -1598,13 +1598,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@Convert"*(CONST src: ARRAY [ ? ] OF LONGREAL ):  ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ),ConvertLoopXL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ),ConvertLoopXL );
 		RETURN RESULT
 	END "@Convert";
 
 	OPERATOR "ENTIER"*(CONST src: ARRAY [ ? ] OF LONGREAL ):  ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ),ConvertLoopXL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ),ConvertLoopXL );
 		RETURN RESULT
 	END "ENTIER";
 
@@ -1622,7 +1622,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "~"*(CONST src: ARRAY [ ? ] OF BOOLEAN): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( BOOLEAN ), NotLoopAB );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( BOOLEAN ), NotLoopAB );
 		RETURN RESULT
 	END "~";
 
@@ -1641,7 +1641,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST src: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( SHORTINT ), MinusLoopS );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( SHORTINT ), MinusLoopS );
 		RETURN RESULT
 	END "-";
 
@@ -1657,7 +1657,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST src: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( INTEGER ), MinusLoopI );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( INTEGER ), MinusLoopI );
 		RETURN RESULT
 	END "-";
 
@@ -1673,7 +1673,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST src: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ), MinusLoopL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ), MinusLoopL );
 		RETURN RESULT
 	END "-";
 
@@ -1690,7 +1690,7 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "-"*(CONST src: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF REAL;
 	BEGIN
 		IF debug THEN KernelLog.String( "MinusAR" );  KernelLog.Ln;  END;
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( REAL ), MinusLoopR );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( REAL ), MinusLoopR );
 		RETURN RESULT
 	END "-";
 
@@ -1706,7 +1706,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST src: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGREAL ),
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGREAL ),
 									   MinusLoopX );
 		RETURN RESULT
 	END "-";
@@ -1725,8 +1725,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left,right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), AddASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), AddASASLoop );
 		RETURN RESULT
 	END "+";
 
@@ -1742,8 +1742,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left,right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), AddAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), AddAIAILoop );
 		RETURN RESULT
 	END "+";
 
@@ -1759,8 +1759,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left,right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), AddALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), AddALALLoop );
 		RETURN RESULT
 	END "+";
 
@@ -1776,7 +1776,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left,right: ARRAY [?] OF REAL): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  loopAddARAR );
 		RETURN RESULT
 	END "+";
@@ -1793,8 +1793,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left,right: ARRAY [?] OF LONGREAL): ARRAY [?] OF LONGREAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), loopAddAXAX );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), loopAddAXAX );
 		RETURN RESULT
 	END "+";
 
@@ -1810,8 +1810,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left,right: ARRAY [?] OF COMPLEX): ARRAY [?] OF COMPLEX;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( COMPLEX ), loopAddAZAZ );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( COMPLEX ), loopAddAZAZ );
 		RETURN RESULT
 	END "+";
 
@@ -1821,9 +1821,9 @@ Sufficient (but not necessary) conditions:
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;
 	BEGIN
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
-			SYSTEM.PUT( dadr, lvalRe+rvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), lvalIm+rvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
+			SYSTEM.PUT( dadr, lvalRe+rvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), lvalIm+rvalIm );
 			INC( ladr, linc );  INC( radr, rinc );  INC( dadr, dinc );
 			DEC( len );
 		END;
@@ -1831,8 +1831,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left,right: ARRAY [?] OF LONGCOMPLEX): ARRAY [?] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGCOMPLEX ), loopAddALZALZ );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGCOMPLEX ), loopAddALZALZ );
 		RETURN RESULT
 	END "+";
 
@@ -1851,15 +1851,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), AddASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), AddASSSLoop );
 		RETURN RESULT
 	END "+";
 
 	OPERATOR "+"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( SHORTINT ), AddASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( SHORTINT ), AddASSSLoop );
 		RETURN RESULT
 	END "+";
 
@@ -1876,15 +1876,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), AddAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), AddAISILoop );
 		RETURN RESULT
 	END "+";
 
 	OPERATOR "+"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( INTEGER ), AddAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( INTEGER ), AddAISILoop );
 		RETURN RESULT
 	END "+";
 
@@ -1901,15 +1901,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), AddALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), AddALSLLoop );
 		RETURN RESULT
 	END "+";
 
 	OPERATOR "+"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGINT ), AddALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGINT ), AddALSLLoop );
 		RETURN RESULT
 	END "+";
 
@@ -1926,14 +1926,14 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  AddARSRLoop );
 		RETURN RESULT
 	END "+";
 
 	OPERATOR "+"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  AddARSRLoop );
 		RETURN RESULT
 	END "+";
@@ -1951,15 +1951,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), AddAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), AddAXSXLoop );
 		RETURN RESULT
 	END "+";
 
 	OPERATOR "+"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGREAL ), AddAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGREAL ), AddAXSXLoop );
 		RETURN RESULT
 	END "+";
 
@@ -1977,14 +1977,14 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left: ARRAY [ ? ] OF COMPLEX; right: COMPLEX ): ARRAY [ ? ] OF COMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( COMPLEX ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( COMPLEX ),
 										  AddAZSZLoop );
 		RETURN RESULT
 	END "+";
 
 	OPERATOR "+"*(left: COMPLEX; CONST right: ARRAY [ ? ] OF COMPLEX): ARRAY [ ? ] OF COMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( COMPLEX ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( COMPLEX ),
 										  AddAZSZLoop );
 		RETURN RESULT
 	END "+";
@@ -1993,10 +1993,10 @@ Sufficient (but not necessary) conditions:
 	PROCEDURE AddALZSLZLoop( ladr, radr, dadr, linc, dinc, len: LONGINT );
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;
 	BEGIN
-		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
+		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.PUT( dadr, lvalRe + rvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), lvalIm + rvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.PUT( dadr, lvalRe + rvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), lvalIm + rvalIm );
 			INC( ladr, linc );
 			INC( dadr, dinc );  DEC( len );
 		END;
@@ -2004,14 +2004,14 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "+"*(CONST left: ARRAY [ ? ] OF LONGCOMPLEX; right: LONGCOMPLEX ): ARRAY [ ? ] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( LONGCOMPLEX ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGCOMPLEX ),
 										  AddALZSLZLoop );
 		RETURN RESULT
 	END "+";
 
 	OPERATOR "+"*(left: LONGCOMPLEX; CONST right: ARRAY [ ? ] OF LONGCOMPLEX): ARRAY [ ? ] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( LONGCOMPLEX ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( LONGCOMPLEX ),
 										  AddALZSLZLoop );
 		RETURN RESULT
 	END "+";
@@ -2030,8 +2030,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST left,right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), SubASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), SubASASLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2047,8 +2047,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST left,right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), SubAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), SubAIAILoop );
 		RETURN RESULT
 	END "-";
 
@@ -2064,8 +2064,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST left,right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), SubALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), SubALALLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2081,7 +2081,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST left,right: ARRAY [?] OF REAL): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  SubARARLoop );
 		RETURN RESULT
 	END "-";
@@ -2098,8 +2098,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST left,right: ARRAY [?] OF LONGREAL): ARRAY [?] OF LONGREAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), SubAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), SubAXAXLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2115,8 +2115,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST left,right: ARRAY [?] OF COMPLEX): ARRAY [?] OF COMPLEX;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( COMPLEX ), SubAZAZLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( COMPLEX ), SubAZAZLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2125,9 +2125,9 @@ Sufficient (but not necessary) conditions:
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;
 	BEGIN
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
-			SYSTEM.PUT( dadr, lvalRe-rvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), lvalIm-rvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
+			SYSTEM.PUT( dadr, lvalRe-rvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), lvalIm-rvalIm );
 			INC( ladr, linc );  INC( radr, rinc );  INC( dadr, dinc );
 			DEC( len );
 		END;
@@ -2135,8 +2135,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(CONST left,right: ARRAY [?] OF LONGCOMPLEX): ARRAY [?] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGCOMPLEX ), SubALZALZLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGCOMPLEX ), SubALZALZLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2206,8 +2206,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( SHORTINT ), SubSSASLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( SHORTINT ), SubSSASLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2224,8 +2224,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( INTEGER ), SubSIAILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( INTEGER ), SubSIAILoop );
 		RETURN RESULT
 	END "-";
 
@@ -2242,8 +2242,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGINT ), SubSLALLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGINT ), SubSLALLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2260,7 +2260,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  SubSRARLoop );
 		RETURN RESULT
 	END "-";
@@ -2278,8 +2278,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGREAL ), SubSXAXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGREAL ), SubSXAXLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2297,8 +2297,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(left: COMPLEX; CONST right: ARRAY [ ? ] OF COMPLEX): ARRAY [ ? ] OF COMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( COMPLEX ), SubSZAZLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( COMPLEX ), SubSZAZLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2306,10 +2306,10 @@ Sufficient (but not necessary) conditions:
 	PROCEDURE SubSLZALZLoop( ladr, radr, dadr, linc, dinc, len: LONGINT );
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;
 	BEGIN
-		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
+		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.PUT( dadr, rvalRe-lvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), rvalIm-lvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.PUT( dadr, rvalRe-lvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), rvalIm-lvalIm );
 			INC( ladr, linc );
 			INC( dadr, dinc );  DEC( len );
 		END;
@@ -2317,8 +2317,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "-"*(left: LONGCOMPLEX; CONST right: ARRAY [ ? ] OF LONGCOMPLEX): ARRAY [ ? ] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGCOMPLEX ), SubSLZALZLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGCOMPLEX ), SubSLZALZLoop );
 		RETURN RESULT
 	END "-";
 
@@ -2336,8 +2336,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*"*(CONST left,right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), EMulASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), EMulASASLoop );
 		RETURN RESULT
 	END ".*";
 
@@ -2354,8 +2354,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*"*(CONST left,right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), EMulAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), EMulAIAILoop );
 		RETURN RESULT
 	END ".*";
 
@@ -2371,8 +2371,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*"*(CONST left,right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), EMulALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), EMulALALLoop );
 		RETURN RESULT
 	END ".*";
 
@@ -2388,7 +2388,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*"*(CONST left,right: ARRAY [?] OF REAL): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  EMulARARLoop );
 		RETURN RESULT
 	END ".*";
@@ -2405,8 +2405,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*"*(CONST left,right: ARRAY [?] OF LONGREAL): ARRAY [?] OF LONGREAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), EMulAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), EMulAXAXLoop );
 		RETURN RESULT
 	END ".*";
 
@@ -2423,8 +2423,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*"*(CONST left,right: ARRAY [?] OF COMPLEX): ARRAY [?] OF COMPLEX;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( COMPLEX ), EMulAZAZLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( COMPLEX ), EMulAZAZLoop );
 		RETURN RESULT
 	END ".*";
 
@@ -2433,9 +2433,9 @@ Sufficient (but not necessary) conditions:
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;
 	BEGIN
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
-			SYSTEM.PUT( dadr, lvalRe*rvalRe - lvalIm*rvalIm ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), lvalRe*rvalIm + lvalIm*rvalRe );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
+			SYSTEM.PUT( dadr, lvalRe*rvalRe - lvalIm*rvalIm ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), lvalRe*rvalIm + lvalIm*rvalRe );
 			INC( ladr, linc );  INC( radr, rinc );  INC( dadr, dinc );
 			DEC( len );
 		END;
@@ -2443,8 +2443,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*"*(CONST left,right: ARRAY [?] OF LONGCOMPLEX): ARRAY [?] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGCOMPLEX ), EMulALZALZLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGCOMPLEX ), EMulALZALZLoop );
 		RETURN RESULT
 	END ".*";
 
@@ -2462,8 +2462,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*+"*(CONST left,right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), EMulIncASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), EMulIncASASLoop );
 	END  ".*+";
 
 (** INTEGER *)
@@ -2479,8 +2479,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*+"*(CONST left,right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), EMulIncAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), EMulIncAIAILoop );
 	END  ".*+";
 
 (** LONGINT *)
@@ -2495,8 +2495,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*+"*(CONST left,right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), EMulIncALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), EMulIncALALLoop );
 	END  ".*+";
 
 (** REAL *)
@@ -2511,7 +2511,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*+"*(CONST left,right: ARRAY [?] OF REAL): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  EMulIncARARLoop );
 	END  ".*+";
 
@@ -2527,8 +2527,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".*+"*(CONST left,right: ARRAY [?] OF LONGREAL): ARRAY [?] OF LONGREAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), EMulIncAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), EMulIncAXAXLoop );
 	END  ".*+";
 	(*** multiply array x scalar -> array and scalar + array -> array ********************************************************************)
 
@@ -2545,15 +2545,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), MulASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), MulASSSLoop );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( SHORTINT ), MulASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( SHORTINT ), MulASSSLoop );
 		RETURN RESULT
 	END "*";
 
@@ -2570,15 +2570,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), MulAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), MulAISILoop );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( INTEGER ), MulAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( INTEGER ), MulAISILoop );
 		RETURN RESULT
 	END "*";
 
@@ -2595,15 +2595,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), MulALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), MulALSLLoop );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGINT ), MulALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGINT ), MulALSLLoop );
 		RETURN RESULT
 	END "*";
 
@@ -2620,14 +2620,14 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  loopMulARSR );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  loopMulARSR );
 		RETURN RESULT
 	END "*";
@@ -2651,15 +2651,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), loopMulAXSX );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), loopMulAXSX );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGREAL ), loopMulAXSX );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGREAL ), loopMulAXSX );
 		RETURN RESULT
 	END "*";
 
@@ -2677,14 +2677,14 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(CONST left: ARRAY [ ? ] OF COMPLEX; right: COMPLEX ): ARRAY [ ? ] OF COMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( COMPLEX ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( COMPLEX ),
 										  loopMulAZSZ );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(left: COMPLEX; CONST right: ARRAY [ ? ] OF COMPLEX): ARRAY [ ? ] OF COMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( COMPLEX ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( COMPLEX ),
 										  loopMulAZSZ );
 		RETURN RESULT
 	END "*";
@@ -2693,10 +2693,10 @@ Sufficient (but not necessary) conditions:
 	PROCEDURE MulALZSLZLoop( ladr, radr, dadr, linc, dinc, len: LONGINT );
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;
 	BEGIN
-		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
+		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.PUT( dadr, lvalRe * rvalRe - lvalIm*rvalIm ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), lvalRe * rvalIm + lvalIm*rvalRe );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.PUT( dadr, lvalRe * rvalRe - lvalIm*rvalIm ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), lvalRe * rvalIm + lvalIm*rvalRe );
 			INC( ladr, linc );
 			INC( dadr, dinc );  DEC( len );
 		END;
@@ -2704,14 +2704,14 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(CONST left: ARRAY [ ? ] OF LONGCOMPLEX; right: LONGCOMPLEX ): ARRAY [ ? ] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( LONGCOMPLEX ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGCOMPLEX ),
 										  loopMulALZSLZ );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(left: LONGCOMPLEX; CONST right: ARRAY [ ? ] OF LONGCOMPLEX): ARRAY [ ? ] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( LONGCOMPLEX ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( LONGCOMPLEX ),
 										  loopMulALZSLZ );
 		RETURN RESULT
 	END "*";
@@ -2731,14 +2731,14 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "IncMul"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), IncMulASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), IncMulASSSLoop );
 	END "IncMul";
 
 	OPERATOR "IncMul"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( SHORTINT ), IncMulASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( SHORTINT ), IncMulASSSLoop );
 		RETURN RESULT
 	END "IncMul";
 
@@ -2746,8 +2746,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "DecMul"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), IncMulASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), IncMulASSSLoop );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "DecMul";
@@ -2755,8 +2755,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "DecMul"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( SHORTINT ), IncMulASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( SHORTINT ), IncMulASSSLoop );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "DecMul";
@@ -2776,23 +2776,23 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "IncMul"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), IncMulAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), IncMulAISILoop );
 		RETURN RESULT
 	END "IncMul";
 
 	OPERATOR "IncMul"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( INTEGER ), IncMulAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( INTEGER ), IncMulAISILoop );
 		RETURN RESULT
 	END "IncMul";
 
 	OPERATOR "DecMul"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF INTEGER;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), IncMulAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), IncMulAISILoop );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "DecMul";
@@ -2800,8 +2800,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "DecMul"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( INTEGER ), IncMulAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( INTEGER ), IncMulAISILoop );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "DecMul";
@@ -2819,15 +2819,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "IncMul"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), IncMulALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), IncMulALSLLoop );
 		RETURN RESULT
 	END "IncMul";
 
 	OPERATOR "IncMul"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGINT ), IncMulALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGINT ), IncMulALSLLoop );
 		RETURN RESULT
 	END "IncMul";
 
@@ -2835,8 +2835,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "DecMul"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF LONGINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), IncMulALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), IncMulALSLLoop );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "DecMul";
@@ -2844,8 +2844,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "DecMul"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGINT ), IncMulALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGINT ), IncMulALSLLoop );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "DecMul";
@@ -2863,14 +2863,14 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "IncMul"*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  loopIncMulARSR );
 		RETURN RESULT
 	END "IncMul";
 
 	OPERATOR "IncMul"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  loopIncMulARSR );
 		RETURN RESULT
 	END "IncMul";
@@ -2878,7 +2878,7 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "DecMul"*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF REAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  loopIncMulARSR );
 		RESULT := -RESULT;
 		RETURN RESULT
@@ -2887,7 +2887,7 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "DecMul"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF REAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  loopIncMulARSR );
 		RESULT := -RESULT;
 		RETURN RESULT
@@ -2912,23 +2912,23 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "IncMul"*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), loopIncMulAXSX );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), loopIncMulAXSX );
 		RETURN RESULT
 	END "IncMul";
 
 	OPERATOR "IncMul"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGREAL ), loopIncMulAXSX );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGREAL ), loopIncMulAXSX );
 		RETURN RESULT
 	END "IncMul";
 
 	OPERATOR "DecMul"*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), loopIncMulAXSX );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), loopIncMulAXSX );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "DecMul";
@@ -2936,8 +2936,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "DecMul"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGREAL ), loopIncMulAXSX );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGREAL ), loopIncMulAXSX );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "DecMul";
@@ -2957,7 +2957,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "./"*(CONST left,right: ARRAY [?] OF SHORTINT): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  EDivideASASLoop );
 		RETURN RESULT
 	END "./";
@@ -2975,7 +2975,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "./"*(CONST left,right: ARRAY [?] OF INTEGER): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  EDivideAIAILoop );
 		RETURN RESULT
 	END "./";
@@ -2993,7 +2993,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "./"*(CONST left,right: ARRAY [?] OF LONGINT): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  EDivideALALLoop );
 		RETURN RESULT
 	END "./";
@@ -3011,7 +3011,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "./"*(CONST left,right: ARRAY [?] OF REAL): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  EDivideARARLoop );
 		RETURN RESULT
 	END "./";
@@ -3029,8 +3029,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "./"*(CONST left,right: ARRAY [?] OF LONGREAL): ARRAY [?] OF LONGREAL;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), EDivideAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), EDivideAXAXLoop );
 		RETURN RESULT
 	END "./";
 
@@ -3047,8 +3047,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "./"*(CONST left,right: ARRAY [?] OF COMPLEX): ARRAY [?] OF COMPLEX;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( COMPLEX ), EDivideAZAZLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( COMPLEX ), EDivideAZAZLoop );
 		RETURN RESULT
 	END "./";
 
@@ -3058,8 +3058,8 @@ Sufficient (but not necessary) conditions:
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;  dvalRe, dvalIm: LONGREAL; v: LONGREAL;
 	BEGIN
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
 			IF rvalIm # 0.0D0 THEN
 				v := 1.0D0/(rvalRe*rvalRe + rvalIm*rvalIm);
 				dvalRe := v*(lvalRe*rvalRe+lvalIm*rvalIm);
@@ -3068,7 +3068,7 @@ Sufficient (but not necessary) conditions:
 				dvalRe := lvalRe/rvalRe;
 				dvalIm := lvalIm/rvalRe;
 			END;
-			SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), dvalIm );
+			SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), dvalIm );
 			INC( ladr, linc );  INC( radr, rinc );  INC( dadr, dinc );
 			DEC( len );
 		END;
@@ -3076,8 +3076,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "./"*(CONST left,right: ARRAY [?] OF LONGCOMPLEX): ARRAY [?] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGCOMPLEX ), EDivideALZALZLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGCOMPLEX ), EDivideALZALZLoop );
 		RETURN RESULT
 	END "./";
 
@@ -3097,7 +3097,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  DivideASSSLoop );
 		RETURN RESULT
 	END "/";
@@ -3114,7 +3114,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  DivideSSASLoop );
 		RETURN RESULT
 	END "/";
@@ -3132,7 +3132,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  DivideAISILoop );
 		RETURN RESULT
 	END "/";
@@ -3149,7 +3149,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  DivideSIAILoop );
 		RETURN RESULT
 	END "/";
@@ -3167,7 +3167,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  DivideALSLLoop );
 		RETURN RESULT
 	END "/";
@@ -3184,7 +3184,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  DivideSLALLoop );
 		RETURN RESULT
 	END "/";
@@ -3202,7 +3202,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  DivideARSRLoop );
 		RETURN RESULT
 	END "/";
@@ -3219,7 +3219,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ),
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ), SIZEOF( REAL ),
 										  DivideSRARLoop );
 		RETURN RESULT
 	END "/";
@@ -3237,8 +3237,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), DivideAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), DivideAXSXLoop );
 		RETURN RESULT
 	END "/";
 
@@ -3254,8 +3254,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGREAL ), DivideSXAXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGREAL ), DivideSXAXLoop );
 		RETURN RESULT
 	END "/";
 
@@ -3273,8 +3273,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(CONST left: ARRAY [ ? ] OF COMPLEX; right: COMPLEX ): ARRAY [ ? ] OF COMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( COMPLEX ), DivideAZSZLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( COMPLEX ), DivideAZSZLoop );
 		RETURN RESULT
 	END "/";
 
@@ -3290,8 +3290,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(left: COMPLEX; CONST right: ARRAY [ ? ] OF COMPLEX): ARRAY [ ? ] OF COMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( COMPLEX ), DivideSZAZLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( COMPLEX ), DivideSZAZLoop );
 		RETURN RESULT
 	END "/";
 
@@ -3300,23 +3300,23 @@ Sufficient (but not necessary) conditions:
 	PROCEDURE DivideALZSLZLoop( ladr, radr, dadr, linc, dinc, len: LONGINT );
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;  dvalRe, dvalIm: LONGREAL; v: LONGREAL;
 	BEGIN
-		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
+		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
 
 		IF rvalIm # 0.0D0 THEN
 			v := 1.0D0/(rvalRe*rvalRe + rvalIm*rvalIm);
 			WHILE (len > 0) DO
-				SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
+				SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
 				dvalRe := v*(lvalRe*rvalRe+lvalIm*rvalIm);
 				dvalIm := v*(lvalIm*rvalRe-lvalRe*rvalIm);
-				SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), dvalIm );
+				SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), dvalIm );
 				INC( ladr, linc );
 				INC( dadr, dinc );  DEC( len );
 			END;
 		ELSE
 			WHILE (len > 0) DO
-				SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
+				SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
 				dvalRe := lvalRe / rvalRe; dvalIm := lvalIm / rvalRe;
-				SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), dvalIm );
+				SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), dvalIm );
 				INC( ladr, linc );
 				INC( dadr, dinc );  DEC( len );
 			END;
@@ -3325,21 +3325,21 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(CONST left: ARRAY [ ? ] OF LONGCOMPLEX; right: LONGCOMPLEX ): ARRAY [ ? ] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGCOMPLEX ), DivideALZSLZLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGCOMPLEX ), DivideALZSLZLoop );
 		RETURN RESULT
 	END "/";
 
 	PROCEDURE DivideSLZALZLoop( ladr, radr, dadr, linc, dinc, len: LONGINT );
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;  dvalRe, dvalIm: LONGREAL; v: LONGREAL;
 	BEGIN
-		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
+		SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
 			v := 1.0D0/(lvalRe*lvalRe + lvalIm*lvalIm);
 			dvalRe := v*(rvalRe*lvalRe+rvalIm*lvalIm);
 			dvalIm := v*(rvalIm*lvalRe-rvalRe*lvalIm);
-			SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), dvalIm );
+			SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), dvalIm );
 			INC( ladr, linc );
 			INC( dadr, dinc );  DEC( len );
 		END;
@@ -3347,8 +3347,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "/"*(left: LONGCOMPLEX; CONST right: ARRAY [ ? ] OF LONGCOMPLEX): ARRAY [ ? ] OF LONGCOMPLEX;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGCOMPLEX ), DivideSLZALZLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGCOMPLEX ), DivideSLZALZLoop );
 		RETURN RESULT
 	END "/";
 
@@ -3367,8 +3367,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(CONST left,right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), EDivASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), EDivASASLoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3385,8 +3385,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(CONST left,right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), EDivAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), EDivAIAILoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3403,8 +3403,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(CONST left,right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), EDivALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), EDivALALLoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3424,8 +3424,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), DivASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), DivASSSLoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3441,8 +3441,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( SHORTINT ), DivSSASLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( SHORTINT ), DivSSASLoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3459,8 +3459,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), DivAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), DivAISILoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3476,8 +3476,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( INTEGER ), DivSIAILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( INTEGER ), DivSIAILoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3494,8 +3494,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), DivALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), DivALSLLoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3511,8 +3511,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "DIV"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGINT ), DivSLALLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGINT ), DivSLALLoop );
 		RETURN RESULT
 	END "DIV";
 
@@ -3531,8 +3531,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(CONST left,right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), EModASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), EModASASLoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3549,8 +3549,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(CONST left,right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), EModAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), EModAIAILoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3567,8 +3567,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(CONST left,right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), EModALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), EModALALLoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3588,8 +3588,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), ModASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), ModASSSLoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3605,8 +3605,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( SHORTINT ), ModSSASLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( SHORTINT ), ModSSASLoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3623,8 +3623,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), ModAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), ModAISILoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3640,8 +3640,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( INTEGER ), ModSIAILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( INTEGER ), ModSIAILoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3658,8 +3658,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), ModALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), ModALSLLoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3675,8 +3675,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "MOD"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( LONGINT ), ModSLALLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( LONGINT ), ModSLALLoop );
 		RETURN RESULT
 	END "MOD";
 
@@ -3698,7 +3698,7 @@ Sufficient (but not necessary) conditions:
 	VAR dest: LONGINT;
 	BEGIN
 		dest := 0;
-		ApplyBinaryAASOp( SYSTEM.ADR( dest ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SPASASLoop );
+		ApplyBinaryAASOp( ADDRESSOF( dest ), ADDRESSOF( left ), ADDRESSOF( right ), SPASASLoop );
 		RETURN dest;
 	END "+*";
 
@@ -3718,7 +3718,7 @@ Sufficient (but not necessary) conditions:
 	VAR dest: LONGINT;
 	BEGIN
 		dest := 0;
-		ApplyBinaryAASOp( SYSTEM.ADR( dest ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SPAIAILoop );
+		ApplyBinaryAASOp( ADDRESSOF( dest ), ADDRESSOF( left ), ADDRESSOF( right ), SPAIAILoop );
 		RETURN dest;
 	END "+*";
 
@@ -3738,7 +3738,7 @@ Sufficient (but not necessary) conditions:
 	VAR dest: LONGINT;
 	BEGIN
 		dest := 0;
-		ApplyBinaryAASOp( SYSTEM.ADR( dest ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SPALALLoop );
+		ApplyBinaryAASOp( ADDRESSOF( dest ), ADDRESSOF( left ), ADDRESSOF( right ), SPALALLoop );
 		RETURN dest;
 	END "+*";
 
@@ -3758,7 +3758,7 @@ Sufficient (but not necessary) conditions:
 	VAR dest: REAL;
 	BEGIN
 		dest := 0;
-		ApplyBinaryAASOp( SYSTEM.ADR( dest ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), loopSPARAR );
+		ApplyBinaryAASOp( ADDRESSOF( dest ), ADDRESSOF( left ), ADDRESSOF( right ), loopSPARAR );
 		RETURN dest;
 	END "+*";
 
@@ -3783,7 +3783,7 @@ Sufficient (but not necessary) conditions:
 	VAR dest: LONGREAL;
 	BEGIN
 		dest := 0;
-		ApplyBinaryAASOp( SYSTEM.ADR( dest ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), loopSPAXAX );
+		ApplyBinaryAASOp( ADDRESSOF( dest ), ADDRESSOF( left ), ADDRESSOF( right ), loopSPAXAX );
 		RETURN dest;
 	END "+*";
 
@@ -3805,7 +3805,7 @@ Sufficient (but not necessary) conditions:
 	VAR dest: COMPLEX;
 	BEGIN
 		dest := 0;
-		ApplyBinaryAASOp( SYSTEM.ADR( dest ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), loopSPAZAZ );
+		ApplyBinaryAASOp( ADDRESSOF( dest ), ADDRESSOF( left ), ADDRESSOF( right ), loopSPAZAZ );
 		RETURN dest;
 	END "+*";
 
@@ -3813,22 +3813,22 @@ Sufficient (but not necessary) conditions:
 	PROCEDURE SPALZALZLoop( ladr, radr, dadr, linc, rinc, len: LONGINT );
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;  dvalRe, dvalIm: LONGREAL;
 	BEGIN
-		SYSTEM.GET( dadr, dvalRe ); SYSTEM.GET( dadr+SYSTEM.SIZEOF(LONGREAL), dvalIm );
+		SYSTEM.GET( dadr, dvalRe ); SYSTEM.GET( dadr+SIZEOF(LONGREAL), dvalIm );
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
 			dvalRe := dvalRe + lvalRe * rvalRe + lvalIm * rvalIm;
 			dvalIm := dvalIm - lvalRe * rvalIm + lvalIm * rvalRe;
 			INC( ladr, linc );  INC( radr, rinc );  DEC( len );
 		END;
-		SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), dvalIm );
+		SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), dvalIm );
 	END SPALZALZLoop;
 
 	OPERATOR "+*"*( CONST left, right: ARRAY [ ? ] OF LONGCOMPLEX ): LONGCOMPLEX;
 	VAR dest: LONGCOMPLEX;
 	BEGIN
 		dest := 0;
-		ApplyBinaryAASOp( SYSTEM.ADR( dest ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), loopSPALZALZ );
+		ApplyBinaryAASOp( ADDRESSOF( dest ), ADDRESSOF( left ), ADDRESSOF( right ), loopSPALZALZ );
 		RETURN dest;
 	END "+*";
 
@@ -3847,8 +3847,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left,right : ARRAY [?] OF BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlABABLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlABABLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -3865,8 +3865,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left, right: ARRAY [ ? ] OF SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlASASLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -3883,8 +3883,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left, right: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlAIAILoop );
 		RETURN RESULT
 	END ".=";
 
@@ -3901,8 +3901,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left, right: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlALALLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -3918,8 +3918,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left, right: ARRAY [ ? ] OF REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlARARLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlARARLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -3935,8 +3935,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left, right: ARRAY [ ? ] OF LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlAXAXLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -3955,15 +3955,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left : ARRAY [?] OF BOOLEAN; right: BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlABSBLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlABSBLoop );
 		RETURN RESULT
 	END ".=";
 
 	OPERATOR ".="*(left: BOOLEAN; CONST right : ARRAY [?] OF BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlABSBLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EEqlABSBLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -3980,15 +3980,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlASSSLoop );
 		RETURN RESULT
 	END ".=";
 
 	OPERATOR ".="*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EEqlASSSLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -4005,15 +4005,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlAISILoop );
 		RETURN RESULT
 	END ".=";
 
 	OPERATOR ".="*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EEqlAISILoop );
 		RETURN RESULT
 	END ".=";
 
@@ -4030,15 +4030,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlALSLLoop );
 		RETURN RESULT
 	END ".=";
 
 	OPERATOR ".="*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EEqlALSLLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -4055,15 +4055,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlARSRLoop );
 		RETURN RESULT
 	END ".=";
 
 	OPERATOR ".="*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EEqlARSRLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -4080,15 +4080,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".="*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EEqlAXSXLoop );
 		RETURN RESULT
 	END ".=";
 
 	OPERATOR ".="*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EEqlAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EEqlAXSXLoop );
 		RETURN RESULT
 	END ".=";
 
@@ -4106,8 +4106,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left,right : ARRAY [?] OF BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqABABLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqABABLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4123,8 +4123,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left, right: ARRAY [ ? ] OF SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqASASLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4140,8 +4140,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left, right: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqAIAILoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4157,8 +4157,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left, right: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqALALLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4174,8 +4174,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left, right: ARRAY [ ? ] OF REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqARARLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqARARLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4191,8 +4191,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left, right: ARRAY [ ? ] OF LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqAXAXLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4211,15 +4211,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left : ARRAY [?] OF BOOLEAN; right: BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqABSBLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqABSBLoop );
 		RETURN RESULT
 	END ".#";
 
 	OPERATOR ".#"*(left: BOOLEAN; CONST right : ARRAY [?] OF BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqABSBLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ENeqABSBLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4236,15 +4236,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqASSSLoop );
 		RETURN RESULT
 	END ".#";
 
 	OPERATOR ".#"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ENeqASSSLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4261,15 +4261,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqAISILoop );
 		RETURN RESULT
 	END ".#";
 
 	OPERATOR ".#"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ENeqAISILoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4286,15 +4286,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqALSLLoop );
 		RETURN RESULT
 	END ".#";
 
 	OPERATOR ".#"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ENeqALSLLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4311,15 +4311,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqARSRLoop );
 		RETURN RESULT
 	END ".#";
 
 	OPERATOR ".#"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ENeqARSRLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4336,15 +4336,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".#"*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ENeqAXSXLoop );
 		RETURN RESULT
 	END ".#";
 
 	OPERATOR ".#"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ENeqAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ENeqAXSXLoop );
 		RETURN RESULT
 	END ".#";
 
@@ -4363,8 +4363,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left, right: ARRAY [ ? ] OF SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrASASLoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4380,8 +4380,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left, right: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrAIAILoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4397,8 +4397,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left, right: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrALALLoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4414,8 +4414,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left, right: ARRAY [ ? ] OF REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrARARLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrARARLoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4431,8 +4431,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left, right: ARRAY [ ? ] OF LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrAXAXLoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4451,15 +4451,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrASSSLoop );
 		RETURN RESULT
 	END ".>";
 
 	OPERATOR ".<"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGtrASSSLoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4476,15 +4476,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrAISILoop );
 		RETURN RESULT
 	END ".>";
 
 	OPERATOR ".<"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGtrAISILoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4501,15 +4501,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrALSLLoop );
 		RETURN RESULT
 	END ".>";
 
 	OPERATOR ".<"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGtrALSLLoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4526,15 +4526,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrARSRLoop );
 		RETURN RESULT
 	END ".>";
 
 	OPERATOR ".<"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGtrARSRLoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4551,15 +4551,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>"*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGtrAXSXLoop );
 		RETURN RESULT
 	END ".>";
 
 	OPERATOR ".<"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGtrAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGtrAXSXLoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4578,8 +4578,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left, right: ARRAY [ ? ] OF SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqASASLoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -4595,8 +4595,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left, right: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqAIAILoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -4612,8 +4612,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left, right: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqALALLoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -4629,8 +4629,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left, right: ARRAY [ ? ] OF REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqARARLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqARARLoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -4646,8 +4646,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left, right: ARRAY [ ? ] OF LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqAXAXLoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -4666,15 +4666,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqASSSLoop );
 		RETURN RESULT
 	END ".>=";
 
 	OPERATOR ".<="*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGeqASSSLoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -4691,15 +4691,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqAISILoop );
 		RETURN RESULT
 	END ".>=";
 
 	OPERATOR ".<="*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGeqAISILoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -4716,15 +4716,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqALSLLoop );
 		RETURN RESULT
 	END ".>=";
 
 	OPERATOR ".<="*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGeqALSLLoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -4741,15 +4741,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqARSRLoop );
 		RETURN RESULT
 	END ".>=";
 
 	OPERATOR ".<="*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGeqARSRLoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -4766,15 +4766,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".>="*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), EGeqAXSXLoop );
 		RETURN RESULT
 	END ".>=";
 
 	OPERATOR ".<="*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), EGeqAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), EGeqAXSXLoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -4792,8 +4792,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left, right: ARRAY [ ? ] OF SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssASASLoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4809,8 +4809,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left, right: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssAIAILoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4826,8 +4826,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left, right: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssALALLoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4843,8 +4843,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left, right: ARRAY [ ? ] OF REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssARARLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssARARLoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4860,8 +4860,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left, right: ARRAY [ ? ] OF LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssAXAXLoop );
 		RETURN RESULT
 	END ".<";
 
@@ -4880,15 +4880,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssASSSLoop );
 		RETURN RESULT
 	END ".<";
 
 	OPERATOR ".>"*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELssASSSLoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4905,15 +4905,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssAISILoop );
 		RETURN RESULT
 	END ".<";
 
 	OPERATOR ".>"*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELssAISILoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4930,15 +4930,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssALSLLoop );
 		RETURN RESULT
 	END ".<";
 
 	OPERATOR ".>"*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELssALSLLoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4955,15 +4955,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssARSRLoop );
 		RETURN RESULT
 	END ".<";
 
 	OPERATOR ".>"*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELssARSRLoop );
 		RETURN RESULT
 	END ".>";
 
@@ -4980,15 +4980,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<"*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELssAXSXLoop );
 		RETURN RESULT
 	END ".<";
 
 	OPERATOR ".>"*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELssAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELssAXSXLoop );
 		RETURN RESULT
 	END ".>";
 
@@ -5007,8 +5007,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left, right: ARRAY [ ? ] OF SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqASASLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqASASLoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -5024,8 +5024,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left, right: ARRAY [ ? ] OF INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqAIAILoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqAIAILoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -5041,8 +5041,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left, right: ARRAY [ ? ] OF LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqALALLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqALALLoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -5058,8 +5058,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left, right: ARRAY [ ? ] OF REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqARARLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqARARLoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -5075,8 +5075,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left, right: ARRAY [ ? ] OF LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqAXAXLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqAXAXLoop );
 		RETURN RESULT
 	END ".<=";
 
@@ -5095,15 +5095,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqASSSLoop );
 		RETURN RESULT
 	END ".<=";
 
 	OPERATOR ".>="*(left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqASSSLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELeqASSSLoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -5120,15 +5120,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqAISILoop );
 		RETURN RESULT
 	END ".<=";
 
 	OPERATOR ".>="*(left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqAISILoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELeqAISILoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -5145,15 +5145,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqALSLLoop );
 		RETURN RESULT
 	END ".<=";
 
 	OPERATOR ".>="*(left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqALSLLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELeqALSLLoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -5170,15 +5170,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left: ARRAY [ ? ] OF REAL; right: REAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqARSRLoop );
 		RETURN RESULT
 	END ".<=";
 
 	OPERATOR ".>="*(left: REAL; CONST right: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqARSRLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELeqARSRLoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -5195,15 +5195,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ".<="*(CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ELeqAXSXLoop );
 		RETURN RESULT
 	END ".<=";
 
 	OPERATOR ".>="*(left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ELeqAXSXLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ELeqAXSXLoop );
 		RETURN RESULT
 	END ".>=";
 
@@ -5222,8 +5222,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "OR"*(CONST left,right : ARRAY [?] OF BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ElOrABABLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ElOrABABLoop );
 		RETURN RESULT
 	END "OR";
 
@@ -5238,8 +5238,8 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "&"*(CONST left,right : ARRAY [?] OF BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ElAndABABLoop );
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ElAndABABLoop );
 		RETURN RESULT
 	END "&";
 
@@ -5256,15 +5256,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "OR"*(CONST left : ARRAY [?] OF BOOLEAN; right: BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ElOrABSBLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ElOrABSBLoop );
 		RETURN RESULT
 	END "OR";
 
 	OPERATOR "OR"*(left: BOOLEAN; CONST right : ARRAY [?] OF BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ElOrABSBLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ElOrABSBLoop );
 		RETURN RESULT
 	END "OR";
 
@@ -5280,15 +5280,15 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "&"*(CONST left : ARRAY [?] OF BOOLEAN; right: BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ElAndABSBLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( BOOLEAN ), ElAndABSBLoop );
 		RETURN RESULT
 	END "&";
 
 	OPERATOR "&"*(left: BOOLEAN; CONST right : ARRAY [?] OF BOOLEAN):ARRAY [ ? ] OF BOOLEAN;
 	BEGIN
-		ApplyBinaryASAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( right ), SYSTEM.ADR( left ),
-										  SYSTEM.SIZEOF( BOOLEAN ), ElAndABSBLoop );
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( right ), ADDRESSOF( left ),
+										  SIZEOF( BOOLEAN ), ElAndABSBLoop );
 		RETURN RESULT
 	END "&";
 
@@ -5309,7 +5309,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<"*( CONST left, right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssASASLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LssASASLoop , FALSE);
 	END "<";
 
 	PROCEDURE GeqASASLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5325,7 +5325,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">="*( CONST left, right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqASASLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqASASLoop , FALSE);
 	END ">=";
 
 (** INTEGER *)
@@ -5342,7 +5342,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<"*( CONST left, right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssAIAILoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LssAIAILoop , FALSE);
 	END "<";
 
 	PROCEDURE GeqAIAILoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5358,7 +5358,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">="*( CONST left, right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqAIAILoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqAIAILoop , FALSE);
 	END ">=";
 
 (** LONGINT *)
@@ -5375,7 +5375,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<"*( CONST left, right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssALALLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LssALALLoop , FALSE);
 	END "<";
 
 	PROCEDURE GeqALALLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5391,7 +5391,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">="*( CONST left, right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqALALLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqALALLoop , FALSE);
 	END ">=";
 
 (** REAL *)
@@ -5408,7 +5408,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<"*( CONST left, right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssARARLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LssARARLoop , FALSE);
 	END "<";
 
 	PROCEDURE GeqARARLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5424,7 +5424,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">="*( CONST left, right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqARARLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqARARLoop , FALSE);
 	END ">=";
 
 (** LONGREAL *)
@@ -5441,7 +5441,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<"*( CONST left, right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssAXAXLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LssAXAXLoop , FALSE);
 	END "<";
 
 	PROCEDURE GeqAXAXLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5457,7 +5457,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">="*( CONST left, right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqAXAXLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqAXAXLoop , FALSE);
 	END ">=";
 
 	(*** less than, greater or equal: array x array -> boolean  ********************************************************************)
@@ -5476,7 +5476,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">"*( CONST left, right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrASASLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrASASLoop , FALSE);
 	END ">";
 
 	PROCEDURE LeqASASLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5492,7 +5492,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left, right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqASASLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqASASLoop , FALSE);
 	END "<=";
 
 (** INTEGER *)
@@ -5509,7 +5509,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">"*( CONST left, right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrAIAILoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrAIAILoop , FALSE);
 	END ">";
 
 	PROCEDURE LeqAIAILoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5525,7 +5525,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left, right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqAIAILoop ,FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqAIAILoop ,FALSE);
 	END "<=";
 
 (** LONGINT *)
@@ -5542,7 +5542,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">"*( CONST left, right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrALALLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrALALLoop , FALSE);
 	END ">";
 
 	PROCEDURE LeqALALLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5558,7 +5558,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left, right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqALALLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqALALLoop , FALSE);
 	END "<=";
 
 (** REAL *)
@@ -5575,7 +5575,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">"*( CONST left, right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrARARLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrARARLoop , FALSE);
 	END ">";
 
 	PROCEDURE LeqARARLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5591,7 +5591,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left, right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqARARLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqARARLoop , FALSE);
 	END "<=";
 
 (** LONGREAL *)
@@ -5608,7 +5608,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">"*( CONST left, right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrAXAXLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrAXAXLoop , FALSE);
 	END ">";
 
 	PROCEDURE LeqAXAXLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
@@ -5624,7 +5624,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left, right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqAXAXLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqAXAXLoop , FALSE);
 	END "<=";
 
 
@@ -5644,12 +5644,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left, right: ARRAY [ ? ] OF BOOLEAN ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlABABLoop, FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlABABLoop, FALSE);
 	END "=";
 
 	OPERATOR "#"*( CONST left, right: ARRAY [ ? ] OF BOOLEAN ): BOOLEAN;
 	BEGIN
-		RETURN ~ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlABABLoop, FALSE);
+		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlABABLoop, FALSE);
 	END "#";
 
 (** SHORTINT *)
@@ -5666,12 +5666,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left, right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlASASLoop , FALSE);
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlASASLoop , FALSE);
 	END "=";
 
 	OPERATOR "#"*( CONST left, right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ~ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlASASLoop, FALSE );
+		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlASASLoop, FALSE );
 	END "#";
 
 (** INTEGER *)
@@ -5688,12 +5688,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left, right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlAIAILoop, FALSE );
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAIAILoop, FALSE );
 	END "=";
 
 	OPERATOR "#"*( CONST left, right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ~ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlAIAILoop, FALSE );
+		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAIAILoop, FALSE );
 	END "#";
 
 (** LONGINT *)
@@ -5710,12 +5710,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left, right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlALALLoop, FALSE );
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlALALLoop, FALSE );
 	END "=";
 
 	OPERATOR "#"*( CONST left, right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ~ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlALALLoop, FALSE );
+		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlALALLoop, FALSE );
 	END "#";
 
 (** REAL *)
@@ -5732,12 +5732,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left, right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlARARLoop, FALSE );
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlARARLoop, FALSE );
 	END "=";
 
 	OPERATOR "#"*( CONST left, right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ~ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlARARLoop, FALSE );
+		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlARARLoop, FALSE );
 	END "#";
 
 (** LONGREAL *)
@@ -5754,12 +5754,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left, right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlAXAXLoop, FALSE );
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAXAXLoop, FALSE );
 	END "=";
 
 	OPERATOR "#"*( CONST left, right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ~ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlAXAXLoop, FALSE );
+		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAXAXLoop, FALSE );
 	END "#";
 	
 (** COMPLEX *)
@@ -5776,12 +5776,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left, right: ARRAY [ ? ] OF COMPLEX ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlAZAZLoop, FALSE );
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAZAZLoop, FALSE );
 	END "=";
 
 	OPERATOR "#"*( CONST left, right: ARRAY [ ? ] OF COMPLEX ): BOOLEAN;
 	BEGIN
-		RETURN ~ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlAZAZLoop, FALSE );
+		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAZAZLoop, FALSE );
 	END "#";
 
 (** LONGCOMPLEX *)
@@ -5789,8 +5789,8 @@ Sufficient (but not necessary) conditions:
 	VAR lvalRe, lvalIm, rvalRe, rvalIm: LONGREAL;
 	BEGIN
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SYSTEM.SIZEOF(LONGREAL), rvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( radr, rvalRe ); SYSTEM.GET( radr+SIZEOF(LONGREAL), rvalIm );
 			IF (rvalRe # lvalRe) OR (rvalIm # lvalIm) THEN RETURN FALSE END;
 			INC( ladr, linc );  INC( radr, rinc );  DEC( len );
 		END;
@@ -5799,12 +5799,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left, right: ARRAY [ ? ] OF LONGCOMPLEX ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlALZALZLoop, FALSE );
+		RETURN ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlALZALZLoop, FALSE );
 	END "=";
 
 	OPERATOR "#"*( CONST left, right: ARRAY [ ? ] OF LONGCOMPLEX ): BOOLEAN;
 	BEGIN
-		RETURN ~ApplyBinaryAABOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlALZALZLoop, FALSE );
+		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlALZALZLoop, FALSE );
 	END "#";
 
 	(*** equals: array x scalar -> boolean  ********************************************************************)
@@ -5825,13 +5825,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "="*( CONST left: ARRAY [ ? ] OF BOOLEAN;
 											right: BOOLEAN ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlABSBLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlABSBLoop );
 	END "=";
 
 	OPERATOR "="*( left: BOOLEAN;
 											CONST right: ARRAY [ ? ] OF BOOLEAN ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), EqlABSBLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), EqlABSBLoop );
 	END "=";
 
 	OPERATOR "#"*( CONST left: ARRAY [ ? ] OF BOOLEAN;
@@ -5861,12 +5861,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*( CONST left: ARRAY [ ? ] OF SHORTINT;right: SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlASSSLoop );
 	END "=";
 
 	OPERATOR "="*( left: SHORTINT;CONST right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), EqlASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), EqlASSSLoop );
 	END "=";
 
 	OPERATOR "#"*( CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): BOOLEAN;
@@ -5894,12 +5894,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "="*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAISILoop );
 	END "=";
 
 	OPERATOR "="*( left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), EqlAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), EqlAISILoop );
 	END "=";
 
 	OPERATOR "#"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): BOOLEAN;
@@ -5928,13 +5928,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "="*( CONST left: ARRAY [ ? ] OF LONGINT;
 										   right: LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlALSLLoop );
 	END "=";
 
 	OPERATOR "="*( left: LONGINT;
 										   CONST right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), EqlALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), EqlALSLLoop );
 	END "=";
 
 	OPERATOR "#"*( CONST left: ARRAY [ ? ] OF LONGINT;
@@ -5965,13 +5965,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "="*( CONST left: ARRAY [ ? ] OF REAL;
 											right: REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlARSRLoop );
 	END "=";
 
 	OPERATOR "="*( left: REAL;
 											CONST right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), EqlARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), EqlARSRLoop );
 	END "=";
 
 	OPERATOR "#"*( CONST left: ARRAY [ ? ] OF REAL;
@@ -6002,13 +6002,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "="*( CONST left: ARRAY [ ? ] OF LONGREAL;
 										    right: LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), EqlAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAXSXLoop );
 	END "=";
 
 	OPERATOR "="*( left: LONGREAL;
 										    CONST right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), EqlAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), EqlAXSXLoop );
 	END "=";
 
 	OPERATOR "#"*( CONST left: ARRAY [ ? ] OF LONGREAL;
@@ -6041,12 +6041,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">"*( CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrASSSLoop );
 	END ">";
 
 	OPERATOR "<"*( left: SHORTINT;CONST right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GtrASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GtrASSSLoop );
 	END "<";
 
 (** INTEGER *)
@@ -6064,12 +6064,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrAISILoop );
 	END ">";
 
 	OPERATOR "<"*( left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GtrAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GtrAISILoop );
 	END "<";
 
 (** LONGINT *)
@@ -6087,12 +6087,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">"*( CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrALSLLoop );
 	END ">";
 
 	OPERATOR "<"*( left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GtrALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GtrALSLLoop );
 	END "<";
 
 (** REAL *)
@@ -6111,13 +6111,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR ">"*( CONST left: ARRAY [ ? ] OF REAL;
 										    right: REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrARSRLoop );
 	END ">";
 
 	OPERATOR "<"*( left: REAL;
 											 CONST right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GtrARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GtrARSRLoop );
 	END "<";
 
 (** LONGREAL *)
@@ -6136,13 +6136,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR ">"*( CONST left: ARRAY [ ? ] OF LONGREAL;
 										   right: LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GtrAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GtrAXSXLoop );
 	END ">";
 
 	OPERATOR "<"*( left: LONGREAL;
 										    CONST right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GtrAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GtrAXSXLoop );
 	END "<";
 
 	(*** geq : array x scalar -> boolean  ********************************************************************)
@@ -6164,13 +6164,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR ">="*( CONST left: ARRAY [ ? ] OF SHORTINT;
 											 right: SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqASSSLoop );
 	END ">=";
 
 	OPERATOR "<="*( left: SHORTINT;
 										    CONST right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GeqASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GeqASSSLoop );
 	END "<=";
 
 (** INTEGER *)
@@ -6188,13 +6188,13 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">="*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqAISILoop );
 	END ">=";
 
 	OPERATOR "<="*( left: INTEGER;
 										   CONST right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GeqAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GeqAISILoop );
 	END "<=";
 
 (** LONGINT *)
@@ -6213,13 +6213,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR ">="*( CONST left: ARRAY [ ? ] OF LONGINT;
 										    right: LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqALSLLoop );
 	END ">=";
 
 	OPERATOR "<="*( left: LONGINT;
 										   CONST right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GeqALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GeqALSLLoop );
 	END "<=";
 
 (** REAL *)
@@ -6238,12 +6238,12 @@ Sufficient (but not necessary) conditions:
 	OPERATOR ">="*( CONST left: ARRAY [ ? ] OF REAL;
 											 right: REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqARSRLoop );
 	END ">=";
 
 	OPERATOR "<="*( left: REAL; CONST right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GeqARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GeqARSRLoop );
 	END "<=";
 
 (** LONGREAL *)
@@ -6261,12 +6261,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ">="*( CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), GeqAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), GeqAXSXLoop );
 	END ">=";
 
 	OPERATOR "<="*( left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), GeqAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), GeqAXSXLoop );
 	END "<=";
 
 	(*** leq : array x scalar -> boolean  ********************************************************************)
@@ -6287,12 +6287,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left: ARRAY [ ? ] OF SHORTINT;right: SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqASSSLoop );
 	END "<=";
 
 	OPERATOR ">="*( left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LeqASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LeqASSSLoop );
 	END ">=";
 
 (** INTEGER *)
@@ -6310,12 +6310,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqAISILoop );
 	END "<=";
 
 	OPERATOR ">="*( left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LeqAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LeqAISILoop );
 	END ">=";
 
 (** LONGINT *)
@@ -6333,12 +6333,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqALSLLoop );
 	END "<=";
 
 	OPERATOR ">="*( left: LONGINT; CONST right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LeqALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LeqALSLLoop );
 	END ">=";
 
 (** REAL *)
@@ -6356,12 +6356,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left: ARRAY [ ? ] OF REAL; right: REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqARSRLoop );
 	END "<=";
 
 	OPERATOR ">="*( left: REAL; CONST right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LeqARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LeqARSRLoop );
 	END ">=";
 
 (** LONGREAL *)
@@ -6379,12 +6379,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<="*( CONST left: ARRAY [ ? ] OF LONGREAL; right: LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LeqAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LeqAXSXLoop );
 	END "<=";
 
 	OPERATOR ">="*( left: LONGREAL; CONST right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LeqAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LeqAXSXLoop );
 	END ">=";
 
 
@@ -6407,12 +6407,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<"*( CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LssASSSLoop );
 	END "<";
 
 	OPERATOR ">"*( left: SHORTINT; CONST right: ARRAY [ ? ] OF SHORTINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LssASSSLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LssASSSLoop );
 	END ">";
 
 (** INTEGER *)
@@ -6430,12 +6430,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<"*(CONST left: ARRAY [ ? ] OF INTEGER; right: INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LssAISILoop );
 	END "<";
 
 	OPERATOR ">"*( left: INTEGER; CONST right: ARRAY [ ? ] OF INTEGER ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LssAISILoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LssAISILoop );
 	END ">";
 
 (** LONGINT *)
@@ -6453,12 +6453,12 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "<"*( CONST left: ARRAY [ ? ] OF LONGINT; right: LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LssALSLLoop );
 	END "<";
 
 	OPERATOR ">"*( left: LONGINT;CONST right: ARRAY [ ? ] OF LONGINT ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LssALSLLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LssALSLLoop );
 	END ">";
 
 (** REAL *)
@@ -6477,13 +6477,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "<"*( CONST left: ARRAY [ ? ] OF REAL;
 											 right: REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LssARSRLoop );
 	END "<";
 
 	OPERATOR ">"*( left: REAL;
 										    CONST right: ARRAY [ ? ] OF REAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LssARSRLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LssARSRLoop );
 	END ">";
 
 (** LONGREAL *)
@@ -6502,13 +6502,13 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "<"*( CONST left: ARRAY [ ? ] OF LONGREAL;
 										    right: LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( left ), SYSTEM.ADR( right ), LssAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( left ), ADDRESSOF( right ), LssAXSXLoop );
 	END "<";
 
 	OPERATOR ">"*( left: LONGREAL;
 										   CONST right: ARRAY [ ? ] OF LONGREAL ): BOOLEAN;
 	BEGIN
-		RETURN ApplyBinaryASBOp( SYSTEM.ADR( right ), SYSTEM.ADR( left ), LssAXSXLoop );
+		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LssAXSXLoop );
 	END ">";
 
 	(**** unary operators array -> scalar ********************************************************************)
@@ -6533,7 +6533,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MAX( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MinASLoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MinASLoop );  RETURN val;
 	END "MIN";
 
 (** INTEGER *)
@@ -6554,7 +6554,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MAX( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MinAILoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MinAILoop );  RETURN val;
 	END "MIN";
 
 (** LONGINT *)
@@ -6575,7 +6575,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MAX( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MinALLoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MinALLoop );  RETURN val;
 	END "MIN";
 
 (** REAL *)
@@ -6596,7 +6596,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MAX( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MinARLoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MinARLoop );  RETURN val;
 	END "MIN";
 
 (** LONGREAL *)
@@ -6617,7 +6617,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MAX( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MinAXLoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MinAXLoop );  RETURN val;
 	END "MIN";
 
 	(*** max: array -> scalar  ********************************************************************)
@@ -6640,7 +6640,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MIN( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MaxASLoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MaxASLoop );  RETURN val;
 	END "MAX";
 
 (** INTEGER *)
@@ -6661,7 +6661,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MIN( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MaxAILoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MaxAILoop );  RETURN val;
 	END "MAX";
 
 (** LONGINT *)
@@ -6682,7 +6682,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MIN( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MaxALLoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MaxALLoop );  RETURN val;
 	END "MAX";
 
 (** REAL *)
@@ -6703,7 +6703,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MIN( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MaxARLoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MaxARLoop );  RETURN val;
 	END "MAX";
 
 (** LONGREAL *)
@@ -6724,7 +6724,7 @@ Sufficient (but not necessary) conditions:
 	VAR val: Type;
 	BEGIN
 		val := MIN( Type );
-		ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), MaxAXLoop );  RETURN val;
+		ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), MaxAXLoop );  RETURN val;
 	END "MAX";
 
 	(*** LEN: array -> array **)
@@ -6757,7 +6757,7 @@ Sufficient (but not necessary) conditions:
 	TYPE Type = SHORTINT;
 	VAR val: Type;
 	BEGIN
-		val := 0;  ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), SumASLoop );
+		val := 0;  ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), SumASLoop );
 		RETURN val;
 	END "SUM";
 
@@ -6776,7 +6776,7 @@ Sufficient (but not necessary) conditions:
 	TYPE Type = INTEGER;
 	VAR val: Type;
 	BEGIN
-		val := 0;  ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), SumAILoop );
+		val := 0;  ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), SumAILoop );
 		RETURN val;
 	END "SUM";
 
@@ -6795,7 +6795,7 @@ Sufficient (but not necessary) conditions:
 	TYPE Type = LONGINT;
 	VAR val: Type;
 	BEGIN
-		val := 0;  ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), SumALLoop );
+		val := 0;  ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), SumALLoop );
 		RETURN val;
 	END "SUM";
 
@@ -6814,7 +6814,7 @@ Sufficient (but not necessary) conditions:
 	TYPE Type = REAL;
 	VAR val: Type;
 	BEGIN
-		val := 0;  ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), SumARLoop );
+		val := 0;  ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), SumARLoop );
 		RETURN val;
 	END "SUM";
 
@@ -6833,7 +6833,7 @@ Sufficient (but not necessary) conditions:
 	TYPE Type = LONGREAL;
 	VAR val: Type;
 	BEGIN
-		val := 0;  ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), SumAXLoop );
+		val := 0;  ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), SumAXLoop );
 		RETURN val;
 	END "SUM";
 
@@ -6853,7 +6853,7 @@ Sufficient (but not necessary) conditions:
 	TYPE Type = COMPLEX;
 	VAR val: Type;
 	BEGIN
-		val := 0;  ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), SumAZLoop );
+		val := 0;  ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), SumAZLoop );
 		RETURN val;
 	END "SUM";
 
@@ -6861,20 +6861,20 @@ Sufficient (but not necessary) conditions:
 	PROCEDURE SumALZLoop( ladr, dadr, linc, len: LONGINT );
 	VAR lvalRe, lvalIm, dvalRe, dvalIm: LONGREAL;
 	BEGIN
-		SYSTEM.GET( dadr, dvalRe ); SYSTEM.GET( dadr+SYSTEM.SIZEOF(LONGREAL), dvalIm );
+		SYSTEM.GET( dadr, dvalRe ); SYSTEM.GET( dadr+SIZEOF(LONGREAL), dvalIm );
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
 			dvalRe := dvalRe + lvalRe; dvalIm := dvalIm + lvalIm;
 			INC( ladr, linc );  DEC( len );
 		END;
-		SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), dvalIm );
+		SYSTEM.PUT( dadr, dvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), dvalIm );
 	END SumALZLoop;
 
 	OPERATOR "SUM"*( CONST left: ARRAY [ ? ] OF LONGCOMPLEX ): LONGCOMPLEX;
 	TYPE Type = LONGCOMPLEX;
 	VAR val: Type;
 	BEGIN
-		val := 0;  ApplyUnaryASOp( SYSTEM.ADR( val ), SYSTEM.ADR( left ), SumALZLoop );
+		val := 0;  ApplyUnaryASOp( ADDRESSOF( val ), ADDRESSOF( left ), SumALZLoop );
 		RETURN val;
 	END "SUM";
 
@@ -6892,7 +6892,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "ABS"*(CONST src: ARRAY [ ? ] OF SHORTINT): ARRAY [ ? ] OF SHORTINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( SHORTINT ), AbsLoopS );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( SHORTINT ), AbsLoopS );
 		RETURN RESULT
 	END "ABS";
 
@@ -6908,7 +6908,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "ABS"*(CONST src: ARRAY [ ? ] OF INTEGER): ARRAY [ ? ] OF INTEGER;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( INTEGER ), AbsLoopI );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( INTEGER ), AbsLoopI );
 		RETURN RESULT
 	END "ABS";
 
@@ -6924,7 +6924,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "ABS"*(CONST src: ARRAY [ ? ] OF LONGINT): ARRAY [ ? ] OF LONGINT;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGINT ), AbsLoopL );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGINT ), AbsLoopL );
 		RETURN RESULT
 	END "ABS";
 
@@ -6940,7 +6940,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "ABS"*(CONST src: ARRAY [ ? ] OF REAL): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( REAL ), AbsLoopR );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( REAL ), AbsLoopR );
 		RETURN RESULT
 	END "ABS";
 
@@ -6956,7 +6956,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "ABS"*(CONST src: ARRAY [ ? ] OF LONGREAL): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGREAL ), AbsLoopX );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGREAL ), AbsLoopX );
 		RETURN RESULT
 	END "ABS";
 
@@ -6972,7 +6972,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "ABS"*(CONST src: ARRAY [ ? ] OF COMPLEX): ARRAY [ ? ] OF REAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( REAL ), AbsLoopZ );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( REAL ), AbsLoopZ );
 		RETURN RESULT
 	END "ABS";
 
@@ -6981,7 +6981,7 @@ Sufficient (but not necessary) conditions:
 	VAR lvalRe, lvalIm: LONGREAL;
 	BEGIN
 		WHILE (len > 0) DO
-			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
+			SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
 			SYSTEM.PUT( dadr, MathL.sqrt(lvalRe*lvalRe + lvalIm*lvalIm) );
 			INC( ladr, linc );
 			INC( dadr, dinc );  DEC( len );
@@ -6990,7 +6990,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "ABS"*(CONST src: ARRAY [ ? ] OF LONGCOMPLEX): ARRAY [ ? ] OF LONGREAL;
 	BEGIN
-		ApplyUnaryAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( src ), SYSTEM.SIZEOF( LONGREAL ), AbsLoopLZ );
+		ApplyUnaryAAOp( ADDRESSOF( RESULT ), ADDRESSOF( src ), SIZEOF( LONGREAL ), AbsLoopLZ );
 		RETURN RESULT
 	END "ABS";
 
@@ -7006,7 +7006,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ":="*(VAR dest: ARRAY [?] OF BOOLEAN; right: BOOLEAN);
 	BEGIN
-		ApplyUnarySAOp( SYSTEM.ADR( dest ), SYSTEM.ADR( right ), AssignSBABLoop );
+		ApplyUnarySAOp( ADDRESSOF( dest ), ADDRESSOF( right ), AssignSBABLoop );
 	END ":=";
 
 (** SHORTINT*)
@@ -7019,7 +7019,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ":="*(VAR dest: ARRAY [?] OF SHORTINT; right: SHORTINT);
 	BEGIN
-		ApplyUnarySAOp( SYSTEM.ADR( dest ), SYSTEM.ADR( right ), AssignSSASLoop );
+		ApplyUnarySAOp( ADDRESSOF( dest ), ADDRESSOF( right ), AssignSSASLoop );
 	END ":=";
 
 (**INTEGER *)
@@ -7032,7 +7032,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ":="*(VAR dest: ARRAY [?] OF INTEGER; right: INTEGER);
 	BEGIN
-		ApplyUnarySAOp( SYSTEM.ADR( dest ), SYSTEM.ADR( right ), AssignSIAILoop );
+		ApplyUnarySAOp( ADDRESSOF( dest ), ADDRESSOF( right ), AssignSIAILoop );
 	END ":=";
 
 
@@ -7046,7 +7046,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ":="*(VAR dest: ARRAY [?] OF LONGINT; right: LONGINT);
 	BEGIN
-		ApplyUnarySAOp( SYSTEM.ADR( dest ), SYSTEM.ADR( right ), AssignSLALLoop );
+		ApplyUnarySAOp( ADDRESSOF( dest ), ADDRESSOF( right ), AssignSLALLoop );
 	END ":=";
 
 
@@ -7060,7 +7060,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ":="*(VAR dest: ARRAY [?] OF REAL; right: REAL);
 	BEGIN
-		ApplyUnarySAOp( SYSTEM.ADR( dest ), SYSTEM.ADR( right ), AssignSRARLoop );
+		ApplyUnarySAOp( ADDRESSOF( dest ), ADDRESSOF( right ), AssignSRARLoop );
 	END ":=";
 
 
@@ -7074,7 +7074,7 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ":="*(VAR dest: ARRAY [?] OF LONGREAL; right: LONGREAL);
 	BEGIN
-		ApplyUnarySAOp( SYSTEM.ADR( dest ), SYSTEM.ADR( right ), AssignSXAXLoop );
+		ApplyUnarySAOp( ADDRESSOF( dest ), ADDRESSOF( right ), AssignSXAXLoop );
 	END ":=";
 
 (** COMPLEX *)
@@ -7087,26 +7087,26 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR ":="*(VAR dest: ARRAY [?] OF COMPLEX; right: COMPLEX);
 	BEGIN
-		ApplyUnarySAOp( SYSTEM.ADR( dest ), SYSTEM.ADR( right ), AssignSZAZLoop );
+		ApplyUnarySAOp( ADDRESSOF( dest ), ADDRESSOF( right ), AssignSZAZLoop );
 	END ":=";
 
 (** LONGCOMPLEX *)
 	PROCEDURE AssignSLZALZLoop( ladr, dadr, dinc, len: LONGINT );
 	VAR lvalRe, lvalIm: LONGREAL;
 	BEGIN
-		SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SYSTEM.SIZEOF(LONGREAL), lvalIm );
-		WHILE (len > 0) DO SYSTEM.PUT( dadr, lvalRe ); SYSTEM.PUT( dadr+SYSTEM.SIZEOF(LONGREAL), lvalIm ); INC( dadr, dinc );  DEC( len );  END;
+		SYSTEM.GET( ladr, lvalRe ); SYSTEM.GET( ladr+SIZEOF(LONGREAL), lvalIm );
+		WHILE (len > 0) DO SYSTEM.PUT( dadr, lvalRe ); SYSTEM.PUT( dadr+SIZEOF(LONGREAL), lvalIm ); INC( dadr, dinc );  DEC( len );  END;
 	END AssignSLZALZLoop;
 
 	OPERATOR ":="*(VAR dest: ARRAY [?] OF LONGCOMPLEX; right: LONGCOMPLEX);
 	BEGIN
-		ApplyUnarySAOp( SYSTEM.ADR( dest ), SYSTEM.ADR( right ), AssignSLZALZLoop );
+		ApplyUnarySAOp( ADDRESSOF( dest ), ADDRESSOF( right ), AssignSLZALZLoop );
 	END ":=";
 
 
 (*** matrix multipliation ********************************************************************)
 
-	PROCEDURE AllocateMatrix( dest: ADDRESS;
+	PROCEDURE AllocateMatrix( dest: Address;
 													rows, cols, elementsize: LONGINT ): ANY;
 	VAR p: ANY;
 	BEGIN
@@ -7119,7 +7119,7 @@ Sufficient (but not necessary) conditions:
 		PutPtr( dest, SYSTEM.VAL( LONGINT, p ) );  RETURN p;
 	END AllocateMatrix;
 
-	PROCEDURE AllocateVector( dest: ADDRESS;  l0, elementsize: LONGINT ): ANY;
+	PROCEDURE AllocateVector( dest: Address;  l0, elementsize: LONGINT ): ANY;
 	VAR p: ANY;
 	BEGIN
 		SYSTEM.NEW( p, l0 * elementsize );  PutLen( dest, 0, l0 );
@@ -7127,7 +7127,7 @@ Sufficient (but not necessary) conditions:
 		PutPtr( dest, SYSTEM.VAL( LONGINT, p ) );  RETURN p;
 	END AllocateVector;
 
-	PROCEDURE ApplyMatMulLoop( dest, left, right: ADDRESS;  Size: LONGINT;
+	PROCEDURE ApplyMatMulLoop( dest, left, right: Address;  Size: LONGINT;
 														 loop: BinaryAASLoop;
 	fast: FastMatMul );   (* Size= element-size *)
 	VAR ladr, radr, dadr, dadri, radri, rowsL, colsL, rowsR, colsR, incL, incR, incD, strideR, strideL, strideD, colsRi: LONGINT;
@@ -7208,7 +7208,7 @@ Sufficient (but not necessary) conditions:
 		END;
 	END ApplyMatMulLoop;
 
-	PROCEDURE ApplyMatVecMulLoop( dest, left, right: ADDRESS;
+	PROCEDURE ApplyMatVecMulLoop( dest, left, right: Address;
 															   Size: LONGINT;  loop: BinaryAASLoop;
 															   fast: FastMatMul );   (* Size= element-size *)
 	VAR ladr, radr, dadr, li1, li0, ri0, di0, l1, l2: LONGINT;  p: ANY;
@@ -7275,7 +7275,7 @@ Sufficient (but not necessary) conditions:
 
 	END ApplyMatVecMulLoop;
 
-	PROCEDURE ApplyVecMatMulLoop( dest, left, right: ADDRESS;
+	PROCEDURE ApplyVecMatMulLoop( dest, left, right: Address;
 															   Size: LONGINT;  loop: BinaryAASLoop;
 															   fast: FastMatMul );   (* Size= element-size *)
 	VAR ladr, radr, dadr, li0, ri1, ri0, di0, l0, l2: LONGINT;  p: ANY;
@@ -7338,7 +7338,7 @@ Sufficient (but not necessary) conditions:
 
 
 (** SHORTINT *)
-	PROCEDURE MatMulASASLoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulASASLoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: SHORTINT;
 	BEGIN
 		dval := 0;
@@ -7352,27 +7352,27 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(CONST left, right: ARRAY [ * , * ] OF SHORTINT ): ARRAY [ * , * ] OF SHORTINT;
 	BEGIN
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( SHORTINT ), MatMulASASLoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( SHORTINT ), MatMulASASLoop, NIL );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(CONST left: ARRAY [ * , * ] OF SHORTINT; CONST right: ARRAY [ * ] OF SHORTINT): ARRAY [ * ] OF SHORTINT;
 	BEGIN
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( SHORTINT ), MatMulASASLoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( SHORTINT ), MatMulASASLoop, NIL );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*( CONST left: ARRAY [ * ] OF SHORTINT; CONST right: ARRAY [ * , * ] OF SHORTINT  ): ARRAY [ * ] OF SHORTINT;
 	BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( SHORTINT ), MatMulASASLoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( SHORTINT ), MatMulASASLoop, NIL );
 		RETURN RESULT
 	END "*";
 
 (** INTEGER *)
-	PROCEDURE MatMulAIAILoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulAIAILoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: INTEGER;
 	BEGIN
 		dval := 0;
@@ -7385,29 +7385,29 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "*"*(  CONST left, right: ARRAY [ * , * ] OF INTEGER ): ARRAY [ * , * ] OF INTEGER;
 	BEGIN
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( INTEGER ), MatMulAIAILoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( INTEGER ), MatMulAIAILoop, NIL );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(CONST left: ARRAY [ * , * ] OF INTEGER;
 													    CONST right: ARRAY [ * ] OF INTEGER  ): ARRAY [ * ] OF INTEGER;
 	BEGIN
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( INTEGER ), MatMulAIAILoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( INTEGER ), MatMulAIAILoop, NIL );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(CONST left: ARRAY [ * ] OF INTEGER;
 													    CONST right: ARRAY [ * , * ] OF INTEGER ): ARRAY [ * ] OF INTEGER;
 	BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( INTEGER ), MatMulAIAILoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( INTEGER ), MatMulAIAILoop, NIL );
 		RETURN RESULT
 	END "*";
 
 (** LONGINT *)
-	PROCEDURE MatMulALALLoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulALALLoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: LONGINT;
 	BEGIN
 		dval := 0;
@@ -7428,28 +7428,28 @@ Sufficient (but not necessary) conditions:
 		KernelLog.Ln;
 		*)
 
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( LONGINT ), MatMulALALLoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( LONGINT ), MatMulALALLoop, NIL );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(CONST left: ARRAY [ * , * ] OF LONGINT; CONST right: ARRAY [ * ] OF LONGINT  ): ARRAY [ * ] OF LONGINT;
 	BEGIN
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGINT ), MatMulALALLoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGINT ), MatMulALALLoop, NIL );
 		RETURN RESULT
 	END "*";
 
 	OPERATOR "*"*(CONST left: ARRAY [ * ] OF LONGINT;
 														CONST right: ARRAY [ * , * ] OF LONGINT): ARRAY [ * ] OF LONGINT;
 	BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGINT ), MatMulALALLoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGINT ), MatMulALALLoop, NIL );
 		RETURN RESULT
 	END "*";
 
 (** REAL *)
-	PROCEDURE MatMulARARLoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulARARLoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: REAL;
 	BEGIN
 		dval := 0;
@@ -7469,21 +7469,21 @@ Sufficient (but not necessary) conditions:
 	VAR flags: SET; dadr, ladr, radr: LONGINT;
 	BEGIN
 
-		dadr := GetAdr(SYSTEM.ADR(RESULT));
-		ladr := GetAdr(SYSTEM.ADR(left));
-		radr := GetAdr(SYSTEM.ADR(right));
+		dadr := GetAdr(ADDRESSOF(RESULT));
+		ladr := GetAdr(ADDRESSOF(left));
+		radr := GetAdr(ADDRESSOF(right));
 
 		(* account possible inplace left := left*right, right := left*right, left := left*left, right := right*right *)
 		IF (ladr # dadr) & (radr # dadr) THEN
 
-			flags := SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(left)+MathFlagsOffset)) * SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(right)+MathFlagsOffset));
+			flags := SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(left)+MathFlagsOffset)) * SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(right)+MathFlagsOffset));
 
 			CASE SYSTEM.VAL(LONGINT,flags) OF
 
 				Mat2x2:
-					IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Mat2x2 THEN
+					IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Mat2x2 THEN
 						IF dadr = 0 THEN NEW(RESULT,2,2);
-						ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+						ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 						END;
 					END;
 
@@ -7496,9 +7496,9 @@ Sufficient (but not necessary) conditions:
 					END;
 
 				|Mat3x3:
-					IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Mat3x3 THEN
+					IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Mat3x3 THEN
 						IF dadr = 0 THEN NEW(RESULT,3,3);
-						ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+						ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 						END;
 					END;
 
@@ -7519,9 +7519,9 @@ Sufficient (but not necessary) conditions:
 
 
 				|Mat4x4:
-					IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Mat4x4 THEN
+					IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Mat4x4 THEN
 						IF dadr = 0 THEN NEW(RESULT,4,4);
-						ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+						ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 						END;
 					END;
 
@@ -7548,11 +7548,11 @@ Sufficient (but not necessary) conditions:
 						RESULT[3,3] := left[3,0]*right[0,3] + left[3,1]*right[1,3] + left[3,2]*right[2,3] + left[3,3]*right[3,3];
 					END;
 			ELSE
-				ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+				ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 									    loopMatMulARAR, matMulR );
 			END;
 		ELSE
-			ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+			ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 									    loopMatMulARAR, matMulR );
 		END;
 		RETURN RESULT
@@ -7569,18 +7569,18 @@ Sufficient (but not necessary) conditions:
 		v0, v1, v2: REAL;
 	BEGIN
 
-		dadr := GetAdr(SYSTEM.ADR(RESULT));
-		ladr := GetAdr(SYSTEM.ADR(left));
-		radr := GetAdr(SYSTEM.ADR(right));
+		dadr := GetAdr(ADDRESSOF(RESULT));
+		ladr := GetAdr(ADDRESSOF(left));
+		radr := GetAdr(ADDRESSOF(right));
 
-		flags := SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(left)+MathFlagsOffset)) * SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(right)+MathFlagsOffset));
+		flags := SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(left)+MathFlagsOffset)) * SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(right)+MathFlagsOffset));
 
 		CASE SYSTEM.VAL(LONGINT,flags) OF
 
 			MatVec2x2:
-				IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Vec2 THEN
+				IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Vec2 THEN
 					IF dadr = 0 THEN NEW(RESULT,2);
-					ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+					ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 					END;
 				END;
 
@@ -7593,9 +7593,9 @@ Sufficient (but not necessary) conditions:
 				END;
 
 			|MatVec3x3:
-				IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Vec3 THEN
+				IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Vec3 THEN
 					IF dadr = 0 THEN NEW(RESULT,3);
-					ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+					ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 					END;
 				END;
 
@@ -7609,9 +7609,9 @@ Sufficient (but not necessary) conditions:
 				END;
 
 			|MatVec4x4:
-				IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Vec4 THEN
+				IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Vec4 THEN
 					IF dadr = 0 THEN NEW(RESULT,4);
-					ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+					ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 					END;
 				END;
 
@@ -7626,8 +7626,8 @@ Sufficient (but not necessary) conditions:
 				END;
 
 		ELSE
-			ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( REAL ), loopMatMulARAR, matMulR );
+			ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( REAL ), loopMatMulARAR, matMulR );
 		END;
 		RETURN RESULT
 	END "*";
@@ -7635,14 +7635,14 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "*"*(  CONST left: ARRAY [ * ] OF REAL;
 														  CONST right: ARRAY [ * , * ] OF REAL  ): ARRAY [ * ] OF REAL;
 	BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( REAL ), loopMatMulARAR, matMulR );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( REAL ), loopMatMulARAR, matMulR );
 		RETURN RESULT
 	END "*";
 
 (** LONGREAL *)
 
-	PROCEDURE MatMulAXAXLoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulAXAXLoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: LONGREAL;
 	BEGIN
 		dval := 0;
@@ -7663,20 +7663,20 @@ Sufficient (but not necessary) conditions:
 		flags: SET; dadr, ladr, radr: LONGINT;
 	BEGIN
 
-		dadr := GetAdr(SYSTEM.ADR(RESULT));
-		ladr := GetAdr(SYSTEM.ADR(left));
-		radr := GetAdr(SYSTEM.ADR(right));
+		dadr := GetAdr(ADDRESSOF(RESULT));
+		ladr := GetAdr(ADDRESSOF(left));
+		radr := GetAdr(ADDRESSOF(right));
 
 
 		IF (ladr # dadr) & (radr # dadr) THEN
 
-			flags := SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(left)+MathFlagsOffset)) * SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(right)+MathFlagsOffset));
+			flags := SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(left)+MathFlagsOffset)) * SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(right)+MathFlagsOffset));
 
 			CASE SYSTEM.VAL(LONGINT,flags) OF
 				Mat2x2:
-					IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Mat2x2 THEN
+					IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Mat2x2 THEN
 						IF dadr = 0 THEN NEW(RESULT,2,2);
-						ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+						ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 						END;
 					END;
 
@@ -7689,9 +7689,9 @@ Sufficient (but not necessary) conditions:
 					END;
 
 				|Mat3x3:
-					IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Mat3x3 THEN
+					IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Mat3x3 THEN
 						IF dadr = 0 THEN NEW(RESULT,3,3);
-						ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+						ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 						END;
 					END;
 
@@ -7712,9 +7712,9 @@ Sufficient (but not necessary) conditions:
 
 
 				|Mat4x4:
-					IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Mat4x4 THEN
+					IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Mat4x4 THEN
 						IF dadr = 0 THEN NEW(RESULT,4,4);
-						ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+						ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 						END;
 					END;
 
@@ -7741,11 +7741,11 @@ Sufficient (but not necessary) conditions:
 						RESULT[3,3] := left[3,0]*right[0,3] + left[3,1]*right[1,3] + left[3,2]*right[2,3] + left[3,3]*right[3,3];
 					END;
 			ELSE
-				ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( LONGREAL ),
+				ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGREAL ),
 									    loopMatMulAXAX, matMulX );
 			END;
 		ELSE
-			ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( LONGREAL ),
+			ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGREAL ),
 									    loopMatMulAXAX, matMulX );
 		END;
 		RETURN RESULT
@@ -7763,19 +7763,19 @@ Sufficient (but not necessary) conditions:
 		v0, v1, v2: LONGREAL;
 	BEGIN
 
-		dadr := GetAdr(SYSTEM.ADR(RESULT));
-		ladr := GetAdr(SYSTEM.ADR(left));
-		radr := GetAdr(SYSTEM.ADR(right));
+		dadr := GetAdr(ADDRESSOF(RESULT));
+		ladr := GetAdr(ADDRESSOF(left));
+		radr := GetAdr(ADDRESSOF(right));
 
 
-		flags := SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(left)+MathFlagsOffset)) * SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(right)+MathFlagsOffset));
+		flags := SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(left)+MathFlagsOffset)) * SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(right)+MathFlagsOffset));
 
 		CASE SYSTEM.VAL(LONGINT,flags) OF
 
 			MatVec2x2:
-				IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Vec2 THEN
+				IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Vec2 THEN
 					IF dadr = 0 THEN NEW(RESULT,2);
-					ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+					ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 					END;
 				END;
 
@@ -7788,9 +7788,9 @@ Sufficient (but not necessary) conditions:
 				END;
 
 			|MatVec3x3:
-				IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Vec3 THEN
+				IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Vec3 THEN
 					IF dadr = 0 THEN NEW(RESULT,3);
-					ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+					ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 					END;
 				END;
 
@@ -7804,9 +7804,9 @@ Sufficient (but not necessary) conditions:
 				END;
 
 			|MatVec4x4:
-				IF SYSTEM.GET32(SYSTEM.ADR(RESULT)+MathFlagsOffset) # Vec4 THEN
+				IF SYSTEM.GET32(ADDRESSOF(RESULT)+MathFlagsOffset) # Vec4 THEN
 					IF dadr = 0 THEN NEW(RESULT,4);
-					ELSE Halt(GeometryMismatch,SYSTEM.ADR(left),SYSTEM.ADR(right),0);
+					ELSE Halt(GeometryMismatch,ADDRESSOF(left),ADDRESSOF(right),0);
 					END;
 				END;
 
@@ -7821,8 +7821,8 @@ Sufficient (but not necessary) conditions:
 				END;
 
 		ELSE
-			ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGREAL ), loopMatMulAXAX, matMulX );
+			ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGREAL ), loopMatMulAXAX, matMulX );
 		END;
 		RETURN RESULT
 	END "*";
@@ -7830,14 +7830,14 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "*"*( CONST left: ARRAY [ * ] OF LONGREAL;
 														 CONST right: ARRAY [ * , * ] OF LONGREAL  ): ARRAY [ * ] OF LONGREAL;
 	BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGREAL ), loopMatMulAXAX, matMulX );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGREAL ), loopMatMulAXAX, matMulX );
 		RETURN RESULT
 	END "*";
 
 
 (** SHORTINT *)
-	PROCEDURE MatMulIncASASLoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulIncASASLoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: SHORTINT;
 	BEGIN
 		SYSTEM.GET( dadr, dval );
@@ -7851,32 +7851,32 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@MulInc"*(CONST left, right: ARRAY [ * , * ] OF SHORTINT ): ARRAY [ * , * ] OF SHORTINT;
 	BEGIN
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*(CONST left: ARRAY [ * , * ] OF SHORTINT;
 															  CONST right: ARRAY [ * ] OF SHORTINT  ): ARRAY [ * ] OF SHORTINT;
 	BEGIN
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*( CONST left: ARRAY [ * ] OF SHORTINT;
 															  CONST right: ARRAY [ * , * ] OF SHORTINT  ): ARRAY [ * ] OF SHORTINT;
 		BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulDec"*(CONST left, right: ARRAY [ * , * ] OF SHORTINT  ): ARRAY [ * , * ] OF SHORTINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -7885,8 +7885,8 @@ Sufficient (but not necessary) conditions:
 															  CONST right: ARRAY [ * ] OF SHORTINT  ): ARRAY [ * ] OF SHORTINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -7895,14 +7895,14 @@ Sufficient (but not necessary) conditions:
 															  CONST right: ARRAY [ * , * ] OF SHORTINT ): ARRAY [ * ] OF SHORTINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( SHORTINT ), MatMulIncASASLoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
 
 (** INTEGER *)
-	PROCEDURE MatMulIncAIAILoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulIncAIAILoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: INTEGER;
 	BEGIN
 		SYSTEM.GET( dadr, dval );
@@ -7915,30 +7915,30 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@MulInc"*(CONST left, right: ARRAY [ * , * ] OF INTEGER ): ARRAY [ * , * ] OF INTEGER;
 	BEGIN
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*(CONST left: ARRAY [ * , * ] OF INTEGER; CONST right: ARRAY [ * ] OF INTEGER): ARRAY [ * ] OF INTEGER;
 	BEGIN
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*( CONST left: ARRAY [ * ] OF INTEGER; CONST right: ARRAY [ * , * ] OF INTEGER ): ARRAY [ * ] OF INTEGER;
 		BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulDec"*(CONST left, right: ARRAY [ * , * ] OF INTEGER ): ARRAY [ * , * ] OF INTEGER;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -7946,8 +7946,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*( CONST left: ARRAY [ * , * ] OF INTEGER; CONST right: ARRAY [ * ] OF INTEGER ): ARRAY [ * ] OF INTEGER;
 		BEGIN
 		RESULT := -RESULT;
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -7955,14 +7955,14 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*( CONST left: ARRAY [ * ] OF INTEGER; CONST right: ARRAY [ * , * ] OF INTEGER  ): ARRAY [ * ] OF INTEGER;
 		BEGIN
 		RESULT := -RESULT;
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( INTEGER ), MatMulIncAIAILoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
 
 (** LONGINT *)
-	PROCEDURE MatMulIncALALLoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulIncALALLoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: LONGINT;
 	BEGIN
 		SYSTEM.GET( dadr, dval );
@@ -7975,30 +7975,30 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@MulInc"*(CONST left, right: ARRAY [ * , * ] OF LONGINT ): ARRAY [ * , * ] OF LONGINT;
 	BEGIN
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*(CONST left: ARRAY [ * , * ] OF LONGINT; CONST right: ARRAY [ * ] OF LONGINT ): ARRAY [ * ] OF LONGINT;
 	BEGIN
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*( CONST left: ARRAY [ * ] OF LONGINT; CONST right: ARRAY [ * , * ] OF LONGINT ): ARRAY [ * ] OF LONGINT;
 	BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulDec"*( CONST left, right: ARRAY [ * , * ] OF LONGINT  ): ARRAY [ * , * ] OF LONGINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -8006,8 +8006,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*(CONST left: ARRAY [ * , * ] OF LONGINT; CONST right: ARRAY [ * ] OF LONGINT ): ARRAY [ * ] OF LONGINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -8015,14 +8015,14 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*(CONST left: ARRAY [ * ] OF LONGINT; CONST right: ARRAY [ * , * ] OF LONGINT  ): ARRAY [ * ] OF LONGINT;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGINT ), MatMulIncALALLoop, NIL );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
 
 	(** REAL *)
-	PROCEDURE MatMulIncARARLoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulIncARARLoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: REAL;
 	BEGIN
 		SYSTEM.GET( dadr, dval );
@@ -8035,29 +8035,29 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@MulInc"*(CONST left, right: ARRAY [ * , * ] OF REAL ): ARRAY [ * , * ] OF REAL;
 	BEGIN
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 									    loopMatMulIncARAR, matMulIncR );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*(CONST left: ARRAY [ * , * ] OF REAL;CONST right: ARRAY [ * ] OF REAL ): ARRAY [ * ] OF REAL;
 	BEGIN
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( REAL ), loopMatMulIncARAR, matMulIncR );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( REAL ), loopMatMulIncARAR, matMulIncR );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*( CONST left: ARRAY [ * ] OF REAL; CONST right: ARRAY [ * , * ] OF REAL ): ARRAY [ * ] OF REAL;
 	BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( REAL ), loopMatMulIncARAR, matMulIncR );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( REAL ), loopMatMulIncARAR, matMulIncR );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulDec"*(CONST left, right: ARRAY [ * , * ] OF REAL ): ARRAY [ * , * ] OF REAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 									    loopMatMulIncARAR, matMulIncR );
 		RESULT := -RESULT;
 		RETURN RESULT
@@ -8066,8 +8066,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*( CONST left: ARRAY [ * , * ] OF REAL; CONST right: ARRAY [ * ] OF REAL ): ARRAY [ * ] OF REAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( REAL ), loopMatMulIncARAR, matMulIncR );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( REAL ), loopMatMulIncARAR, matMulIncR );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -8075,14 +8075,14 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*(CONST left: ARRAY [ * ] OF REAL; CONST right: ARRAY [ * , * ] OF REAL ): ARRAY [ * ] OF REAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( REAL ), loopMatMulIncARAR, matMulIncR );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( REAL ), loopMatMulIncARAR, matMulIncR );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
 (** LONGREAL *)
 
-	PROCEDURE MatMulIncAXAXLoop( ladr, radr, dadr, linc, rinc, len: ADDRESS );
+	PROCEDURE MatMulIncAXAXLoop( ladr, radr, dadr, linc, rinc, len: Address );
 	VAR lval, rval, dval: LONGREAL;
 	BEGIN
 		SYSTEM.GET( dadr, dval );
@@ -8095,22 +8095,22 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "@MulInc"*(CONST left, right: ARRAY [ * , * ] OF LONGREAL  ): ARRAY [ * , * ] OF LONGREAL;
 	BEGIN
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*(CONST left: ARRAY [ * , * ] OF LONGREAL; CONST right: ARRAY [ * ] OF LONGREAL  ): ARRAY [ * ] OF LONGREAL;
 	BEGIN
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
 		RETURN RESULT
 	END "@MulInc";
 
 	OPERATOR "@MulInc"*( CONST left: ARRAY [ * ] OF LONGREAL; CONST right: ARRAY [ * , * ] OF LONGREAL ): ARRAY [ * ] OF LONGREAL;
 		BEGIN
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
 		RETURN RESULT
 	END "@MulInc";
 
@@ -8118,8 +8118,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*(CONST left, right: ARRAY [ * , * ] OF LONGREAL ): ARRAY [ * , * ] OF LONGREAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-									    SYSTEM.SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
+		ApplyMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+									    SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -8127,8 +8127,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*( CONST left: ARRAY [ * , * ] OF LONGREAL; CONST right: ARRAY [ * ] OF LONGREAL ): ARRAY [ * ] OF LONGREAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyMatVecMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
+		ApplyMatVecMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -8136,8 +8136,8 @@ Sufficient (but not necessary) conditions:
 	OPERATOR "@MulDec"*( CONST left: ARRAY [ * ] OF LONGREAL; CONST right: ARRAY [ * , * ] OF LONGREAL ): ARRAY [ * ] OF LONGREAL;
 	BEGIN
 		RESULT := -RESULT;
-		ApplyVecMatMulLoop( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-											 SYSTEM.SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
+		ApplyVecMatMulLoop( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+											 SIZEOF( LONGREAL ), loopMatMulIncAXAX, matMulIncX );
 		RESULT := -RESULT;
 		RETURN RESULT
 	END "@MulDec";
@@ -8148,7 +8148,7 @@ Sufficient (but not necessary) conditions:
 	VAR vl1, vl2, vl3, vr1, vr2, vr3: SHORTINT;
 	BEGIN
 		IF (LEN( left,0 ) # 3) OR (LEN( right,0 ) # 3) THEN
-			Halt( GeometryMismatch, SYSTEM.ADR( left ), SYSTEM.ADR( right ),  0 )
+			Halt( GeometryMismatch, ADDRESSOF( left ), ADDRESSOF( right ),  0 )
 		END;
 		IF LEN( RESULT,0 ) # 3 THEN NEW( RESULT, 3 ) END;   (* will trap if not allowed *)
 		vl1 := left[0];  vl2 := left[1];  vl3 := left[2];  vr1 := right[0];  vr2 := right[1];
@@ -8161,7 +8161,7 @@ Sufficient (but not necessary) conditions:
 	VAR vl1, vl2, vl3, vr1, vr2, vr3: INTEGER;
 	BEGIN
 		IF (LEN( left,0 ) # 3) OR (LEN( right,0 ) # 3) THEN
-			Halt( GeometryMismatch, SYSTEM.ADR( left ), SYSTEM.ADR( right ),  0 )
+			Halt( GeometryMismatch, ADDRESSOF( left ), ADDRESSOF( right ),  0 )
 		END;
 		IF LEN( RESULT,0 ) # 3 THEN NEW( RESULT, 3 ) END;   (* will trap if not allowed *)
 		vl1 := left[0];  vl2 := left[1];  vl3 := left[2];  vr1 := right[0];  vr2 := right[1];
@@ -8174,7 +8174,7 @@ Sufficient (but not necessary) conditions:
 	VAR vl1, vl2, vl3, vr1, vr2, vr3: LONGINT;
 	BEGIN
 		IF (LEN( left,0 ) # 3) OR (LEN( right,0 ) # 3) THEN
-			Halt( GeometryMismatch, SYSTEM.ADR( left ), SYSTEM.ADR( right ),  0 )
+			Halt( GeometryMismatch, ADDRESSOF( left ), ADDRESSOF( right ),  0 )
 		END;
 		IF LEN( RESULT,0 ) # 3 THEN NEW( RESULT, 3 ) END;   (* will trap if not allowed *)
 		vl1 := left[0];  vl2 := left[1];  vl3 := left[2];  vr1 := right[0];  vr2 := right[1];
@@ -8187,7 +8187,7 @@ Sufficient (but not necessary) conditions:
 	VAR vl1, vl2, vl3, vr1, vr2, vr3: REAL;
 	BEGIN
 		IF (LEN( left,0 ) # 3) OR (LEN( right,0 ) # 3) THEN
-			Halt( GeometryMismatch, SYSTEM.ADR( left ), SYSTEM.ADR( right ), 0 )
+			Halt( GeometryMismatch, ADDRESSOF( left ), ADDRESSOF( right ), 0 )
 		END;
 		IF LEN( RESULT,0 ) # 3 THEN NEW( RESULT, 3 ) END;   (* will trap if not allowed *)
 		vl1 := left[0];  vl2 := left[1];  vl3 := left[2];  vr1 := right[0];  vr2 := right[1];
@@ -8200,7 +8200,7 @@ Sufficient (but not necessary) conditions:
 	VAR vl1, vl2, vl3, vr1, vr2, vr3: LONGREAL;
 	BEGIN
 		IF (LEN( left,0 ) # 3) OR (LEN( right,0 ) # 3) THEN
-			Halt( GeometryMismatch, SYSTEM.ADR( left ), SYSTEM.ADR( right ),  0 )
+			Halt( GeometryMismatch, ADDRESSOF( left ), ADDRESSOF( right ),  0 )
 		END;
 		IF LEN( RESULT,0 ) # 3 THEN NEW( RESULT, 3 ) END;   (* will trap if not allowed *)
 		vl1 := left[0];  vl2 := left[1];  vl3 := left[2];  vr1 := right[0];  vr2 := right[1];
@@ -8213,8 +8213,8 @@ Sufficient (but not necessary) conditions:
 
 
 
-	PROCEDURE Overlap( src1, src2: ADDRESS ): BOOLEAN;
-	VAR from1, from2, to1, to2: ADDRESS;  dim: LONGINT;
+	PROCEDURE Overlap( src1, src2: Address ): BOOLEAN;
+	VAR from1, from2, to1, to2: Address;  dim: LONGINT;
 	BEGIN
 		from1 := GetAdr( src1 );  from2 := GetAdr( src2 );  to1 := from1;  to2 := from2;
 		dim := GetDim( src1 ) - 1;
@@ -8233,8 +8233,8 @@ Sufficient (but not necessary) conditions:
 
 
 (*
-	PROCEDURE Overlap( src1, src2, dim: ADDRESS ): BOOLEAN;
-	VAR from1, from2, to1, to2: ADDRESS;
+	PROCEDURE Overlap( src1, src2, dim: Address ): BOOLEAN;
+	VAR from1, from2, to1, to2: Address;
 	BEGIN
 		from1 := GetAdr( src1 );  from2 := GetAdr( src2 );  to1 := from1;  to2 := from2;
 		DEC( dim );
@@ -8324,7 +8324,7 @@ Sufficient (but not necessary) conditions:
 	END AllocateTransposed;
 
 
-	PROCEDURE Transpose*( dest, left: ADDRESS;  Size: LONGINT );
+	PROCEDURE Transpose*( dest, left: Address;  Size: LONGINT );
 	VAR len0, len1, linc0, linc1, dinc0, dinc1, ladr, dadr: LONGINT;  p: ANY;
 
 		PROCEDURE CopyLoop( src, dest, srcinc, destinc, len: LONGINT );
@@ -8373,36 +8373,36 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "`"*(CONST left: ARRAY [ * , * ] OF SHORTINT): ARRAY [ * , * ] OF SHORTINT;
 	BEGIN
-		Transpose( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( SHORTINT ) );
+		Transpose( ADDRESSOF( RESULT ), ADDRESSOF( left ), SIZEOF( SHORTINT ) );
 		RETURN RESULT
 	END "`";
 
 	OPERATOR "`"*( CONST left: ARRAY [ * , * ] OF INTEGER ):ARRAY [ * , * ] OF INTEGER ;
 	BEGIN
-		Transpose( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( INTEGER ) );
+		Transpose( ADDRESSOF( RESULT ), ADDRESSOF( left ), SIZEOF( INTEGER ) );
 		RETURN RESULT
 	END "`";
 
 	OPERATOR "`"*( CONST left: ARRAY [ * , * ] OF LONGINT ): ARRAY [ * , * ] OF LONGINT;
 	BEGIN
-		Transpose( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( LONGINT ) );
+		Transpose( ADDRESSOF( RESULT ), ADDRESSOF( left ), SIZEOF( LONGINT ) );
 		RETURN RESULT
 	END "`";
 
 	OPERATOR "`"*( CONST left: ARRAY [ * , * ] OF REAL ): ARRAY [ * , * ] OF REAL;
 	BEGIN
-		Transpose( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( REAL ) );
+		Transpose( ADDRESSOF( RESULT ), ADDRESSOF( left ), SIZEOF( REAL ) );
 		RETURN RESULT
 	END "`";
 
 	OPERATOR "`"*( CONST left: ARRAY [ * , * ] OF LONGREAL ): ARRAY [ * , * ] OF LONGREAL;
 												    ;
 	BEGIN
-		Transpose( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.SIZEOF( LONGREAL ) );
+		Transpose( ADDRESSOF( RESULT ), ADDRESSOF( left ), SIZEOF( LONGREAL ) );
 		RETURN RESULT
 	END "`";
 
-	PROCEDURE CheckTensorGeometry( left, right, dest: ADDRESS; ldim, rdim: LONGINT ): BOOLEAN;
+	PROCEDURE CheckTensorGeometry( left, right, dest: Address; ldim, rdim: LONGINT ): BOOLEAN;
 	VAR i: LONGINT;
 	BEGIN
 		FOR i := 0 TO rdim - 1 DO
@@ -8654,7 +8654,7 @@ Sufficient (but not necessary) conditions:
 	END DoReshape;
 
 	PROCEDURE AllocateTensorX*( VAR destA: ARRAY [?]; CONST a: ARRAY [ * ] OF LONGINT;  Size: LONGINT; tag: LONGINT );
-	VAR descr, data: ANY;  same: BOOLEAN;  i: LONGINT;  dim: LONGINT; dest: ADDRESS;
+	VAR descr, data: ANY;  same: BOOLEAN;  i: LONGINT;  dim: LONGINT; dest: Address;
 
 		PROCEDURE NewData;
 		VAR len, size, i: LONGINT;
@@ -8683,7 +8683,7 @@ Sufficient (but not necessary) conditions:
 
 	BEGIN
 		dim := LEN( a,0 );
-		dest := SYSTEM.VAL(ADDRESS,destA);
+		dest := SYSTEM.VAL(Address,destA);
 
 		(*! check range flag! *)
 
@@ -8705,10 +8705,10 @@ Sufficient (but not necessary) conditions:
 			ELSE ClearData
 			END;
 		END;
-		SYSTEM.PUT(SYSTEM.ADR(destA),dest);
+		SYSTEM.PUT(ADDRESSOF(destA),dest);
 	END AllocateTensorX;
 
-	PROCEDURE LenA*( VAR dest: ARRAY [ * ] OF LONGINT;  src: ADDRESS );
+	PROCEDURE LenA*( VAR dest: ARRAY [ * ] OF LONGINT;  src: Address );
 	VAR dim, i: LONGINT;
 	BEGIN
 		dim := GetDim( src );
@@ -8718,7 +8718,7 @@ Sufficient (but not necessary) conditions:
 
 
 
-	PROCEDURE IncrA*( VAR dest: ARRAY [ * ] OF LONGINT;  src: ADDRESS );
+	PROCEDURE IncrA*( VAR dest: ARRAY [ * ] OF LONGINT;  src: Address );
 	VAR dim, i, len: LONGINT;
 	BEGIN
 		dim := GetDim( src );  len := LEN( dest, 0 );
@@ -8726,7 +8726,7 @@ Sufficient (but not necessary) conditions:
 		FOR i := 0 TO dim - 1 DO dest[i] := GetIncr( src, i );  END;
 	END IncrA;
 
-	PROCEDURE Len*(src: ADDRESS; d: LONGINT): LONGINT;
+	PROCEDURE Len*(src: Address; d: LONGINT): LONGINT;
 	VAR dim: LONGINT;
 	BEGIN
 		dim := GetDim(src);
@@ -8736,7 +8736,7 @@ Sufficient (but not necessary) conditions:
 		END;
 	END Len;
 
-	PROCEDURE Incr*(src: ADDRESS; d: LONGINT): LONGINT;
+	PROCEDURE Incr*(src: Address; d: LONGINT): LONGINT;
 	VAR dim: LONGINT;
 	BEGIN
 		dim := GetDim(src);
@@ -8747,7 +8747,7 @@ Sufficient (but not necessary) conditions:
 	END Incr;
 
 
-	PROCEDURE AllocateTensor( VAR dest: LONGINT;  left, right: ADDRESS;
+	PROCEDURE AllocateTensor( VAR dest: LONGINT;  left, right: Address;
 												    Size: LONGINT ): ANY;
 	VAR ldim, rdim: LONGINT;  ptr, data: ANY;
 
@@ -8796,7 +8796,7 @@ Sufficient (but not necessary) conditions:
 	END AllocateTensor;
 
 (* find the largest block with a regular pattern of the form offset+{i*linc: 0<=i<len} for two arrays simultaneously. d is dimension applying to the resulting loop *)
-	PROCEDURE FindPatternTensor( left, right: ADDRESS;
+	PROCEDURE FindPatternTensor( left, right: Address;
 														 VAR rdim, len, linc, ri: LONGINT );
 	(* geometric precondition: lengths must coincide *)
 	VAR ldim: LONGINT;
@@ -8822,12 +8822,12 @@ Sufficient (but not necessary) conditions:
 		END;
 	END FindPatternTensor;
 
-	PROCEDURE ApplyTensorAAAOp( d, l, r: ADDRESS;  elementSize: LONGINT;
+	PROCEDURE ApplyTensorAAAOp( d, l, r: Address;  elementSize: LONGINT;
 														    Loop: BinaryASALoop );
 	VAR loopd, looplen, loopri, loopdi, lDim, rDim: LONGINT;  p: ANY;
-		origdest: LONGINT;  left, right, dest: ADDRESS;
+		origdest: LONGINT;  left, right, dest: Address;
 
-		PROCEDURE Traverse( ladr, radr, dadr: ADDRESS;  ldim, rdim: LONGINT );
+		PROCEDURE Traverse( ladr, radr, dadr: Address;  ldim, rdim: LONGINT );
 		VAR len: LONGINT;  linc, rinc, dinc: LONGINT;
 		BEGIN
 			IF (ldim < lDim) THEN
@@ -8886,49 +8886,49 @@ Sufficient (but not necessary) conditions:
 
 	OPERATOR "**"*(CONST left,right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
 	BEGIN
-		ApplyTensorAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( SHORTINT ), MulASSSLoop );
+		ApplyTensorAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( SHORTINT ), MulASSSLoop );
 		RETURN RESULT
 	END "**";
 
 	OPERATOR "**"*(CONST left,right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
 	BEGIN
-		ApplyTensorAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( INTEGER ), MulAISILoop );
+		ApplyTensorAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( INTEGER ), MulAISILoop );
 		RETURN RESULT
 	END "**";
 
 	OPERATOR "**"*(CONST left,right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT;
 	BEGIN
-		ApplyTensorAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGINT ), MulALSLLoop );
+		ApplyTensorAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGINT ), MulALSLLoop );
 		RETURN RESULT
 	END "**";
 
 	OPERATOR "**"*(CONST left,right: ARRAY [?] OF REAL): ARRAY [?] OF REAL;
 	BEGIN
-		ApplyTensorAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( REAL ),
+		ApplyTensorAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ),
 										  loopMulARSR );
 		RETURN RESULT
 	END "**";
 
 	OPERATOR "**"*(CONST left,right: ARRAY [?] OF LONGREAL): ARRAY [?] OF LONGREAL;
 	BEGIN
-		ApplyTensorAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ),
-										  SYSTEM.SIZEOF( LONGREAL ), loopMulAXSX );
+		ApplyTensorAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ),
+										  SIZEOF( LONGREAL ), loopMulAXSX );
 		RETURN RESULT
 	END "**";
 
 	OPERATOR "**"*(CONST left,right: ARRAY [?] OF COMPLEX): ARRAY [?] OF COMPLEX;
 	BEGIN
-		ApplyTensorAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( COMPLEX ),
+		ApplyTensorAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( COMPLEX ),
 										  loopMulAZSZ );
 		RETURN RESULT
 	END "**";
 
 	OPERATOR "**"*(CONST left,right: ARRAY [?] OF LONGCOMPLEX): ARRAY [?] OF LONGCOMPLEX;
 	BEGIN
-		ApplyTensorAAAOp( SYSTEM.ADR( RESULT ), SYSTEM.ADR( left ), SYSTEM.ADR( right ), SYSTEM.SIZEOF( LONGCOMPLEX ),
+		ApplyTensorAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGCOMPLEX ),
 										  loopMulALZSLZ );
 		RETURN RESULT
 	END "**";
@@ -8945,7 +8945,7 @@ Sufficient (but not necessary) conditions:
 	END InitOptimization;
 
 	PROCEDURE CopyDescriptor*(VAR destPtr: ANY; src: LONGINT; prefixIndices, prefixRanges, suffixIndices, suffixRanges: LONGINT);
-	VAR size: SYSTEM.SIZE; srcDim, destDim,i,len,incr: LONGINT; dest: SYSTEM.ADDRESS;
+	VAR size: SIZE; srcDim, destDim,i,len,incr: LONGINT; dest: Address;
 	BEGIN
 		IF src = 0 THEN
 			HALT(100);
@@ -9025,7 +9025,7 @@ Sufficient (but not necessary) conditions:
 		sourceAddress := SYSTEM.VAL(LONGINT, sourceArray);
 		targetDimensionality := LEN(keptDimensions, 0);
 		targetArrayDescriptor := GetArrayDesc(targetDimensionality); (* create a new array descriptor *)
-		SYSTEM.PUT(SYSTEM.ADR(RESULT), targetArrayDescriptor);
+		SYSTEM.PUT(ADDRESSOF(RESULT), targetArrayDescriptor);
 		targetAddress := SYSTEM.VAL(LONGINT, RESULT);
 
 		PutAdr(targetAddress, GetAdr(sourceAddress));

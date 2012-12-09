@@ -106,7 +106,7 @@ BEGIN {EXCLUSIVE}
 
 	KernelLog.Enter; KernelLog.String("Starting logger"); KernelLog.Exit;
 	NEW(buf, BufSize);
-	IF ~KernelLog.OpenBuffer(SYSTEM.ADR(buf[0]), LEN(buf)) THEN
+	IF ~KernelLog.OpenBuffer(ADDRESSOF(buf[0]), LEN(buf)) THEN
 		(* Kill Oberon Logger *)
 		IF Modules.ModuleByName (OberonKernel) # NIL THEN
 			GETPROCEDURE (OberonKernel, "LockOberon", kernelLockOberon);
@@ -117,7 +117,7 @@ BEGIN {EXCLUSIVE}
 		END;
 		IF (kernelLockOberon # NIL) & (kernelUnlockOberon # NIL) &(systemStopLog # NIL) THEN
 			kernelLockOberon; systemStopLog; kernelUnlockOberon;
-			KernelLog.CloseBuffer; 	IF KernelLog.OpenBuffer(SYSTEM.ADR(buf[0]), LEN(buf)) THEN
+			KernelLog.CloseBuffer; 	IF KernelLog.OpenBuffer(ADDRESSOF(buf[0]), LEN(buf)) THEN
 				KernelLog.Enter; KernelLog.String("Oberon KernelLog stopped. New buffer installed"); KernelLog.Exit
 			END
 		END;

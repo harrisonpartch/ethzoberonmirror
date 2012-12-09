@@ -71,20 +71,20 @@ TYPE
 		END Linked;
 
 		PROCEDURE DoSend*(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
-		VAR i: LONGINT; bufAdr: SYSTEM.ADDRESS; txState:LONGINT; txs:SET; t, totlen:LONGINT;
+		VAR i: LONGINT; bufAdr: ADDRESS; txState:LONGINT; txs:SET; t, totlen:LONGINT;
 		BEGIN {EXCLUSIVE}
 			(* Disable IRQ *)
 			SYSTEM.PUT16(ctrl.base + 3CH, SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LONG(SYSTEM.GET16(ctrl.base + 3CH)))-{0..6, 13..15}));
 
-			bufAdr:=SYSTEM.ADR(ctrl.txBuffers[ctrl.nextTxBuffer]^[0]);
-			SYSTEM.MOVE(SYSTEM.ADR(dst[0]), bufAdr, 6);
-			SYSTEM.MOVE(SYSTEM.ADR(local[0]), bufAdr+6, 6);
-			SYSTEM.PUT16(bufAdr+12, SYSTEM.ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
+			bufAdr:=ADDRESSOF(ctrl.txBuffers[ctrl.nextTxBuffer]^[0]);
+			SYSTEM.MOVE(ADDRESSOF(dst[0]), bufAdr, 6);
+			SYSTEM.MOVE(ADDRESSOF(local[0]), bufAdr+6, 6);
+			SYSTEM.PUT16(bufAdr+12, ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
 			i:=14;
-			IF h3len > 0 THEN SYSTEM.MOVE(SYSTEM.ADR(l3hdr[0]),  bufAdr+i, h3len); INC(i, h3len) END;
-			IF h4len > 0 THEN SYSTEM.MOVE(SYSTEM.ADR(l4hdr[0]),  bufAdr+i, h4len); INC(i, h4len) END;
+			IF h3len > 0 THEN SYSTEM.MOVE(ADDRESSOF(l3hdr[0]),  bufAdr+i, h3len); INC(i, h3len) END;
+			IF h4len > 0 THEN SYSTEM.MOVE(ADDRESSOF(l4hdr[0]),  bufAdr+i, h4len); INC(i, h4len) END;
 			IF i + dlen < MaxETHFrameSize THEN
-				SYSTEM.MOVE(SYSTEM.ADR(data[0]) + dofs,  bufAdr + i, dlen); INC(i, dlen);
+				SYSTEM.MOVE(ADDRESSOF(data[0]) + dofs,  bufAdr + i, dlen); INC(i, dlen);
 			END;
 
 			IF Min60BytePacket THEN WHILE i<60 DO ctrl.txBuffers[ctrl.nextTxBuffer]^[i] := CHR(0); INC(i) END END;
@@ -145,7 +145,7 @@ TYPE
 	Controller = OBJECT
 		VAR
 			next: Controller;
-			base: SYSTEM.ADDRESS; irq: LONGINT;
+			base: ADDRESS; irq: LONGINT;
 			dev: LinkDevice;
 			model, chipset: LONGINT;
 			media: SET;
@@ -185,7 +185,7 @@ TYPE
 			FlushWrite8(37H, SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LONG(LONG(SYSTEM.GET8(base + 37H))))* {1, 5, 6, 7} + {2 , 3}));
 
 			(* initialize the rxBuffer *)
-			SYSTEM.PUT32(base + 30H, SYSTEM.ADR(rxBuffer[0]));
+			SYSTEM.PUT32(base + 30H, ADDRESSOF(rxBuffer[0]));
 			rxBufPos:=0; SYSTEM.PUT16(base+38H, rxBufPos-16); dummy:=SYSTEM.GET16(base + 38H);
 
 			(* initialize packet types *)
@@ -215,7 +215,7 @@ TYPE
 
 	END Reset;
 
-		PROCEDURE &Init*(dev: LinkDevice; base: SYSTEM.ADDRESS; irq, model: LONGINT);
+		PROCEDURE &Init*(dev: LinkDevice; base: ADDRESS; irq, model: LONGINT);
 		VAR res, dp, ver, i, dummy: LONGINT; val, nval: SET;
 		BEGIN
 			SELF.next:=installedControllers; installedControllers:=SELF;
@@ -273,7 +273,7 @@ TYPE
 			FlushWrite8(37H, SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LONG(LONG(SYSTEM.GET8(base + 37H))))* {1, 5, 6, 7} + {2 , 3}));
 
 			(* initialize the rxBuffer *)
-			SYSTEM.PUT32(base + 30H, SYSTEM.ADR(rxBuffer[0]));
+			SYSTEM.PUT32(base + 30H, ADDRESSOF(rxBuffer[0]));
 			rxBufPos:=0; SYSTEM.PUT16(base+38H, rxBufPos-16); dummy:=SYSTEM.GET16(base + 38H);
 
 			(* initialize packet types *)
@@ -401,7 +401,7 @@ TYPE
 (*						IF CallNetworkReceiver THEN
 							dev.GetReceiver(type, handler, hSize);	(* base method call *)
 							IF hSize > pSize THEN hSize := pSize END;
-							rcvAdr := SYSTEM.ADR(rxBuffer[pStart + 14 + hSize]);
+							rcvAdr := ADDRESSOF(rxBuffer[pStart + 14 + hSize]);
 							rcvSize := pSize - hSize - 14;
 							INC(dev.recvCount);
 							handler(dev, SYSTEM.VAL(Network.RecvHdr, rxBuffer[pStart+14]), pSize-14, type,
@@ -519,7 +519,7 @@ TYPE
 (* Scan the PCI bus for the specified card. *)
 
 PROCEDURE ScanPCI(vendor, device, model: LONGINT);
-VAR index, bus, dev, fct, res, irq, i: LONGINT; base: SYSTEM.ADDRESS; d: LinkDevice; c: Controller; name: Plugins.Name;
+VAR index, bus, dev, fct, res, irq, i: LONGINT; base: ADDRESS; d: LinkDevice; c: Controller; name: Plugins.Name;
 BEGIN
 	index := 0;
 	WHILE (PCI.FindPCIDevice(device, vendor, index, bus, dev, fct) = PCI.Done) & (installed < 10) DO

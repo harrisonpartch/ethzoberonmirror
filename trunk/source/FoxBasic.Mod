@@ -552,7 +552,7 @@ TYPE
 		PROCEDURE HashValue(key: ANY):LONGINT;
 		VAR value, h1, h2, i: LONGINT;
 		BEGIN
-			value := SYSTEM.VAL(LONGINT, key) DIV SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+			value := SYSTEM.VAL(LONGINT, key) DIV SIZEOF(ADDRESS);
 			i := 0;
 			h1 := value MOD size;
 			h2 := 1; (* Linear probing *)
@@ -750,7 +750,7 @@ TYPE
 		BEGIN
 			fp := name[0]; i := 1;
 			WHILE (i<LEN(name)) & (name[i] >= 0) DO
-				fp:=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ROT(fp, 7)) / SYSTEM.VAL(SET, name[i]));
+				fp:=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ROT(fp, 7)) / SYSTEM.VAL(SET, name[i]));
 				INC(i);
 			END;
 			RETURN fp
@@ -1521,7 +1521,7 @@ TYPE
 		BEGIN Indent; w.Hex(x,wd)
 		END Hex;
 
-		PROCEDURE Address* (x: SYSTEM.ADDRESS);
+		PROCEDURE Address* (x: ADDRESS);
 		BEGIN Indent; w.Address(x)
 		END Address;
 
@@ -1596,7 +1596,7 @@ TYPE
 		BEGIN
 			WHILE len > 0 DO
 				idx := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, crc) / SYSTEM.VAL(SET, LONG(ORD(buf[ofs])))) MOD 100H;
-				crc := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, CRC32Table[idx])/SYSTEM.VAL(SET, SYSTEM.LSH(crc, -8)));
+				crc := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, CRC32Table[idx])/SYSTEM.VAL(SET, LSH(crc, -8)));
 				DEC(len); INC(ofs)
 			END;
 			res := Streams.Ok
@@ -2138,8 +2138,8 @@ VAR
 		FOR n := 0 TO 255 DO
 			c := n;
 			FOR k := 0 TO 7 DO
-				IF ODD(c) THEN c := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, poly) / SYSTEM.VAL(SET, SYSTEM.LSH(c, -1)))
-				ELSE c := SYSTEM.LSH(c, -1)
+				IF ODD(c) THEN c := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, poly) / SYSTEM.VAL(SET, LSH(c, -1)))
+				ELSE c := LSH(c, -1)
 				END
 			END;
 			CRC32Table[n] := SYSTEM.VAL(SET, c)

@@ -13,8 +13,8 @@ CONST
 	Open = 0;  Create = 1;  Closed = 2;	(* file states *)
 
 TYPE
-	Address = S.ADDRESS;
-	Size = S.SIZE;
+	Address = ADDRESS;
+	Size = SIZE;
 	
 VAR
 	searchPath: ARRAY 1024 OF CHAR;
@@ -161,16 +161,16 @@ TYPE
 					IF (FileTabSize - openfiles) < ResFiles THEN  GC   END;
 						
 					LOOP
-						r := Unix.access( S.ADR( path ), Unix.R_OK );
+						r := Unix.access( ADDRESSOF( path ), Unix.R_OK );
 						IF r >= 0 THEN
-							r := Unix.access( S.ADR( path ), Unix.W_OK );
+							r := Unix.access( ADDRESSOF( path ), Unix.W_OK );
 							IF r < 0 THEN  oflags := Unix.rdonly  ELSE  oflags := Unix.rdwr  END;
 							
-							fd := Unix.open( S.ADR( path ), oflags, {} );  errno := Unix.errno();
+							fd := Unix.open( ADDRESSOF( path ), oflags, {} );  errno := Unix.errno();
 							IF ((fd < 0) & (errno IN {Unix.ENFILE, Unix.EMFILE})) OR (fd >= FileTabSize) THEN
 								IF fd > 0 THEN  r := Unix.close( fd )  END;
 								GC ;
-								fd := Unix.open( S.ADR( path ), oflags, {} );  errno := Unix.errno();
+								fd := Unix.open( ADDRESSOF( path ), oflags, {} );  errno := Unix.errno();
 							END;
 
 							IF fd >= 0 THEN
@@ -222,7 +222,7 @@ TYPE
 				PROCEDURE Delete0*( name: ARRAY OF CHAR;  VAR key, res: LONGINT );
 				VAR r: LONGINT;
 				BEGIN  {EXCLUSIVE}
-					r := Unix.unlink( S.ADR( name ) );
+					r := Unix.unlink( ADDRESSOF( name ) );
 					IF r = 0 THEN  res := Files.Ok
 					ELSE  res := Unix.errno( )
 					END;
@@ -235,35 +235,35 @@ TYPE
 				VAR fdold, fdnew, n, r: LONGINT;  ostat, nstat: Unix.Status;
 					buf: ARRAY Bufsize OF CHAR;
 				BEGIN {EXCLUSIVE}
-					r:= Unix.stat( S.ADR( old ), ostat );
+					r:= Unix.stat( ADDRESSOF( old ), ostat );
 					IF r >= 0 THEN
-						r := Unix.stat( S.ADR( new ), nstat );
+						r := Unix.stat( ADDRESSOF( new ), nstat );
 						IF (r >= 0) & (ostat.dev # nstat.dev) OR (ostat.ino # nstat.ino) THEN
-							 r := Unix.unlink( S.ADR( new ) )  (* work around stale nfs handles *)
+							 r := Unix.unlink( ADDRESSOF( new ) )  (* work around stale nfs handles *)
 						END;
-						r := Unix.rename( S.ADR( old ), S.ADR( new ) );
+						r := Unix.rename( ADDRESSOF( old ), ADDRESSOF( new ) );
 						IF r < 0 THEN
 							res := Unix.errno( );
 							IF res = Unix.EXDEV THEN  (* cross device link, move the file *)
-								fdold := Unix.open( S.ADR( old ), Unix.rdonly, {} );
+								fdold := Unix.open( ADDRESSOF( old ), Unix.rdonly, {} );
 								IF fdold < 0 THEN    
 									res := Unix.errno( );  RETURN
 								END;
-								fdnew := Unix.open( S.ADR( new ), Unix.rdwr + Unix.creat + Unix.trunc, Unix.rwrwr );
+								fdnew := Unix.open( ADDRESSOF( new ), Unix.rdwr + Unix.creat + Unix.trunc, Unix.rwrwr );
 								IF fdnew < 0 THEN    
 									res := Unix.errno( );  RETURN
 								END;
-								n := Unix.read( fdold, S.ADR( buf ), Bufsize );
+								n := Unix.read( fdold, ADDRESSOF( buf ), Bufsize );
 								WHILE n > 0 DO
-									r := Unix.write( fdnew, S.ADR( buf ), n );
+									r := Unix.write( fdnew, ADDRESSOF( buf ), n );
 									IF r < 0 THEN
 										res := Unix.errno();  
 										r := Unix.close( fdold );  r := Unix.close( fdnew );
 										RETURN
 									END;
-									n := Unix.read( fdold, S.ADR( buf ), Bufsize )
+									n := Unix.read( fdold, ADDRESSOF( buf ), Bufsize )
 								END;
-								r := Unix.unlink( S.ADR( old ) );  
+								r := Unix.unlink( ADDRESSOF( old ) );  
 								r := Unix.close( fdold );  r := Unix.close( fdnew );  
 								res := Files.Ok
 							ELSE  
@@ -280,7 +280,7 @@ TYPE
 				PROCEDURE CreateDirectory0*( path: ARRAY OF CHAR;  VAR res: LONGINT );
 				VAR r: LONGINT;
 				BEGIN {EXCLUSIVE}
-					r := Unix.mkdir( S.ADR( path ), Unix.rwxrwxrwx );
+					r := Unix.mkdir( ADDRESSOF( path ), Unix.rwxrwxrwx );
 					IF r = 0 THEN  res := Files.Ok   
 					ELSE res := Unix.errno( )
 					END	
@@ -290,7 +290,7 @@ TYPE
 				PROCEDURE RemoveDirectory0*( path: ARRAY OF CHAR;  force: BOOLEAN;  VAR key, res: LONGINT );
 				VAR r: LONGINT;
 				BEGIN {EXCLUSIVE}
-					r := Unix.rmdir( S.ADR( path ) );
+					r := Unix.rmdir( ADDRESSOF( path ) );
 					IF r = 0 THEN  res := Files.Ok
 					ELSE  res := Unix.errno( )
 					END
@@ -306,7 +306,7 @@ TYPE
 					PROCEDURE GetEntryName;
 					VAR i: INTEGER;  adr: Address;
 					BEGIN
-						i := -1;  adr := S.ADR( ent.name );
+						i := -1;  adr := ADDRESSOF( ent.name );
 						REPEAT  INC( i );  S.GET( adr, fileName[i] );  INC( adr )  UNTIL fileName[i] = 0X
 					END GetEntryName;
 					
@@ -316,7 +316,7 @@ TYPE
 						tm: Unix.TmPtr;  date, time: LONGINT;  
 						stat: Unix.Status; r: LONGINT;
 					BEGIN
-						dir := Unix.opendir( S.ADR( dirName ) );
+						dir := Unix.opendir( ADDRESSOF( dirName ) );
 						IF dir # 0 THEN
 							ent := Unix.readdir( dir );
 							WHILE ent # NIL DO
@@ -324,7 +324,7 @@ TYPE
 								GetEntryName;  Append( fullName, fileName );
 								IF (fileName[0] # '.')  & Match( fileName, filemask, 0, 0 ) THEN
 									IF checkSet.Add( fileName ) THEN  (* not a covered name *)
-										r := Unix.stat( S.ADR( fullName ), stat );
+										r := Unix.stat( ADDRESSOF( fullName ), stat );
 										tm := Unix.localtime( stat.mtime );
 										date := tm.year*200H + (tm.mon + 1)*20H + tm.mday;
 										time := tm.hour*1000H + tm.min*40H + tm.sec;
@@ -332,7 +332,7 @@ TYPE
 										IF IsDirectory( stat ) THEN
 											flags := {Files.ReadOnly, Files.Directory}
 										ELSE
-											r := Unix.access( S.ADR( fullName ), Unix.W_OK ); 
+											r := Unix.access( ADDRESSOF( fullName ), Unix.W_OK ); 
 											IF r < 0 THEN  flags := {Files.ReadOnly}  END
 										END;
 										enum.PutEntry( fullName, flags, time, date, stat.size );
@@ -415,17 +415,17 @@ TYPE
 					ELSIF state = Closed THEN  
 						workName := registerName;  registerName := "";  tempFile := FALSE
 					END;
-					r := Unix.unlink( S.ADR( workName ) );
+					r := Unix.unlink( ADDRESSOF( workName ) );
 					(*unlink first to avoid stale NFS handles and to avoid reuse of inodes*)
 					
 					IF (FileTabSize - openfiles) < ResFiles THEN  GC  END;
 						
-					fd := Unix.open( S.ADR( workName ), CreateFlags, Unix.rwrwr );
+					fd := Unix.open( ADDRESSOF( workName ), CreateFlags, Unix.rwrwr );
 					done := fd >= 0;  r := Unix.errno();
 					IF (~done & (r IN {Unix.ENFILE, Unix.EMFILE})) OR (done & (fd >= FileTabSize)) THEN
 						IF done THEN  r := Unix.close( fd )  END;
 						GC ;
-						fd := Unix.open( S.ADR( workName ), CreateFlags, Unix.rwrwr );
+						fd := Unix.open( ADDRESSOF( workName ), CreateFlags, Unix.rwrwr );
 						done := fd >= 0
 					END;
 					IF done THEN
@@ -451,7 +451,7 @@ TYPE
 					IF buf.chg THEN
 						IF fd = NoDesc THEN  CreateUnixFile  END;
 						IF buf.org # fpos THEN  res := Unix.lseek( fd, buf.org, 0 )  END;
-						res := Unix.write( fd, S.ADR( buf.data ), buf.size );
+						res := Unix.write( fd, ADDRESSOF( buf.data ), buf.size );
 						IF res < 0 THEN  Halt( SELF, TRUE, "UnixFiles.File.Flush: write failed" )  END;
 						fpos := buf.org + buf.size;  buf.chg := FALSE;
 						res := Unix.fstat( fd, stat );  mtime := stat.mtime.sec
@@ -491,7 +491,7 @@ TYPE
 							IF fd = NoDesc THEN  CreateUnixFile  END;
 							IF fpos # org THEN  res := Unix.lseek( fd, org, 0 )  END;
 							IF res < 0 THEN  Halt( SELF, TRUE, "UnixFiles.File.Set: lseek failed" )  END;
-							n := Unix.read( fd, S.ADR( buf.data ), Bufsize );
+							n := Unix.read( fd, ADDRESSOF( buf.data ), Bufsize );
 							IF n < 0 THEN  
 								IF p < fsize THEN  Halt( SELF, TRUE, "UnixFiles.File.Set: read failed" )  
 								ELSE n := 0
@@ -549,7 +549,7 @@ TYPE
 						ELSIF len > restInBuf THEN  min := restInBuf
 						ELSE  min := len
 						END;
-						S.MOVE( S.ADR( buf.data ) + offset, S.ADR( x ) + xpos, min );
+						S.MOVE( ADDRESSOF( buf.data ) + offset, ADDRESSOF( x ) + xpos, min );
 						INC( offset, min );  r.bpos := offset;
 						INC( xpos, min );  DEC( len, min )
 					END;
@@ -581,7 +581,7 @@ TYPE
 						END;
 						restInBuf := Bufsize - offset;
 						IF len > restInBuf THEN  min := restInBuf  ELSE  min := len  END;
-						S.MOVE( S.ADR( x ) + xpos, S.ADR( buf.data ) + offset, min );  
+						S.MOVE( ADDRESSOF( x ) + xpos, ADDRESSOF( buf.data ) + offset, min );  
 						INC( offset, min );  r.bpos := offset;
 						IF offset > buf.size THEN  
 							INC( fsize, offset - buf.size );  buf.size := offset  
@@ -625,7 +625,7 @@ TYPE
 					tm.mday := d MOD 32;  tm.mon := d DIV 32 MOD 16 - 1;  tm.year := d DIV 512;
 					tm.wday := 0;  tm.yday := 0;
 					buf.actime := Unix.mktime( tm );  buf.modtime := buf.actime;
-					r := Unix.utime( S.ADR( path ), S.ADR( buf ) );
+					r := Unix.utime( ADDRESSOF( path ), ADDRESSOF( buf ) );
 				END SetDate;
 
 
@@ -676,7 +676,7 @@ TYPE
 				VAR r: LONGINT;
 				BEGIN {EXCLUSIVE}
 					IF fileTab[fd] # 0 THEN
-						IF tempFile THEN  r := Unix.unlink( S.ADR( workName ) )  
+						IF tempFile THEN  r := Unix.unlink( ADDRESSOF( workName ) )  
 						ELSE  FlushBuffers;
 						END;
 						fileTab[fd] := 0;
@@ -714,7 +714,7 @@ TYPE
 		ELSE
 			COPY( path, epath );
 		END;
-		r := Unix.chdir( S.ADR( epath ) );
+		r := Unix.chdir( ADDRESSOF( epath ) );
 		IF r = 0 THEN  COPY( epath, cwd );  done := TRUE   ELSE  done := FALSE   END
 	END ChangeDirectory;
 
@@ -954,13 +954,13 @@ TYPE
 	VAR a: Address;  i: INTEGER;  ch: CHAR;
 	BEGIN
 		(* get current working directory *)
-		a := Unix.getenv( S.ADR( "PWD" ) );
+		a := Unix.getenv( ADDRESSOF( "PWD" ) );
 		IF a > 0 THEN
 			i := 0;
 			REPEAT  S.GET( a, ch );  INC( a );  cwd[i] := ch;  INC( i )  UNTIL ch = 0X;
 		ELSE
 			(* $PWD not set *)  
-			a := Unix.getcwd( S.ADR( cwd ), LEN( cwd ) )
+			a := Unix.getcwd( ADDRESSOF( cwd ), LEN( cwd ) )
 		END;
 		i := 0;
 		WHILE cwd[i] # 0X DO  INC( i )  END;
@@ -968,7 +968,7 @@ TYPE
 		IF (i > 0) & (cwd[i] = '/') THEN  cwd[i] := 0X  END;
 
 		(* get search pathes *)
-		a := Unix.getenv( S.ADR( "AOSPATH" ) );  i := 0;
+		a := Unix.getenv( ADDRESSOF( "AOSPATH" ) );  i := 0;
 		IF a = 0 THEN
 			Log.String( "UnixFiles.Initialize: environment variable AOSPATH not defined" );  Log.Ln;
 			Unix.exit( 1 )

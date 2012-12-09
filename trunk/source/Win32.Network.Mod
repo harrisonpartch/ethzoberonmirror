@@ -600,7 +600,7 @@ PROCEDURE Copy*(VAR from, to: ARRAY OF CHAR; fofs, tofs, len: LONGINT);
 BEGIN
 	IF len > 0 THEN
 		ASSERT((fofs+len <= LEN(from)) & (tofs+len <= LEN(to)));
-		SYSTEM.MOVE(SYSTEM.ADR(from[fofs]), SYSTEM.ADR(to[tofs]), len);
+		SYSTEM.MOVE(ADDRESSOF(from[fofs]), ADDRESSOF(to[tofs]), len);
 	END;
 
 END Copy;

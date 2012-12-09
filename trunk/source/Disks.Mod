@@ -204,7 +204,7 @@ BEGIN
 		IF Trace THEN
 			KernelLog.String("Disks: ReadPrimary = "); KernelLog.Int(res, 1);
 			KernelLog.String(" on "); KernelLog.String(dev.name); KernelLog.Ln;
-			IF res = 0 THEN KernelLog.Memory(SYSTEM.ADR(b[0]), BS) END
+			IF res = 0 THEN KernelLog.Memory(ADDRESSOF(b[0]), BS) END
 		END
 	END
 END ReadPrimary;

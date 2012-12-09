@@ -170,7 +170,7 @@ TYPE
 
 			IF glyph.rw * glyph.rh # 0 THEN
 
-				data.rect := OpenTypeFonts.FillRect; data.adr := SYSTEM.ADR(Pattern); data.bpr := (glyph.rw+7) DIV 8; data.len := LEN(Pattern);
+				data.rect := OpenTypeFonts.FillRect; data.adr := ADDRESSOF(Pattern); data.bpr := (glyph.rw+7) DIV 8; data.len := LEN(Pattern);
 				bytes := glyph.rh * ((glyph.rw+7) DIV 8);
 				ASSERT(bytes < LEN(Pattern));
 				ASSERT(bytes > 0);

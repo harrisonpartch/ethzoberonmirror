@@ -381,26 +381,26 @@ VAR
 	PROCEDURE WriteImageHeader( R: Streams.Writer;  sections: INTEGER );
 	VAR F: Files.File;  sR: Files.Reader;  dosHead: ImageDosHeader;  imgHead: ImageFileHeader;  char: LONGINT;  ch: CHAR;
 		ignore: LONGINT;
-	TYPE tSize = ARRAY SYSTEM.SIZEOF( ImageDosHeader ) OF CHAR;
-		imgHeadA = ARRAY SYSTEM.SIZEOF( ImageFileHeader ) OF CHAR;
+	TYPE tSize = ARRAY SIZEOF( ImageDosHeader ) OF CHAR;
+		imgHeadA = ARRAY SIZEOF( ImageFileHeader ) OF CHAR;
 
 	BEGIN
 		F := Files.Old( stub );  NEW( sR, F, 0 );  Assert( F # NIL , stub, " Files.Old failed" );
-		sR.Bytes( SYSTEM.VAL( tSize, dosHead ), 0, SYSTEM.SIZEOF( ImageDosHeader ), ignore );
+		sR.Bytes( SYSTEM.VAL( tSize, dosHead ), 0, SIZEOF( ImageDosHeader ), ignore );
 		Assert( dosHead.emagic = ImageDosSignature, stub, " not a valid stub file" );  R.Update();  dosHead.elfanew := Align( F.Length(), 16 );
-		R.Bytes( SYSTEM.VAL( tSize, dosHead ), 0, SYSTEM.SIZEOF( ImageDosHeader ) );  sR.Char( ch );
+		R.Bytes( SYSTEM.VAL( tSize, dosHead ), 0, SIZEOF( ImageDosHeader ) );  sR.Char( ch );
 		WHILE sR.res = Streams.Ok DO  (* was: WHILE ~sr.eof *)
 			R.Char( ch );  sR.Char( ch )
 		END;
 		FileAlign( R, 16, 0X );  imgHead.Machine := ImageFileMachineI386;  imgHead.NumberOfSections := sections;
 		imgHead.TimeDateStamp := TimeDateStamp();  imgHead.PointerToSymbolTable := 0;  imgHead.NumberOfSymbols := 0;
-		imgHead.SizeOfOptionalHeader := SYSTEM.SIZEOF( ImageOptionalHeader );
+		imgHead.SizeOfOptionalHeader := SIZEOF( ImageOptionalHeader );
 		char := LongOr( ImageFileExecutableImage, ImageFile32BitMachine );
 		IF isEXE THEN char := LongOr( char, ImageFileRelocsStripped ) ELSE char := LongOr( char, ImageFileDll ) END;
 		char := LongOr( char, ImageFileLineNumsStripped );  char := LongOr( char, ImageFileLocalSymsStripped );
 		char := LongOr( char, ImageFileLargeAddressAware );
 		imgHead.Characteristics := SHORT( char );  R.RawLInt( ImageNtSignature );
-		R.Bytes( SYSTEM.VAL( imgHeadA, imgHead ), 0, SYSTEM.SIZEOF( ImageFileHeader ) )
+		R.Bytes( SYSTEM.VAL( imgHeadA, imgHead ), 0, SIZEOF( ImageFileHeader ) )
 	END WriteImageHeader;
 
 	PROCEDURE IsNameChar( ch: CHAR ): BOOLEAN;
@@ -770,17 +770,17 @@ VAR
 	PROCEDURE WriteIData( R: Files.Writer;  F: Files.File );
 	VAR
 		name, obj, imps: NameList;  pos, p, i, shift, adr: LONGINT;
-	TYPE ImageImportDescriptorA = ARRAY SYSTEM.SIZEOF( ImageImportDescriptor ) OF CHAR;
+	TYPE ImageImportDescriptorA = ARRAY SIZEOF( ImageImportDescriptor ) OF CHAR;
 	BEGIN
 		imps := imports.next;  idata.PointerToRawData := R.Pos();
 		idata.VirtualAddress := text.VirtualAddress + Align( text.SizeOfRawData, DefaultSectionAlign );
 		imgHead.DataDirectory[ImageDirectoryEntryImport].VirtualAddress := idata.VirtualAddress;
 		shift := idata.VirtualAddress - idata.PointerToRawData;  name := imps;
 		WHILE name # NIL DO
-			R.Bytes( SYSTEM.VAL( ImageImportDescriptorA, name( ImportList ).impDesc ), 0, SYSTEM.SIZEOF( ImageImportDescriptor ) );
+			R.Bytes( SYSTEM.VAL( ImageImportDescriptorA, name( ImportList ).impDesc ), 0, SIZEOF( ImageImportDescriptor ) );
 			name := name.next
 		END;
-		FOR i := 0 TO SYSTEM.SIZEOF( ImageImportDescriptor ) - 1 DO R.Char( 0X ) END;
+		FOR i := 0 TO SIZEOF( ImageImportDescriptor ) - 1 DO R.Char( 0X ) END;
 		imgHead.DataDirectory[ImageDirectoryEntryImport].Size := R.Pos() - idata.PointerToRawData;  name := imps;
 		WHILE name # NIL DO
 			WITH name: ImportList DO
@@ -815,7 +815,7 @@ VAR
 				R.Update();  name.impDesc.Name := F.Length();  R.SetPos( name.impDesc.Name );  R.RawString( name.name );
 				FileAlign( R, 2, 0X );  name.impDesc.Characteristics := name.impDesc.Characteristics + shift;
 				name.impDesc.FirstThunk := name.impDesc.FirstThunk + shift;  name.impDesc.Name := name.impDesc.Name + shift;
-				R.SetPos( pos );  R.Bytes( SYSTEM.VAL( ImageImportDescriptorA, name.impDesc ), 0, SYSTEM.SIZEOF( ImageImportDescriptor ) )
+				R.SetPos( pos );  R.Bytes( SYSTEM.VAL( ImageImportDescriptorA, name.impDesc ), 0, SIZEOF( ImageImportDescriptor ) )
 			END;
 			name := name.next
 		END;
@@ -848,7 +848,7 @@ VAR
 
 	PROCEDURE WriteEData( R: Streams.Writer );
 	VAR  (* F: Files.File; *) head: ImageExportDirectory;  adr, i, n, pos, fix: LONGINT;  e: ExportEntryList;  p: NameList;
-	TYPE headA = ARRAY SYSTEM.SIZEOF( ImageExportDirectory ) OF CHAR;
+	TYPE headA = ARRAY SIZEOF( ImageExportDirectory ) OF CHAR;
 	BEGIN
 		n := AssignExportOrdinals();
 		edata.PointerToRawData := R.Pos();   (*  F := Files.Base(R);*)
@@ -856,9 +856,9 @@ VAR
 		imgHead.DataDirectory[ImageDirectoryEntryExport].VirtualAddress := edata.VirtualAddress;  head.Characteristics := 0;
 		head.TimeDateStamp := TimeDateStamp();  head.MajorVersion := 0;  head.MinorVersion := 0;  head.Base := 1;
 		head.NumberOfFunctions := n;  head.NumberOfNames := n;
-		head.AddressOfFunctions := edata.VirtualAddress + SYSTEM.SIZEOF( ImageExportDirectory );
+		head.AddressOfFunctions := edata.VirtualAddress + SIZEOF( ImageExportDirectory );
 		head.AddressOfNames := head.AddressOfFunctions + n * 4;  head.AddressOfNameOrdinals := head.AddressOfNames + n * 4;
-		head.Name := head.AddressOfNameOrdinals + n * 2;  R.Bytes( SYSTEM.VAL( headA, head ), 0, SYSTEM.SIZEOF( ImageExportDirectory ) );
+		head.Name := head.AddressOfNameOrdinals + n * 2;  R.Bytes( SYSTEM.VAL( headA, head ), 0, SIZEOF( ImageExportDirectory ) );
 		e := exportOrds;
 		WHILE e # NIL DO adr := GetProcAdr( e.value );  R.RawLInt( adr - imgHead.ImageBase );  e := e.nextOrd END;
 		fix := R.Pos();
@@ -896,15 +896,15 @@ VAR
 
 	PROCEDURE WriteReloc( R: Streams.Writer );
 	VAR head: ImageBaseRelocation;  last, this, i, fix: LONGINT;
-	CONST size = SYSTEM.SIZEOF( ImageBaseRelocation );
+	CONST size = SIZEOF( ImageBaseRelocation );
 	TYPE sType = ARRAY size OF CHAR;
 
 		PROCEDURE BeginHeader;
-		CONST size = SYSTEM.SIZEOF( ImageBaseRelocation );
+		CONST size = SIZEOF( ImageBaseRelocation );
 		TYPE sType = ARRAY size OF CHAR;
 		BEGIN
-			fix := R.Pos();  head.VirtualAddress := this - (this MOD PageSize);  head.SizeOfBlock := SYSTEM.SIZEOF( ImageBaseRelocation );
-			R.Bytes( SYSTEM.VAL( sType, head ), 0, SYSTEM.SIZEOF( ImageBaseRelocation ) )
+			fix := R.Pos();  head.VirtualAddress := this - (this MOD PageSize);  head.SizeOfBlock := SIZEOF( ImageBaseRelocation );
+			R.Bytes( SYSTEM.VAL( sType, head ), 0, SIZEOF( ImageBaseRelocation ) )
 		END BeginHeader;
 
 		PROCEDURE EndHeader;
@@ -912,7 +912,7 @@ VAR
 		BEGIN
 			WriteOffs( R, 0, ImageRelBasedAbsolute );  INC( head.SizeOfBlock, 2 );
 			IF (head.SizeOfBlock MOD 4) # 0 THEN WriteOffs( R, 0, ImageRelBasedAbsolute );  INC( head.SizeOfBlock, 2 ) END;
-			pos := R.Pos();  R.SetPos( fix );  R.Bytes( SYSTEM.VAL( sType, head ), 0, SYSTEM.SIZEOF( ImageBaseRelocation ) );  R.SetPos( pos )
+			pos := R.Pos();  R.SetPos( fix );  R.Bytes( SYSTEM.VAL( sType, head ), 0, SIZEOF( ImageBaseRelocation ) );  R.SetPos( pos )
 		END EndHeader;
 
 	BEGIN
@@ -938,22 +938,22 @@ VAR
 
 	PROCEDURE WriteResDir( R: Streams.Writer;  named, id: LONGINT );
 	VAR dir: ImageResourceDirectory;
-	CONST size = SYSTEM.SIZEOF( ImageResourceDirectory );
+	CONST size = SIZEOF( ImageResourceDirectory );
 	TYPE tSize = ARRAY size OF CHAR;
 	BEGIN
 		dir.Characteristics := 0;  dir.TimeDateStamp := TimeDateStamp();  dir.MajorVersion := 0;  dir.MinorVersion := 0;
 		dir.NumberOfNamedEntries := SHORT( named );  dir.NumberOfIdEntries := SHORT( id );
-		R.Bytes( SYSTEM.VAL( tSize, dir ), 0, SYSTEM.SIZEOF( ImageResourceDirectory ) )
+		R.Bytes( SYSTEM.VAL( tSize, dir ), 0, SIZEOF( ImageResourceDirectory ) )
 	END WriteResDir;
 
 	PROCEDURE WriteResEntry( R: Streams.Writer;  name, offset: LONGINT;  leaf: BOOLEAN );
 	VAR entry: ImageResourceDirectoryEntry;
-	CONST size = SYSTEM.SIZEOF( ImageResourceDirectoryEntry );
+	CONST size = SIZEOF( ImageResourceDirectoryEntry );
 	TYPE sType = ARRAY size OF CHAR;
 	BEGIN
 		entry.Name := name;  entry.OffsetToData := offset;
 		IF leaf THEN SetHighBit( entry.OffsetToData ) END;
-		R.Bytes( SYSTEM.VAL( sType, entry ), 0, SYSTEM.SIZEOF( ImageResourceDirectoryEntry ) )
+		R.Bytes( SYSTEM.VAL( sType, entry ), 0, SIZEOF( ImageResourceDirectoryEntry ) )
 	END WriteResEntry;
 
 	PROCEDURE WriteUString( R: Streams.Writer;  CONST str: ARRAY OF CHAR;  zero: BOOLEAN );
@@ -990,17 +990,17 @@ VAR
 
 	PROCEDURE CopyIcon( icoRes: IconList;  rR: Streams.Writer );
 	VAR F: Files.File;  R: Files.Reader;  bHead: Bitmapinfoheader;  offs, i: LONGINT;  ch: CHAR;  ignore: LONGINT;
-	CONST size = SYSTEM.SIZEOF( ResourceHeader );
+	CONST size = SIZEOF( ResourceHeader );
 	TYPE tSize = ARRAY size OF CHAR;
 		tSize2 = ARRAY 12 OF CHAR;
-		tSize3 = ARRAY SYSTEM.SIZEOF( Bitmapinfoheader ) OF CHAR;
+		tSize3 = ARRAY SIZEOF( Bitmapinfoheader ) OF CHAR;
 	BEGIN
 		F := Files.Old( icoRes.value );
 		IF F # NIL THEN
 			NEW( R, F, 0 );  R.Bytes( SYSTEM.VAL( tSize, icoRes.head ), 0, 6, ignore );
 			IF (icoRes.head.reserved = 0) & (icoRes.head.type = 1) & (icoRes.head.count = 1) THEN
 				R.Bytes( SYSTEM.VAL( tSize2, icoRes.dentry ), 0, 12, ignore );  R.RawLInt( offs );  R.SetPos( offs );
-				R.Bytes( SYSTEM.VAL( tSize3, bHead ), 0, SYSTEM.SIZEOF( Bitmapinfoheader ), ignore );  icoRes.dentry.planes := bHead.biPlanes;
+				R.Bytes( SYSTEM.VAL( tSize3, bHead ), 0, SIZEOF( Bitmapinfoheader ), ignore );  icoRes.dentry.planes := bHead.biPlanes;
 				icoRes.dentry.bitCount := bHead.biBitCount;  R.SetPos( offs );
 				FOR i := 1 TO icoRes.dentry.bytes DO R.Char( ch );  rR.Char( ch ) END;
 				RETURN
@@ -1011,16 +1011,16 @@ VAR
 
 	PROCEDURE CopyCursor( curRes: CursorList;  VAR rR: Streams.Writer );
 	VAR F: Files.File;  R: Files.Reader;  bHead: Bitmapinfoheader;  offs, i: LONGINT;  x, y: INTEGER;  ch: CHAR;  ignore: LONGINT;
-	CONST size = SYSTEM.SIZEOF( ResourceHeader );
+	CONST size = SIZEOF( ResourceHeader );
 	TYPE tSize = ARRAY size OF CHAR;
-		tSize2 = ARRAY SYSTEM.SIZEOF( Bitmapinfoheader ) OF CHAR;
+		tSize2 = ARRAY SIZEOF( Bitmapinfoheader ) OF CHAR;
 	BEGIN
 		F := Files.Old( curRes.value );
 		IF F # NIL THEN
 			NEW( R, F, 0 );  R.Bytes( SYSTEM.VAL( tSize, curRes.head ), 0, 6, ignore );
 			IF (curRes.head.reserved = 0) & (curRes.head.type = 2) & (curRes.head.count = 1) THEN
 				R.RawLInt( i );  R.RawInt( x );  R.RawInt( y );  R.RawLInt( curRes.dentry.bytes );  R.RawLInt( offs );  R.SetPos( offs );
-				R.Bytes( SYSTEM.VAL( tSize2, bHead ), 0, SYSTEM.SIZEOF( Bitmapinfoheader ), ignore );
+				R.Bytes( SYSTEM.VAL( tSize2, bHead ), 0, SIZEOF( Bitmapinfoheader ), ignore );
 				curRes.dentry.width := SHORT( bHead.biWidth );  curRes.dentry.height := SHORT( bHead.biHeight );
 				curRes.dentry.planes := bHead.biPlanes;  curRes.dentry.bitCount := bHead.biBitCount;  rR.RawInt( x );  rR.RawInt( y );
 				R.SetPos( offs );
@@ -1033,16 +1033,16 @@ VAR
 
 	PROCEDURE WriteVersionRes( R: Streams.Writer );
 	VAR info: VsFixedFileInfo;  ver: NameList;  fix, fix0, fix1, fix2, ret: LONGINT;
-	TYPE infoA = ARRAY SYSTEM.SIZEOF( VsFixedFileInfo ) OF CHAR;
+	TYPE infoA = ARRAY SIZEOF( VsFixedFileInfo ) OF CHAR;
 	BEGIN
-		fix0 := R.Pos();  R.RawInt( 0 );  R.RawInt( SYSTEM.SIZEOF( VsFixedFileInfo ) );  R.RawInt( 0 );  WriteUString( R, "VS_VERSION_INFO", TRUE );
+		fix0 := R.Pos();  R.RawInt( 0 );  R.RawInt( SIZEOF( VsFixedFileInfo ) );  R.RawInt( 0 );  WriteUString( R, "VS_VERSION_INFO", TRUE );
 		FileAlign( R, 4, 0X );  info.dwSignature := VsFfiSignature;  info.dwStrucVersion := VsFfiStrucVersion;
 		info.dwFileVersionMs := imgHead.MajorImageVersion;  info.dwFileVersionLs := imgHead.MinorImageVersion;
 		info.dwProductVersionMs := imgHead.MajorImageVersion;  info.dwProductVersionLs := imgHead.MinorImageVersion;
 		info.dwFileFlagsMask := VsFfiFileFlagsMask;  info.dwFileFlags := 0;  info.dwFileOs := VosNtWindows32;
 		IF isEXE THEN info.dwFileType := VftApp ELSE info.dwFileType := VftDll END;
 		info.dwFileSubtype := Vft2Unknown;  info.dwFileDateMs := 0;  info.dwFileDateLs := 0;
-		R.Bytes( SYSTEM.VAL( infoA, info ), 0, SYSTEM.SIZEOF( VsFixedFileInfo ) );  fix1 := R.Pos();  R.RawInt( 0 );  R.RawInt( 0 );  R.RawInt( 1 );
+		R.Bytes( SYSTEM.VAL( infoA, info ), 0, SIZEOF( VsFixedFileInfo ) );  fix1 := R.Pos();  R.RawInt( 0 );  R.RawInt( 0 );  R.RawInt( 1 );
 		WriteUString( R, "StringFileInfo", TRUE );  FileAlign( R, 4, 0X );  fix2 := R.Pos();  R.RawInt( 0 );  R.RawInt( 0 );  R.RawInt( 1 );
 		WriteUString( R, "040904e4", TRUE );  FileAlign( R, 4, 0X );  ver := version;
 		WHILE ver # NIL DO
@@ -1061,7 +1061,7 @@ VAR
 	VAR
 		name: NameList;  data: ImageResourceDataEntry;
 		n, pos, base, fix1, fix2, curPos, icoPos, grpCurPos, grpIcoPos, verPos: LONGINT;
-	TYPE ImageResourceDirectoryEntryA = ARRAY SYSTEM.SIZEOF( ImageResourceDirectoryEntry ) OF CHAR;
+	TYPE ImageResourceDirectoryEntryA = ARRAY SIZEOF( ImageResourceDirectoryEntry ) OF CHAR;
 		A6 = ARRAY 6 OF CHAR;
 		A14 = ARRAY 14 OF CHAR;
 	BEGIN
@@ -1089,14 +1089,14 @@ VAR
 			END;
 			WriteResNameTable( R, cursors );  FileAlign( R, 4, 0X );  pos := R.Pos();  base := pos - rsrc.PointerToRawData;
 			R.SetPos( curPos );  WriteResEntry( R, RtCursor, base, TRUE );
-			base := base + SYSTEM.SIZEOF( ImageResourceDirectory ) + n * SYSTEM.SIZEOF( ImageResourceDirectoryEntry );  R.SetPos( grpCurPos );
+			base := base + SIZEOF( ImageResourceDirectory ) + n * SIZEOF( ImageResourceDirectoryEntry );  R.SetPos( grpCurPos );
 			WriteResEntry( R, RtGroupCursor, base, TRUE );
-			base := base + SYSTEM.SIZEOF( ImageResourceDirectory ) + n * SYSTEM.SIZEOF( ImageResourceDirectoryEntry );  R.SetPos( pos );
+			base := base + SIZEOF( ImageResourceDirectory ) + n * SIZEOF( ImageResourceDirectoryEntry );  R.SetPos( pos );
 			WriteResDir( R, 0, n );  name := cursors;
 			WHILE name # NIL DO
 				WITH name: CursorList DO
 					WriteResEntry( R, name.dentry.name, base, TRUE );
-					base := base + SYSTEM.SIZEOF( ImageResourceDirectory ) + SYSTEM.SIZEOF( ImageResourceDirectoryEntry )
+					base := base + SIZEOF( ImageResourceDirectory ) + SIZEOF( ImageResourceDirectoryEntry )
 				END;
 				name := name.next
 			END;
@@ -1104,7 +1104,7 @@ VAR
 			WHILE name # NIL DO
 				WITH name: ResList DO
 					WriteResEntry( R, name.adr, base, TRUE );
-					base := base + SYSTEM.SIZEOF( ImageResourceDirectory ) + SYSTEM.SIZEOF( ImageResourceDirectoryEntry )
+					base := base + SIZEOF( ImageResourceDirectory ) + SIZEOF( ImageResourceDirectoryEntry )
 				END;
 				name := name.next
 			END;
@@ -1112,11 +1112,11 @@ VAR
 			WHILE name # NIL DO
 				WITH name: CursorList DO
 					pos := R.Pos();  name.adr := pos - rsrc.PointerToRawData;
-					data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress + SYSTEM.SIZEOF( ImageResourceDataEntry );
+					data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress + SIZEOF( ImageResourceDataEntry );
 					data.Size := 0;  data.CodePage := 0;  data.Reserved := 0;
-					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SYSTEM.SIZEOF( ImageResourceDataEntry ) );
+					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SIZEOF( ImageResourceDataEntry ) );
 					data.Size := R.Pos();  CopyCursor( name, R );  data.Size := R.Pos() - data.Size;  R.SetPos( pos );
-					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SYSTEM.SIZEOF( ImageResourceDataEntry ) );
+					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SIZEOF( ImageResourceDataEntry ) );
 					R.SetPos( R.Pos() + data.Size );  FileAlign( R, 8, 0X )
 				END;
 				name := name.next
@@ -1125,9 +1125,9 @@ VAR
 			WHILE name # NIL DO
 				WITH name: CursorList DO
 					pos := R.Pos();  name.adr := pos - rsrc.PointerToRawData;
-					data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress + SYSTEM.SIZEOF( ImageResourceDataEntry );
+					data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress + SIZEOF( ImageResourceDataEntry );
 					data.Size := 6 + 14;  data.CodePage := 0;  data.Reserved := 0;
-					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SYSTEM.SIZEOF( ImageResourceDataEntry ) );
+					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SIZEOF( ImageResourceDataEntry ) );
 					R.Bytes( SYSTEM.VAL( A6, name.head ), 0, 6 );  R.Bytes( SYSTEM.VAL( A14, name.dentry ), 0, 14 );  FileAlign( R, 4, 0X )
 				END;
 				name := name.next
@@ -1143,14 +1143,14 @@ VAR
 			END;
 			WriteResNameTable( R, icons );  FileAlign( R, 4, 0X );  pos := R.Pos();  base := pos - rsrc.PointerToRawData;
 			R.SetPos( icoPos );  WriteResEntry( R, RtIcon, base, TRUE );
-			base := base + SYSTEM.SIZEOF( ImageResourceDirectory ) + n * SYSTEM.SIZEOF( ImageResourceDirectoryEntry );  R.SetPos( grpIcoPos );
+			base := base + SIZEOF( ImageResourceDirectory ) + n * SIZEOF( ImageResourceDirectoryEntry );  R.SetPos( grpIcoPos );
 			WriteResEntry( R, RtGroupIcon, base, TRUE );
-			base := base + SYSTEM.SIZEOF( ImageResourceDirectory ) + n * SYSTEM.SIZEOF( ImageResourceDirectoryEntry );  R.SetPos( pos );
+			base := base + SIZEOF( ImageResourceDirectory ) + n * SIZEOF( ImageResourceDirectoryEntry );  R.SetPos( pos );
 			WriteResDir( R, 0, n );  name := icons;
 			WHILE name # NIL DO
 				WITH name: IconList DO
 					WriteResEntry( R, name.dentry.name, base, TRUE );
-					base := base + SYSTEM.SIZEOF( ImageResourceDirectory ) + SYSTEM.SIZEOF( ImageResourceDirectoryEntry )
+					base := base + SIZEOF( ImageResourceDirectory ) + SIZEOF( ImageResourceDirectoryEntry )
 				END;
 				name := name.next
 			END;
@@ -1158,7 +1158,7 @@ VAR
 			WHILE name # NIL DO
 				WITH name: ResList DO
 					WriteResEntry( R, name.adr, base, TRUE );
-					base := base + SYSTEM.SIZEOF( ImageResourceDirectory ) + SYSTEM.SIZEOF( ImageResourceDirectoryEntry )
+					base := base + SIZEOF( ImageResourceDirectory ) + SIZEOF( ImageResourceDirectoryEntry )
 				END;
 				name := name.next
 			END;
@@ -1166,11 +1166,11 @@ VAR
 			WHILE name # NIL DO
 				WITH name: IconList DO
 					pos := R.Pos();  name.adr := pos - rsrc.PointerToRawData;
-					data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress + SYSTEM.SIZEOF( ImageResourceDataEntry );
+					data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress + SIZEOF( ImageResourceDataEntry );
 					data.Size := 0;  data.CodePage := 0;  data.Reserved := 0;
-					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SYSTEM.SIZEOF( ImageResourceDataEntry ) );
+					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SIZEOF( ImageResourceDataEntry ) );
 					data.Size := R.Pos();  CopyIcon( name, R );  data.Size := R.Pos() - data.Size;  R.SetPos( pos );
-					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SYSTEM.SIZEOF( ImageResourceDataEntry ) );
+					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SIZEOF( ImageResourceDataEntry ) );
 					R.SetPos( R.Pos() + data.Size );  FileAlign( R, 8, 0X )
 				END;
 				name := name.next
@@ -1179,9 +1179,9 @@ VAR
 			WHILE name # NIL DO
 				WITH name: IconList DO
 					pos := R.Pos();  name.adr := pos - rsrc.PointerToRawData;
-					data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress + SYSTEM.SIZEOF( ImageResourceDataEntry );
+					data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress + SIZEOF( ImageResourceDataEntry );
 					data.Size := 6 + 14;  data.CodePage := 0;  data.Reserved := 0;
-					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SYSTEM.SIZEOF( ImageResourceDataEntry ) );
+					R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SIZEOF( ImageResourceDataEntry ) );
 					R.Bytes( SYSTEM.VAL( A6, name.head ), 0, 6 );  R.Bytes( SYSTEM.VAL( A14, name.dentry ), 0, 14 );  FileAlign( R, 4, 0X )
 				END;
 				name := name.next
@@ -1190,16 +1190,16 @@ VAR
 		END;
 		pos := R.Pos();  R.SetPos( verPos );  WriteResEntry( R, RtVersion, pos - rsrc.PointerToRawData, TRUE );  R.SetPos( pos );
 		WriteResDir( R, 0, 1 );
-		WriteResEntry( R, 1, pos - rsrc.PointerToRawData + SYSTEM.SIZEOF( ImageResourceDirectory ) + SYSTEM.SIZEOF( ImageResourceDirectoryEntry ),
+		WriteResEntry( R, 1, pos - rsrc.PointerToRawData + SIZEOF( ImageResourceDirectory ) + SIZEOF( ImageResourceDirectoryEntry ),
 								  TRUE );
 		pos := R.Pos();  WriteResDir( R, 0, 1 );
 		WriteResEntry( R, DefaultLanguage,
-								  pos - rsrc.PointerToRawData + SYSTEM.SIZEOF( ImageResourceDirectory ) + SYSTEM.SIZEOF( ImageResourceDirectoryEntry ), FALSE );
+								  pos - rsrc.PointerToRawData + SIZEOF( ImageResourceDirectory ) + SIZEOF( ImageResourceDirectoryEntry ), FALSE );
 		verPos := R.Pos();  data.OffsetToData := 0;  data.Size := 0;  data.CodePage := 0;  data.Reserved := 0;
-		R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SYSTEM.SIZEOF( ImageResourceDataEntry ) );  FileAlign( R, 16, 0X );
+		R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SIZEOF( ImageResourceDataEntry ) );  FileAlign( R, 16, 0X );
 		pos := R.Pos();  data.OffsetToData := pos - rsrc.PointerToRawData + rsrc.VirtualAddress;  WriteVersionRes( R );  pos := R.Pos();
-		data.Size := pos - verPos - SYSTEM.SIZEOF( ImageResourceDataEntry );  R.SetPos( verPos );
-		R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SYSTEM.SIZEOF( ImageResourceDataEntry ) );  R.SetPos( pos );
+		data.Size := pos - verPos - SIZEOF( ImageResourceDataEntry );  R.SetPos( verPos );
+		R.Bytes( SYSTEM.VAL( ImageResourceDirectoryEntryA, data ), 0, SIZEOF( ImageResourceDataEntry ) );  R.SetPos( pos );
 		rsrc.VirtualSize := R.Pos() - rsrc.PointerToRawData;
 		imgHead.DataDirectory[ImageDirectoryEntryResource].Size := rsrc.VirtualSize;  FileAlign( R, DefaultFileAlign, 0X );
 		rsrc.SizeOfRawData := R.Pos() - rsrc.PointerToRawData
@@ -1246,15 +1246,15 @@ VAR
 		RETURN 0
 	END FindAdr;
 
-	PROCEDURE GetProcAdr( CONST name: ARRAY OF CHAR ): SYSTEM.ADDRESS;
+	PROCEDURE GetProcAdr( CONST name: ARRAY OF CHAR ): ADDRESS;
 	BEGIN
 		HALT( 200 );   (* to be implemented ! *)
 		RETURN 0
 	END GetProcAdr;
 
-	PROCEDURE GetVariableAdr( CONST name: ARRAY OF CHAR ): SYSTEM.ADDRESS;
+	PROCEDURE GetVariableAdr( CONST name: ARRAY OF CHAR ): ADDRESS;
 	VAR moduleName, variableName: ARRAY 256 OF CHAR;
-		adr: SYSTEM.ADDRESS;  ref: FindAdrDataStructure;
+		adr: ADDRESS;  ref: FindAdrDataStructure;
 	BEGIN
 		SplitName( name, moduleName, variableName );  ref := GetRefs( moduleName );
 		adr := ref.module.sb + FindAdr( ref.refs, variableName, FALSE , TRUE );  RETURN adr;
@@ -1304,8 +1304,8 @@ VAR
 		sections: INTEGER;  done: BOOLEAN;  res, offs: LONGINT;
 		imageFilename, path, filename : Files.FileName;
 
-	TYPE imgHeadA = ARRAY SYSTEM.SIZEOF( ImageOptionalHeader ) OF CHAR;
-		textA = ARRAY SYSTEM.SIZEOF( ImageSectionHeader ) OF CHAR;
+	TYPE imgHeadA = ARRAY SIZEOF( ImageOptionalHeader ) OF CHAR;
+		textA = ARRAY SIZEOF( ImageSectionHeader ) OF CHAR;
 
 	BEGIN
 		Init();  offs := 0;
@@ -1333,12 +1333,12 @@ VAR
 		IF (oldF # NIL) THEN log.String(" (overwrite)"); oldF := NIL; END;
 		log.String(" ... "); log.Ln; log.Update;
 		NEW( W, F, 0 );  Assert( F # NIL , image, " Files.New failed" );  WriteImageHeader( W, sections );
-		imgHead.SizeOfHeaders := W.Pos();  W.Bytes( SYSTEM.VAL( imgHeadA, imgHead ), 0, SYSTEM.SIZEOF( ImageOptionalHeader ) );
-		W.Bytes( SYSTEM.VAL( textA, text ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) );
-		W.Bytes( SYSTEM.VAL( textA, idata ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) );
-		IF exports # NIL THEN W.Bytes( SYSTEM.VAL( textA, edata ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) );  INC( sections ) END;
-		IF ~isEXE THEN W.Bytes( SYSTEM.VAL( textA, reloc ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) );  INC( sections ) END;
-		W.Bytes( SYSTEM.VAL( textA, rsrc ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) );  FileAlign( W, DefaultFileAlign, 0X );
+		imgHead.SizeOfHeaders := W.Pos();  W.Bytes( SYSTEM.VAL( imgHeadA, imgHead ), 0, SIZEOF( ImageOptionalHeader ) );
+		W.Bytes( SYSTEM.VAL( textA, text ), 0, SIZEOF( ImageSectionHeader ) );
+		W.Bytes( SYSTEM.VAL( textA, idata ), 0, SIZEOF( ImageSectionHeader ) );
+		IF exports # NIL THEN W.Bytes( SYSTEM.VAL( textA, edata ), 0, SIZEOF( ImageSectionHeader ) );  INC( sections ) END;
+		IF ~isEXE THEN W.Bytes( SYSTEM.VAL( textA, reloc ), 0, SIZEOF( ImageSectionHeader ) );  INC( sections ) END;
+		W.Bytes( SYSTEM.VAL( textA, rsrc ), 0, SIZEOF( ImageSectionHeader ) );  FileAlign( W, DefaultFileAlign, 0X );
 		text.VirtualAddress := BaseRVA;  base := imgHead.ImageBase + text.VirtualAddress;
 
 		Linker0.Open( pref, suff, base, NIL );  name := modules;
@@ -1362,7 +1362,7 @@ VAR
 		WriteRSRC( W );  imgHead.SizeOfCode := text.SizeOfRawData;
 		imgHead.SizeOfInitializedData := idata.SizeOfRawData + rsrc.SizeOfRawData;  imgHead.SizeOfUninitializedData := 0;
 		imgHead.BaseOfCode := text.VirtualAddress;  imgHead.BaseOfData := 0;
-		imgHead.SizeOfHeaders := imgHead.SizeOfHeaders + SYSTEM.SIZEOF( ImageOptionalHeader ) + sections * SYSTEM.SIZEOF( ImageSectionHeader );
+		imgHead.SizeOfHeaders := imgHead.SizeOfHeaders + SIZEOF( ImageOptionalHeader ) + sections * SIZEOF( ImageSectionHeader );
 		imgHead.SizeOfHeaders := Align( imgHead.SizeOfHeaders, DefaultFileAlign );
 		imgHead.SizeOfImage :=
 			Align( imgHead.SizeOfHeaders, DefaultSectionAlign ) + Align( text.SizeOfRawData, DefaultSectionAlign ) +
@@ -1371,12 +1371,12 @@ VAR
 												 Align( reloc.SizeOfRawData, DefaultSectionAlign ) +
 												 Align( rsrc.SizeOfRawData, DefaultSectionAlign );
 		W.SetPos( 0 );  WriteImageHeader( W, sections );
-		W.Bytes( SYSTEM.VAL( imgHeadA, imgHead ), 0, SYSTEM.SIZEOF( ImageOptionalHeader ) );
-		W.Bytes( SYSTEM.VAL( textA, text ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) );
-		W.Bytes( SYSTEM.VAL( textA, idata ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) );
-		IF exports # NIL THEN W.Bytes( SYSTEM.VAL( textA, edata ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) ) END;
-		IF ~isEXE THEN W.Bytes( SYSTEM.VAL( textA, reloc ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) ) END;
-		W.Bytes( SYSTEM.VAL( textA, rsrc ), 0, SYSTEM.SIZEOF( ImageSectionHeader ) );  W.Update();  F.Update;  Files.Register( F );
+		W.Bytes( SYSTEM.VAL( imgHeadA, imgHead ), 0, SIZEOF( ImageOptionalHeader ) );
+		W.Bytes( SYSTEM.VAL( textA, text ), 0, SIZEOF( ImageSectionHeader ) );
+		W.Bytes( SYSTEM.VAL( textA, idata ), 0, SIZEOF( ImageSectionHeader ) );
+		IF exports # NIL THEN W.Bytes( SYSTEM.VAL( textA, edata ), 0, SIZEOF( ImageSectionHeader ) ) END;
+		IF ~isEXE THEN W.Bytes( SYSTEM.VAL( textA, reloc ), 0, SIZEOF( ImageSectionHeader ) ) END;
+		W.Bytes( SYSTEM.VAL( textA, rsrc ), 0, SIZEOF( ImageSectionHeader ) );  W.Update();  F.Update;  Files.Register( F );
 		log.String( " done" );  done := TRUE;  Clean();  log.Ln();  log.Update();  RETURN done
 	END DoLink;
 

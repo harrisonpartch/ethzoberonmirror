@@ -71,7 +71,7 @@ CONST
 			IF pc = 0 THEN W.String( "NIL" ) ELSE W.String( "Unknown PC=" );  W.Hex( pc, 8 );  W.Char( "H" ) END;
 			IF fp # -1 THEN W.String( " FP=" );  W.Hex( fp, 8 );  W.Char( "H" ) END
 		ELSE
-			W.String( mod.name );  DEC( pc, SYSTEM.ADR( mod.code[0] ) );  refs := mod.refs;
+			W.String( mod.name );  DEC( pc, ADDRESSOF( mod.code[0] ) );  refs := mod.refs;
 			IF (refs # NIL ) & (LEN( refs ) # 0) THEN
 				refpos := FindProc( refs, pc );
 				IF refpos # -1 THEN
@@ -307,7 +307,7 @@ CONST
 		SYSTEM.GET( reg, ebp );   (* stack frame of caller *)
 		SYSTEM.GET( ebp + 4, eip );   (* return address from caller *)
 		m := Modules.ThisModuleByAdr( eip );
-		IF m # NIL THEN pc := eip - SYSTEM.ADR( m.code[0] ) ELSE pc := MAX( LONGINT ) END;
+		IF m # NIL THEN pc := eip - ADDRESSOF( m.code[0] ) ELSE pc := MAX( LONGINT ) END;
 		IF ~beepedError THEN
 			beepedError := TRUE;  NEW( timer );
 			FOR i := 1 TO 3 DO Beep.Beep( 125 );  timer.Sleep( 100 );  Beep.Beep( 0 );  timer.Sleep( 100 ) END;
@@ -323,7 +323,7 @@ CONST
 		SYSTEM.GET( reg, ebp );   (* stack frame of caller *)
 		SYSTEM.GET( ebp + 4, eip );   (* return address from caller *)
 		m := Modules.ThisModuleByAdr( eip );
-		IF m # NIL THEN pc := eip - SYSTEM.ADR( m.code[0] ) ELSE pc := MAX( LONGINT ) END;
+		IF m # NIL THEN pc := eip - ADDRESSOF( m.code[0] ) ELSE pc := MAX( LONGINT ) END;
 		IF ~beepedWarning THEN
 			beepedWarning := TRUE;  NEW( timer );  Beep.Beep( 125 );  timer.Sleep( 100 );  Beep.Beep( 0 );
 			timer.Sleep( 100 );  Beep.Beep( 100 );  timer.Sleep( 100 );  Beep.Beep( 0 );  timer.Sleep( 100 );

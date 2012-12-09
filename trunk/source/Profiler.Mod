@@ -16,7 +16,7 @@ CONST
 
 TYPE
 	Range = RECORD
-		lowAdr, highAdr: SYSTEM.ADDRESS;
+		lowAdr, highAdr: ADDRESS;
 		count: POINTER TO ARRAY OF LONGINT
 	END;
 
@@ -49,12 +49,12 @@ BEGIN
 END HandleTimer;
 
 PROCEDURE GetRanges(VAR n: LONGINT; VAR range: ARRAY OF Range);
-VAR m: Modules.Module; i, j: LONGINT; lowAdr, highAdr: SYSTEM.ADDRESS; a: ARRAY MaxModules OF Range;
+VAR m: Modules.Module; i, j: LONGINT; lowAdr, highAdr: ADDRESS; a: ARRAY MaxModules OF Range;
 BEGIN
 		(* get & sort - assume module list does not change during this loop *)
 	m := Modules.root; n := 0;
 	WHILE m # NIL DO
-		lowAdr := SYSTEM.ADR(m.code[0]);
+		lowAdr := ADDRESSOF(m.code[0]);
 		highAdr := lowAdr + LEN(m.code);
 			(* insert sort *)
 		i := 0; WHILE (i # n) & (lowAdr > a[i].lowAdr) DO INC(i) END;
@@ -185,11 +185,11 @@ BEGIN
 	RETURN proc
 END FindProc;
 
-PROCEDURE GetProc(mod: Modules.Module;  VAR pc: SYSTEM.ADDRESS;  VAR procname: ARRAY OF CHAR);
+PROCEDURE GetProc(mod: Modules.Module;  VAR pc: ADDRESS;  VAR procname: ARRAY OF CHAR);
 VAR refpos, i: LONGINT; refs: Bytes; ch: CHAR;
 BEGIN
 	refpos := -1;
-	DEC(pc, SYSTEM.ADR(mod.code[0]));
+	DEC(pc, ADDRESSOF(mod.code[0]));
 	refs := SYSTEM.VAL(Bytes, mod.refs);
 	IF (refs # NIL) & (LEN(mod.refs) # 0) THEN
 		refpos := FindProc(refs, SYSTEM.VAL (LONGINT, pc));
@@ -208,7 +208,7 @@ VAR sum, i: LONGINT;
 BEGIN
 	sum := 0;
 	FOR i := 0 TO size-1 DO
-		INC(sum, LEN(range[i].count)*SYSTEM.SIZEOF(LONGINT))
+		INC(sum, LEN(range[i].count)*SIZEOF(LONGINT))
 	END;
 	out.Int(total, 1); out.String(" samples, ");
 	out.Int(outside, 1); out.String(" unknown, ");
@@ -220,7 +220,7 @@ BEGIN
 END ShowStats;
 
 PROCEDURE ShowDetail*(context : Commands.Context);
-VAR i, j, per: LONGINT; pc: SYSTEM.ADDRESS; m: Modules.Module; procname: ARRAY 64 OF CHAR;
+VAR i, j, per: LONGINT; pc: ADDRESS; m: Modules.Module; procname: ARRAY 64 OF CHAR;
 BEGIN
 	ShowStats(context.out);
 	FOR i := 0 TO size-1 DO
@@ -248,10 +248,10 @@ BEGIN
 	END;
 END ShowDetail;
 
-PROCEDURE Hex(x: SYSTEM.ADDRESS; VAR buf: ARRAY OF CHAR);
+PROCEDURE Hex(x: ADDRESS; VAR buf: ARRAY OF CHAR);
 VAR i, j: LONGINT;
 BEGIN
-	j := SYSTEM.SIZEOF(SYSTEM.ADDRESS) * 2;
+	j := SIZEOF(ADDRESS) * 2;
 	FOR i := j-1 TO 0 BY -1 DO
 		buf[i] := CHR(x MOD 10H + 48);
 		IF buf[i] > "9" THEN
@@ -272,7 +272,7 @@ TYPE
 	END;
 
 VAR
-	i, j, sum, per: LONGINT; pc: SYSTEM.ADDRESS; m, prev: Modules.Module; root: List;
+	i, j, sum, per: LONGINT; pc: ADDRESS; m, prev: Modules.Module; root: List;
 	procname, prevname: ARRAY 64 OF CHAR;
 
 	PROCEDURE Output;

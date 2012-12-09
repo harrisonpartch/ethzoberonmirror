@@ -645,10 +645,10 @@ BEGIN
 		FOR i := 0 TO rh - 1 DO
 			Raster.GetPixels(img, r.l, r.t + i, rw, Raster.BGR888, buf^, 0, mode);
 			FOR j := 0 TO rw - 1 DO
-				cb := SYSTEM.LSH(ORD(buf[j * 3]), -pf.sb);
-				cg := SYSTEM.LSH(ORD(buf[j * 3 + 1]), -pf.sg);
-				cr := SYSTEM.LSH(ORD(buf[j * 3 + 2]), -pf.sr);
-				SendPixel(out, SYSTEM.LSH(cg, pf.gshift) + SYSTEM.LSH(cb, pf.bshift) + SYSTEM.LSH(cr, pf.rshift), pf)
+				cb := LSH(ORD(buf[j * 3]), -pf.sb);
+				cg := LSH(ORD(buf[j * 3 + 1]), -pf.sg);
+				cr := LSH(ORD(buf[j * 3 + 2]), -pf.sr);
+				SendPixel(out, LSH(cg, pf.gshift) + LSH(cb, pf.bshift) + LSH(cr, pf.rshift), pf)
 			END
 		END
 	END
@@ -748,10 +748,10 @@ BEGIN
 			ofs := 0; FOR i := 0 TO h - 1  DO Raster.GetPixels(img, x, y + i, w, Raster.BGR888, buf^, ofs, mode); INC(ofs, w * 3) END;
 			(* to pixelformat *)
 			FOR i := 0 TO w * h - 1 DO
-				cb := SYSTEM.LSH(ORD(buf[i * 3]), -pf.sb);
-				cg := SYSTEM.LSH(ORD(buf[i * 3 + 1]), -pf.sg);
-				cr := SYSTEM.LSH(ORD(buf[i * 3 + 2]), -pf.sr);
-				hextile[i] := SYSTEM.LSH(cg, pf.gshift) + SYSTEM.LSH(cb, pf.bshift) + SYSTEM.LSH(cr, pf.rshift);
+				cb := LSH(ORD(buf[i * 3]), -pf.sb);
+				cg := LSH(ORD(buf[i * 3 + 1]), -pf.sg);
+				cr := LSH(ORD(buf[i * 3 + 2]), -pf.sr);
+				hextile[i] := LSH(cg, pf.gshift) + LSH(cb, pf.bshift) + LSH(cr, pf.rshift);
 			END;
 			AnalyzeColors(hextile, w * h, newbg, newfg, solid, mono);
 			hextileFlags := {};

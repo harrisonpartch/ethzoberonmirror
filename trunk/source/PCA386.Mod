@@ -999,7 +999,7 @@ VAR
 				DEC(offs, cur.len);  cur := cur.next
 			END;
 			cur.code[offs] := CHR(disp);
-			disp := SYSTEM.LSH(disp, -8);
+			disp := LSH(disp, -8);
 			INC(offs);
 		END
 	END FixDisp;
@@ -1029,7 +1029,7 @@ BEGIN
 	END;
 	WHILE size > 0 DO
 		PutByte(b);
-		b := SYSTEM.LSH(b, -8);
+		b := LSH(b, -8);
 		DEC(size)
 	END
 END PutBytes;

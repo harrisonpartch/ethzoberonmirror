@@ -2066,6 +2066,33 @@ TYPE
 					ELSE
 						Error(left.position,Diagnostics.Invalid,"unary operator not applicable");
 					END;
+				(* ADDRESS OF *)
+				|Scanner.Address:
+					IF HasAddress(left) THEN
+						type := system.addressType;
+					ELSE
+						type := SyntaxTree.invalidType;
+						Error(left.position,Diagnostics.Invalid,"has no address");
+					END;
+				(* SIZE OF *)
+				|Scanner.Size:
+					IF (left.type = SyntaxTree.typeDeclarationType) THEN
+						type := left(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.TypeDeclaration).declaredType;
+						result.SetResolved(SyntaxTree.NewIntegerValue(left.position,system.SizeOf(type.resolved) DIV 8 (* in bytes *) ));
+						type := system.integerType;
+						(* was Int16  in paco but should be systemSize (conflict with current release) *)
+					ELSE
+						(* for variables, system sizeof could represent the physically occupied size
+							determined via the type descriptor, implement that ? *)
+						Error(left.position,Diagnostics.Invalid,"is not a type symbol");
+					END
+				 (* ALIAS OF *)
+				|Scanner.Alias:
+					type := left.type.resolved;
+					IF ~(type IS SyntaxTree.MathArrayType) THEN
+						type := SyntaxTree.invalidType;
+						Error(left.position, Diagnostics.Invalid,"alias on non math array type");
+					END;
 				ELSE
 					Error(left.position,Diagnostics.Invalid,"unary operator not defined");
 				END;
@@ -5274,7 +5301,7 @@ TYPE
 							result.SetResolved(parameter0(SyntaxTree.Value));
 						END;
 					END;
-				(* ---- SYSTEM.SIZEOF ----- *)
+				(* ---- SIZEOF ----- *)
 				ELSIF (id = Global.systemSizeOf) & CheckArity(1,1) THEN
 					IF (parameter0.type = SyntaxTree.typeDeclarationType) THEN
 						type := parameter0(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.TypeDeclaration).declaredType;
@@ -5295,7 +5322,7 @@ TYPE
 						END;
 					END;
 					(* remaining issues can only be tested in backend *)
-				(* ---- SYSTEM.ADR----- *)
+				(* ---- ADDRESSOF----- *)
 				ELSIF (id = Global.systemAdr) & CheckArity(1,1) THEN
 					IF HasAddress(parameter0) THEN
 						type := system.addressType;
@@ -5303,7 +5330,7 @@ TYPE
 						type := SyntaxTree.invalidType;
 						Error(parameter0.position,Diagnostics.Invalid,"has no address");
 					END;
-				(* ---- SYSTEM.BIT ----- *)
+				(* ---- BIT ----- *)
 				ELSIF (id = Global.systemBit) & CheckArity(2,2) THEN
 					IF CheckIntegerType(parameter0) & CheckIntegerType(parameter1) THEN
 						parameter0 := NewConversion(parameter0.position,parameter0,system.addressType,NIL);
@@ -5312,7 +5339,7 @@ TYPE
 						actualParameters.SetExpression(1,parameter1);
 					END;
 					type := system.booleanType;
-				(* ----- SYSTEM.MSK ---- *)
+				(* ----- MSK ---- *)
 				ELSIF (id = Global.systemMsk) & CheckArity(2,2) THEN
 					IF CheckIntegerType(parameter0) & CheckIntegerType(parameter1) THEN
 						ConvertOperands(parameter0,parameter1);
@@ -5348,7 +5375,7 @@ TYPE
 						actualParameters.SetExpression(0,parameter0);
 					END;
 					type := system.shortintType;
-				(* ---- SYSTEM.LSH, SYSTEM.ROT ----- *)
+				(* ---- LSH, ROT ----- *)
 				ELSIF ((id = Global.systemLsh) OR (id = Global.systemRot)) & CheckArity(2,2) THEN
 (*					type := type0;
 					IF CheckIntegerType(parameter0) & CheckIntegerType(parameter1) THEN
@@ -5357,9 +5384,9 @@ TYPE
 						IF IsIntegerValue(parameter0,i0) THEN
 							IF IsIntegerValue(parameter1,i1) THEN
 								IF id = Global.systemLsh THEN
-								i0 := SYSTEM.LSH(i0,i1);
+								i0 := LSH(i0,i1);
 								ELSE
-								i0 := SYSTEM.ROT(i0,i1)
+								i0 := ROT(i0,i1)
 								END;
 								result.SetResolved(SyntaxTree.NewIntegerValue(position,i0));
 								result := ResolveExpression(result);
@@ -5383,7 +5410,7 @@ TYPE
 				 	actualParameters.SetExpression(1, parameter1);
 
 					IF IsIntegerValue(parameter0,i0) & IsIntegerValue(parameter1,i1) THEN
-						result.SetResolved(SyntaxTree.NewIntegerValue(position,SYSTEM.LSH(i0,i1)));
+						result.SetResolved(SyntaxTree.NewIntegerValue(position,LSH(i0,i1)));
 					END;
 				(* ---- SYSTEM.VAL ----- *)
 				ELSIF (id = Global.systemVal) & CheckArity(2,2) THEN
@@ -5546,15 +5573,6 @@ TYPE
 					ELSE
 						Error(position, Diagnostics.Invalid,"reshape on non math array type");
 						result := SyntaxTree.invalidExpression;
-					END;
-				(* ---- SYSTEM.ZEROCOPY----- *)
-				ELSIF (id = Global.systemZeroCopy) & CheckArity(2,2) THEN
-					IF (type0 IS SyntaxTree.MathArrayType) & (type1 IS SyntaxTree.MathArrayType) THEN
-						IF ~CompatibleTo(system,type1,type0) THEN
-							Error(parameter0.position,Diagnostics.Invalid,"incompatible parameter in reshape");
-							result := SyntaxTree.invalidExpression;
-						END;
-					ELSE Error(position, Diagnostics.Invalid,"zerocopy on non math array type");
 					END;
 				(* ---- SYSTEM.TYPECODE ----- *)
 				ELSIF (id = Global.systemTypeCode) & CheckArity(1,1) THEN
@@ -8998,9 +9016,15 @@ TYPE
 		END
 	END StaticMathArrayLengths;
 
+	PROCEDURE SymbolHasAddress(symbol: SyntaxTree.Symbol): BOOLEAN;
+	BEGIN
+		RETURN (symbol IS SyntaxTree.Variable) OR (symbol IS SyntaxTree.Parameter) OR (symbol IS SyntaxTree.Procedure)
+	END SymbolHasAddress;
+
+
 	PROCEDURE HasAddress(expression: SyntaxTree.Expression): BOOLEAN;
 	BEGIN
-		RETURN (expression IS SyntaxTree.SymbolDesignator) OR (expression IS SyntaxTree.ResultDesignator)
+		RETURN (expression IS SyntaxTree.SymbolDesignator) & SymbolHasAddress(expression(SyntaxTree.SymbolDesignator).symbol) OR (expression IS SyntaxTree.ResultDesignator)
 			OR (expression IS SyntaxTree.IndexDesignator) OR (expression IS SyntaxTree.DereferenceDesignator)
 			OR (expression IS SyntaxTree.TypeGuardDesignator) OR (expression IS SyntaxTree.StringValue);
 	END HasAddress;

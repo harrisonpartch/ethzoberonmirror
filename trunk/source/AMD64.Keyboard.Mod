@@ -66,7 +66,7 @@ VAR
 	lastport: LONGINT;
 	lastvalue: SYSTEM.BYTE;
 	keyval: INTEGER;
-	table: SYSTEM.ADDRESS;
+	table: ADDRESS;
 	flags: SET;
 	keytable: POINTER TO ARRAY OF CHAR;
 	keyboard: Keyboard;
@@ -97,7 +97,7 @@ VAR
 
 (* TableUS - US keyboard translation table (dead keys: ^=1, '=2, `=3, ~=4, "=5) *)
 
-PROCEDURE TableUS(): SYSTEM.ADDRESS;
+PROCEDURE TableUS(): ADDRESS;
 CODE {SYSTEM.AMD64}
 	LEA RAX, [RIP + L2 - L1];
 L1:
@@ -212,7 +212,7 @@ L2:
 	DB 0FFH
 END TableUS;
 
-PROCEDURE TableFromFile(name: ARRAY OF CHAR): SYSTEM.ADDRESS;
+PROCEDURE TableFromFile(name: ARRAY OF CHAR): ADDRESS;
 VAR f: Files.File; r: Files.Rider; len: LONGINT;
 BEGIN
 	KernelLog.String("Keyboard: "); KernelLog.String(name);
@@ -225,7 +225,7 @@ BEGIN
 			IF r.res = 0 THEN
 				KernelLog.String(" loaded."); KernelLog.Ln;
 				keytable[len] := 0FFX;
-				RETURN SYSTEM.ADR(keytable[0])
+				RETURN ADDRESSOF(keytable[0])
 			ELSE
 				KernelLog.String(" res="); KernelLog.Int(r.res, 1)
 			END
@@ -244,7 +244,7 @@ END TableFromFile;
 PROCEDURE Translate(flags: SET; c: CHAR): INTEGER;
 CONST
 	Alt = {LAlt, RAlt}; Ctrl = {LCtrl, RCtrl}; Shift = {LShift, RShift};
-VAR a: SYSTEM.ADDRESS; s1: CHAR; s: SET; k: INTEGER; dkn: SHORTINT;
+VAR a: ADDRESS; s1: CHAR; s: SET; k: INTEGER; dkn: SHORTINT;
 BEGIN {EXCLUSIVE}
 	IF (c = 46X) & (flags * Ctrl # {}) THEN RETURN -2 END;	(* Ctrl-Break - break *)
 	IF (c = 44X) & (flags * Ctrl # {}) THEN RETURN 0FFH END;	(* Ctrl-F10 - exit *)
@@ -257,7 +257,7 @@ BEGIN {EXCLUSIVE}
 			k := -1; dkey := 0; EXIT
 		ELSIF s1 = c THEN	(* found scan code in table *)
 			SYSTEM.GET(a+3, SYSTEM.VAL(CHAR, s));	(* flags from table *)
-			dkn := SHORT(SHORT(SYSTEM.VAL(LONGINT, SYSTEM.LSH(s * {5..7}, -5))));
+			dkn := SHORT(SHORT(SYSTEM.VAL(LONGINT, LSH(s * {5..7}, -5))));
 			s := s * {DeadKey, NumLock, CapsLock, LAlt, RAlt, LCtrl, RCtrl}; k := 0;
 			IF ((s * Alt = flags * Alt) OR (NumLock IN s) OR (s1 > 03BX)) & (dkn = dkey) THEN	(* Alt & dead keys match exactly *)
 				IF flags * Shift # {} THEN INCL(s, LShift) END;	(* check if shift pressed *)

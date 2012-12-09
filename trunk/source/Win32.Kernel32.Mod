@@ -151,7 +151,7 @@ TYPE
 
 	BOOL* = LONGINT;
 
-	ADDRESS* = LONGINT;  HANDLE* = ADDRESS;  HMODULE* = ADDRESS;
+	HANDLE* = ADDRESS;  HMODULE* = ADDRESS;
 	HINSTANCE* = ADDRESS;  ATOM* = INTEGER;  HGLOBAL* = HANDLE;
 	LPSTR* = ADDRESS;
 
@@ -330,7 +330,7 @@ VAR
 	(* the procedure variables getProcAddress and LoadLibrary  must be patched by linker / PE loader *)
 	(** The GetProcAddress function returns the address of the specified exported dynamic-link library (DLL) function.
 			Use the GetProcAddress Oberon wrapper. *)
-	getProcAddress-: PROCEDURE {WINAPI} ( hModule: LONGINT;  CONST  lpProcName: ARRAY   OF CHAR ): ADDRESS;
+	getProcAddress-: PROCEDURE {WINAPI} ( hModule: HMODULE;  CONST  lpProcName: ARRAY   OF CHAR ): ADDRESS;
 	(** The LoadLibrary function maps the specified executable module into the address space of the calling process. *)
 	LoadLibrary-: PROCEDURE {WINAPI} ( CONST lpLibFileName: ARRAY   OF CHAR ): HINSTANCE;   (* must be patched by linker / PE loader *)
 

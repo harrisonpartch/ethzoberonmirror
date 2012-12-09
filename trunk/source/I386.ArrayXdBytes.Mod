@@ -16,7 +16,7 @@ CONST
 TYPE
 	Index* = LONGINT;
 	IndexArray* = POINTER TO ARRAY OF Index;
-	ADDRESS* = LONGINT;
+	Address* = LONGINT;
 
 TYPE
 	(** basic memory structure for arrays with arbitrary dimension  *)
@@ -128,7 +128,7 @@ TYPE
 		PROCEDURE Allocate*( size: LONGINT;  VAR baseadr: LONGINT;  VAR protector: ANY );
 		VAR alloc: POINTER TO ARRAY OF SYSTEM.BYTE;
 		BEGIN
-			NEW( alloc, size * elementsize );  baseadr := SYSTEM.ADR( alloc[0] );  protector := alloc;
+			NEW( alloc, size * elementsize );  baseadr := ADDRESSOF( alloc[0] );  protector := alloc;
 		END Allocate;
 
 		PROCEDURE ValidateCache*;
@@ -292,7 +292,7 @@ TYPE
 			offset2 := diminc[dimension] * (pos2 - origin[dimension]);  swaplen := diminc[dimension];
 			diminclen := diminc[dimension] * len[dimension];
 
-			NEW( swapcache, swaplen );  dataadr := SYSTEM.ADR( swapcache[0] );  stop := baseadr + bytes;  srcadr := baseadr;
+			NEW( swapcache, swaplen );  dataadr := ADDRESSOF( swapcache[0] );  stop := baseadr + bytes;  srcadr := baseadr;
 
 			WHILE (srcadr < stop) DO
 				Array1dBytes.MoveB( srcadr + offset2, dataadr, swaplen );
@@ -317,7 +317,7 @@ TYPE
 			(** computation *)
 
 			swaplen := diminc[dimension];  diminclen := diminc[dimension] * len[dimension];  NEW( swapcache, diminclen );
-			dataadr := SYSTEM.ADR( swapcache[0] );  stop := baseadr + bytes;  srcadr := baseadr;
+			dataadr := ADDRESSOF( swapcache[0] );  stop := baseadr + bytes;  srcadr := baseadr;
 
 			WHILE (srcadr < stop) DO
 				i := 0;
@@ -337,7 +337,7 @@ TYPE
 			swaplen := diminc[dimension];
 			IF dimension < dim - 1 THEN diminclen := diminc[dimension + 1] ELSE diminclen := bytes END;
 			stop := baseadr + bytes;  srcadr := baseadr;  stop2 := len[dimension] DIV 2;  NEW( swapcache, swaplen );
-			dataadr := SYSTEM.ADR( swapcache[0] );
+			dataadr := ADDRESSOF( swapcache[0] );
 
 			WHILE (srcadr < stop) DO
 				i := 0;
@@ -391,7 +391,7 @@ TYPE
 			from := from * diminc[dimension];  to := to * diminc[dimension];  swaplen := diminc[dimension] * length;
 			diminclen := diminc[dimension] * len[dimension];
 
-			NEW( swapcache, swaplen );  dataadr := SYSTEM.ADR( swapcache[0] );
+			NEW( swapcache, swaplen );  dataadr := ADDRESSOF( swapcache[0] );
 
 			IF from < to THEN movefrom := (from + swaplen);  movelen := (to - from);  moveto := from;
 			ELSE  (* to < from *)
@@ -566,7 +566,7 @@ TYPE
 		END PushAndCall;
 
 	BEGIN
-		proc := R.Bytes;  PushAndCall( SYSTEM.VAL( LONGINT, R ), SYSTEM.VAL( LONGINT, proc ), baseadr, size, SYSTEM.ADR( len ) );
+		proc := R.Bytes;  PushAndCall( SYSTEM.VAL( LONGINT, R ), SYSTEM.VAL( LONGINT, proc ), baseadr, size, ADDRESSOF( len ) );
 	END ReadMemory;
 *)
 
@@ -786,8 +786,8 @@ TYPE
 *)
 
 (** Traverse memory elementwise with a function proc, proc must be the adress of a  PROCEDURE (VAR l: (elementtype) );
-		example with basic type LONGREAL:  TraverseMemory(SYSTEM.ADR(p),mem); with p := PROCEDURE (VAR l: LONGREAL); *)
-	PROCEDURE TraverseMemory*( proc: ADDRESS;  mem: ArrayMemoryStructure );
+		example with basic type LONGREAL:  TraverseMemory(ADDRESSOF(p),mem); with p := PROCEDURE (VAR l: LONGREAL); *)
+	PROCEDURE TraverseMemory*( proc: Address;  mem: ArrayMemoryStructure );
 	VAR enum: Enumerator;  len, diminclen, adr: LONGINT;
 
 		PROCEDURE PushAdrAndCall( adr: LONGINT;  calladr: LONGINT );
@@ -805,8 +805,8 @@ TYPE
 	END TraverseMemory;
 
 (** Traverse memory elementwise with a function proc, proc must be the adress of a  PROCEDURE (VAR l,r: (elementtype) );
-	example with basic type LONGREAL;  TraverseMemory(SYSTEM.ADR(p),left,right); with p := PROCEDURE (VAR l,r: LONGREAL); *)
-	PROCEDURE TraverseMemory2*( proc: ADDRESS;  srcmem, destmem: ArrayMemoryStructure );
+	example with basic type LONGREAL;  TraverseMemory(ADDRESSOF(p),left,right); with p := PROCEDURE (VAR l,r: LONGREAL); *)
+	PROCEDURE TraverseMemory2*( proc: Address;  srcmem, destmem: ArrayMemoryStructure );
 	VAR src, dest: Enumerator;
 
 		PROCEDURE PushAdrAndCall2( src, dest: LONGINT;  calladr: LONGINT );
@@ -823,8 +823,8 @@ TYPE
 	END TraverseMemory2;
 
 (** Traverse memory elementwise with a function proc, proc must be the adress of a  PROCEDURE (VAR l,r: (elementtype) );
-	example with basic type LONGREAL;  TraverseMemory(SYSTEM.ADR(p),left,right,dest); with p := PROCEDURE (VAR l,r,d: LONGREAL); *)
-	PROCEDURE TraverseMemory3*( proc: ADDRESS;  leftmem, rightmem, destmem: ArrayMemoryStructure );
+	example with basic type LONGREAL;  TraverseMemory(ADDRESSOF(p),left,right,dest); with p := PROCEDURE (VAR l,r,d: LONGREAL); *)
+	PROCEDURE TraverseMemory3*( proc: Address;  leftmem, rightmem, destmem: ArrayMemoryStructure );
 	VAR left, right, dest: Enumerator;
 
 		PROCEDURE PushAdrAndCall3( left, right, dest: LONGINT;  calladr: LONGINT );
@@ -894,14 +894,14 @@ TYPE
 	END CopyDataPositionPreserving;
 
 	PROCEDURE MakeMemoryStructure*( dim: LONGINT;  origin, len: IndexArray;  elementsize: Index;
-																 baseadr: ADDRESS ): ArrayMemoryStructure;
+																 baseadr: Address ): ArrayMemoryStructure;
 	VAR memory: ArrayMemoryStructure;
 	BEGIN
 		NEW( memory );  memory.dim := dim;  NEW( memory.len, dim );  NEW( memory.diminc, dim );  NEW( memory.origin, dim );
 		memory.elementsize := elementsize;  memory.baseadr := baseadr;  memory.adrwoffset := baseadr;
 
-		Array1dBytes.MoveB( SYSTEM.ADR( len[0] ), SYSTEM.ADR( memory.len[0] ), SYSTEM.SIZEOF( LONGINT ) * dim );
-		Array1dBytes.MoveB( SYSTEM.ADR( origin[0] ), SYSTEM.ADR( memory.origin[0] ), SYSTEM.SIZEOF( LONGINT ) * dim );
+		Array1dBytes.MoveB( ADDRESSOF( len[0] ), ADDRESSOF( memory.len[0] ), SIZEOF( LONGINT ) * dim );
+		Array1dBytes.MoveB( ADDRESSOF( origin[0] ), ADDRESSOF( memory.origin[0] ), SIZEOF( LONGINT ) * dim );
 		ComputeIncrease( memory.len, NIL , elementsize, memory.diminc );
 
 		(*  (* bug fixed in Vs 1.1 *)	(** check: *)
@@ -1108,7 +1108,7 @@ fof 080728: open array return value not allowed any more	PROCEDURE Array3*( x, y
 	PROCEDURE IndexX*( VAR a: ARRAY OF LONGINT ): IndexArray;
 	VAR index: IndexArray;
 	BEGIN
-		NEW( index, LEN( a ) );  SYSTEM.MOVE( SYSTEM.ADR( a[0] ), SYSTEM.ADR( index[0] ), LEN( a ) * SYSTEM.SIZEOF( LONGINT ) );  RETURN index;
+		NEW( index, LEN( a ) );  SYSTEM.MOVE( ADDRESSOF( a[0] ), ADDRESSOF( index[0] ), LEN( a ) * SIZEOF( LONGINT ) );  RETURN index;
 	END IndexX;
 
 	PROCEDURE IndexCpy*( src: IndexArray ): IndexArray;
@@ -1123,28 +1123,28 @@ fof 080728: open array return value not allowed any more	PROCEDURE Array3*( x, y
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( Adr1( a, x ), SYSTEM.ADR( v ), a.elementsize );
+		SYSTEM.MOVE( Adr1( a, x ), ADDRESSOF( v ), a.elementsize );
 	END Get1;
 
 	PROCEDURE Get2*( a: Array;  x, y: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( Adr2( a, x, y ), SYSTEM.ADR( v ), a.elementsize );
+		SYSTEM.MOVE( Adr2( a, x, y ), ADDRESSOF( v ), a.elementsize );
 	END Get2;
 
 	PROCEDURE Get3*( a: Array;  x, y, z: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( Adr3( a, x, y, z ), SYSTEM.ADR( v ), a.elementsize );
+		SYSTEM.MOVE( Adr3( a, x, y, z ), ADDRESSOF( v ), a.elementsize );
 	END Get3;
 
 	PROCEDURE Get4*( a: Array;  x, y, z, t: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( Adr4( a, x, y, z, t ), SYSTEM.ADR( v ), a.elementsize );
+		SYSTEM.MOVE( Adr4( a, x, y, z, t ), ADDRESSOF( v ), a.elementsize );
 	END Get4;
 
 	PROCEDURE GetX*( a: Array;  VAR b: ARRAY OF Index;  dim: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
@@ -1152,42 +1152,42 @@ fof 080728: open array return value not allowed any more	PROCEDURE Array3*( x, y
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
 		(* dimension is checked in AdrX *)
-		SYSTEM.MOVE( AdrX( a, b, dim ), SYSTEM.ADR( v ), a.elementsize );
+		SYSTEM.MOVE( AdrX( a, b, dim ), ADDRESSOF( v ), a.elementsize );
 	END GetX;
 
 	PROCEDURE Set1*( a: Array;  x: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( SYSTEM.ADR( v ), Adr1( a, x ), a.elementsize );
+		SYSTEM.MOVE( ADDRESSOF( v ), Adr1( a, x ), a.elementsize );
 	END Set1;
 
 	PROCEDURE Set2*( a: Array;  x, y: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( SYSTEM.ADR( v ), Adr2( a, x, y ), a.elementsize );
+		SYSTEM.MOVE( ADDRESSOF( v ), Adr2( a, x, y ), a.elementsize );
 	END Set2;
 
 	PROCEDURE Set3*( a: Array;  x, y, z: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( SYSTEM.ADR( v ), Adr3( a, x, y, z ), a.elementsize );
+		SYSTEM.MOVE( ADDRESSOF( v ), Adr3( a, x, y, z ), a.elementsize );
 	END Set3;
 
 	PROCEDURE Set4*( a: Array;  x, y, z, t: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( SYSTEM.ADR( v ), Adr4( a, x, y, z, t ), a.elementsize );
+		SYSTEM.MOVE( ADDRESSOF( v ), Adr4( a, x, y, z, t ), a.elementsize );
 	END Set4;
 
 	PROCEDURE SetX*( a: Array;  VAR b: ARRAY OF Index;  dim: Index;  VAR v: ARRAY OF SYSTEM.BYTE );
 	(*! optimzie -> inline:  *)
 	BEGIN
 		IF LEN( v ) # a.elementsize THEN HALT( 100 ) END;
-		SYSTEM.MOVE( SYSTEM.ADR( v ), AdrX( a, b, dim ), a.elementsize );
+		SYSTEM.MOVE( ADDRESSOF( v ), AdrX( a, b, dim ), a.elementsize );
 	END SetX;
 
 	(*

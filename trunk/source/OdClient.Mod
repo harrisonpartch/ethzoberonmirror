@@ -1529,7 +1529,7 @@ BEGIN
 			LOOP
 				IF remain = 0 THEN (* Read the chunk size *)
 					out.SkipWhitespace();  out.Token(token); out.SkipLn();
-					(* log.Enter; AosOut.Memory(SYSTEM.ADR(token), 16); log.Exit; *)
+					(* log.Enter; AosOut.Memory(ADDRESSOF(token), 16); log.Exit; *)
 					Strings.HexStrToInt(token, chunkSize, res);
 					(*log.Enter; log.String(token); log.String(":token,size:"); AosOut.Int(chunkSize, 5); log.Exit;*)
 					IF chunkSize = 0 THEN

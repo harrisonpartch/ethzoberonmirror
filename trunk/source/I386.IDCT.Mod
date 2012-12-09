@@ -546,7 +546,7 @@ BEGIN
 	Col( src +  14);
 
 	FOR i := 0 TO 63 DO
-		SYSTEM.PUT16(dst + SYSTEM.SIZEOF(INTEGER) * i, SYSTEM.GET16(src + SYSTEM.SIZEOF(INTEGER) * i) )
+		SYSTEM.PUT16(dst + SIZEOF(INTEGER) * i, SYSTEM.GET16(src + SIZEOF(INTEGER) * i) )
 	END
 
 END TransformINT;
@@ -571,30 +571,30 @@ BEGIN
 	adr := src;
 
 	(* shortcut *)
-	x1 := LONG(SYSTEM.GET16( adr + 4*SYSTEM.SIZEOF(INTEGER))) * 2048;
-	x2 := LONG(SYSTEM.GET16( adr + 6*SYSTEM.SIZEOF(INTEGER)));
-	x3 := LONG(SYSTEM.GET16( adr + 2*SYSTEM.SIZEOF(INTEGER)));
-	x4 := LONG(SYSTEM.GET16( adr + 1*SYSTEM.SIZEOF(INTEGER)));
-	x5 := LONG(SYSTEM.GET16( adr + 7*SYSTEM.SIZEOF(INTEGER)));
-	x6 := LONG(SYSTEM.GET16( adr + 5*SYSTEM.SIZEOF(INTEGER)));
-	x7 := LONG(SYSTEM.GET16( adr + 3*SYSTEM.SIZEOF(INTEGER)));
+	x1 := LONG(SYSTEM.GET16( adr + 4*SIZEOF(INTEGER))) * 2048;
+	x2 := LONG(SYSTEM.GET16( adr + 6*SIZEOF(INTEGER)));
+	x3 := LONG(SYSTEM.GET16( adr + 2*SIZEOF(INTEGER)));
+	x4 := LONG(SYSTEM.GET16( adr + 1*SIZEOF(INTEGER)));
+	x5 := LONG(SYSTEM.GET16( adr + 7*SIZEOF(INTEGER)));
+	x6 := LONG(SYSTEM.GET16( adr + 5*SIZEOF(INTEGER)));
+	x7 := LONG(SYSTEM.GET16( adr + 3*SIZEOF(INTEGER)));
 
 	IF ( x1 = 0 ) & ( x2 = 0 ) & ( x3 = 0 ) & ( x4 = 0 ) & ( x5 = 0 ) & ( x6 = 0 ) & ( x7 = 0 )  THEN
 		x0 := SYSTEM.GET16( adr ) * 8;
 		SYSTEM.PUT16( adr , x0 );
-		tempAdr := adr + SYSTEM.SIZEOF( INTEGER );
+		tempAdr := adr + SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr, SHORT(x0));
-		tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr, SHORT(x0));
-		tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr, SHORT(x0));
-		tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr, SHORT(x0));
-		tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr, SHORT(x0));
-		tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr, SHORT(x0));
-		tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr, SHORT(x0));
 		RETURN
 	END;
@@ -632,19 +632,19 @@ BEGIN
 
 	(* fourth stage *)
 	SYSTEM.PUT16( adr, SHORT(( x7 + x1 ) DIV 256));
-	tempAdr := adr + SYSTEM.SIZEOF( INTEGER );
+	tempAdr := adr + SIZEOF( INTEGER );
 	SYSTEM.PUT16( tempAdr, SHORT(( x3 + x2 ) DIV 256));
-	tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+	tempAdr := tempAdr + SIZEOF( INTEGER );
 	SYSTEM.PUT16( tempAdr, SHORT(( x0 + x4 ) DIV 256));
-	tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+	tempAdr := tempAdr + SIZEOF( INTEGER );
 	SYSTEM.PUT16( tempAdr, SHORT(( x8 + x6 ) DIV 256));
-	tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+	tempAdr := tempAdr + SIZEOF( INTEGER );
 	SYSTEM.PUT16( tempAdr, SHORT(( x8 - x6 ) DIV 256));
-	tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+	tempAdr := tempAdr + SIZEOF( INTEGER );
 	SYSTEM.PUT16( tempAdr, SHORT(( x0 - x4 ) DIV 256));
-	tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+	tempAdr := tempAdr + SIZEOF( INTEGER );
 	SYSTEM.PUT16( tempAdr, SHORT(( x3 - x2 ) DIV 256));
-	tempAdr := tempAdr + SYSTEM.SIZEOF( INTEGER );
+	tempAdr := tempAdr + SIZEOF( INTEGER );
 	SYSTEM.PUT16( tempAdr, SHORT(( x7 - x1 ) DIV 256))
 END Row;
 
@@ -663,30 +663,30 @@ BEGIN
 	adr := src;
 
 	(* shortcut *)
-	x1 := LONG(SYSTEM.GET16( adr + 32*SYSTEM.SIZEOF(INTEGER))) * 256;
-	x2 := LONG(SYSTEM.GET16( adr + 48*SYSTEM.SIZEOF(INTEGER)));
-	x3 := LONG(SYSTEM.GET16( adr + 16*SYSTEM.SIZEOF(INTEGER)));
-	x4 := LONG(SYSTEM.GET16( adr + 8*SYSTEM.SIZEOF(INTEGER)));
-	x5 := LONG(SYSTEM.GET16( adr + 56*SYSTEM.SIZEOF(INTEGER)));
-	x6 := LONG(SYSTEM.GET16( adr + 40*SYSTEM.SIZEOF(INTEGER)));
-	x7 := LONG(SYSTEM.GET16( adr + 24*SYSTEM.SIZEOF(INTEGER)));
+	x1 := LONG(SYSTEM.GET16( adr + 32*SIZEOF(INTEGER))) * 256;
+	x2 := LONG(SYSTEM.GET16( adr + 48*SIZEOF(INTEGER)));
+	x3 := LONG(SYSTEM.GET16( adr + 16*SIZEOF(INTEGER)));
+	x4 := LONG(SYSTEM.GET16( adr + 8*SIZEOF(INTEGER)));
+	x5 := LONG(SYSTEM.GET16( adr + 56*SIZEOF(INTEGER)));
+	x6 := LONG(SYSTEM.GET16( adr + 40*SIZEOF(INTEGER)));
+	x7 := LONG(SYSTEM.GET16( adr + 24*SIZEOF(INTEGER)));
 
 	IF ( x1 = 0 ) & ( x2 = 0 ) & ( x3 = 0 ) & ( x4 = 0 ) & ( x5 = 0 ) & ( x6 = 0 ) & ( x7 = 0 )  THEN
 		x0 := LONG(intTab[(( SYSTEM.GET16(adr) + 32 ) DIV 64 ) + 512]);
 		SYSTEM.PUT16( adr , SHORT(x0));
-		tempAdr := adr + 8*SYSTEM.SIZEOF( INTEGER );
+		tempAdr := adr + 8*SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr , SHORT(x0));
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + 8*SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr , SHORT(x0));
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + 8*SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr , SHORT(x0));
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + 8*SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr , SHORT(x0));
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + 8*SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr , SHORT(x0));
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + 8*SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr , SHORT(x0));
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
+		tempAdr := tempAdr + 8*SIZEOF( INTEGER );
 		SYSTEM.PUT16( tempAdr , SHORT(x0));
 		RETURN
 	END;
@@ -724,22 +724,22 @@ BEGIN
 
 	(* fourth stage *)
 	tempAdr := adr;
-	sourceAdr := SYSTEM.ADR( intTab[512] );
-	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x7 + x1 ) DIV 16384 )*SYSTEM.SIZEOF(INTEGER) ) + sourceAdr ));
-	tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
-	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x3 + x2 ) DIV 16384 )*SYSTEM.SIZEOF(INTEGER) ) + sourceAdr ));
-	tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
-	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x0 + x4 ) DIV 16384 )*SYSTEM.SIZEOF(INTEGER) ) + sourceAdr ));
-	tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
-	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x8 + x6 ) DIV 16384 )*SYSTEM.SIZEOF(INTEGER) ) + sourceAdr ));
-	tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
-	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x8 - x6 ) DIV 16384 )*SYSTEM.SIZEOF(INTEGER) ) + sourceAdr ));
-	tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
-	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x0 - x4 ) DIV 16384 )*SYSTEM.SIZEOF(INTEGER) ) + sourceAdr ));
-	tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
-	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x3 - x2 ) DIV 16384 )*SYSTEM.SIZEOF(INTEGER) ) + sourceAdr ));
-	tempAdr := tempAdr + 8*SYSTEM.SIZEOF( INTEGER );
-	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x7 - x1 ) DIV 16384 )*SYSTEM.SIZEOF(INTEGER) ) + sourceAdr ))
+	sourceAdr := ADDRESSOF( intTab[512] );
+	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x7 + x1 ) DIV 16384 )*SIZEOF(INTEGER) ) + sourceAdr ));
+	tempAdr := tempAdr + 8*SIZEOF( INTEGER );
+	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x3 + x2 ) DIV 16384 )*SIZEOF(INTEGER) ) + sourceAdr ));
+	tempAdr := tempAdr + 8*SIZEOF( INTEGER );
+	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x0 + x4 ) DIV 16384 )*SIZEOF(INTEGER) ) + sourceAdr ));
+	tempAdr := tempAdr + 8*SIZEOF( INTEGER );
+	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x8 + x6 ) DIV 16384 )*SIZEOF(INTEGER) ) + sourceAdr ));
+	tempAdr := tempAdr + 8*SIZEOF( INTEGER );
+	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x8 - x6 ) DIV 16384 )*SIZEOF(INTEGER) ) + sourceAdr ));
+	tempAdr := tempAdr + 8*SIZEOF( INTEGER );
+	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x0 - x4 ) DIV 16384 )*SIZEOF(INTEGER) ) + sourceAdr ));
+	tempAdr := tempAdr + 8*SIZEOF( INTEGER );
+	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x3 - x2 ) DIV 16384 )*SIZEOF(INTEGER) ) + sourceAdr ));
+	tempAdr := tempAdr + 8*SIZEOF( INTEGER );
+	SYSTEM.PUT16( tempAdr, SYSTEM.GET16( ( ( ( x7 - x1 ) DIV 16384 )*SIZEOF(INTEGER) ) + sourceAdr ))
 END Col;
 
 PROCEDURE FillTablesSSE2;
@@ -747,36 +747,36 @@ VAR i: LONGINT;
 BEGIN
 	NEW(M128onecorr, 12);
 	FOR i := 4 TO 11 DO M128onecorr[i] := 1 END;
-	onecorradr := SYSTEM.ADR(M128onecorr[4]);
+	onecorradr := ADDRESSOF(M128onecorr[4]);
 
 	NEW(M128roundinvrow, 12);
 	M128roundinvrow[4] := RNDINVROW; M128roundinvrow[5] := 0; M128roundinvrow[6] := RNDINVROW; M128roundinvrow[7] := 0;
 	M128roundinvrow[8] := RNDINVROW; M128roundinvrow[9] := 0; M128roundinvrow[10] := RNDINVROW; M128roundinvrow[11] := 0;
-	roundinvrowadr := SYSTEM.ADR(M128roundinvrow[4]);
+	roundinvrowadr := ADDRESSOF(M128roundinvrow[4]);
 
 	NEW(M128roundinvcol, 12);
 	FOR i := 4 TO 11 DO M128roundinvcol[i] := RNDINVCOL END;
-	roundinvcoladr := SYSTEM.ADR(M128roundinvcol[4]);
+	roundinvcoladr := ADDRESSOF(M128roundinvcol[4]);
 
 	NEW(M128roundinvcorr, 12);
 	FOR i := 4 TO 11 DO M128roundinvcorr[i] := RNDINVCORR END;
-	roundinvcorradr := SYSTEM.ADR(M128roundinvcorr[4]);
+	roundinvcorradr := ADDRESSOF(M128roundinvcorr[4]);
 
 	NEW(M128tg116, 12);
 	FOR i := 4 TO 11 DO M128tg116[i] := 13036 END;
-	tg116adr := SYSTEM.ADR(M128tg116[4]);
+	tg116adr := ADDRESSOF(M128tg116[4]);
 
 	NEW(M128tg216, 12);
 	FOR i := 4 TO 11 DO M128tg216[i] := 21746 END;
-	tg216adr := SYSTEM.ADR(M128tg216[4]);
+	tg216adr := ADDRESSOF(M128tg216[4]);
 
 	NEW(M128tg316, 12);
 	FOR i := 4 TO 11 DO M128tg316[i] := -21746 END;
-	tg316adr := SYSTEM.ADR(M128tg316[4]);
+	tg316adr := ADDRESSOF(M128tg316[4]);
 
 	NEW(M128cos416, 12);
 	FOR i := 4 TO 11 DO M128cos416[i] := -19195 END;
-	cos416adr := SYSTEM.ADR(M128cos416[4]);
+	cos416adr := ADDRESSOF(M128cos416[4]);
 
 	NEW(M128tabi04, 36);
 	M128tabi04[4] 	:= 16384; 	M128tabi04[5] 	:= 21407; 	M128tabi04[6] 	:= 16384; 	M128tabi04[7] := 8867;
@@ -787,7 +787,7 @@ BEGIN
 	M128tabi04[24] := 12873; 	M128tabi04[25]	:= -22725; 	M128tabi04[26]	:= 4520; 	M128tabi04[27] := -12873;
 	M128tabi04[28] := 12873; 	M128tabi04[29]	:= 4520; 	M128tabi04[30] := -22725; 	M128tabi04[31] := -12873;
 	M128tabi04[32] := 4520; 	M128tabi04[33] := 19266; 	M128tabi04[34] := 19266; 	M128tabi04[35] := -22725;
-	tabi04adr := SYSTEM.ADR(M128tabi04[4]);
+	tabi04adr := ADDRESSOF(M128tabi04[4]);
 
 	NEW(M128tabi17, 36);
 	M128tabi17[4] 	:= 22725; 	M128tabi17[5] 	:= 29692; 	M128tabi17[6] 	:= 22725; 	M128tabi17[7] := 12299;
@@ -798,7 +798,7 @@ BEGIN
 	M128tabi17[24] := 17855; 	M128tabi17[25]	:= -31521; 	M128tabi17[26]	:= 6270; 	M128tabi17[27] := -17855;
 	M128tabi17[28] := 17855; 	M128tabi17[29]	:= 6270; 	M128tabi17[30] := -31521; 	M128tabi17[31] := -17855;
 	M128tabi17[32] := 6270; 	M128tabi17[33] := 26722; 	M128tabi17[34] := 26722; 	M128tabi17[35] := -31521;
-	tabi17adr := SYSTEM.ADR(M128tabi17[4]);
+	tabi17adr := ADDRESSOF(M128tabi17[4]);
 
 	NEW(M128tabi26, 36);
 	M128tabi26[4] 	:= 21407; 	M128tabi26[5] 	:= 27969; 	M128tabi26[6] 	:= 21407; 	M128tabi26[7] := 11585;
@@ -809,7 +809,7 @@ BEGIN
 	M128tabi26[24] := 16819; 	M128tabi26[25]	:= -29692; 	M128tabi26[26]	:= 5906; 	M128tabi26[27] := -16819;
 	M128tabi26[28] := 16819; 	M128tabi26[29]	:= 5906; 	M128tabi26[30] := -29692; 	M128tabi26[31] := -16819;
 	M128tabi26[32] := 5906; 	M128tabi26[33] := 25172; 	M128tabi26[34] := 25172; 	M128tabi26[35] := -29692;
-	tabi26adr := SYSTEM.ADR(M128tabi26[4]);
+	tabi26adr := ADDRESSOF(M128tabi26[4]);
 
 	NEW(M128tabi35, 36);
 	M128tabi35[4] 	:= 19266; 	M128tabi35[5] 	:= 25172; 	M128tabi35[6] 	:= 19266; 	M128tabi35[7] := 10426;
@@ -820,7 +820,7 @@ BEGIN
 	M128tabi35[24] := 15137; 	M128tabi35[25]	:= -26722; 	M128tabi35[26]	:= 5315; 	M128tabi35[27] := -15137;
 	M128tabi35[28] := 15137; 	M128tabi35[29]	:= 5315; 	M128tabi35[30] := -26722; 	M128tabi35[31] := -15137;
 	M128tabi35[32] := 5315; 	M128tabi35[33] := 22654; 	M128tabi35[34] := 22654; 	M128tabi35[35] := -26722;
-	tabi35adr := SYSTEM.ADR(M128tabi35[4]);
+	tabi35adr := ADDRESSOF(M128tabi35[4]);
 
 END FillTablesSSE2;
 
@@ -829,35 +829,35 @@ VAR i: LONGINT;
 BEGIN
 	NEW(M128onecorr, 4);
 	FOR i := 0 TO 3 DO M128onecorr[i] := 1 END;
-	onecorradr := SYSTEM.ADR(M128onecorr[0]);
+	onecorradr := ADDRESSOF(M128onecorr[0]);
 
 	NEW(M128roundinvrow, 4);
 	M128roundinvrow[0] := RNDINVROW; M128roundinvrow[1] := 0; M128roundinvrow[2] := RNDINVROW; M128roundinvrow[3] := 0;
-	roundinvrowadr := SYSTEM.ADR(M128roundinvrow[0]);
+	roundinvrowadr := ADDRESSOF(M128roundinvrow[0]);
 
 	NEW(M128roundinvcol, 4);
 	FOR i := 0 TO 3 DO M128roundinvcol[i] := RNDINVCOL END;
-	roundinvcoladr := SYSTEM.ADR(M128roundinvcol[0]);
+	roundinvcoladr := ADDRESSOF(M128roundinvcol[0]);
 
 	NEW(M128roundinvcorr, 4);
 	FOR i := 0 TO 3 DO M128roundinvcorr[i] := RNDINVCORR END;
-	roundinvcorradr := SYSTEM.ADR(M128roundinvcorr[0]);
+	roundinvcorradr := ADDRESSOF(M128roundinvcorr[0]);
 
 	NEW(M128tg116, 4);
 	FOR i := 0 TO 3 DO M128tg116[i] := 13036 END;
-	tg116adr := SYSTEM.ADR(M128tg116[0]);
+	tg116adr := ADDRESSOF(M128tg116[0]);
 
 	NEW(M128tg216, 4);
 	FOR i := 0 TO 3 DO M128tg216[i] := 21746 END;
-	tg216adr := SYSTEM.ADR(M128tg216[0]);
+	tg216adr := ADDRESSOF(M128tg216[0]);
 
 	NEW(M128tg316, 4);
 	FOR i := 0 TO 3 DO M128tg316[i] := -21746 END;
-	tg316adr := SYSTEM.ADR(M128tg316[0]);
+	tg316adr := ADDRESSOF(M128tg316[0]);
 
 	NEW(M128cos416, 4);
 	FOR i := 0 TO 3 DO M128cos416[i] := -19195 END;
-	cos416adr := SYSTEM.ADR(M128cos416[0]);
+	cos416adr := ADDRESSOF(M128cos416[0]);
 
 	NEW(M128tabi04, 32);
 	M128tabi04[0] 	:= 16384; 	M128tabi04[1] 	:= 21407; 	M128tabi04[2] 	:= 16384; 	M128tabi04[3] 	:= 8867;
@@ -868,7 +868,7 @@ BEGIN
 	M128tabi04[20] := 12873; 	M128tabi04[21]	:= 4520; 	M128tabi04[22]	:= -22725; 	M128tabi04[23] := -12873;
 	M128tabi04[24] := 12873; 	M128tabi04[25]	:= -22725; 	M128tabi04[26] := 4520; 	M128tabi04[27] := -12873;
 	M128tabi04[28] := 4520; 	M128tabi04[29] := 19266; 	M128tabi04[30] := 19266; 	M128tabi04[31] := -22725;
-	tabi04adr := SYSTEM.ADR(M128tabi04[0]);
+	tabi04adr := ADDRESSOF(M128tabi04[0]);
 
 	NEW(M128tabi17, 32);
 	M128tabi17[0] 	:= 22725; 	M128tabi17[1] 	:= 29692; 	M128tabi17[2] 	:= 22725; 	M128tabi17[3] 	:= 12299;
@@ -879,7 +879,7 @@ BEGIN
 	M128tabi17[20] := 17855; 	M128tabi17[21]	:= 6270; 	M128tabi17[22]	:= -31521; 	M128tabi17[23] := -17855;
 	M128tabi17[24] := 17855; 	M128tabi17[25]	:= -31521; 	M128tabi17[26] := 6270; 	M128tabi17[27] := -17855;
 	M128tabi17[28] := 6270; 	M128tabi17[29] := 26722; 	M128tabi17[30] := 26722; 	M128tabi17[31] := -31521;
-	tabi17adr := SYSTEM.ADR(M128tabi17[0]);
+	tabi17adr := ADDRESSOF(M128tabi17[0]);
 
 	NEW(M128tabi26, 32);
 	M128tabi26[0] 	:= 21407; 	M128tabi26[1] 	:= 27969; 	M128tabi26[2] 	:= 21407; 	M128tabi26[3] 	:= 11585;
@@ -890,7 +890,7 @@ BEGIN
 	M128tabi26[20] := 16819; 	M128tabi26[21]	:= 5906; 	M128tabi26[22]	:= -29692; 	M128tabi26[23] := -16819;
 	M128tabi26[24] := 16819; 	M128tabi26[25]	:= -29692; 	M128tabi26[26] := 5906; 	M128tabi26[27] := -16819;
 	M128tabi26[28] := 5906; 	M128tabi26[29] := 25172; 	M128tabi26[30] := 25172; 	M128tabi26[31] := -29692;
-	tabi26adr := SYSTEM.ADR(M128tabi26[0]);
+	tabi26adr := ADDRESSOF(M128tabi26[0]);
 
 	NEW(M128tabi35, 32);
 	M128tabi35[0] 	:= 19266; 	M128tabi35[1] 	:= 25172; 	M128tabi35[2] 	:= 19266; 	M128tabi35[3] 	:= 10426;
@@ -901,7 +901,7 @@ BEGIN
 	M128tabi35[20] := 15137; 	M128tabi35[21]	:= 5315; 	M128tabi35[22]	:= -26722; 	M128tabi35[23] := -15137;
 	M128tabi35[24] := 15137; 	M128tabi35[25]	:= -26722; 	M128tabi35[26] := 5315; 	M128tabi35[27] := -15137;
 	M128tabi35[28] := 5315; 	M128tabi35[29] := 22654; 	M128tabi35[30] := 22654; 	M128tabi35[31] := -26722;
-	tabi35adr := SYSTEM.ADR(M128tabi35[0]);
+	tabi35adr := ADDRESSOF(M128tabi35[0]);
 END FillTablesSSE;
 
 PROCEDURE FillTablesINT;

@@ -15,7 +15,7 @@ TYPE
 	Rectangle = Rect.Rectangle;
 	Image = Raster.Image;
 	ScalerProc = PROCEDURE (src, dst : Image; VAR dr : Rectangle; sx, sy, sdx, sdy : LONGINT);
-	XScalerProc = PROCEDURE (srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+	XScalerProc = PROCEDURE (srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
 
 (* copy sr in 16.16 fix rectangle  from src to dr integer rectangle in dst *)
 PROCEDURE Q0GenericCopy(src, dst : Image; VAR dr : Rectangle; sx, sy, sdx, sdy : LONGINT);
@@ -157,7 +157,7 @@ BEGIN
 END Q1GenericSrcOverDst;
 
 (*
-PROCEDURE Q0BGR565BGR565(srcadr,dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+PROCEDURE Q0BGR565BGR565(srcadr,dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
 VAR x, y : LONGINT; yadr, adr, sa, col : LONGINT;
 	fx, fy : LONGINT;
 BEGIN
@@ -180,7 +180,7 @@ END Q0BGR565BGR565;
 *)
 
 (* this asm version is 2.3 times faster than the portable version. (P3/600/Dell precision 420 (dual)) *)
-PROCEDURE XQ0BGR565BGR565(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+PROCEDURE XQ0BGR565BGR565(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
 VAR yadr : LONGINT;
 CODE {SYSTEM.i386}
 	MOV	EDX, [EBP+dstadr]
@@ -241,7 +241,7 @@ innerloop:
 END XQ0BGR565BGR565;
 
 
-PROCEDURE SSE2Q0BGR565BGR565(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT (*; VAR  mysrc, mydest, myres: ARRAY OF LONGINT*));
+PROCEDURE SSE2Q0BGR565BGR565(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT (*; VAR  mysrc, mydest, myres: ARRAY OF LONGINT*));
 VAR yadr : LONGINT;
 CODE {SYSTEM.i386, SYSTEM.MMX, SYSTEM.SSE, SYSTEM.SSE2}
 	PUSHFD
@@ -382,10 +382,10 @@ endyloop:
 END SSE2Q0BGR565BGR565;
 
 
-PROCEDURE Q1BGR565BGR565(srcadr,dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
-VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr, adr: SYSTEM.ADDRESS; col0, col1, col2, col3  : LONGINT;
+PROCEDURE Q1BGR565BGR565(srcadr,dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr, adr: ADDRESS; col0, col1, col2, col3  : LONGINT;
 	b0, g0, r0, b1, g1, r1, cb, cg, cr : LONGINT;
-	fx, fy, xadd1, xadd2 : LONGINT; yadd1, yadd2: SYSTEM.ADDRESS;
+	fx, fy, xadd1, xadd2 : LONGINT; yadd1, yadd2: ADDRESS;
 BEGIN
 
 	yadr := dstadr + dl * 2 + dt * dstbpr;
@@ -429,7 +429,7 @@ BEGIN
 	END
 END Q1BGR565BGR565;
 
-PROCEDURE SSE2Q1BGR565BGR565(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+PROCEDURE SSE2Q1BGR565BGR565(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
 VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr, adr, col, col0, col1, col2, col3 : LONGINT;
 	b0, g0, r0, b1, g1, r1, cb, cg, cr : LONGINT;
 	fx, fy, yadd1, yadd2, xadd1, xadd2 : LONGINT;
@@ -705,10 +705,10 @@ endyloop:
 	POPFD
 END SSE2Q1BGR565BGR565;
 
-PROCEDURE Q1BGRA8888BGR565(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
-VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr: SYSTEM.ADDRESS; col, col0, col1, col2, col3 : LONGINT;
+PROCEDURE Q1BGRA8888BGR565(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr: ADDRESS; col, col0, col1, col2, col3 : LONGINT;
 	b0, g0, r0, a0, b1, g1, r1, a1, cb, cg, cr, ca, dstb, dstg, dstr : LONGINT;
-	fx, fy, xadd0, xadd1: LONGINT; yadd0, yadd1: SYSTEM.ADDRESS;
+	fx, fy, xadd0, xadd1: LONGINT; yadd0, yadd1: ADDRESS;
 BEGIN
 	yadr := dstadr + dl * 2 + dt * dstbpr;
 	fy := sy - 8000H; sx := sx - 8000H;
@@ -763,7 +763,7 @@ BEGIN
 	END
 END Q1BGRA8888BGR565;
 
-PROCEDURE SSE2Q1BGRA8888BGR565(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh:LONGINT);
+PROCEDURE SSE2Q1BGRA8888BGR565(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh:LONGINT);
 	VAR x, y, z,xfleft, xfright, yftop, yfbottom : LONGINT; yadr, adr, col, col0, col1, col2, col3 : LONGINT;
 	b0, g0, r0, a0, a01,b1, g1, r1, a1, cb, cg, cr,cb2, cg2, cr2, ca, ca2,dstb, dstg, dstr,res : LONGINT;
 	fx, fy, yadd1, yadd2, xadd1, xadd2: LONGINT;
@@ -1802,9 +1802,9 @@ endyloop:
 	POPFD
 END SSE2Q1BGRA8888BGR565;
 
-PROCEDURE Q0BGRA8888BGR565(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
-VAR x, y : LONGINT; yadr, adr: SYSTEM.ADDRESS; col, col0 : LONGINT;
-	cb, cg, cr, ca, dstb, dstg, dstr: LONGINT; yadd: SYSTEM.ADDRESS;
+PROCEDURE Q0BGRA8888BGR565(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+VAR x, y : LONGINT; yadr, adr: ADDRESS; col, col0 : LONGINT;
+	cb, cg, cr, ca, dstb, dstg, dstr: LONGINT; yadd: ADDRESS;
 	fx, fy : LONGINT;
 BEGIN
 	fy := sy;
@@ -1841,9 +1841,9 @@ BEGIN
 	END
 END Q0BGRA8888BGR565;
 
-PROCEDURE Q0BGRA8888BGRA8888(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
-VAR x, y : LONGINT; yadr, adr: SYSTEM.ADDRESS; col, col0 : LONGINT;
-	cb, cg, cr, ca, dstb, dstg, dstr, dsta : LONGINT; yadd: SYSTEM.ADDRESS;
+PROCEDURE Q0BGRA8888BGRA8888(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+VAR x, y : LONGINT; yadr, adr: ADDRESS; col, col0 : LONGINT;
+	cb, cg, cr, ca, dstb, dstg, dstr, dsta : LONGINT; yadd: ADDRESS;
 	fx, fy : LONGINT;
 BEGIN
 	fy := sy;
@@ -1875,7 +1875,7 @@ BEGIN
 					ca := (ca * 256 + (256 - ca) * dsta) DIV 256; IF ca > 256 THEN ca := 256; END;
 				END;
 
-				SYSTEM.PUT32(adr, cb + SYSTEM.LSH(cg, 8) + SYSTEM.LSH(cr, 16) + SYSTEM.LSH(ca, 24));
+				SYSTEM.PUT32(adr, cb + LSH(cg, 8) + LSH(cr, 16) + LSH(ca, 24));
 			END;
 			INC(fx, sdx);
 			INC(adr, 4)
@@ -1885,8 +1885,8 @@ BEGIN
 	END
 END Q0BGRA8888BGRA8888;
 
-PROCEDURE Q0BGRA8888BGRA8888Copy(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
-VAR x, y  : LONGINT; yadr, adr: SYSTEM.ADDRESS; col, col0 : LONGINT; yadd : SYSTEM.ADDRESS;
+PROCEDURE Q0BGRA8888BGRA8888Copy(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+VAR x, y  : LONGINT; yadr, adr: ADDRESS; col, col0 : LONGINT; yadd : ADDRESS;
 	fx, fy : LONGINT;
 BEGIN
 	fy := sy;
@@ -1906,10 +1906,10 @@ BEGIN
 	END
 END Q0BGRA8888BGRA8888Copy;
 
-PROCEDURE Q1BGRA8888BGRA8888(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
-VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr: SYSTEM.ADDRESS; col, col0, col1, col2, col3 : LONGINT;
+PROCEDURE Q1BGRA8888BGRA8888(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr: ADDRESS; col, col0, col1, col2, col3 : LONGINT;
 	b0, g0, r0, a0, b1, g1, r1, a1, cb, cg, cr, ca, dstb, dstg, dstr, dsta : LONGINT;
-	fx, fy, xadd0, xadd1: LONGINT; yadd0, yadd1: SYSTEM.ADDRESS;
+	fx, fy, xadd0, xadd1: LONGINT; yadd0, yadd1: ADDRESS;
 BEGIN
 	yadr := dstadr + dl * 4 + dt * dstbpr;
 	fy := sy - 8000H; sx := sx - 8000H;
@@ -1961,7 +1961,7 @@ BEGIN
 					cr := (cr * 256 + (256 - ca) * dstr) DIV 256; IF cr > 256 THEN cr := 256 END;
 					ca := (ca * 256 + (256 - ca) * dsta) DIV 256; IF ca > 256 THEN ca := 256; END;
 				END;
-				SYSTEM.PUT32(dstadr, cb + SYSTEM.LSH(cg, 8) + SYSTEM.LSH(cr, 16) + SYSTEM.LSH(ca, 24));
+				SYSTEM.PUT32(dstadr, cb + LSH(cg, 8) + LSH(cr, 16) + LSH(ca, 24));
 			END;
 			INC(fx, sdx);
 			INC(dstadr, 4);
@@ -1971,10 +1971,10 @@ BEGIN
 	END
 END Q1BGRA8888BGRA8888;
 
-PROCEDURE Q1BGRA8888BGRA8888Copy(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
-VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr: SYSTEM.ADDRESS; col, col0, col1, col2, col3 : LONGINT;
+PROCEDURE Q1BGRA8888BGRA8888Copy(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr: ADDRESS; col, col0, col1, col2, col3 : LONGINT;
 	b0, g0, r0, a0, b1, g1, r1, a1, cb, cg, cr, ca : LONGINT;
-	fx, fy, xadd0, xadd1: LONGINT; yadd0, yadd1: SYSTEM.ADDRESS;
+	fx, fy, xadd0, xadd1: LONGINT; yadd0, yadd1: ADDRESS;
 BEGIN
 	yadr := dstadr + dl * 4 + dt * dstbpr;
 	fy := sy - 8000H; sx := sx - 8000H;
@@ -2012,7 +2012,7 @@ BEGIN
 				cb := (b0 * yftop + b1 * yfbottom) DIV 65536;
 				cg := (g0 * yftop + g1 * yfbottom) DIV 65536;
 				cr := (r0 * yftop + r1 * yfbottom) DIV 65536;
-				SYSTEM.PUT32(dstadr, cb + SYSTEM.LSH(cg, 8) + SYSTEM.LSH(cr, 16) + SYSTEM.LSH(ca, 24));
+				SYSTEM.PUT32(dstadr, cb + LSH(cg, 8) + LSH(cr, 16) + LSH(ca, 24));
 			END;
 			INC(fx, sdx);
 			INC(dstadr, 4);
@@ -2022,7 +2022,7 @@ BEGIN
 	END
 END Q1BGRA8888BGRA8888Copy;
 
-PROCEDURE SSE2Q0BGRA8888BGR565(srcadr, dstadr: SYSTEM.ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
+PROCEDURE SSE2Q0BGRA8888BGR565(srcadr, dstadr: ADDRESS; srcbpr, dstbpr, dl, dt, dr, db, sx, sy, sdx, sdy, sw, sh : LONGINT);
 VAR x, y, xfleft, xfright, yftop, yfbottom : LONGINT; yadr, adr, col, col0, col1, col2, col3 : LONGINT;
 	cb, cg, cr, ca, dstb, dstg, dstr, yadd : LONGINT;
 	fx, fy : LONGINT;

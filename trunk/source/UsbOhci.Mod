@@ -408,7 +408,7 @@ TYPE
 
 			(* build the pipe's endpoint descriptor *)
 			(* dword0:  0..6: function address; 7..10: endpoint number; 11..12: direction; 13: Speed; 14: Skip; 15: Format; 16..26: maximum packet size; 27..31: available *)
-			dword := SYSTEM.VAL(SET, pipe.address) * EdFunctionAddress + (SYSTEM.VAL(SET, SYSTEM.LSH(pipe.endpoint, 7)) * EdEndpointNumber);
+			dword := SYSTEM.VAL(SET, pipe.address) * EdFunctionAddress + (SYSTEM.VAL(SET, LSH(pipe.endpoint, 7)) * EdEndpointNumber);
 			IF pipe.type = UsbHcdi.PipeControl THEN (* get direction from TD *)
 				(* bit 11&12 both zero *)
 			ELSE (* get direction from ED *)
@@ -423,7 +423,7 @@ TYPE
 
 			IF pipe.speed = UsbHcdi.LowSpeed THEN dword := dword + EdSpeed; END;
 			IF pipe.type = UsbHcdi.PipeIsochronous THEN dword := dword + EdFormat; END;
-			dword := dword + (SYSTEM.VAL(SET, SYSTEM.LSH(pipe.maxPacketSize, 16)) * EdMaximumPacketSize);
+			dword := dword + (SYSTEM.VAL(SET, LSH(pipe.maxPacketSize, 16)) * EdMaximumPacketSize);
 			dword := dword + EdSkip; (* HC should not (yet) process this ED *)
 
 			SYSTEM.PUT32(pipe.qh + EdControlStatus, dword);
@@ -573,7 +573,7 @@ TYPE
 			SYSTEM.PUT32(td + TdCommand, TdDelayInterrupt + TdDataToggleFromTd + {29,30,31});
 			SYSTEM.PUT32(td + TdNextTdP, td + 16);
 
-			Machine.TranslateVirtual(SYSTEM.ADR(msg[0]), 8, numRanges, ranges);
+			Machine.TranslateVirtual(ADDRESSOF(msg[0]), 8, numRanges, ranges);
 			IF numRanges = 0 THEN
 				IF Debug.Level >= Debug.Errors THEN KernelLog.String("UsbOhci: Scatter/Gather list too small."); KernelLog.Ln; END;
 				pipe.status := Usbdi.Error; pipe.errors := UsbHcdi.TransferTooLarge; RETURN;
@@ -600,7 +600,7 @@ TYPE
 			END;
 
 			td := td + 16;
-			IF td + 15 > SYSTEM.ADR(pipe.tdBuffer[pipe.tdBufferLen-1]) THEN
+			IF td + 15 > ADDRESSOF(pipe.tdBuffer[pipe.tdBufferLen-1]) THEN
 				IF Debug.Level >= Debug.Errors  THEN KernelLog.String("UsbOhci: TD buffer too small"); KernelLog.Ln; END;
 				pipe.status := Usbdi.Error; pipe.errors := pipe.errors + UsbHcdi.OutOfTDs; RETURN;
 			END;
@@ -652,7 +652,7 @@ TYPE
 			td, temp : LONGINT;
 			dword : SET;
 		BEGIN
-			Machine.TranslateVirtual(SYSTEM.ADR(buffer[ofs]), len, numRanges, pipe.sgList^);
+			Machine.TranslateVirtual(ADDRESSOF(buffer[ofs]), len, numRanges, pipe.sgList^);
 			IF numRanges = 0 THEN
 				IF Debug.Level >= Debug.Errors THEN KernelLog.String("UsbOhci: Scatter/Gather list too small."); KernelLog.Ln; END;
 				pipe.status := Usbdi.Error; pipe.errors := UsbHcdi.TransferTooLarge; RETURN FALSE;
@@ -664,7 +664,7 @@ TYPE
 			WHILE restlen > 0 DO (* build TD chain *)
 
 				td := td + 16;
-				IF td + 15 > SYSTEM.ADR(pipe.tdBuffer[pipe.tdBufferLen-1]) THEN
+				IF td + 15 > ADDRESSOF(pipe.tdBuffer[pipe.tdBufferLen-1]) THEN
 					pipe.errors := pipe.errors + UsbHcdi.OutOfTDs;
 					IF Debug.Level >= Debug.Errors THEN KernelLog.String("UsbOhci: TD buffer too small"); KernelLog.Ln; END;
 					RETURN FALSE;
@@ -779,7 +779,7 @@ TYPE
 					ASSERT(SYSTEM.VAL(SET, td) * {0..3} = {});
 					(* evaluate condition codes (CC)*)
 					dword := SYSTEM.VAL(SET, SYSTEM.GET32(td + TdCommand));
-					cc := SYSTEM.LSH(SYSTEM.VAL(LONGINT, dword * TdConditionCode), -28);
+					cc := LSH(SYSTEM.VAL(LONGINT, dword * TdConditionCode), -28);
 					CASE cc OF
 						| TdNoError : (* only Usbdi.ResOK if all TD's do not have errors *)
 						| TdCrc : errors := errors + UsbHcdi.Crc;
@@ -854,7 +854,7 @@ TYPE
 		PROCEDURE HardwareReset() : BOOLEAN;
 		VAR timer : Kernel.Timer;
 		BEGIN
-			SYSTEM.PUT32(iobase + HcControl, SYSTEM.LSH(UsbReset, 6));	 FlushPCI;
+			SYSTEM.PUT32(iobase + HcControl, LSH(UsbReset, 6));	 FlushPCI;
 			NEW(timer); timer.Sleep(UsbHcdi.RootHubResetTime);
 			RETURN TRUE;
 		END HardwareReset;
@@ -883,7 +883,7 @@ TYPE
 			(* okay... now allocate memory for the 16byte aligned queue heads ... *)
 			tdlist := UsbHcdi.GetAlignedMemSpace(16*TdListSize, 16);
 
-			NEW(interruptED); FOR i := 0 TO 5 DO interruptED[i] := Machine.Ensure32BitAddress (SYSTEM.ADR(tdlist.data[tdlist.base]) + i*16); END;
+			NEW(interruptED); FOR i := 0 TO 5 DO interruptED[i] := Machine.Ensure32BitAddress (ADDRESSOF(tdlist.data[tdlist.base]) + i*16); END;
 
 			isochronousED := interruptED[5] + 16;
 			controlED :=  isochronousED + 16;
@@ -1009,7 +1009,7 @@ TYPE
 					Reg_HcFmInterval := Reg_HcFmInterval + (SYSTEM.VAL(SET, HccFrameInterval) * HcFmiFrameInterval);
 				END;
 				IF  (Reg_HcFmInterval * HcFmiFsLargestDataPacket = {}) THEN (* set to default *)
-					Reg_HcFmInterval := Reg_HcFmInterval + (SYSTEM.LSH(SYSTEM.VAL(SET, HccFSLargestDataPacket), 16) * HcFmiFsLargestDataPacket);
+					Reg_HcFmInterval := Reg_HcFmInterval + (LSH(SYSTEM.VAL(SET, HccFSLargestDataPacket), 16) * HcFmiFsLargestDataPacket);
 				END;
 			END;
 
@@ -1073,7 +1073,7 @@ TYPE
 			END;
 			hubDescriptor[3] := CHR(SYSTEM.VAL(LONGINT, dword));
 			hubDescriptor[4] := CHR(0); (* Reserved *)
-			hubDescriptor[5] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(hcRhDescriptorA * HcRhaPowerOnToPowerGoodTime, -24)));
+			hubDescriptor[5] := CHR(SYSTEM.VAL(LONGINT, LSH(hcRhDescriptorA * HcRhaPowerOnToPowerGoodTime, -24)));
 			hubDescriptor[6] := CHR(0); (* Root hubs don't draw current from the USB *)
 
 			(* HC now in UsbSuspend state... if we do not change the HC functional state to UsbOperational within 2ms, we need to go into UsbResume... *)
@@ -1110,7 +1110,7 @@ TYPE
 		BEGIN
 			IF Debug.Trace & Debug.traceInit THEN KernelLog.String("UsbOhci: Starting host controller..."); END;
 			(* set base address of the HCCA *)
-			SYSTEM.PUT32(iobase + HcHCCA, SYSTEM.ADR(hcca.data[hcca.base]));
+			SYSTEM.PUT32(iobase + HcHCCA, ADDRESSOF(hcca.data[hcca.base]));
 
 			(* set the bulk list and the control list  head pointers *)
 			SYSTEM.PUT32(iobase + HcControlHeadED,  controlED);
@@ -1181,7 +1181,7 @@ TYPE
 			(* display information of the HcRevision register *)
 			temp := SYSTEM.GET32(iobase+HcRevision);
 			KernelLog.String("   HcRevision: ");
-			KernelLog.Hex(SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, temp) * {4..7}, -4)), -2); KernelLog.String(".");
+			KernelLog.Hex(SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, temp) * {4..7}, -4)), -2); KernelLog.String(".");
 			KernelLog.Hex(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, temp) * {0..3}), -2);
 			KernelLog.String("   Legacy support: ");
 			IF HcRevLegacySupport * SYSTEM.VAL(SET, temp) # {}  THEN
@@ -1198,13 +1198,13 @@ TYPE
 			KernelLog.String("   HcControl: State: ");
 			temp := SYSTEM.GET32(iobase + HcControl);
 			s := SYSTEM.VAL(SET, temp);
-			CASE SYSTEM.VAL(LONGINT, SYSTEM.LSH(s*HcConHcFunctionalState, -6)) OF
+			CASE SYSTEM.VAL(LONGINT, LSH(s*HcConHcFunctionalState, -6)) OF
 				UsbReset : KernelLog.String("UsbReset");
 				| UsbResume : KernelLog.String("UsbResume");
 				| UsbOperational : KernelLog.String("UsbOperational");
 				| UsbSuspend : KernelLog.String("UsbSuspend");
 			ELSE
-				KernelLog.Int(SYSTEM.VAL(LONGINT, SYSTEM.LSH(s*HcConHcFunctionalState,-6)),0);
+				KernelLog.Int(SYSTEM.VAL(LONGINT, LSH(s*HcConHcFunctionalState,-6)),0);
 			END;
 			KernelLog.String(" C/B-Ratio: ");
 			temp := SYSTEM.VAL(LONGINT, s * HcConControlBulkServiceRatio);
@@ -1220,7 +1220,7 @@ TYPE
 			KernelLog.Ln;
 			(* display information from HcCommandStatus register *)
 			KernelLog.String("   HcCommandStatus: SchedulingOverrungCount: ");
-			 KernelLog.Int(SYSTEM.VAL(LONGINT, SYSTEM.LSH(s * HcCmdSchedulingOverrunCount,16)), 0);
+			 KernelLog.Int(SYSTEM.VAL(LONGINT, LSH(s * HcCmdSchedulingOverrunCount,16)), 0);
 			KernelLog.String(", Flags: ");
 			temp := SYSTEM.GET32(iobase + HcCommandStatus);
 			s := SYSTEM.VAL(SET, temp);
@@ -1265,7 +1265,7 @@ TYPE
 			KernelLog.String("   Frame: Nbr: "); KernelLog.Hex(temp, 8);
 			s := SYSTEM.VAL(SET, SYSTEM.GET32(iobase + HcFmInterval));
 			KernelLog.String("  FmInterval: "); KernelLog.Int(SYSTEM.VAL(LONGINT, s * HcFmiFrameInterval), 0);
-			KernelLog.String("  FSMaxPacketSize: "); KernelLog.Int(SYSTEM.LSH(SYSTEM.VAL(LONGINT, s * HcFmiFsLargestDataPacket),-16), 0); KernelLog.String(" Bits, ");
+			KernelLog.String("  FSMaxPacketSize: "); KernelLog.Int(LSH(SYSTEM.VAL(LONGINT, s * HcFmiFsLargestDataPacket),-16), 0); KernelLog.String(" Bits, ");
 			KernelLog.String("  FmiToggle: ");
 			IF s * HcFmiFrameIntervalToggle # {} THEN KernelLog.String("Set"); ELSE KernelLog.String("Not Set"); END;
 			temp := SYSTEM.GET32(iobase + HcPeriodicStart); KernelLog.String(" PeriodicStart: "); KernelLog.Hex(temp, 8);
@@ -1319,7 +1319,7 @@ BEGIN
 	ed := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ed) * {4..31});
 	dword :=SYSTEM.VAL(SET, SYSTEM.GET32(ed + EdControlStatus));
 	adr := SYSTEM.VAL(LONGINT, dword * EdFunctionAddress);
-	ep := SYSTEM.VAL(LONGINT, SYSTEM.LSH(dword * EdEndpointNumber, -7));
+	ep := SYSTEM.VAL(LONGINT, LSH(dword * EdEndpointNumber, -7));
 
 	Indent(spaces); KernelLog.String("ED at address: "); KernelLog.Hex(ed, 8); KernelLog.String("H ");
 	IF ed = controller.controlED THEN KernelLog.String("(ControlList Head)");
@@ -1351,13 +1351,13 @@ BEGIN
 		END;
 	END;
 	KernelLog.String(" Dir: ");
-	CASE SYSTEM.VAL(LONGINT, SYSTEM.LSH(dword * EdDirection ,-11)) OF
+	CASE SYSTEM.VAL(LONGINT, LSH(dword * EdDirection ,-11)) OF
 		  PidIn : KernelLog.String("In");
 		| PidOut : KernelLog.String("Out");
 	ELSE
 		KernelLog.String("Specified in TD");
 	END;
-	KernelLog.String(" MaxPacketSize: "); KernelLog.Int(SYSTEM.VAL(LONGINT, SYSTEM.LSH(dword * EdMaximumPacketSize, -16)), 0); KernelLog.String(" Bytes");
+	KernelLog.String(" MaxPacketSize: "); KernelLog.Int(SYSTEM.VAL(LONGINT, LSH(dword * EdMaximumPacketSize, -16)), 0); KernelLog.String(" Bytes");
 	IF pipe # NIL THEN
 		KernelLog.String(", LastStatus: "); UsbHcdi.ShowStatus(pipe.status);
 	END;
@@ -1439,7 +1439,7 @@ BEGIN
 			(* TD Completion Codes *)
 			Indent(spaces+4); KernelLog.String("Condition Codes:");
 			dword := SYSTEM.VAL(SET, SYSTEM.GET32(nexttd + TdCommand));
-			CASE SYSTEM.VAL(LONGINT, SYSTEM.LSH(dword,-28)) OF
+			CASE SYSTEM.VAL(LONGINT, LSH(dword,-28)) OF
 				| TdNoError : KernelLog.String("[NoError]");
 				| TdCrc : KernelLog.String("[CRC]");
 				| TdBitStuffing : KernelLog.String("[BitStuffError]");
@@ -1459,7 +1459,7 @@ BEGIN
 			KernelLog.Ln;
 
 			Indent(spaces+4); KernelLog.String("Pid: ");
-			CASE SYSTEM.VAL(LONGINT, SYSTEM.LSH(dword * TdDirectionPid, -19)) OF
+			CASE SYSTEM.VAL(LONGINT, LSH(dword * TdDirectionPid, -19)) OF
 				PidSetup : KernelLog.String("PidSetup");
 				| PidIn : KernelLog.String("PidIn");
 				| PidOut : KernelLog.String("PidOut");
@@ -1472,10 +1472,10 @@ BEGIN
 			IF dword * TdBufferRounding # {} THEN KernelLog.String("[BufferRounding]"); END;
 			IF 25 IN dword THEN KernelLog.String("[ToggleFromTD]"); ELSE KernelLog.String("[ToggleFromEd]"); END;
 			IF 24 IN dword THEN KernelLog.String("[Toggle=DATA1]"); ELSE KernelLog.String("[Toggle=DATA0]"); END;
-			IF SYSTEM.VAL(LONGINT, SYSTEM.LSH(dword * TdDelayInterrupt, -21)) # 7 THEN (* IOC enabled *)
-				KernelLog.String("[IOC, MaxDelay: "); KernelLog.Int(SYSTEM.VAL(LONGINT, SYSTEM.LSH(dword * TdDelayInterrupt, -21)), 0); KernelLog.Char("]");
+			IF SYSTEM.VAL(LONGINT, LSH(dword * TdDelayInterrupt, -21)) # 7 THEN (* IOC enabled *)
+				KernelLog.String("[IOC, MaxDelay: "); KernelLog.Int(SYSTEM.VAL(LONGINT, LSH(dword * TdDelayInterrupt, -21)), 0); KernelLog.Char("]");
 			END;
-			KernelLog.String(", Errors: "); KernelLog.Int(SYSTEM.VAL(LONGINT, SYSTEM.LSH(dword * TdErrorCount, -26)), 0);
+			KernelLog.String(", Errors: "); KernelLog.Int(SYSTEM.VAL(LONGINT, LSH(dword * TdErrorCount, -26)), 0);
 			KernelLog.Ln;
 
 			(* CurrentBufferPointer, BufferEndPointer & NextTD *)
@@ -1521,7 +1521,7 @@ VAR
 	hostController : OpenHostController;
 	bus, device, function : LONGINT;
 	iobasePhys, irq : LONGINT;
-	iobaseVirt: SYSTEM.ADDRESS;
+	iobaseVirt: ADDRESS;
 	pciCmdReg : LONGINT;
 	index : LONGINT;
 	res: LONGINT;

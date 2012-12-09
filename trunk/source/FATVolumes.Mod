@@ -44,7 +44,7 @@ TYPE
 	Cache = POINTER TO RECORD
 		data: POINTER TO ARRAY OF CHAR;
 		index: POINTER TO ARRAY OF CacheElement;
-		startAdr: LONGINT; dataAdr: SYSTEM.ADDRESS;
+		startAdr: LONGINT; dataAdr: ADDRESS;
 		blockSize, numBlocks: LONGINT;
 		writeBehind, dirty: BOOLEAN;
 	END;
@@ -114,7 +114,7 @@ TYPE
 		VAR bpb : BPB;
 		BEGIN
 			ASSERT((LEN(bpbin)=512) & (bpbin[510]=055X) & (bpbin[511]=0AAX));
-			SYSTEM.MOVE(SYSTEM.ADR(bpbin[0]), SYSTEM.ADR(bpb[0]), 512);
+			SYSTEM.MOVE(ADDRESSOF(bpbin[0]), ADDRESSOF(bpb[0]), 512);
 			SELF.dev := dev; SELF.start := start; SELF.size := size; SELF.blockSize := BS;
 			flags := {};
 			IF Initialize(bpb, numClusters) THEN
@@ -179,7 +179,7 @@ TYPE
 				cache.startAdr := StartAdr; cache.blockSize := BlockSize;
 				cache.numBlocks := NumBlocks; cache.writeBehind := WriteBehind;
 
-				NEW(cache.data, BlockSize*NumBlocks); cache.dataAdr := SYSTEM.ADR(cache.data[0]);
+				NEW(cache.data, BlockSize*NumBlocks); cache.dataAdr := ADDRESSOF(cache.data[0]);
 				NEW(cache.index, NumBlocks);
 
 				FOR i := 0 TO NumBlocks-1 DO
@@ -231,13 +231,13 @@ TYPE
 			IF (fatCache # NIL) THEN
 				idx := adr MOD fatCache.numBlocks;
 				IF (fatCache.index[idx].adr = adr) & (fatCache.index[idx].valid) THEN
-					SYSTEM.MOVE(fatCache.dataAdr + idx*BS, SYSTEM.ADR(data[ofs]), BS);
+					SYSTEM.MOVE(fatCache.dataAdr + idx*BS, ADDRESSOF(data[ofs]), BS);
 					res := Ok
 				ELSE
 					IF fatCache.index[idx].dirty THEN FlushCache(fatCache) END;
 					fatCache.index[idx].adr := adr; fatCache.index[idx].valid := TRUE; fatCache.index[idx].dirty := FALSE;
 					dev.Transfer(Disks.Read, block, 1, fatCache.data^, idx*BS, res);
-					SYSTEM.MOVE(fatCache.dataAdr + idx*BS, SYSTEM.ADR(data[ofs]), BS)
+					SYSTEM.MOVE(fatCache.dataAdr + idx*BS, ADDRESSOF(data[ofs]), BS)
 				END
 			ELSE dev.Transfer(Disks.Read, block, 1, data, ofs, res)
 			END;
@@ -263,7 +263,7 @@ TYPE
 				END;
 				fatCache.index[idx].adr := adr; fatCache.index[idx].valid := TRUE;
 				fatCache.index[idx].dirty := fatCache.writeBehind; fatCache.dirty := fatCache.writeBehind;
-				SYSTEM.MOVE(SYSTEM.ADR(data[ofs]), fatCache.dataAdr + idx*BS, BS);
+				SYSTEM.MOVE(ADDRESSOF(data[ofs]), fatCache.dataAdr + idx*BS, BS);
 				IF ~fatCache.writeBehind THEN
 					dev.Transfer(Disks.Write, block, 1, data, ofs, res)
 				END
@@ -302,13 +302,13 @@ TYPE
 			IF (dataCache # NIL) THEN
 				idx := adr MOD dataCache.numBlocks;
 				IF (dataCache.index[idx].adr = adr) & (dataCache.index[idx].valid) THEN
-					SYSTEM.MOVE(dataCache.dataAdr + idx*clusterSize, SYSTEM.ADR(data[0]), clusterSize);
+					SYSTEM.MOVE(dataCache.dataAdr + idx*clusterSize, ADDRESSOF(data[0]), clusterSize);
 					res := Ok
 				ELSE
 					IF dataCache.index[idx].dirty THEN FlushCache(dataCache) END;
 					dataCache.index[idx].adr := adr; dataCache.index[idx].valid := TRUE; dataCache.index[idx].dirty := FALSE;
 					dev.Transfer(Disks.Read, block, sectorsPC, dataCache.data^, idx*clusterSize, res);
-					SYSTEM.MOVE(dataCache.dataAdr + idx*clusterSize, SYSTEM.ADR(data[0]), clusterSize)
+					SYSTEM.MOVE(dataCache.dataAdr + idx*clusterSize, ADDRESSOF(data[0]), clusterSize)
 				END
 			ELSE dev.Transfer(Disks.Read, block, sectorsPC, data, 0, res)
 			END;
@@ -334,7 +334,7 @@ TYPE
 				END;
 				dataCache.index[idx].adr := adr; dataCache.index[idx].valid := TRUE;
 				dataCache.index[idx].dirty := dataCache.writeBehind; dataCache.dirty := dataCache.writeBehind;
-				SYSTEM.MOVE(SYSTEM.ADR(data[0]), dataCache.dataAdr + idx*clusterSize, clusterSize);
+				SYSTEM.MOVE(ADDRESSOF(data[0]), dataCache.dataAdr + idx*clusterSize, clusterSize);
 				IF ~dataCache.writeBehind THEN
 					dev.Transfer(Disks.Write, block, sectorsPC, data, 0, res)
 				END
@@ -491,7 +491,7 @@ TYPE
 			IF (res = Disks.Ok) THEN
 				entry := GetUnsignedInteger(data, offset MOD BS);
 
-				IF ODD(adr) THEN entry := SYSTEM.LSH(entry, -4)	(* get high 12 bits *)
+				IF ODD(adr) THEN entry := LSH(entry, -4)	(* get high 12 bits *)
 				ELSE entry := AND(entry, 0FFFH)	(* get low 12 bits *)
 				END;
 
@@ -532,7 +532,7 @@ TYPE
 			IF (res = Disks.Ok) THEN
 				entry := GetUnsignedInteger(data, offset MOD BS);
 				IF ODD(adr) THEN (* set high 12 bits, preserve low 4 bits *)
-					entry := SYSTEM.LSH(link, 4) + AND(entry, 0FH)
+					entry := LSH(link, 4) + AND(entry, 0FH)
 				ELSE (* preserve high 4 bits, set low 12 bits *)
 					entry := AND(entry, 0F000H) + link
 				END;

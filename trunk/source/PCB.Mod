@@ -3478,13 +3478,13 @@ END RealtimeCompatible;
 	BEGIN
 		shift := r.int; type := l.type;
 		IF (type = PCT.Int8) OR (type = PCT.Char8) THEN
-			RETURN  NewIntValue(pos, SYSTEM.ROT(SHORT(SHORT(l.int)), shift), type)
+			RETURN  NewIntValue(pos, ROT(SHORT(SHORT(l.int)), shift), type)
 		ELSIF (type = PCT.Int16) OR (type = PCT.Char16) THEN
-			RETURN  NewIntValue(pos, SYSTEM.ROT(SHORT(l.int), shift), type)
+			RETURN  NewIntValue(pos, ROT(SHORT(l.int), shift), type)
 		ELSIF (type = PCT.Int32) OR (type = PCT.Char32) THEN
-			RETURN  NewIntValue(pos, SYSTEM.ROT(l.int, shift), type)
+			RETURN  NewIntValue(pos, ROT(l.int, shift), type)
 		ELSIF type = PCT.Set THEN
-			RETURN  NewSetValue(pos, SYSTEM.ROT(l.set, shift))
+			RETURN  NewSetValue(pos, ROT(l.set, shift))
 		ELSE
 			PCM.Error(200, pos, ""); RETURN InvalidExpr
 		END
@@ -3495,13 +3495,13 @@ END RealtimeCompatible;
 	BEGIN
 		shift := r.int; type := l.type;
 		IF (type = PCT.Int8) OR (type = PCT.Char8) THEN
-			RETURN  NewIntValue(pos, SYSTEM.LSH(SHORT(SHORT(l.int)), shift), type)
+			RETURN  NewIntValue(pos, LSH(SHORT(SHORT(l.int)), shift), type)
 		ELSIF (type = PCT.Int16) OR (type = PCT.Char16) THEN
-			RETURN  NewIntValue(pos, SYSTEM.LSH(SHORT(l.int), shift), type)
+			RETURN  NewIntValue(pos, LSH(SHORT(l.int), shift), type)
 		ELSIF (type = PCT.Int32) OR (type = PCT.Char32) THEN
-			RETURN  NewIntValue(pos, SYSTEM.LSH(l.int, shift), type)
+			RETURN  NewIntValue(pos, LSH(l.int, shift), type)
 		ELSIF type = PCT.Set THEN
-			RETURN  NewSetValue(pos, SYSTEM.LSH(l.set, shift))
+			RETURN  NewSetValue(pos, LSH(l.set, shift))
 		ELSE
 			PCM.Error(200, pos, ""); RETURN InvalidExpr
 		END
@@ -5740,7 +5740,7 @@ END PCB.
 	03.08.03	prk	issue error for RETURN without value in a function
 	06.04.03	prk	LIR code trace output  adapted to new output model
 	25.02.03	prk	do not emit temp handling in FOR when suppress = true (deadcode)
-	11.06.02	prk	SYSTEM.BIT implemented
+	11.06.02	prk	BIT implemented
 	13.04.02	prk	issue error 64 when NEW has parameters but no initializer available
 	05.02.02	prk	PCT.Find cleanup
 	10.12.01	prk	ENTIER: rounding mode set to chop, rounding modes caches as globals

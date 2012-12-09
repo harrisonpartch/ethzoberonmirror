@@ -195,7 +195,7 @@ END GetFreq;
 
 PROCEDURE {WINAPI} FrameReceived (hWnd : VfW.HWND; VAR lpVHdr : VfW.VHdr) : User32.LResult;
 VAR y : LONGINT;
-	i : SYSTEM.ADDRESS;
+	i : ADDRESS;
 	t0, t1 : HUGEINT;
 	t, f : LONGREAL;
 	trap : BOOLEAN;
@@ -207,7 +207,7 @@ BEGIN
 		i := lpVHdr.lpData;
 		bytesperpixel:= buffer.fmt.bpp DIV 8;
 		FOR y := buffer.height - 1 TO 0 BY -1 DO
-			SYSTEM.MOVE(i, SYSTEM.ADR(buffer.mem[0]) + buffer.bpr * y, buffer.width * bytesperpixel);
+			SYSTEM.MOVE(i, ADDRESSOF(buffer.mem[0]) + buffer.bpr * y, buffer.width * bytesperpixel);
 			i := i + buffer.width * bytesperpixel;
 		END;
 		IF (frameHandler # NIL) & (buffer # NIL) THEN frameHandler(buffer) END;

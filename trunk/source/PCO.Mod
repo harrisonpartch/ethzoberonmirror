@@ -124,7 +124,7 @@ MODULE PCO; (** AUTHOR "prk / be"; PURPOSE "Parallel Compiler: Intel 386 code pa
           		IF codeLength + InitialCodeLength <= MaxCodeLength THEN
                		codeLength := codeLength + InitialCodeLength;
                		NEW(c, codeLength);
-               		SYSTEM.MOVE(SYSTEM.ADR(code[0]), SYSTEM.ADR(c[0]), LEN(code));
+               		SYSTEM.MOVE(ADDRESSOF(code[0]), ADDRESSOF(c[0]), LEN(code));
                		code := c;
                		code[pos] := CHR(b); (*fof*)
            		ELSE
@@ -156,7 +156,7 @@ MODULE PCO; (** AUTHOR "prk / be"; PURPOSE "Parallel Compiler: Intel 386 code pa
           		 IF codeLength + InitialCodeLength <= MaxCodeLength THEN
                		codeLength := codeLength + InitialCodeLength;
                		NEW(c, codeLength);
-               		SYSTEM.MOVE(SYSTEM.ADR(code[0]), SYSTEM.ADR(c[0]), LEN(code));
+               		SYSTEM.MOVE(ADDRESSOF(code[0]), ADDRESSOF(c[0]), LEN(code));
                		code := c;
                		 (*fof>>*)
                 		code[pos]:= CHR ( dw MOD 100H); INC (pos); (* low byte first *)

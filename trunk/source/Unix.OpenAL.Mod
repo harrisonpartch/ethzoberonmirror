@@ -10,7 +10,7 @@ TYPE
   String256*=ARRAY 256 OF CHAR;
   PString256*= POINTER TO ARRAY OF String256;
 
-  ADDRESS = SYSTEM.ADDRESS;
+  ADDRESS = ADDRESS;
 
  ALbyte    * =  CHAR;  (* 1-byte signed *)
   ALshort   * =  INTEGER;  (* 2-byte signed *)
@@ -788,7 +788,7 @@ END OnClose;
 PROCEDURE alcOpenDevice*( CONST deviceName: ARRAY OF CHAR ): ALCdevice;
 VAR dev: ALCdevice;
 BEGIN
-	dev := alcOpenDeviceXXX( SYSTEM.ADR( deviceName[0] ) );
+	dev := alcOpenDeviceXXX( ADDRESSOF( deviceName[0] ) );
 	RETURN dev
 END alcOpenDevice;
 
@@ -796,21 +796,21 @@ PROCEDURE alcCaptureOpenDevice*( CONST deviceName: ARRAY OF CHAR;
 								frequency: ALCuint; format: ALCenum; buffersize: ALCsizei): ALCdevice; 
 VAR dev: ALCdevice;
 BEGIN
-	dev := alcCaptureOpenDeviceXXX( SYSTEM.ADR( deviceName[0] ), frequency, format, buffersize );
+	dev := alcCaptureOpenDeviceXXX( ADDRESSOF( deviceName[0] ), frequency, format, buffersize );
 	RETURN dev
 END alcCaptureOpenDevice;
 
 PROCEDURE alcIsExtensionPresent* (device : ALCdevice; CONST extName : ARRAY OF CHAR) : ALCboolean;
 VAR res: ALCboolean;
 BEGIN
-	res := alcIsExtensionPresentXXX(device, SYSTEM.ADR(extName[0]));
+	res := alcIsExtensionPresentXXX(device, ADDRESSOF(extName[0]));
 	RETURN res;
 END alcIsExtensionPresent;
 
 PROCEDURE alcGetProcAddress* (device : ALCdevice; CONST funcName: ARRAY OF CHAR): ADDRESS;
 VAR adr: ADDRESS;
 BEGIN
-	adr := alcGetProcAddressXXX (device, SYSTEM.ADR(funcName[0]));
+	adr := alcGetProcAddressXXX (device, ADDRESSOF(funcName[0]));
 	RETURN adr;
 END alcGetProcAddress;
 

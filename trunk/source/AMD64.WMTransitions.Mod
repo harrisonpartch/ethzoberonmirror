@@ -30,7 +30,7 @@ TYPE
 
 		PROCEDURE SetMask*(mi : Raster.Image);
 		VAR x, y, col, i, tr, tg, tb, ta : LONGINT;
-			adr: SYSTEM.ADDRESS;
+			adr: ADDRESS;
 			ti : Raster.Image;
 			mode : Raster.Mode;
 			pix : Raster.Pixel;
@@ -93,7 +93,7 @@ TYPE
 
 		PROCEDURE CalcImage*(a, b, result : Raster.Image; per255 : LONGINT);
 		VAR i, x, y, col : LONGINT;
-			adra, adrb, adrr: SYSTEM.ADDRESS;
+			adra, adrb, adrr: ADDRESS;
 			mode : Raster.Mode;
 			pix : Raster.Pixel;
 
@@ -213,7 +213,7 @@ VAR
 PROCEDURE Calc565Opt(a, b : Raster.Image; VAR result : Raster.Image; per255 : LONGINT);
 VAR
 	x, y : LONGINT;
-	adra, adrb, adrr : SYSTEM.ADDRESS;
+	adra, adrb, adrr : ADDRESS;
 	ar,ag,ab,   br,bg,bb,   cr,cg,cb : LONGINT;
 	height, width : LONGINT;
 	oddWidth : BOOLEAN; blocksOf4Bytes : LONGINT;
@@ -298,7 +298,7 @@ VAR
 	height, width : LONGINT;
 	remainder : LONGINT;
 	blocksOf8Bytes : LONGINT;
-	adra, adrb, adrr : SYSTEM.ADDRESS;
+	adra, adrb, adrr : ADDRESS;
 	alpha64, maskRed64, maskGreen64, maskBlue64 : HUGEINT;
 	alpha32 : LONGINT;
 	tmpA, tmpB : LONGINT;
@@ -318,8 +318,8 @@ BEGIN
 	(* Compose the quadruple alpha value and pack it in a 64bit HUGEINT *)
 	alpha64 := 0;
 	alpha32 := BIT.LOR( per255, ASH(per255,16) );
-	SYSTEM.PUT32( SYSTEM.ADR(alpha64), alpha32);
-	SYSTEM.PUT32( SYSTEM.ADR(alpha64)+4, alpha32);
+	SYSTEM.PUT32( ADDRESSOF(alpha64), alpha32);
+	SYSTEM.PUT32( ADDRESSOF(alpha64)+4, alpha32);
 
 	FOR y := 0 TO height -1 DO
 		adra := a.adr + y * a.bpr;
@@ -363,7 +363,7 @@ END Calc565MMX;
  * Helper Function for Calc565MMX: :Calculate fade for just one line using assembler code (MMX technology)
  *
  *** *)
-PROCEDURE Calc565MMXLine (adra, adrb, adrr: SYSTEM.ADDRESS; i, alpha : LONGINT; a64, mr64, mg64, mb64 : HUGEINT);
+PROCEDURE Calc565MMXLine (adra, adrb, adrr: ADDRESS; i, alpha : LONGINT; a64, mr64, mg64, mb64 : HUGEINT);
 CODE {SYSTEM.AMD64, SYSTEM.MMX}
 	;
 	; Initialize the counter and skip if the latter is equal to zero
@@ -501,7 +501,7 @@ PROCEDURE Calc888Opt(a, b : Raster.Image; VAR result : Raster.Image; per255 : LO
 VAR
 	x, y : LONGINT;  (* current image coordinates *)
 	height, width : LONGINT;
-	adra, adrb, adrr : SYSTEM.ADDRESS;  (* image start addresses *)
+	adra, adrb, adrr : ADDRESS;  (* image start addresses *)
 	ar,ag,ab,   br,bg,bb,   cr,cg,cb : LONGINT; (* red, green, blue part of the images *)
 	tmpA, tmpB, tmpR : LONGINT; (* the two source pixels *)
 BEGIN
@@ -558,7 +558,7 @@ PROCEDURE Calc888MMX(a, b : Raster.Image; VAR result : Raster.Image; per255 : LO
 VAR
 	y : LONGINT; (* current image coordinates *)
 	height, width : LONGINT;
-	adra, adrb, adrr : SYSTEM.ADDRESS;
+	adra, adrb, adrr : ADDRESS;
 	alpha64, mask64 : HUGEINT;
 BEGIN
 	IF (DEBUG) THEN KernelLog.String("Fade in 565-Format (MMX)"); KernelLog.Ln; END;
@@ -569,8 +569,8 @@ BEGIN
 
 	(* Compose the triple alpha value and pack it in a 64bit HUGEINT *)
 	alpha64 := 0;
-	SYSTEM.PUT32( SYSTEM.ADR(alpha64), BIT.LOR( per255, ASH(per255,16)) );
-	SYSTEM.PUT32( SYSTEM.ADR(alpha64)+4, per255);
+	SYSTEM.PUT32( ADDRESSOF(alpha64), BIT.LOR( per255, ASH(per255,16)) );
+	SYSTEM.PUT32( ADDRESSOF(alpha64)+4, per255);
 
 	FOR y := 0 TO height -1 DO
 		adra := a.adr + y * a.bpr;
@@ -586,7 +586,7 @@ END Calc888MMX;
  * Helper Function for Calc888MMX: :Calculate fade for just one line using assembler code (MMX technology)
  *
  *** *)
-PROCEDURE Calc888MMXLine (adra, adrb, adrr: SYSTEM.ADDRESS; i : LONGINT; a64, m64 : HUGEINT);
+PROCEDURE Calc888MMXLine (adra, adrb, adrr: ADDRESS; i : LONGINT; a64, m64 : HUGEINT);
 CODE {SYSTEM.AMD64, SYSTEM.MMX}
 
 	; (re)load the width counter

@@ -211,7 +211,7 @@ TYPE
 			command[4] := 0X;
 			command[5] := 0X;
 			command[6] := CHR(numregs*2);
-			command[7] := CHR(SYSTEM.LSH(numregs*2, -8));
+			command[7] := CHR(LSH(numregs*2, -8));
 
 			FOR i:= 0 TO numregs - 1 DO
 				buffer[i*2] := registers[i];
@@ -237,7 +237,7 @@ TYPE
 			command[4] := 0X;
 			command[5] := 0X;
 			command[6] := CHR(len);
-			command[7] := CHR(SYSTEM.LSH(len, -8));
+			command[7] := CHR(LSH(len, -8));
 
 			tlen := 0;
 			res := ScmSendControl(Base.DataOut, 80H, 40H, 0, 0, command^, 0, 8, timeout);
@@ -256,7 +256,7 @@ TYPE
 			command[4] := 0X;
 			command[5] := 0X;
 			command[6] := CHR(len);
-			command[7] := CHR(SYSTEM.LSH(len, -8));
+			command[7] := CHR(LSH(len, -8));
 
 			tlen := 0;
 			res := ScmSendControl(Base.DataOut, 80H, 40H, 0, 0, command^, 0, 8, timeout);
@@ -289,7 +289,7 @@ TYPE
 			command[4] := 0FCX;
 			command[5] := 0E7X;
 			command[6] := CHR(numregs*2);
-			command[7] := CHR(SYSTEM.LSH(numregs*2, -8));
+			command[7] := CHR(LSH(numregs*2, -8));
 			IF dir = Base.DataOut THEN
 				command[8] := 40X;
 				command[9] := SYSTEM.VAL(CHAR, SYSTEM.VAL(SET, access) + {0,2});
@@ -304,7 +304,7 @@ TYPE
 			command[12] := atapitimeout;
 			command[13] := qualifier;
 			command[14] := CHR(contentlen);
-			command[15] := CHR(SYSTEM.LSH(contentlen, -8));
+			command[15] := CHR(LSH(contentlen, -8));
 
 			FOR i:=0 TO numregs -1 DO
 				buffer[i*2] := registers[i]; buffer[(i*2)+1] := dataout[i];
@@ -527,7 +527,7 @@ TYPE
 			data[1] := 0X;
 			data[2] := 0X;
 			data[3] := CHR(bufferlen);
-			data[4] := CHR(SYSTEM.LSH(bufferlen, -8));
+			data[4] := CHR(LSH(bufferlen, -8));
 			data[5] := 0B0X;
 			data[6] := 0A0X;
 
@@ -556,17 +556,17 @@ TYPE
 				ELSE
 					IF Debug.Trace & Debug.traceScTransfers THEN KernelLog.String("UsbStorage: Doing SCM multi read"); KernelLog.Ln; END;
 					tmplen := (65535 DIV sdevs.blockSize) * sdevs.blockSize;
-					sector := SYSTEM.LSH(ScmShortPack(data[10], data[9]), 16) + ScmShortPack(data[12], data[11]);
+					sector := LSH(ScmShortPack(data[10], data[9]), 16) + ScmShortPack(data[12], data[11]);
 					transfered := 0;
 					WHILE transfered # bufferlen DO
 						IF tmplen > (bufferlen - transfered) THEN tmplen := bufferlen - transfered END;
 						data[3] := CHR(tmplen);
-						data[4] := CHR(SYSTEM.LSH(tmplen, -8));
-						data[9] := CHR(SYSTEM.LSH(sector, -24));
-						data[10] := CHR(SYSTEM.LSH(sector, -16));
-						data[11] := CHR(SYSTEM.LSH(sector, -8));
+						data[4] := CHR(LSH(tmplen, -8));
+						data[9] := CHR(LSH(sector, -24));
+						data[10] := CHR(LSH(sector, -16));
+						data[11] := CHR(LSH(sector, -8));
 						data[12] := CHR(sector);
-						data[14] := CHR(SYSTEM.LSH(tmplen DIV sdevs.blockSize, -8));
+						data[14] := CHR(LSH(tmplen DIV sdevs.blockSize, -8));
 						data[15] := CHR(tmplen DIV sdevs.blockSize);
 						res := ScmRWBlockTest(ScmATA, registers, data, 19, 10X, 17X, 0FDX, 30X, Base.DataIn, buffer, ofs+transfered, tmplen, atapilen, timeout);
 						transfered := transfered + atapilen; tlen := transfered;

@@ -284,9 +284,9 @@ OSCBundle b:
 			VAR
 				l, h: LONGINT;
 			BEGIN
-				SYSTEM.GET(SYSTEM.ADR(integer)+H, h);
+				SYSTEM.GET(ADDRESSOF(integer)+H, h);
 				Network.PutNet4(packet, pos, h); INC(pos, 4);
-				SYSTEM.GET(SYSTEM.ADR(integer)+L, l);
+				SYSTEM.GET(ADDRESSOF(integer)+L, l);
 				Network.PutNet4(packet, pos, l); INC(pos, 4);
 			END export;
 			PROCEDURE dump*(indent: LONGINT);
@@ -1089,8 +1089,8 @@ OSCBundle b:
 		IF (ofs+8) > endofs THEN RETURN NIL END;
 		h := Network.GetNet4(data, ofs); INC(ofs, 4);
 		l := Network.GetNet4(data, ofs); INC(ofs, 4);
-		SYSTEM.PUT(SYSTEM.ADR(bigint)+H, h);
-		SYSTEM.PUT(SYSTEM.ADR(bigint)+L, l);
+		SYSTEM.PUT(ADDRESSOF(bigint)+H, h);
+		SYSTEM.PUT(ADDRESSOF(bigint)+L, l);
 		NEW(p, bigint);
 		RETURN p;
 	END parseOSCParamInteger64;

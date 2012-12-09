@@ -621,7 +621,7 @@ TYPE
 		BEGIN
 			IF (SYSTEM.VAL(SET, op) * {25}) = {25} THEN (* I Bit *)
 				argStructure := ArgImm;
-				NEW(immArg, SYSTEM.ROT(op MOD 100H, -2*bit8To11), RepHex); arg1 := immArg;
+				NEW(immArg, ROT(op MOD 100H, -2*bit8To11), RepHex); arg1 := immArg;
 			ELSE
 				Rm := op MOD 10H;
 				NEW(regArg, Rm); arg1 := regArg;
@@ -705,7 +705,7 @@ TYPE
 						opcode.argStructure := ArgRegReg;
 						NEW(regArg, bit12To15); opcode.arg1 := regArg;
 						NEW(regArg, bit0To3); opcode.arg2 := regArg
-					ELSIF SYSTEM.LSH(opcode.op, -20) = 0E12H THEN
+					ELSIF LSH(opcode.op, -20) = 0E12H THEN
 						IF bit4To7 = 7 THEN
 							opcode.instr := opBKPT;
 							NEW(immArg, (((opcode.op MOD 100000) DIV 100H) * 10H) + (opcode.op MOD 10H), RepHex);
@@ -766,7 +766,7 @@ TYPE
 				regArg.sregMask := SYSTEM.VAL(SET, bit16To19);
 				opcode.arg1 := regArg;
 				IF (bit24To27 DIV 2) = 1 THEN (* immediate operand *)
-					NEW(immArg, SYSTEM.ROT(opcode.op MOD 100H, -2*bit8To11), RepHex); (* 8 bit imm rotated by rotate imm *)
+					NEW(immArg, ROT(opcode.op MOD 100H, -2*bit8To11), RepHex); (* 8 bit imm rotated by rotate imm *)
 					opcode.arg2 := immArg
 				ELSE NEW(regArg, bit0To3); opcode.arg2 := regArg
 				END
@@ -857,7 +857,7 @@ TYPE
 			opcode.instr := opBLX;
 			IF opcode.cond = 15 THEN
 				sImmed24 := opcode.op MOD 1000000H;
-				targetAddr := (bit24To27 MOD 2)*2 + ASH(SYSTEM.LSH(sImmed24, 8), -6); (* sign extend *)
+				targetAddr := (bit24To27 MOD 2)*2 + ASH(LSH(sImmed24, 8), -6); (* sign extend *)
 				NEW(immArg, targetAddr, RepRelJmp); opcode.arg1 := immArg;
 				opcode.argStructure := ArgImm
 			ELSE
@@ -928,7 +928,7 @@ TYPE
 		PROCEDURE SignExtension (VAR x : LONGINT; length : LONGINT);
 		BEGIN
 			ASSERT((length > 0) & (length <= 32));
-			x := SYSTEM.LSH(x, 32-length);
+			x := LSH(x, 32-length);
 			x := ASH(x, length-32)
 		END SignExtension;
 	END ARMDecoder;

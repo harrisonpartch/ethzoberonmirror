@@ -80,7 +80,7 @@ VAR
 	state: SHORTINT;
 	result: ARRAY 7 OF SET;
 	errors: ARRAY 3 OF SET;
-	dmabufvirt, dmabufphys: SYSTEM.ADDRESS; dmabufsize: LONGINT;
+	dmabufvirt, dmabufphys: ADDRESS; dmabufsize: LONGINT;
 	motor, interrupt : BOOLEAN;
 	trace: SHORTINT;
 
@@ -120,7 +120,7 @@ END Error;
 (* SetupDMA - Start a DMA operation *)
 
 PROCEDURE SetupDMA(read: BOOLEAN; chan, len: LONGINT);
-VAR adr: SYSTEM.ADDRESS; page, mode: LONGINT;
+VAR adr: ADDRESS; page, mode: LONGINT;
 BEGIN
 	adr := dmabufphys;
 	ASSERT(len <= dmabufsize);
@@ -323,7 +323,7 @@ BEGIN
 							SetupDMA(TRUE, 2, num*512);
 							PutByte(0E6X)
 						|Write:
-							SYSTEM.MOVE(SYSTEM.ADR(buf[0]), dmabufvirt, num*512);
+							SYSTEM.MOVE(ADDRESSOF(buf[0]), dmabufvirt, num*512);
 							SetupDMA(FALSE, 2, num*512);
 							PutByte(0C5X)
 						|Format:
@@ -366,7 +366,7 @@ BEGIN
 					END
 				ELSE
 					IF op = Read THEN
-						SYSTEM.MOVE(dmabufvirt, SYSTEM.ADR(buf[0]), num*512)
+						SYSTEM.MOVE(dmabufvirt, ADDRESSOF(buf[0]), num*512)
 					END;
 					EXIT	(* EXIT: operation successful *)
 				END

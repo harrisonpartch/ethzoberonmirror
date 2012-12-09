@@ -117,7 +117,7 @@ TYPE
 				END;
 				IF n > len THEN n := len END;
 				ASSERT ( tail + n <= LEN( buf ) );   (* index check *)
-				SYSTEM.MOVE( SYSTEM.ADR( x[ofs] ), SYSTEM.ADR( buf[tail] ), n );  INC( tail, n );
+				SYSTEM.MOVE( ADDRESSOF( x[ofs] ), ADDRESSOF( buf[tail] ), n );  INC( tail, n );
 				IF len = n THEN EXIT END;   (* done *)
 				INC( ofs, n );  DEC( len, n )
 			END
@@ -283,9 +283,9 @@ TYPE
 		END Hex;
 
 		(** Write "x" as a hexadecimal address. Do not use Hex because of arithmetic shift of the sign !*)
-		PROCEDURE Address* (x: SYSTEM.ADDRESS);
+		PROCEDURE Address* (x: ADDRESS);
 		BEGIN
-			Hex(x,-2*SYSTEM.SIZEOF(SYSTEM.ADDRESS));
+			Hex(x,-2*SIZEOF(ADDRESS));
 		END Address;
 
 		PROCEDURE Pair( ch: CHAR;  x: LONGINT );
@@ -614,7 +614,7 @@ TYPE
 				END;
 				IF n > size THEN n := size END;
 				ASSERT ( ofs + n <= LEN( x ) );   (* index check *)
-				SYSTEM.MOVE( SYSTEM.ADR( buf[head] ), SYSTEM.ADR( x[ofs] ), n );  INC( head, n );  INC( len, n );
+				SYSTEM.MOVE( ADDRESSOF( buf[head] ), ADDRESSOF( x[ofs] ), n );  INC( head, n );  INC( len, n );
 				IF size = n THEN EXIT END;   (* done *)
 				INC( ofs, n );  DEC( size, n )
 			END
@@ -718,8 +718,8 @@ TYPE
 		VAR ch: CHAR;  n, y: LONGINT;
 		BEGIN
 			n := 0;  y := 0;  ch := Get();
-			WHILE ch >= 80X DO INC( y, SYSTEM.LSH( LONG( ORD( ch ) ) - 128, n ) );  INC( n, 7 );  ch := Get() END;
-			x := ASH( SYSTEM.LSH( LONG( ORD( ch ) ), 25 ), n - 25 ) + y
+			WHILE ch >= 80X DO INC( y, LSH( LONG( ORD( ch ) ) - 128, n ) );  INC( n, 7 );  ch := Get() END;
+			x := ASH( LSH( LONG( ORD( ch ) ), 25 ), n - 25 ) + y
 		END RawNum;
 
 		(** -- Read formatted data (uses Peek for one character lookahead) -- *)
@@ -916,7 +916,7 @@ TYPE
 			IF len > LEN( buf ) THEN len := LEN( buf ) END;
 			head := 0;  tail := len;  received := len;  res := Ok;
 			IF len > 0 THEN
-				SYSTEM.MOVE( SYSTEM.ADR( s[0] ), SYSTEM.ADR( buf[0] ), len )
+				SYSTEM.MOVE( ADDRESSOF( s[0] ), ADDRESSOF( buf[0] ), len )
 			END;
 		END Set;
 
@@ -927,7 +927,7 @@ TYPE
 			head := 0;  tail := len;  received := len;  res := Ok;
 			ASSERT ( (len >= 0) & (ofs + len <= LEN( s )) );   (* index check *)
 			IF len > 0 THEN
-				SYSTEM.MOVE( SYSTEM.ADR( s[ofs] ), SYSTEM.ADR( buf[0] ), len )
+				SYSTEM.MOVE( ADDRESSOF( s[ofs] ), ADDRESSOF( buf[0] ), len )
 			END;
 		END SetRaw;
 
@@ -971,7 +971,7 @@ VAR
 (** Returns the NaN code (0 <= h < 1048576, MIN(LONGINT) <= l <= MAX(LONGINT)) or (-1,-1) if not NaN/Infinite. *)
 	PROCEDURE NaNCodeL( x: LONGREAL;  VAR h, l: LONGINT );
 	BEGIN
-		SYSTEM.GET( SYSTEM.ADR( x ) + H, h );  SYSTEM.GET( SYSTEM.ADR( x ) + L, l );
+		SYSTEM.GET( ADDRESSOF( x ) + H, h );  SYSTEM.GET( ADDRESSOF( x ) + L, l );
 		IF ASH( h, -20 ) MOD 2048 = 2047 THEN  (* Infinite or NaN *)
 			h := h MOD 100000H (* lowest 20 bits *)
 		ELSE h := -1;  l := -1
@@ -982,14 +982,14 @@ VAR
 	PROCEDURE ExpoL( x: LONGREAL ): LONGINT;
 	VAR i: LONGINT;
 	BEGIN
-		SYSTEM.GET( SYSTEM.ADR( x ) + H, i );  RETURN ASH( i, -20 ) MOD 2048
+		SYSTEM.GET( ADDRESSOF( x ) + H, i );  RETURN ASH( i, -20 ) MOD 2048
 	END ExpoL;
 
 (** Convert hexadecimal to LONGREAL. h and l are the high and low parts.*)
 	PROCEDURE RealL( h, l: LONGINT ): LONGREAL;
 	VAR x: LONGREAL;
 	BEGIN
-		SYSTEM.PUT( SYSTEM.ADR( x ) + H, h );  SYSTEM.PUT( SYSTEM.ADR( x ) + L, l );  RETURN x
+		SYSTEM.PUT( ADDRESSOF( x ) + H, h );  SYSTEM.PUT( ADDRESSOF( x ) + L, l );  RETURN x
 	END RealL;
 
 (** Returns 10^e (e <= 308, 308 < e delivers IEEE-code +INF). *)
@@ -1006,9 +1006,9 @@ VAR
 	END Ten;
 
 	PROCEDURE InitHL;
-	VAR i: SYSTEM.ADDRESS;  dmy: INTEGER;  littleEndian: BOOLEAN;
+	VAR i: ADDRESS;  dmy: INTEGER;  littleEndian: BOOLEAN;
 	BEGIN
-		dmy := 1;  i := SYSTEM.ADR( dmy );
+		dmy := 1;  i := ADDRESSOF( dmy );
 		SYSTEM.GET( i, littleEndian );   (* indirection via i avoids warning on SUN cc -O *)
 		IF littleEndian THEN H := 4;  L := 0 ELSE H := 0;  L := 4 END
 	END InitHL;

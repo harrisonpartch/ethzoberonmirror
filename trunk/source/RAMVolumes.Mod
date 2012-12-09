@@ -21,7 +21,7 @@ TYPE
 			IF (adr < 1) OR (adr > size) THEN SYSTEM.HALT(15) END;
 			ASSERT(LEN(blk) >= blockSize);	(* index check *)
 			IF data[adr-1] # NIL THEN
-				SYSTEM.MOVE(SYSTEM.ADR(data[adr-1]^[0]), SYSTEM.ADR(blk[0]), blockSize)
+				SYSTEM.MOVE(ADDRESSOF(data[adr-1]^[0]), ADDRESSOF(blk[0]), blockSize)
 			ELSE
 				FOR i := 0 TO blockSize-1 DO blk[i] := 0X END
 			END
@@ -33,7 +33,7 @@ TYPE
 			IF (adr < 1) OR (adr > size) THEN SYSTEM.HALT(15) END;
 			ASSERT(LEN(blk) >= blockSize);	(* index check *)
 			IF data[adr-1] = NIL THEN NEW(data[adr-1], blockSize) END;
-			SYSTEM.MOVE(SYSTEM.ADR(blk[0]), SYSTEM.ADR(data[adr-1]^[0]), blockSize)
+			SYSTEM.MOVE(ADDRESSOF(blk[0]), ADDRESSOF(data[adr-1]^[0]), blockSize)
 		END PutBlock;
 
 		PROCEDURE Finalize*;
@@ -60,7 +60,7 @@ BEGIN
 	IF context.arg.GetInteger(size, FALSE) & context.arg.GetInteger(vbs, FALSE) & (size # 0) & (vbs > 0) THEN
 		NEW(vol); NEW(vol.data, size);
 		NEW(vol.data[0], vbs);	(* hack: pre-format with empty AosFS *)
-		SYSTEM.PUT32(SYSTEM.ADR(vol.data[0]^[0]), DirMark);
+		SYSTEM.PUT32(ADDRESSOF(vol.data[0]^[0]), DirMark);
 		vol.name := "RAM"; Files.AppendInt(GetCount(), vol.name);
 		vol.blockSize := vbs;
 		vol.Init({}, size, 0);

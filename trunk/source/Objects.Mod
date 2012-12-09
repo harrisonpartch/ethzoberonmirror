@@ -41,7 +41,7 @@ CONST
 	(* constant used in GC Process.FindPointers *)
 	InitDiff = MAX(LONGINT);
 
-	AddressSize = SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	AddressSize = SIZEOF(ADDRESS);
 
 TYPE
 	CpuCyclesArray* = ARRAY Machine.MaxCPU OF HUGEINT;
@@ -59,7 +59,7 @@ TYPE
 	ProcessQueue = Heaps.ProcessQueue;
 
 	Body = PROCEDURE (self: ProtectedObject);
-	Condition = PROCEDURE (slink: SYSTEM.ADDRESS): BOOLEAN;
+	Condition = PROCEDURE (slink: ADDRESS): BOOLEAN;
 
 	InterruptList = POINTER TO RECORD
 		next: InterruptList;
@@ -76,9 +76,9 @@ TYPE
 		obj-: ProtectedObject;	(** associated active object *)
 		state-: Machine.State;	(** processor state of suspended process *)
 		sse: Machine.SSEState;	(* fpu and sse state of preempted process (only valid if Preempted IN flag) *)
-		sseAdr: SYSTEM.ADDRESS;
+		sseAdr: ADDRESS;
 		condition-: Condition;	(** awaited process' condition *)
-		condFP-: SYSTEM.ADDRESS;	(** awaited process' condition's context *)
+		condFP-: ADDRESS;	(** awaited process' condition's context *)
 		mode-: LONGINT;	(** process state *)	(* only changed inside Objects lock ??? *)
 		procID-: LONGINT;	(** processor ID where running *)
 		waitingOn-: ProtectedObject;	(** obj this process is waiting on (for lock or condition) *)
@@ -86,10 +86,10 @@ TYPE
 		flags*: SET;	(** process flags *)
 		priority-, staticPriority*: LONGINT;	(** process dynamic priority (can change during priority inversion handling) and static priority *)	(* exported for AosExceptions *)
 		stack*: Machine.Stack;	(** user-level stack of process *)
-		restartPC-: SYSTEM.ADDRESS;	(** entry point of body, for SAFE exception recovery *)
-		restartSP-: SYSTEM.ADDRESS;	(** stack level at start of body, for SAFE exception recovery *)
+		restartPC-: ADDRESS;	(** entry point of body, for SAFE exception recovery *)
+		restartSP-: ADDRESS;	(** stack level at start of body, for SAFE exception recovery *)
 		exp*: Machine.ExceptionState;
-		oldReturnPC: SYSTEM.ADDRESS;
+		oldReturnPC: ADDRESS;
 		cpuCycles, lastCpuCycles : CpuCyclesArray;
 		prioRequests : ARRAY NumPriorities OF LONGINT; (* priorities of processes that wait for resources locked by this process, only the highest priority per resource is stored *)
 
@@ -103,7 +103,7 @@ TYPE
 		END SetPriority;
 
 		PROCEDURE FindRoots; (* override *)
-		VAR pc, bp, curbp, sp: SYSTEM.ADDRESS; d0, d1: SYSTEM.SIZE; first : BOOLEAN;
+		VAR pc, bp, curbp, sp: ADDRESS; d0, d1: SIZE; first : BOOLEAN;
 		BEGIN
 			IF traceProcess # NIL THEN traceProcess(SELF) END;
 
@@ -175,8 +175,8 @@ TYPE
 
 		END FindRoots;
 
-		PROCEDURE FindPointers(bp, pc : SYSTEM.ADDRESS; VAR diff0, diff1: SYSTEM.SIZE);
-		VAR data: Modules.ProcTableEntry; startIndex, i: LONGINT; ptr : SYSTEM.ADDRESS; success: BOOLEAN;
+		PROCEDURE FindPointers(bp, pc : ADDRESS; VAR diff0, diff1: SIZE);
+		VAR data: Modules.ProcTableEntry; startIndex, i: LONGINT; ptr : ADDRESS; success: BOOLEAN;
 		BEGIN
 			diff0 := InitDiff; diff1 := InitDiff;
 			Modules.FindProc(pc, data, startIndex, success);
@@ -392,7 +392,7 @@ VAR
 	ProcessorHLT*: PROCEDURE;	 (** installable procedure to halt the current processor while idle *)
 	traceProcess*: TraceProcess;	(** for debugging purposes (see Info.Active) *)
 
-	entry: SYSTEM.ADDRESS;
+	entry: ADDRESS;
 	init: Process;
 	i: LONGINT;
 
@@ -669,9 +669,9 @@ BEGIN
 
 						(* Set the right halt procedure *)
 						IF (Unbreakable IN running[id].flags) THEN
-							state.PC := SYSTEM.VAL (SYSTEM.ADDRESS, trap[1]);
+							state.PC := SYSTEM.VAL (ADDRESS, trap[1]);
 						ELSE
-							state.PC := SYSTEM.VAL (SYSTEM.ADDRESS, trap[0]);
+							state.PC := SYSTEM.VAL (ADDRESS, trap[0]);
 						END;
 					END;
 
@@ -699,7 +699,7 @@ BEGIN
 END CurrentProcess;
 
 (* Return stack bottom of process. For compatibility WinAos/UnixAos/NativeAos  *)
-PROCEDURE GetStackBottom*(p: Process): SYSTEM.ADDRESS;
+PROCEDURE GetStackBottom*(p: Process): ADDRESS;
 BEGIN
 	RETURN p.stack.high
 END GetStackBottom;
@@ -742,7 +742,7 @@ END SetPriority;
 PROCEDURE LockedByCurrent*(obj: ANY): BOOLEAN;
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; id: LONGINT; res: BOOLEAN;
 BEGIN
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	ASSERT(hdr IS Heaps.ProtRecBlock);
 	IF HandlePriorityInv THEN
 		Machine.Acquire(Machine.Objects);
@@ -998,7 +998,7 @@ END HaltUnbreakable;
 
 (* Set the return PC which is saved in the process and set it to -1 *)
 PROCEDURE HaltAltPC(haltCode: LONGINT);
-VAR bp: SYSTEM.ADDRESS; p: Process;
+VAR bp: ADDRESS; p: Process;
 BEGIN
 	p := running[Machine.ID ()];
 	ASSERT(p.oldReturnPC # -1);
@@ -1011,7 +1011,7 @@ BEGIN
 END HaltAltPC;
 
 PROCEDURE HaltReturn;
-VAR bp: SYSTEM.ADDRESS;
+VAR bp: ADDRESS;
 BEGIN
 	bp := Machine.CurrentBP ();
 	SYSTEM.GET (bp, bp); (* Get the dynamic link *)
@@ -1020,7 +1020,7 @@ BEGIN
 END HaltReturn;
 
 PROCEDURE HaltUnbreakableReturn;
-VAR bp: SYSTEM.ADDRESS;
+VAR bp: ADDRESS;
 BEGIN
 	bp := Machine.CurrentBP ();
 	SYSTEM.GET (bp, bp); (* Get the dynamic link *)
@@ -1029,13 +1029,13 @@ BEGIN
 END HaltUnbreakableReturn;
 
 PROCEDURE TerminateThis*(t: Process; unbreakable: BOOLEAN);
-VAR hdr {UNTRACED}: Heaps.ProtRecBlock; pc, fp : SYSTEM.ADDRESS;
+VAR hdr {UNTRACED}: Heaps.ProtRecBlock; pc, fp : ADDRESS;
 
 	(* terminates a process that is either in mode AwaitingLock or AwaitingCond *)
 	PROCEDURE TerminateAwaiting(t: Process);
 	VAR hdr {UNTRACED}: Heaps.ProtRecBlock;
 	BEGIN
-		SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, t.waitingOn) + Heaps.HeapBlockOffset, hdr);
+		SYSTEM.GET(SYSTEM.VAL(ADDRESS, t.waitingOn) + Heaps.HeapBlockOffset, hdr);
 		ASSERT(hdr IS Heaps.ProtRecBlock);
 		IF t.mode = AwaitingLock THEN
 			fp := t.state.BP; 		(* SwitchTo PAF *)
@@ -1046,9 +1046,9 @@ VAR hdr {UNTRACED}: Heaps.ProtRecBlock; pc, fp : SYSTEM.ADDRESS;
 				Remove(hdr.awaitingLock, t);
 				t.waitingOn := NIL; SYSTEM.GET (t.state.BP + AddressSize, t.oldReturnPC);
 				IF unbreakable THEN
-					SYSTEM.PUT (t.state.BP + AddressSize, SYSTEM.VAL (SYSTEM.ADDRESS, trapReturn[1]))
+					SYSTEM.PUT (t.state.BP + AddressSize, SYSTEM.VAL (ADDRESS, trapReturn[1]))
 				ELSE
-					SYSTEM.PUT (t.state.BP + AddressSize, SYSTEM.VAL (SYSTEM.ADDRESS, trapReturn[0]))
+					SYSTEM.PUT (t.state.BP + AddressSize, SYSTEM.VAL (ADDRESS, trapReturn[0]))
 				END;
 				Enter(t)
 			ELSE
@@ -1063,9 +1063,9 @@ VAR hdr {UNTRACED}: Heaps.ProtRecBlock; pc, fp : SYSTEM.ADDRESS;
 				Remove(hdr.awaitingCond, t);
 				t.waitingOn := NIL; SYSTEM.GET (t.state.BP + AddressSize, t.oldReturnPC);
 				IF unbreakable THEN
-					SYSTEM.PUT (t.state.BP + AddressSize, SYSTEM.VAL (SYSTEM.ADDRESS, trapReturn[1]))
+					SYSTEM.PUT (t.state.BP + AddressSize, SYSTEM.VAL (ADDRESS, trapReturn[1]))
 				ELSE
-					SYSTEM.PUT (t.state.BP + AddressSize, SYSTEM.VAL (SYSTEM.ADDRESS, trapReturn[0]))
+					SYSTEM.PUT (t.state.BP + AddressSize, SYSTEM.VAL (ADDRESS, trapReturn[0]))
 				END;
 				Enter(t)
 			ELSE
@@ -1098,13 +1098,13 @@ BEGIN
 				IF unbreakable THEN INCL(t.flags, Unbreakable) END
 			|Ready:
 				DEC(t.state.SP, AddressSize);	SYSTEM.PUT (t.state.SP, t.state.PC);
-				IF unbreakable THEN t.state.PC := SYSTEM.VAL (SYSTEM.ADDRESS, trap[1])
-				ELSE t.state.PC := SYSTEM.VAL (SYSTEM.ADDRESS, trap[0]) END
+				IF unbreakable THEN t.state.PC := SYSTEM.VAL (ADDRESS, trap[1])
+				ELSE t.state.PC := SYSTEM.VAL (ADDRESS, trap[0]) END
 			|AwaitingLock, AwaitingCond:
 				IF HandlePriorityInv THEN
 					TerminateAwaiting(t)
 				ELSE
-					SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, t.waitingOn) + Heaps.HeapBlockOffset, hdr);
+					SYSTEM.GET(SYSTEM.VAL(ADDRESS, t.waitingOn) + Heaps.HeapBlockOffset, hdr);
 					ASSERT(hdr IS Heaps.ProtRecBlock);
 					IF ~hdr.locked THEN
 						Machine.AcquireObject(hdr.locked);
@@ -1131,7 +1131,7 @@ END SetContext;
 
 (* Allocate a new process associated with "obj". Must be outside lock region, because of potential GC. *)
 PROCEDURE NewProcess(body: Body; flags: SET; obj: ProtectedObject; VAR new: Process);
-VAR t: Process; sp: SYSTEM.ADDRESS; id: LONGINT; fn: Heaps.FinalizerNode; current: Process;
+VAR t: Process; sp: ADDRESS; id: LONGINT; fn: Heaps.FinalizerNode; current: Process;
 BEGIN
 	current := CurrentProcess();
 	NEW(t); NEW(fn); (* implicit call Heaps.NewRec *)
@@ -1151,7 +1151,7 @@ BEGIN
 	(*SYSTEM.PUT (sp-4*AddressSize, NIL);*)	(* parameter for SwitchTo (new) *)
 	SYSTEM.PUT (sp-5*AddressSize, body); (* return address for SwitchTo (body entry point) *)
 	SYSTEM.PUT (sp-6*AddressSize, NIL);	(* end of dynamic link list (FP value at entry to body) *)
-	t.sseAdr := SYSTEM.ADR(t.sse) + ((-SYSTEM.ADR(t.sse)) MOD 16);
+	t.sseAdr := ADDRESSOF(t.sse) + ((-ADDRESSOF(t.sse)) MOD 16);
 	IF Machine.SSESupport THEN Machine.SSESaveMin(t.sseAdr)
 	ELSE Machine.FPUSaveMin(t.sse)	(* inherit FPU state of caller *)
 	END;
@@ -1160,10 +1160,10 @@ BEGIN
 	t.state.PC := 0; (* indicating that process is not running yet *)
 	(* set up exception handling *)
 	IF Restart IN flags THEN	(* restart object body *)
-		t.restartPC := SYSTEM.VAL (SYSTEM.ADDRESS, body);
+		t.restartPC := SYSTEM.VAL (ADDRESS, body);
 		t.restartSP := sp-2*AddressSize	(* 1 parameter and return address of body *)
 	ELSE (* terminate process *)
-		t.restartPC := SYSTEM.VAL (SYSTEM.ADDRESS, terminate);
+		t.restartPC := SYSTEM.VAL (ADDRESS, terminate);
 		t.restartSP := sp
 	END;
 	fn.finalizer := FinalizeProcess;
@@ -1175,14 +1175,14 @@ END NewProcess;
 
 (* Create the process associated with an active object (kernel call). *)
 PROCEDURE CreateProcess*(body: Body; priority: LONGINT; flags: SET; obj: ProtectedObject);
-VAR t: Process; type: SYSTEM.ADDRESS; heapBlock {UNTRACED}: Heaps.HeapBlock; i: LONGINT;
+VAR t: Process; type: ADDRESS; heapBlock {UNTRACED}: Heaps.HeapBlock; i: LONGINT;
 BEGIN
 	IF Stats THEN Machine.AtomicInc(Ncreate) END;
 
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, heapBlock);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, heapBlock);
 	ASSERT(heapBlock IS Heaps.ProtRecBlock); (* protected object *)
 
-	SYSTEM.GET (SYSTEM.VAL (SYSTEM.ADDRESS, obj) + Heaps.TypeDescOffset, type); (* type tag *)
+	SYSTEM.GET (SYSTEM.VAL (ADDRESS, obj) + Heaps.TypeDescOffset, type); (* type tag *)
 	IF Restart IN flags THEN INCL(flags, Resistant) END; (* SAFE => Restart & Resistant *)
 	NewProcess(body, flags, obj, t);
 	Machine.Acquire(Machine.Objects);
@@ -1223,7 +1223,7 @@ PROCEDURE LockNoPriorityInv(obj: ProtectedObject; exclusive: BOOLEAN);
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; r: Process; id: LONGINT;
 BEGIN (* {called from user level} *)
 	IF Stats THEN Machine.AtomicInc(Nlock) END;
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock); (* protected object *)
 		ASSERT(exclusive)	(* shared not implemented yet *)
@@ -1260,14 +1260,14 @@ END LockNoPriorityInv;
 PROCEDURE PropagatePrio(obj: ProtectedObject; prevMaxWaitingPrio, waitingPrio: LONGINT);
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; p: Process;
 BEGIN
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF hdr.lockedBy # NIL THEN
 		p := hdr.lockedBy(Process);
 		DEC(p.prioRequests[prevMaxWaitingPrio]);
 		INC(p.prioRequests[waitingPrio]);
 		IF (p.waitingOn # NIL) & (waitingPrio > p.priority) THEN
 			obj := p.waitingOn;
-			SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+			SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 			prevMaxWaitingPrio := MaxPrio(hdr.waitingPriorities);
 			DEC(hdr.waitingPriorities[p.priority]);
 			INC(hdr.waitingPriorities[waitingPrio]);
@@ -1297,7 +1297,7 @@ BEGIN
 			INC(p.prioRequests[waitingPrio]);
 			IF (p.waitingOn # NIL) & (waitingPrio > p.priority) THEN
 				obj := p.waitingOn;
-				SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+				SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 				prevMaxWaitingPrio := MaxPrio(hdr.waitingPriorities);
 				DEC(hdr.waitingPriorities[p.priority]);
 				INC(hdr.waitingPriorities[waitingPrio]);
@@ -1323,7 +1323,7 @@ VAR hdr {UNTRACED}: Heaps.ProtRecBlock; r: Process;
 	maxWaitingPrio, prevMaxWaitingPrio: LONGINT;
 BEGIN (* {called from user level} *)
 	IF Stats THEN Machine.AtomicInc(Nlock) END;
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock); (* protected object *)
 		ASSERT(exclusive)	(* shared not implemented yet *)
@@ -1425,7 +1425,7 @@ PROCEDURE UnlockNoPriorityInv(obj: ProtectedObject);
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; t, c, r: Process; id: LONGINT;
 BEGIN
 	IF Stats THEN Machine.AtomicInc(Nunlock) END;
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock) (* protected object *)
 	END;
@@ -1474,7 +1474,7 @@ PROCEDURE UnlockPriorityInv(obj: ProtectedObject);
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; t, c, r: Process; maxWaitingPrio: LONGINT;
 BEGIN
 	IF Stats THEN Machine.AtomicInc(Nunlock) END;
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock) (* protected object *)
 	END;
@@ -1517,7 +1517,7 @@ END UnlockPriorityInv;
 (* Await a condition (kernel call). *)
 (* There are two different procedures for locking a protected object in case of priority inverison handling enabled or disabled due to the different
     locking strategies, i.e. there are no header locks in case of priority inversion handling. *)
-PROCEDURE Await*(cond: Condition; slink: SYSTEM.ADDRESS; obj: ProtectedObject; flags: SET);
+PROCEDURE Await*(cond: Condition; slink: ADDRESS; obj: ProtectedObject; flags: SET);
 BEGIN
 	IF HandlePriorityInv THEN
 		AwaitPriorityInv(cond, slink, obj, flags)
@@ -1527,7 +1527,7 @@ BEGIN
 END Await;
 
 (* Await a condition if priority inversion handling is disabled. Header locks, preemption and Machine.Objects locks are used. *)
-PROCEDURE AwaitNoPriorityInv(cond: Condition; slink: SYSTEM.ADDRESS; obj: ProtectedObject; flags: SET);
+PROCEDURE AwaitNoPriorityInv(cond: Condition; slink: ADDRESS; obj: ProtectedObject; flags: SET);
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; r, c, t: Process; id: LONGINT;
 BEGIN
 	IF Stats THEN Machine.AtomicInc(Nawait) END;
@@ -1538,7 +1538,7 @@ BEGIN
 			RETURN (* condition already true *)
 		END
 	END;
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock) (* protected object *)
 	END;
@@ -1589,7 +1589,7 @@ BEGIN
 END AwaitNoPriorityInv;
 
 (* Await a condition in case priority inversion handling is enabled. Machine.Objects lock is used. *)
-PROCEDURE AwaitPriorityInv(cond: Condition; slink: SYSTEM.ADDRESS; obj: ProtectedObject; flags: SET);
+PROCEDURE AwaitPriorityInv(cond: Condition; slink: ADDRESS; obj: ProtectedObject; flags: SET);
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; r, c, t: Process; id, maxWaitingPrio, prevMaxWaitingPrio: LONGINT;
 BEGIN
 	IF Stats THEN Machine.AtomicInc(Nawait) END;
@@ -1600,7 +1600,7 @@ BEGIN
 			RETURN (* condition already true *)
 		END
 	END;
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock) (* protected object *)
 	END;
@@ -1693,7 +1693,7 @@ PROCEDURE Init; (* can not use NEW *)
 VAR
 	lock: PROCEDURE (obj: ProtectedObject; exclusive: BOOLEAN);
 	unlock: PROCEDURE (obj: ProtectedObject; dummy: BOOLEAN);
-	await: PROCEDURE (cond: Condition; slink: SYSTEM.ADDRESS; obj: ProtectedObject; flags: SET);
+	await: PROCEDURE (cond: Condition; slink: ADDRESS; obj: ProtectedObject; flags: SET);
 	create: PROCEDURE (body: Body; priority: LONGINT; flags: SET; obj: ProtectedObject);
 	i: LONGINT;
 BEGIN
@@ -1706,10 +1706,10 @@ BEGIN
 	nextProcessID := 0; Machine.ticks := 0;
 	traceProcess := NIL;
 	lock := Lock; unlock := Unlock; await := Await; create := CreateProcess;
-	Modules.kernelProc[3] := SYSTEM.VAL (SYSTEM.ADDRESS, create);	(* 250 *)
-	Modules.kernelProc[4] := SYSTEM.VAL (SYSTEM.ADDRESS, await);	(* 249 *)
-	Modules.kernelProc[6] := SYSTEM.VAL (SYSTEM.ADDRESS, lock);	(* 247 *)
-	Modules.kernelProc[7] := SYSTEM.VAL (SYSTEM.ADDRESS, unlock);	(* 246 *)
+	Modules.kernelProc[3] := SYSTEM.VAL (ADDRESS, create);	(* 250 *)
+	Modules.kernelProc[4] := SYSTEM.VAL (ADDRESS, await);	(* 249 *)
+	Modules.kernelProc[6] := SYSTEM.VAL (ADDRESS, lock);	(* 247 *)
+	Modules.kernelProc[7] := SYSTEM.VAL (ADDRESS, unlock);	(* 246 *)
 	terminate := Terminate;
 	trap[0] := Halt;
 	trap[1] := HaltUnbreakable;

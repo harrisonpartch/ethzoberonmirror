@@ -54,7 +54,7 @@ BEGIN
 			IF (i >= m) OR (buf[i] = 0FFX) THEN EXIT END;
 			IF (buf[i] # 0X) & (i+2 <= m) THEN
 				len := ORD(buf[i+1]);
-				IF Trace THEN KernelLog.Memory(SYSTEM.ADR(buf[i]), 2+len) END;
+				IF Trace THEN KernelLog.Memory(ADDRESSOF(buf[i]), 2+len) END;
 				CASE buf[i] OF
 					1X:	(* subnet mask *)
 						IF i+6 <= m THEN

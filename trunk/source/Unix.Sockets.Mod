@@ -20,7 +20,7 @@ CONST
 
 
 TYPE
-	Address = S.ADDRESS;
+	Address = ADDRESS;
 				
 	SocketAdr* = POINTER TO RECORD 
 		family*		: INTEGER;
@@ -142,11 +142,11 @@ VAR
 	BEGIN
 		IF len = Unix.SockAddrSizeV4 THEN
 			NEW( adr4 ); 
-			S.MOVE( S.ADR( buf ), S.ADR( adr4^), len );
+			S.MOVE( ADDRESSOF( buf ), ADDRESSOF( adr4^), len );
 			RETURN adr4
 		ELSE
 			NEW( adr6 ); 
-			S.MOVE( S.ADR( buf ), S.ADR( adr6^), len );
+			S.MOVE( ADDRESSOF( buf ), ADDRESSOF( adr6^), len );
 			RETURN adr6
 		END
 	END BufToSocketAdr;
@@ -230,7 +230,7 @@ VAR
 	VAR res, err: LONGINT;
 	BEGIN
 		REPEAT
-			res := recv( s, S.ADR( buf[pos] ), len, flags );
+			res := recv( s, ADDRESSOF( buf[pos] ), len, flags );
 			IF res < 0 THEN  err := Unix.errno()  END
 		UNTIL (res >= 0) OR (err # Unix.EINTR);
 		IF err >= 0 THEN 
@@ -245,7 +245,7 @@ VAR
 	VAR err: LONGINT;
 	BEGIN
 		ASSERT( LEN(buf)-pos >= len );
-		err := send( s, S.ADR( buf[pos] ), len, 0 );
+		err := send( s, ADDRESSOF( buf[pos] ), len, 0 );
 		IF err >= 0 THEN 
 			len := err;  RETURN TRUE 
 		ELSE 
@@ -262,7 +262,7 @@ VAR
 	BEGIN
 		NEW( nbuf ); size := 64;
 		REPEAT
-			res := recvfrom( s, S.ADR(buf[pos]), LEN( buf ) - pos, 0, nbuf, size );
+			res := recvfrom( s, ADDRESSOF(buf[pos]), LEN( buf ) - pos, 0, nbuf, size );
 			IF res < 0 THEN  err := Unix.errno()  END
 		UNTIL (res >= 0) OR (err # Unix.EINTR);
 		IF res >= 0 THEN 
@@ -279,7 +279,7 @@ VAR
 	BEGIN
 		ASSERT( LEN(buf) - pos >= len );
 		IF dest.family = Unix.AFINET THEN  size := Unix.SockAddrSizeV4  ELSE  size := Unix.SockAddrSizeV6  END;
-		err:= sendto( s, S.ADR( buf[pos] ), len, 0, dest, size );
+		err:= sendto( s, ADDRESSOF( buf[pos] ), len, 0, dest, size );
 		IF err >= 0 THEN 
 			RETURN TRUE 
 		ELSE 
@@ -299,7 +299,7 @@ VAR
 	VAR available, err: LONGINT; 
 	BEGIN
 		available := 0;
-		err := Unix.ioctl( s, Unix.FioNRead, S.ADR( available ) );
+		err := Unix.ioctl( s, Unix.FioNRead, ADDRESSOF( available ) );
 		IF err = 0 THEN
 			RETURN available
 		ELSE
@@ -316,7 +316,7 @@ VAR
 		timeout.sec := 0; timeout.usec := 0;
 		FOR i := 0 TO LEN( readfds ) - 1  DO readfds[i] := {} END;
 		INCL( readfds[s DIV 32],  s MOD 32 );
-		res := Unix.select( s+1, S.VAL( Unix.FdSetPtr, S.ADR( readfds ) ), NIL, NIL, timeout );
+		res := Unix.select( s+1, S.VAL( Unix.FdSetPtr, ADDRESSOF( readfds ) ), NIL, NIL, timeout );
 		RETURN res > 0 
 	END Requested;
 	
@@ -331,7 +331,7 @@ VAR
 		FOR i := 0 TO LEN( readfds ) - 1  DO readfds[i] := {} END;
 		INCL( readfds[s DIV 32],  s MOD 32 );
 		REPEAT
-			res := Unix.select( s+1, S.VAL( Unix.FdSetPtr, S.ADR( readfds ) ), NIL, NIL, timeout );
+			res := Unix.select( s+1, S.VAL( Unix.FdSetPtr, ADDRESSOF( readfds ) ), NIL, NIL, timeout );
 			IF res < 0 THEN  err := Unix.errno()  END
 		UNTIL (res >= 0) OR (err # Unix.EINTR);
 		RETURN res > 0 

@@ -19,7 +19,7 @@ CONST
 	lshfn* = 205;		(** DOp: LSH *)
 	rotfn* = 206;		(** DOp: ROT *)
 
-	bitfn* = 207;		(** RelOp: SYSTEM.BIT *)
+	bitfn* = 207;		(** RelOp: BIT *)
 
 		(*special values*)
 	True = 1; False = 0;	(*1-byte constants*)
@@ -2089,7 +2089,7 @@ BEGIN
 			ASSERT(PCT.IsCardinalType(a.type), setfn*10);
 			ASSERT(PCT.IsCardinalType(b.type), setfn*10+1);
 			IF a.mode = Const THEN
-				MakeIntConst(a, SYSTEM.LSH(LONG(LONG(-1)), a.value), PCT.Set);
+				MakeIntConst(a, LSH(LONG(LONG(-1)), a.value), PCT.Set);
 				Load(code, a)
 			ELSE
 				IF a.mode # Reg THEN  Load(code, a)  END;
@@ -2099,7 +2099,7 @@ BEGIN
 				a.type := PCT.Set
 			END;
 			IF b.mode = Const THEN
-				MakeIntConst(b, SYSTEM.LSH(LONG(LONG(-1)), b.value-(PCT.SetSize*8 - 1)), PCT.Set);
+				MakeIntConst(b, LSH(LONG(LONG(-1)), b.value-(PCT.SetSize*8 - 1)), PCT.Set);
 				Load(code, b)
 			ELSE
 				IF b.mode # Reg THEN  Load(code, b)  END;
@@ -3423,7 +3423,7 @@ END SysStart;
  *
  *	The system calls target is the kernel procedure
  *  		GetProcedure*(moduleName, procedureName : ARRAY OF CHAR;
- * 			argTdAdr, retTdAdr : SYSTEM.ADDRESS; VAR entryAdr : SYSTEM.ADDRESS);
+ * 			argTdAdr, retTdAdr : ADDRESS; VAR entryAdr : ADDRESS);
  *	where as
  * 		argTdAdr, retTdAdr : Adresses of the type descriptors of the actual parameter and return type (if present)
  *		entryAdr : Entry address of the procedure <proc> specified in GETPROCEDURE(...)
@@ -3472,7 +3472,7 @@ BEGIN
 	(* procedureName : ARRAY OF CHAR *)
 	PushArrayRef(code, procedureName);
 
-	(* argTdAdr : SYSTEM.ADDRESS *)
+	(* argTdAdr : ADDRESS *)
 	IF (procScope.formalParCount = 1) THEN
 		IF (procScope.firstPar.type # PCT.Ptr) THEN (* type descriptor for actual parameter available *)
 			PushTD(code, procScope.firstPar.type);
@@ -3483,7 +3483,7 @@ BEGIN
 		PushConstant(code,  0);
 	END;
 
-	(* retTdAdr : SYSTEM.ADDRESS *)
+	(* retTdAdr : ADDRESS *)
 	IF (returnType # PCT.NoType) THEN (* type descriptor of return value available *)
 		IF (returnType # PCT.Ptr) THEN
 			PushTD(code, returnType);
@@ -3494,7 +3494,7 @@ BEGIN
 		PushConstant(code, 0);
 	END;
 
-	(* VAR entryAdr : SYSTEM.ADDRESS *)
+	(* VAR entryAdr : ADDRESS *)
 	LoadAdr(code, entryAdr);
 	PCLIR.Emit01(code, PCLIR.push, entryAdr.adr);
 
@@ -3654,9 +3654,9 @@ BEGIN
            within a part that might be stepped over while checking OR or & statements.
            example:
                PROCEDURE Test*;
-               VAR  d,e,f: BOOLEAN; adr: SYSTEM.ADDRESS;
+               VAR  d,e,f: BOOLEAN; adr: ADDRESS;
                BEGIN
-                   d := TRUE; e := TRUE; adr := SYSTEM.ADR(f);
+                   d := TRUE; e := TRUE; adr := ADDRESSOF(f);
                    SYSTEM.PUT(adr, d OR e);
                END Test;
            produces an access violation error.
@@ -4322,7 +4322,7 @@ END PCC.
 	28.12.02	prk	touch stack every memory page when copying arrays longer than a memory page
 	21.07.02	prk	ODD, reload const to avoid duplicate virtual register use (this seems to confuse the i386 optimizer)
 	11.06.02	prk	Access to dimensions in multidimensional dynamic and open arrays corrected
-	11.06.02	prk	SYSTEM.BIT implemented
+	11.06.02	prk	BIT implemented
 	02.04.02	prk	Fix in LoadAdr (copy hw-register when load addr of 0[reg])
 	18.03.02	prk	PCBT code cleanup and redesign
 	05.02.02	prk	PCT.Find cleanup

@@ -10,7 +10,7 @@ IMPORT S := SYSTEM, Heaps := BootLinkerHeaps, Streams;
 
 
 CONST
-	AdrSize = S.SIZEOF( S.ADDRESS );
+	AdrSize = SIZEOF( ADDRESS );
 
 	MaxTags* = 16;   (* in type descriptor *)
 	
@@ -23,7 +23,7 @@ CONST
 	InitPtrTableLen = 2048;
 
 TYPE
-	Address = S.ADDRESS; 
+	Address = ADDRESS; 
 
 	Name* = ARRAY 32 OF CHAR;
 	TermHandler* = PROCEDURE;
@@ -237,7 +237,7 @@ VAR
 		newObjectFile: BOOLEAN;
 	BEGIN
 		IF pname = "" THEN  RETURN 0  END;
-		pos := S.ADR( m.refs[0] );  refend := pos + LEN( m.refs^ );
+		pos := ADDRESSOF( m.refs[0] );  refend := pos + LEN( m.refs^ );
 		RefReadChar( pos, ch );
 		newObjectFile := ch = 0FFX;  
 		IF newObjectFile THEN  RefReadChar( pos, ch )  END;
@@ -250,7 +250,7 @@ VAR
 				IF newObjectFile THEN  INC( pos, 6 )  END
 			END;
 			RefReadName( pos, name );
-			IF name = pname THEN  RETURN S.ADR( m.code[adr] )  END;
+			IF name = pname THEN  RETURN ADDRESSOF( m.code[adr] )  END;
 			RefReadChar( pos, ch );
 			WHILE (VarTag <= ch) & (ch <= VarParTag) DO
 				RefReadChar( pos, ch );   (* form *)
@@ -340,7 +340,7 @@ VAR
 
 	(* VarByName - Find a global variable in the reference block. *)
 
-	PROCEDURE VarByName( refs: Bytes;  CONST name: ARRAY OF CHAR ): S.SIZE;
+	PROCEDURE VarByName( refs: Bytes;  CONST name: ARRAY OF CHAR ): SIZE;
 	VAR mode: CHAR;  j, m, adr, type, t, i: LONGINT;  s: Name;  found: BOOLEAN;
 	BEGIN
 		ASSERT((refs[0] = 0F8X) & (refs[1] = 0X) & (refs[2] = "$") & (refs[3] = "$") & (refs[4] = 0X));
@@ -362,12 +362,12 @@ VAR
 		ELSE
 			adr := 0
 		END;
-		RETURN S.VAL( S.SIZE, adr )
+		RETURN S.VAL( SIZE, adr )
 	END VarByName;
 	
 	
 	PROCEDURE AssignValue*( CONST module, variable: ARRAY OF CHAR; value: Address; reloc: BOOLEAN );
-	VAR m: Module; ofs: S.SIZE;
+	VAR m: Module; ofs: SIZE;
 	BEGIN
 		m := root;
 		WHILE (m # NIL) & (m.name # module) DO m := m.next  END;
@@ -392,7 +392,7 @@ VAR
 	VAR i, j: LONGINT; a: Address;
 	BEGIN
 		FOR i := 0 TO numProcs - 1 DO
-			a := S.ADR( procOffsets[i].data.pcFrom );  j := 0;
+			a := ADDRESSOF( procOffsets[i].data.pcFrom );  j := 0;
 			REPEAT
 				Heaps.Relocate( a );  INC( a, AdrSize );  INC( j )
 			UNTIL j = 4

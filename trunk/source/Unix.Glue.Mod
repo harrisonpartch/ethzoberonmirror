@@ -7,13 +7,13 @@ MODULE Glue;   (** AUTHOR "G.F."; PURPOSE "Interface to the dynamic linker of Un
 IMPORT S := SYSTEM, Trace;
 
 TYPE
-	Address = S.ADDRESS;
+	Address = ADDRESS;
 	
 	PtrElemDesc* = RECORD  a: ANY  END;	(* used by BootLinker only *)
 		(* has same type descriptor as element of ARRAY OF POINTER TO ... *)
 
 CONST
-	AdrSize = S.SIZEOF( S.ADDRESS );
+	AdrSize = SIZEOF( ADDRESS );
 
 
 VAR
@@ -41,14 +41,14 @@ VAR
 	PROCEDURE Init;
 	VAR i: LONGINT;
 	BEGIN
-		S.MOVE( S.ADR( AAgetadr ), S.ADR( dlsym ), AdrSize );
-		dlsym( 0, S.ADR( "dlopen" ), S.ADR( dlopen ) );
-		dlsym( 0, S.ADR( "dlclose" ), S.ADR( dlclose ) );
+		S.MOVE( ADDRESSOF( AAgetadr ), ADDRESSOF( dlsym ), AdrSize );
+		dlsym( 0, ADDRESSOF( "dlopen" ), ADDRESSOF( dlopen ) );
+		dlsym( 0, ADDRESSOF( "dlclose" ), ADDRESSOF( dlclose ) );
 		
-		dlsym( 0, S.ADR( "debug" ), S.ADR( debug ) );
-		dlsym( 0, S.ADR( "cout" ), S.ADR( cout ) );
+		dlsym( 0, ADDRESSOF( "debug" ), ADDRESSOF( debug ) );
+		dlsym( 0, ADDRESSOF( "cout" ), ADDRESSOF( cout ) );
 		
-		stackBottom := S.ADR( i ) + 2*AdrSize;
+		stackBottom := ADDRESSOF( i ) + 2*AdrSize;
 		
 		Trace.Char := Char;
 	END Init;

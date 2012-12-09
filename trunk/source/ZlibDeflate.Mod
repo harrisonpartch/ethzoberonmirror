@@ -204,7 +204,7 @@ BEGIN
 	INC(stream.buf, ASH(val, stream.bits)); INC(stream.bits, len);
 	IF stream.bits > BitBufSize THEN
 		Put16BitsLSB(stream.pend, stream.buf);
-		stream.buf := SYSTEM.LSH(stream.buf, -BitBufSize); DEC(stream.bits, BitBufSize)
+		stream.buf := LSH(stream.buf, -BitBufSize); DEC(stream.bits, BitBufSize)
 	END
 END SendBits;
 
@@ -222,7 +222,7 @@ BEGIN
 		stream.buf := 0; stream.bits := 0
 	ELSIF stream.bits >= 8 THEN
 		PutChar(stream.pend, CHR(stream.buf));
-		stream.buf := SYSTEM.LSH(stream.buf, -8); DEC(stream.bits, 8)
+		stream.buf := LSH(stream.buf, -8); DEC(stream.bits, 8)
 	END
 END FlushBits;
 
@@ -953,7 +953,7 @@ BEGIN
 	REPEAT
 		IF stream.string >= WindowSize + MaxDist THEN
 			(* lower half is no longer available for matches -> slide window *)
-			SYSTEM.MOVE(SYSTEM.ADR(stream.window[WindowSize]), SYSTEM.ADR(stream.window[0]), WindowSize);
+			SYSTEM.MOVE(ADDRESSOF(stream.window[WindowSize]), ADDRESSOF(stream.window[0]), WindowSize);
 			DEC(stream.match, WindowSize); DEC(stream.string, WindowSize); DEC(stream.block, WindowSize);
 			(* slide hash table *)
 			n := HashSize;
@@ -1299,7 +1299,7 @@ BEGIN
 		ELSE
 			offset := 0
 		END;
-		SYSTEM.MOVE(SYSTEM.ADR(dict[offset]), SYSTEM.ADR(stream.window[0]), len);
+		SYSTEM.MOVE(ADDRESSOF(dict[offset]), ADDRESSOF(stream.window[0]), len);
 		stream.string := len; stream.block := len;
 		(* insert all strings in the hash table (except for the last two bytes). stream.lookAhead stays zero,
 			so stream.hash will be recomputed at the next call of FillWindow *)

@@ -9,8 +9,8 @@ MODULE BootLinkerHeaps;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 IMPORT S := SYSTEM, Streams;
 
 CONST	
-	AdrSize = S.SIZEOF( S.ADDRESS );
-	SizeSize = S.SIZEOF( S.SIZE );
+	AdrSize = SIZEOF( ADDRESS );
+	SizeSize = SIZEOF( SIZE );
 
 	BootHeapSize = 2*1024*1024;  MaxReloc = 10000;  
 
@@ -27,7 +27,7 @@ CONST
 	FlagsOfs = AdrSize * 3;			(* flags offset in TypeDesc *)
 	
 TYPE	
-	Address = S.ADDRESS; Size = S.SIZE;
+	Address = ADDRESS; Size = SIZE;
 
 	RootObject* = OBJECT 
 		PROCEDURE FindRoots*;	(** abstract *)
@@ -207,7 +207,7 @@ VAR
 
 	PROCEDURE FillStaticType*( VAR staticTypeAddr: Address;
 								startAddr, typeInfoAdr: Address;
-								size, recSize: S.SIZE;
+								size, recSize: SIZE;
 								numPtrs, numSlots: LONGINT );
 	VAR 
 		p, offset: Address;  sTB {UNTRACED}: StaticTypeBlock;
@@ -226,11 +226,11 @@ VAR
 		
 		(* create the pointer for the dynamic array of pointer offsets, the dynamic array of pointer offsets 
 		    is stored in the static type descriptor, it has no header part *)
-		INC( p, S.SIZEOF(StaticTypeDesc) );
+		INC( p, SIZEOF(StaticTypeDesc) );
 		IF p MOD (2 * AdrSize) # 0 THEN  INC( p, AdrSize )  END;
 		S.PUT( p + 3 * AdrSize, numPtrs ); (* internal structure of dynamic array without pointers: the first 3 fields are unused *)
 		sTB.pointerOffsets := S.VAL( PointerOffsets, p ); (* the fourth field contains the dimension of the array *)
-		Relocate( S.ADR( sTB.pointerOffsets ) )
+		Relocate( ADDRESSOF( sTB.pointerOffsets ) )
 
 		(* ptrOfs filled in later *)
 

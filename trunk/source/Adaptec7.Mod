@@ -321,7 +321,7 @@ TYPE
 					END;
 					IF SEQINT IN int THEN
 						IF traceSmall IN trace THEN KernelLog.Char("S") END;
-						IntSeqHandle(d, SYSTEM.LSH(SYSTEM.VAL(LONGINT, int), -4))
+						IntSeqHandle(d, LSH(SYSTEM.VAL(LONGINT, int), -4))
 					END;
 					IF SCSIINT IN int THEN
 						IF traceSmall IN trace THEN KernelLog.Char("s") END;
@@ -395,7 +395,7 @@ TYPE
 			scbArea: LONGINT;	(* virtual address of the hardware scb buffer, shared with the sequencer *)
 			queueArea: LONGINT;	(*virtual address of the queue buffers, shared with the sequencer *)
 			in, out: LONGINT;	(*pointer to next scb*)
-			base: SYSTEM.ADDRESS;	(*virtual address for memory mapped IO / port address for port based IO *)
+			base: ADDRESS;	(*virtual address for memory mapped IO / port address for port based IO *)
 			Put1: PROCEDURE (d: Bus; offset: LONGINT; val: CHAR);
 			Get1: PROCEDURE (d: Bus; offset: LONGINT): CHAR;
 
@@ -564,7 +564,7 @@ END MemoryGet;
 
 PROCEDURE MakeTarget(targ, chan, lun: LONGINT): CHAR;
 BEGIN
-	RETURN  CHR(SYSTEM.LSH(targ MOD 16, 4)+SYSTEM.LSH(chan MOD 2, 3)+lun MOD 8)
+	RETURN  CHR(LSH(targ MOD 16, 4)+LSH(chan MOD 2, 3)+lun MOD 8)
 END MakeTarget;
 
 (* Sync / Width functions *)
@@ -694,7 +694,7 @@ BEGIN
 	Machine.NewPhysicalPage(paddr);
 	Machine.MapPhysical(paddr, Machine.PageSize, d.queueArea);
 *)
-	paddr := SYSTEM.ADR(d.buffers[0]);
+	paddr := ADDRESSOF(d.buffers[0]);
 	INC(paddr, (-paddr) MOD BufferAlignment);
 	d.queueArea := paddr;
 
@@ -704,9 +704,9 @@ BEGIN
 	d.in := 0;
 	d.out := 0;
 	d.Put1(d, SCBIDADDR, CHR(paddr));
-	d.Put1(d, SCBIDADDR+1, CHR(SYSTEM.LSH(paddr, -8)));
-	d.Put1(d, SCBIDADDR+2, CHR(SYSTEM.LSH(paddr, -16)));
-	d.Put1(d, SCBIDADDR+3, CHR(SYSTEM.LSH(paddr, -24)));
+	d.Put1(d, SCBIDADDR+1, CHR(LSH(paddr, -8)));
+	d.Put1(d, SCBIDADDR+2, CHR(LSH(paddr, -16)));
+	d.Put1(d, SCBIDADDR+3, CHR(LSH(paddr, -24)));
 	d.Put1(d, QINPOS, 0X);
 	d.Put1(d, KERNELQINPOS, 0X);
 	d.Put1(d, QOUTPOS, 0X);
@@ -773,7 +773,7 @@ BEGIN
 	Machine.NewPhysicalPage(paddr);
 	Machine.MapPhysical(paddr, Machine.PageSize, d.scbArea);
 *)
-	paddr := SYSTEM.ADR(d.buffers[QBufferSize]);
+	paddr := ADDRESSOF(d.buffers[QBufferSize]);
 	INC(paddr, (-paddr) MOD BufferAlignment);
 	d.scbArea := paddr;
 
@@ -782,9 +782,9 @@ BEGIN
 		SYSTEM.PUT(d.scbArea + i*32 + HStag, CHR(i));	(* tag := i *)
 	END;
 	d.Put1(d, HSCBARRAY, CHR(paddr));
-	d.Put1(d, HSCBARRAY+1, CHR(SYSTEM.LSH(paddr, -8)));
-	d.Put1(d, HSCBARRAY+2, CHR(SYSTEM.LSH(paddr, -16)));
-	d.Put1(d, HSCBARRAY+3, CHR(SYSTEM.LSH(paddr, -24)));
+	d.Put1(d, HSCBARRAY+1, CHR(LSH(paddr, -8)));
+	d.Put1(d, HSCBARRAY+2, CHR(LSH(paddr, -16)));
+	d.Put1(d, HSCBARRAY+3, CHR(LSH(paddr, -24)));
 
 	(* clear and initialize host scb table *)
 	d.Put1(d, FREESCBH, 0X);
@@ -854,9 +854,9 @@ BEGIN
 	d.Put1(d, SEQADDR1, 0X);
 	WHILE Script.GetNext(SYSTEM.VAL(SET, line)) DO
 		d.Put1(d, SEQRAM, CHR(line));
-		d.Put1(d, SEQRAM, CHR(SYSTEM.LSH(line, -8)));
-		d.Put1(d, SEQRAM, CHR(SYSTEM.LSH(line, -16)));
-		d.Put1(d, SEQRAM, CHR(SYSTEM.LSH(line, -24)));
+		d.Put1(d, SEQRAM, CHR(LSH(line, -8)));
+		d.Put1(d, SEQRAM, CHR(LSH(line, -16)));
+		d.Put1(d, SEQRAM, CHR(LSH(line, -24)));
 		INC(i)
 	END;
 	BusNameMsg(d, "Sequencer Loaded lines="); KernelLog.Int(i, 0); KernelLog.Ln;
@@ -1362,15 +1362,15 @@ BEGIN
 	target := MakeTarget(c.target, c.chan, c.lun);
 	HSSet(d, index, HScontrol, ScbControl(d, index));
 	HSSet(d, index, HStarget, target);
-	Machine.TranslateVirtual(SYSTEM.ADR(c.cmd[0]), c.clen, num, range[0]);
+	Machine.TranslateVirtual(ADDRESSOF(c.cmd[0]), c.clen, num, range[0]);
 	ASSERT(num # 0, 202);
 	IF num > 1 THEN	(* The command buffer doesn't fit on one page, create own temp buffer *)
 		cmdBlock := -1;
 		REPEAT
 			INC(cmdBlock);
-			Machine.TranslateVirtual(SYSTEM.ADR(cmd[cmdBlock, 0]), c.clen, num, range[0]);
+			Machine.TranslateVirtual(ADDRESSOF(cmd[cmdBlock, 0]), c.clen, num, range[0]);
 		UNTIL num = 1;
-		SYSTEM.MOVE(SYSTEM.ADR(c.cmd[0]), SYSTEM.ADR(cmd[cmdBlock, 0]), c.clen);
+		SYSTEM.MOVE(ADDRESSOF(c.cmd[0]), ADDRESSOF(cmd[cmdBlock, 0]), c.clen);
 	END;
 	HSSet4(d, index, HScmdPtr, range[0, 0].adr);
 	HSSet(d, index, HScmdLen, CHR(c.clen));
@@ -1388,11 +1388,11 @@ BEGIN
 		(* the data can be spread across many physical pages, I thus use a scatter-gather list
 			for the data. Now the list itself could also be on a page boundary: I declare two adjacent ranges
 			and at least one of them will fit on one page. *)
-		Machine.TranslateVirtual(SYSTEM.ADR(range[0, 0]), 16*SYSTEM.SIZEOF(Machine.Range), num, range[0]);
+		Machine.TranslateVirtual(ADDRESSOF(range[0, 0]), 16*SIZEOF(Machine.Range), num, range[0]);
 		IF num = 1 THEN	(* whole range[0] fits in one memory page *)
 			useRange := 0;
 		ELSE
-			Machine.TranslateVirtual(SYSTEM.ADR(range[1, 0]), 16*SYSTEM.SIZEOF(Machine.Range), num, range[0]);
+			Machine.TranslateVirtual(ADDRESSOF(range[1, 0]), 16*SIZEOF(Machine.Range), num, range[0]);
 			ASSERT(num = 1, 203);
 			useRange := 1;
 			IF traceCmds IN trace THEN KernelLog.Char("+")END;
@@ -1404,7 +1404,7 @@ BEGIN
 			IF num > 1 THEN KernelLog.Char("%") ELSE KernelLog.Char("$") END
 		END;
 		HSSet(d, index, HSSGcount, CHR(num));
-		HSSet4(d, index, HSSGptr, sgaddr+SYSTEM.SIZEOF(Machine.Range));	(*pass address to 2nd block*)
+		HSSet4(d, index, HSSGptr, sgaddr+SIZEOF(Machine.Range));	(*pass address to 2nd block*)
 		HSSet4(d, index, HSdataPtr, range[useRange, 0].adr);
 		HSSet4(d, index, HSdataCnt, range[useRange, 0].size);
 		IF traceCmds IN trace THEN

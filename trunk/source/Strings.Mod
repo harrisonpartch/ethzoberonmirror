@@ -711,9 +711,9 @@ BEGIN
 	str[pos] := 0X
 END FloatToStr;
 
-PROCEDURE AddressToStr*(adr : SYSTEM.ADDRESS; VAR str : ARRAY OF CHAR);
+PROCEDURE AddressToStr*(adr : ADDRESS; VAR str : ARRAY OF CHAR);
 BEGIN
-	IntToHexStr(adr, 2*SYSTEM.SIZEOF(SYSTEM.ADDRESS), str);
+	IntToHexStr(adr, 2*SIZEOF(ADDRESS), str);
 END AddressToStr;
 
 (** converts a string to a real value *)

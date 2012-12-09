@@ -204,18 +204,18 @@ MODULE ISO9660Files;	(** AUTHOR "?/be"; PURPOSE "ISO 9660 File System (ported fr
 			END Read;
 
 			PROCEDURE ReadBytes*(VAR r: Files.Rider; VAR x: ARRAY OF CHAR; ofs, len: LONGINT);
-			VAR m, pos: LONGINT; src, dst: SYSTEM.ADDRESS; buf: Buffer;
+			VAR m, pos: LONGINT; src, dst: ADDRESS; buf: Buffer;
 			BEGIN {EXCLUSIVE}
 				IF LEN(x) < len THEN SYSTEM.HALT(19) END;
 				IF len <= 0 THEN RETURN END;
-				dst := SYSTEM.ADR(x[ofs]);
+				dst := ADDRESSOF(x[ofs]);
 				buf := r.hint(Buffer);
 				m := SELF.len - r.apos;
 				IF len <= m THEN r.res := 0 ELSE r.eof := TRUE; r.res := len-m; len := m END;
 				WHILE len > 0 DO
 					buf := GetBuf(r.apos, buf);
 					pos := r.apos - buf.pos;
-					src := SYSTEM.ADR(buf.data[pos]);  m := buf.lim-pos;
+					src := ADDRESSOF(buf.data[pos]);  m := buf.lim-pos;
 					IF m > len THEN m := len END;
 					SYSTEM.MOVE(src, dst, m);
 					DEC(len, m); INC(dst, m); INC(r.apos, m);

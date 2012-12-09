@@ -39,7 +39,7 @@ CONST
 	(* constant used in GC Process.FindPointers *)
 	InitDiff = MAX(LONGINT);
 
-	AddressSize = SYSTEM.SIZEOF (SYSTEM.ADDRESS);
+	AddressSize = SIZEOF (ADDRESS);
 
 TYPE
 	CpuCyclesArray* = ARRAY Machine.MaxCPU OF HUGEINT;
@@ -49,7 +49,7 @@ TYPE
 	ProcessQueue = Heaps.ProcessQueue;
 
 	Body = PROCEDURE (self: ProtectedObject);
-	Condition = PROCEDURE (slink: SYSTEM.ADDRESS): BOOLEAN;
+	Condition = PROCEDURE (slink: ADDRESS): BOOLEAN;
 
 	EventHandler* = PROCEDURE {DELEGATE};
 	RealtimeEventHandler* = PROCEDURE {DELEGATE, REALTIME};
@@ -155,8 +155,8 @@ TYPE
 		lastThreadTimes: HUGEINT;   (*ALEX 2005.12.12*)
 
 		PROCEDURE FindRoots;   (* override, called while GC, replaces Threads.CheckStacks *)
-		VAR sp: LONGINT; res: Kernel32.BOOL; pc, bp, curbp: SYSTEM.ADDRESS;
-			d0, d1: SYSTEM.SIZE; first : BOOLEAN;
+		VAR sp: LONGINT; res: Kernel32.BOOL; pc, bp, curbp: ADDRESS;
+			d0, d1: SIZE; first : BOOLEAN;
 		BEGIN
 		(*ALEX 2005.12.13 senseless ASSERT that blocks for AWAITING THREADS that were closed*)
 
@@ -224,8 +224,8 @@ TYPE
 			END
 		END FindRoots;
 
-		PROCEDURE FindPointers(bp, pc : SYSTEM.ADDRESS; VAR diff0, diff1: SYSTEM.SIZE);
-		VAR data: Modules.ProcTableEntry; startIndex, i: LONGINT; ptr : SYSTEM.ADDRESS; success: BOOLEAN;
+		PROCEDURE FindPointers(bp, pc : ADDRESS; VAR diff0, diff1: SIZE);
+		VAR data: Modules.ProcTableEntry; startIndex, i: LONGINT; ptr : ADDRESS; success: BOOLEAN;
 		BEGIN
 			diff0 := InitDiff; diff1 := InitDiff;
 			Modules.FindProc(pc, data, startIndex, success);
@@ -505,7 +505,7 @@ END SetPriority;
 PROCEDURE LockedByCurrent*( obj: ANY ): BOOLEAN;
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; res: BOOLEAN;
 BEGIN
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	ASSERT(hdr IS Heaps.ProtRecBlock);
 	Machine.Acquire(Machine.Objects);
 	res := (hdr.lockedBy = ActiveObject());
@@ -525,7 +525,7 @@ BEGIN
 END CurrentProcess;
 
 (* Return stack bottom of process. For compatibility WinAos/UnixAos/NativeAos  *)
-PROCEDURE GetStackBottom*(p: Process): SYSTEM.ADDRESS;
+PROCEDURE GetStackBottom*(p: Process): ADDRESS;
 BEGIN
 	RETURN p.stackBottom
 END GetStackBottom;
@@ -634,7 +634,7 @@ BEGIN
 				m := Modules.ThisModuleByAdr( eip );
 				IF m # NIL THEN
 					Trace.String( m.name );  Trace.String( " " );
-					Trace.Hex( eip - SYSTEM.VAL( LONGINT, SYSTEM.ADR( m.code[0] ) ), 1 );
+					Trace.Hex( eip - SYSTEM.VAL( LONGINT, ADDRESSOF( m.code[0] ) ), 1 );
 				ELSE Trace.String( "EIP " );  Trace.Hex( eip, 1 )
 				END;
 				Trace.Ln();
@@ -724,8 +724,8 @@ PROCEDURE RemoveExcpFrm( VAR excpfrm: Kernel32.ExcpFrm );
 VAR this: Kernel32.ExcpFrmPtr;
 BEGIN
 	this := GetCurrent();
-	(* ASSERT ( this = SYSTEM.ADR( excpfrm ) );  *)
-	IF this # SYSTEM.ADR( excpfrm ) THEN Trace.StringLn ( "RemoveExcpFrm: Problem with excpfrm pointer" );
+	(* ASSERT ( this = ADDRESSOF( excpfrm ) );  *)
+	IF this # ADDRESSOF( excpfrm ) THEN Trace.StringLn ( "RemoveExcpFrm: Problem with excpfrm pointer" );
 	ELSE SetCurrent( excpfrm.link )
 	END;
 END RemoveExcpFrm;
@@ -733,7 +733,7 @@ END RemoveExcpFrm;
 PROCEDURE InstallExcpFrm( VAR excpfrm: Kernel32.ExcpFrm );
 BEGIN
 	excpfrm.link := GetCurrent();  excpfrm.handler := ExcpFrmHandler;
-	SetCurrent( SYSTEM.ADR( excpfrm ) )
+	SetCurrent( ADDRESSOF( excpfrm ) )
 END InstallExcpFrm;
 
 PROCEDURE InQueue( queue: ProcessQueue;  t: Process ): BOOLEAN;
@@ -786,12 +786,12 @@ BEGIN
 
 	IF (t.mode = Ready) OR (t.mode = Running) THEN Remove( ready, t );
 	ELSIF t.mode = AwaitingLock THEN
-		SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, t.waitingOn) + Heaps.HeapBlockOffset, hdr);
+		SYSTEM.GET(SYSTEM.VAL(ADDRESS, t.waitingOn) + Heaps.HeapBlockOffset, hdr);
 		ASSERT(hdr IS Heaps.ProtRecBlock);
 		Remove( hdr.awaitingLock, t );  Machine.Release( Machine.Objects );
 		HALT( 97 )
 	ELSIF t.mode = AwaitingCond THEN
-		SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, t.waitingOn) + Heaps.HeapBlockOffset, hdr);
+		SYSTEM.GET(SYSTEM.VAL(ADDRESS, t.waitingOn) + Heaps.HeapBlockOffset, hdr);
 		ASSERT(hdr IS Heaps.ProtRecBlock);
 		Remove( hdr.awaitingCond, t );  Machine.Release( Machine.Objects );
 		HALT( 98 )
@@ -830,7 +830,7 @@ BEGIN
 	sp := Machine.CurrentSP();
 	t.restartSP := sp;
 	t.stackBottom := bp;
-	IF t.restartPC = SYSTEM.VAL(SYSTEM.ADDRESS, terminateProc) THEN DEC(t.restartSP, 4)
+	IF t.restartPC = SYSTEM.VAL(ADDRESS, terminateProc) THEN DEC(t.restartSP, 4)
 	ELSE DEC(t.restartSP, 8)
 	END;
 	IF TraceVerbose THEN
@@ -924,9 +924,9 @@ BEGIN
 	t.body := body; t.event := 0; fn.finalizer := FinalizeProcess;
 	Heaps.AddFinalizer(t, fn);
 	IF Restart IN flags THEN  (* restart object body *)
-		t.restartPC := SYSTEM.VAL(SYSTEM.ADDRESS, body);
+		t.restartPC := SYSTEM.VAL(ADDRESS, body);
 	ELSE  (* terminate process *)
-		t.restartPC := SYSTEM.VAL(SYSTEM.ADDRESS, terminateProc);
+		t.restartPC := SYSTEM.VAL(ADDRESS, terminateProc);
 	END;
 
 	t.handle := Kernel32.CreateThread(0, defaultStackSize, Wrapper, t, {}, t.id);
@@ -946,7 +946,7 @@ PROCEDURE CreateProcess*(body: Body; priority: LONGINT; flags: SET; obj: Protect
 VAR t : Process; heapBlock {UNTRACED}: Heaps.HeapBlock;
 BEGIN
 	ASSERT(priority >= 0, 1000); ASSERT(priority <=Realtime, 1001);
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, heapBlock);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, heapBlock);
 	ASSERT(heapBlock IS Heaps.ProtRecBlock); (* protected object *)
 	IF Restart IN flags THEN INCL(flags, Resistant) END;   (* SAFE => Restart & Resistant *)
 	NewProcess(body, priority, flags, obj, t);  INC(nProcs);  (* acquires Machine.Objects lock *)
@@ -960,7 +960,7 @@ END CreateProcess;
 PROCEDURE Lock*(obj: ProtectedObject; exclusive: BOOLEAN );
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; r: Process; res: LONGINT;
 BEGIN  (* {called from user level} *)
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock); (* protected object *)
 		ASSERT(exclusive)	(* shared not implemented yet *)
@@ -1016,7 +1016,7 @@ END FindCondition;
 PROCEDURE Unlock*( obj: ProtectedObject;  dummy: BOOLEAN );
 VAR hdr {UNTRACED}: Heaps.ProtRecBlock; t, c: Process; res: LONGINT;
 BEGIN
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock) (* protected object *)
 	END;
@@ -1063,7 +1063,7 @@ BEGIN
 			RETURN  (* condition already true *)
 		END
 	END;
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.HeapBlockOffset, hdr);
 	IF StrongChecks THEN
 		ASSERT(hdr IS Heaps.ProtRecBlock) (* protected object *)
 	END;
@@ -1163,14 +1163,14 @@ END Await;
 				END;
 			END;
 			(* push cont.Eip *) break[0] := 68X;
-			SYSTEM.MOVE( SYSTEM.ADR( t.state.PC ), SYSTEM.ADR( break[1] ), 4 );
+			SYSTEM.MOVE( ADDRESSOF( t.state.PC ), ADDRESSOF( break[1] ), 4 );
 			(* push ebp *) break[5] := 055X;
 			(* mov ebp, esp *) break[6] := 08BX;  break[7] := 0ECX;
 			(* push 13 *) break[8] := 06AX;  break[9] := 0DX;
 			(* int 3 *) break[10] := 0CCX;
 			(* mov esp, ebp *) break[11] := 08BX;  break[12] := 0E5X;
 			(* pop ebp *) break[13] := 05DX;
-			(* ret *) break[14] := 0C3X;  t.state.PC := SYSTEM.ADR( break[0] );
+			(* ret *) break[14] := 0C3X;  t.state.PC := ADDRESSOF( break[0] );
 			retBOOL := Kernel32.SetThreadContext( t.handle, t.state );
 			retBOOL := Kernel32.ResumeThread( t.handle );   (*  INC( Kernel.GClevel ); *)
 
@@ -1357,7 +1357,7 @@ BEGIN
 	ready.head := NIL; ready.tail := NIL;
 	tlsIndex := Kernel32.TlsAlloc();
 	ASSERT ( tlsIndex # Kernel32.TLSOutOfIndexes );
-	Kernel32.SendToDebugger("Modules.root", SYSTEM.ADR(Modules.root));
+	Kernel32.SendToDebugger("Modules.root", ADDRESSOF(Modules.root));
 	Init
 END Objects.
 

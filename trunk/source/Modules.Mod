@@ -5,7 +5,7 @@ IMPORT SYSTEM, Trace, Machine, Heaps;
 CONST
 	Ok* = 0;
 
-	AddressSize = SYSTEM.SIZEOF (SYSTEM.ADDRESS);	(* architecture dependent size of addresses in bytes *)
+	AddressSize = SIZEOF (ADDRESS);	(* architecture dependent size of addresses in bytes *)
 
 	MaxTags* = 16;	(* in type descriptor *)
 
@@ -35,13 +35,13 @@ TYPE
 	Command* = RECORD
 		(* Fields exported for initialization by loader/linker only! Consider read-only! *)
 		name*: Name; (* name of the procedure *)
-		argTdAdr*, retTdAdr* : SYSTEM.ADDRESS; (* address of type descriptors of argument and return type, 0 if no type *)
-		entryAdr* : SYSTEM.ADDRESS; (* entry address of procedure *)
+		argTdAdr*, retTdAdr* : ADDRESS; (* address of type descriptors of argument and return type, 0 if no type *)
+		entryAdr* : ADDRESS; (* entry address of procedure *)
 	END;
 
 	ExportDesc* = RECORD
-		fp*: SYSTEM.ADDRESS;
-		adr*: SYSTEM.ADDRESS;
+		fp*: ADDRESS;
+		adr*: ADDRESS;
 		exports*: LONGINT;
 		dsc*: ExportArray
 	END;
@@ -54,28 +54,28 @@ TYPE
 	TypeDesc* = POINTER TO RECORD   (* ug: adapt constant TypeDescRecSize if this type is changed !!! *)
 		descSize: LONGINT;
 		sentinel: LONGINT;	(* = MPO-4 *)
-		tag*: SYSTEM.ADDRESS; (* pointer to static type descriptor, only used by linker and loader *)
+		tag*: ADDRESS; (* pointer to static type descriptor, only used by linker and loader *)
 		flags*: SET;
 		mod*: Module;	(* hint only, because module may have been freed (at Heaps.ModOfs) *)
 		name*: Name;
 	END;
 
 	ExceptionTableEntry* = RECORD
-		pcFrom*: SYSTEM.ADDRESS;
-		pcTo*: SYSTEM.ADDRESS;
-		pcHandler*: SYSTEM.ADDRESS;
+		pcFrom*: ADDRESS;
+		pcTo*: ADDRESS;
+		pcHandler*: ADDRESS;
 	END;
 
 	ExceptionTable* = POINTER TO ARRAY OF ExceptionTableEntry;
 
 	ProcTableEntry* = RECORD
-		pcFrom*, pcLimit*, pcStatementBegin*, pcStatementEnd*: SYSTEM.ADDRESS;
+		pcFrom*, pcLimit*, pcStatementBegin*, pcStatementEnd*: ADDRESS;
 		noPtr*: LONGINT;
 	END;
 
 	ProcTable* = POINTER TO ARRAY OF ProcTableEntry;
 
-	PtrTable* = POINTER TO ARRAY OF SYSTEM.ADDRESS;
+	PtrTable* = POINTER TO ARRAY OF ADDRESS;
 
 	ProcOffsetEntry* = RECORD
 		data*: ProcTableEntry;	(* code offsets of procedures *)
@@ -90,10 +90,10 @@ TYPE
 			name*: Name;
 			init, published: BOOLEAN;
 			refcnt*: LONGINT; (* counts loaded modules that import this module *)
-			sb*: SYSTEM.ADDRESS; (* reference address between constants and local variables *)
-			entry*: POINTER TO ARRAY OF SYSTEM.ADDRESS;
+			sb*: ADDRESS; (* reference address between constants and local variables *)
+			entry*: POINTER TO ARRAY OF ADDRESS;
 			command*: POINTER TO ARRAY OF Command;
-			ptrAdr*: POINTER TO ARRAY OF SYSTEM.ADDRESS;
+			ptrAdr*: POINTER TO ARRAY OF ADDRESS;
 			typeInfo*: POINTER TO ARRAY OF TypeDesc;	(* traced explicitly in FindRoots *)
 			module*: POINTER TO ARRAY OF Module; (* imported modules: for reference counting *)
 			procTable*: ProcTable; (* information inserted by loader, removed after use in Publish *)
@@ -103,12 +103,12 @@ TYPE
 			term*: TerminationHandler;
 			exTable*: ExceptionTable;
 			noProcs*: LONGINT;	(* used for removing proc offsets when unloading module *)
-			firstProc*: SYSTEM.ADDRESS; (* procedure with lowest PC in module, also used for unloading *)
+			firstProc*: ADDRESS; (* procedure with lowest PC in module, also used for unloading *)
 			maxPtrs*: LONGINT;
 			crc*: LONGINT; (* crc of the object file -- for unique identification *)
 
 		PROCEDURE FindRoots;	(* override *)
-		VAR i: LONGINT; ptr: ANY; moduleName: Name; protRecBlockAdr: SYSTEM.ADDRESS; protRecBlock: Heaps.ProtRecBlock;
+		VAR i: LONGINT; ptr: ANY; moduleName: Name; protRecBlockAdr: ADDRESS; protRecBlock: Heaps.ProtRecBlock;
 		BEGIN
 			IF published THEN	(* mark global pointers *)
 				moduleName := name;
@@ -118,7 +118,7 @@ TYPE
 				END;
 
 				(* mark prot rec fields, for whatever reasons this does not work correctly in the statically linked heap *)
-				SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS,SELF)+Heaps.HeapBlockOffset, protRecBlockAdr);
+				SYSTEM.GET(SYSTEM.VAL(ADDRESS,SELF)+Heaps.HeapBlockOffset, protRecBlockAdr);
 				protRecBlock := SYSTEM.VAL(Heaps.ProtRecBlock, protRecBlockAdr);
 				Heaps.Mark(protRecBlock.awaitingLock.head);
 				Heaps.Mark(protRecBlock.awaitingCond.head);
@@ -139,7 +139,7 @@ VAR
 	extension-: ARRAY MaxObjFormats, 8 OF CHAR;
 	loader: ARRAY MaxObjFormats OF LoaderProc;
 	numLoaders: LONGINT;
-	kernelProc*: ARRAY 11 OF SYSTEM.ADDRESS;	(** kernel call addresses for loader *)
+	kernelProc*: ARRAY 11 OF ADDRESS;	(** kernel call addresses for loader *)
 
 	freeRoot*: Module;	(** list of freed modules (temporary) *)
 
@@ -280,7 +280,7 @@ BEGIN
 		IF (m # NIL) & ~m.published THEN	(* no race on m.published, as update is done below in Publish *)
 			Publish(m, new);
 			IF new THEN	(* m was successfully published *)
-				body := SYSTEM.VAL (Body, SYSTEM.ADR(m.code[0]));
+				body := SYSTEM.VAL (Body, ADDRESSOF(m.code[0]));
 				body; res := Ok; msg[0] := 0X;
 				m.init := TRUE	(* allow ThisCommand *)
 			ELSE
@@ -303,8 +303,8 @@ BEGIN
 END ThisModule;
 
 (** Return the module that contains code address pc or NIL if not found. Can also return freed modules. -- non-blocking variant for Reflection. *)
-PROCEDURE ThisModuleByAdr0*(pc: SYSTEM.ADDRESS): Module;
-VAR m: Module; cbase, dbase: SYSTEM.ADDRESS; i: LONGINT; found: BOOLEAN;
+PROCEDURE ThisModuleByAdr0*(pc: ADDRESS): Module;
+VAR m: Module; cbase, dbase: ADDRESS; i: LONGINT; found: BOOLEAN;
 BEGIN
 	i := 0; found := FALSE;
 	REPEAT
@@ -313,7 +313,7 @@ BEGIN
 			|1: m := freeRoot
 		END;
 		WHILE (m # NIL) & ~found DO
-			cbase := SYSTEM.ADR(m.code[0]); dbase := SYSTEM.ADR(m.data[0]);
+			cbase := ADDRESSOF(m.code[0]); dbase := ADDRESSOF(m.data[0]);
 				(* include 1 byte after module in module, therefore <= below *)
 			IF (cbase <= pc) & (pc <= cbase + LEN(m.code^)) THEN
 				found := TRUE
@@ -329,7 +329,7 @@ BEGIN
 END ThisModuleByAdr0;
 
 (** Return the module that contains code address pc or NIL if not found. Can also return freed modules. *)
-PROCEDURE ThisModuleByAdr*(pc: SYSTEM.ADDRESS): Module;
+PROCEDURE ThisModuleByAdr*(pc: ADDRESS): Module;
 VAR m: Module;
 BEGIN
 	Machine.Acquire(Machine.Modules);
@@ -339,7 +339,7 @@ BEGIN
 END ThisModuleByAdr;
 
 (*	Retrieve a procedure given a module name, the procedure name and some type information (kernel call) *)
-PROCEDURE GetProcedure*(CONST moduleName, procedureName : ARRAY OF CHAR; argTdAdr, retTdAdr : SYSTEM.ADDRESS; VAR entryAdr : SYSTEM.ADDRESS);
+PROCEDURE GetProcedure*(CONST moduleName, procedureName : ARRAY OF CHAR; argTdAdr, retTdAdr : ADDRESS; VAR entryAdr : ADDRESS);
 VAR module : Module; ignoreMsg : ARRAY 32 OF CHAR; i, res : LONGINT;
 BEGIN
 	module := ThisModule(moduleName, res, ignoreMsg);
@@ -377,7 +377,7 @@ BEGIN
 	RETURN type
 END ThisType;
 
-PROCEDURE ThisTypeByAdr*(adr: SYSTEM.ADDRESS; VAR m: Module; VAR t: TypeDesc);
+PROCEDURE ThisTypeByAdr*(adr: ADDRESS; VAR m: Module; VAR t: TypeDesc);
 BEGIN
 	IF adr # 0 THEN
 		Machine.Acquire(Machine.Modules);
@@ -394,7 +394,7 @@ END ThisTypeByAdr;
 PROCEDURE NewObj*(t : TypeDesc; isRealtime: BOOLEAN) : ANY;
 VAR x : ANY;
 BEGIN
-	Heaps.NewRec(x, SYSTEM.VAL (SYSTEM.ADDRESS, t.tag), isRealtime);
+	Heaps.NewRec(x, SYSTEM.VAL (ADDRESS, t.tag), isRealtime);
 	RETURN x;
 END NewObj;
 
@@ -403,14 +403,14 @@ PROCEDURE TypeOf*(obj : ANY): TypeDesc;
 VAR
 	m : Module;
 	t : TypeDesc;
-	adr : SYSTEM.ADDRESS;
+	adr : ADDRESS;
 BEGIN
-	SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, obj) + Heaps.TypeDescOffset, adr);
+	SYSTEM.GET(SYSTEM.VAL(ADDRESS, obj) + Heaps.TypeDescOffset, adr);
 	ThisTypeByAdr(adr, m, t);
 	RETURN t;
 END TypeOf;
 
-PROCEDURE FindPos(key: SYSTEM.ADDRESS; VAR pos: LONGINT): BOOLEAN;
+PROCEDURE FindPos(key: ADDRESS; VAR pos: LONGINT): BOOLEAN;
 VAR l, r, x: LONGINT; isHit: BOOLEAN;
 BEGIN
 	l := 0; r := numProcs - 1;
@@ -428,7 +428,7 @@ BEGIN
 END FindPos;
 
 (** searches for the given pc in the global ProcKeyTable, if found it returns the corresponding data element *)
-PROCEDURE FindProc*(pc: SYSTEM.ADDRESS; VAR data: ProcTableEntry; VAR index: LONGINT; VAR success: BOOLEAN);
+PROCEDURE FindProc*(pc: ADDRESS; VAR data: ProcTableEntry; VAR index: LONGINT; VAR success: BOOLEAN);
 VAR x: LONGINT;
 BEGIN
 	success := FindPos(pc, x);
@@ -528,7 +528,7 @@ END InsertProcOffsets;
 
 (** deletes a sequence of entries given in procTable from the global procOffsets table - the table remains sorted,
 	this procedure is called within AosLocks.AosModules, so no lock is taken here. *)
-PROCEDURE DeleteProcOffsets(firstProcPC: SYSTEM.ADDRESS; noProcsInMod: LONGINT);
+PROCEDURE DeleteProcOffsets(firstProcPC: ADDRESS; noProcsInMod: LONGINT);
 VAR pos, i, noPtrsInMod, oldIndex: LONGINT; success: BOOLEAN;
 BEGIN
 	IF noProcsInMod > 0 THEN
@@ -566,7 +566,7 @@ END DeleteProcOffsets;
 PROCEDURE InstallTermHandler*(h: TerminationHandler);
 VAR m: Module;
 BEGIN
-	m := ThisModuleByAdr(SYSTEM.VAL (SYSTEM.ADDRESS, h));
+	m := ThisModuleByAdr(SYSTEM.VAL (ADDRESS, h));
 	IF m # NIL THEN
 		m.term := h	(* overwrite existing handler, if any *)
 	END
@@ -581,7 +581,7 @@ BEGIN
 		IF m.term # NIL THEN	(* call termination handler *)
 			term := m.term; m.term := NIL; term	(* may trap *)
 		END;
-		Heaps.CleanupModuleFinalizers(SYSTEM.ADR(m.code[0]), LEN(m.code), m.name)
+		Heaps.CleanupModuleFinalizers(ADDRESSOF(m.code[0]), LEN(m.code), m.name)
 	END;
 	res := Ok; msg[0] := 0X;
 	Machine.Acquire(Machine.Modules);
@@ -648,7 +648,7 @@ BEGIN
 		(* clean up finalizers *)
 		m := root;
 		WHILE m # NIL DO
-			Heaps.CleanupModuleFinalizers(SYSTEM.ADR(m.code[0]), LEN(m.code), m.name);
+			Heaps.CleanupModuleFinalizers(ADDRESSOF(m.code[0]), LEN(m.code), m.name);
 			m := m.next
 		END;
 		IF trace THEN
@@ -661,9 +661,9 @@ BEGIN
 END Shutdown;
 
 (* Is this PC handled in the corresponding module. deep = scan the whole stack. *)
-PROCEDURE IsExceptionHandled*(VAR pc, fp: SYSTEM.ADDRESS; deep: BOOLEAN): BOOLEAN;
+PROCEDURE IsExceptionHandled*(VAR pc, fp: ADDRESS; deep: BOOLEAN): BOOLEAN;
 VAR
-	handler: SYSTEM.ADDRESS;
+	handler: ADDRESS;
 BEGIN
 	IF deep THEN
 		handler := GetExceptionHandler(pc);
@@ -686,11 +686,11 @@ END IsExceptionHandled;
 (* Is this PC handled in the corresponding module. If the PC is handled the PC of the
 	handler is return else -1 is return. There is no problem concurrently accessing this
 	procedure, there is only reading work. *)
-PROCEDURE GetExceptionHandler*(pc: SYSTEM.ADDRESS): SYSTEM.ADDRESS;
+PROCEDURE GetExceptionHandler*(pc: ADDRESS): ADDRESS;
 VAR
 	m: Module;
 
-	PROCEDURE BinSearch(exTable: ExceptionTable; key: SYSTEM.ADDRESS): SYSTEM.ADDRESS;
+	PROCEDURE BinSearch(exTable: ExceptionTable; key: ADDRESS): ADDRESS;
 	VAR
 		x, l, r: LONGINT;
 	BEGIN

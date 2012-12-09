@@ -10,11 +10,11 @@ IMPORT S := SYSTEM, Heaps := BootLinkerHeaps,  Modules := BootLinkerModules, Loa
 		Commands, Streams, Files;
 
 CONST	
-	AdrSize = S.SIZEOF( S.ADDRESS );
+	AdrSize = SIZEOF( ADDRESS );
 
 
 TYPE
-	Address = S.ADDRESS; 
+	Address = ADDRESS; 
 
 VAR
 	out: Streams.Writer;

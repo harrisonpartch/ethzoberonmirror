@@ -107,17 +107,17 @@ TYPE
 			LOOP
 				NEW(tn); w.Reset;
 				CASE i OF
-					0: w.String("USB Version: "); w.Hex(SYSTEM.LSH(d.bcdUSB, -8) MOD 10H, -2); w.Char("."); w.Hex(d.bcdUSB MOD 10H, -2);
+					0: w.String("USB Version: "); w.Hex(LSH(d.bcdUSB, -8) MOD 10H, -2); w.Char("."); w.Hex(d.bcdUSB MOD 10H, -2);
 					|1: w.String("Class: "); w.Hex(d.bDeviceClass, -2); w.Char("H");
 						IF class # NIL THEN w. String(" ("); w.String(class^); w.Char(")"); END;
 					|2: w.String("SubClass: "); w.Hex(d.bDeviceSubClass, -2); w.Char("H");
 						IF subclass # NIL THEN w. String(" ("); w.String(subclass^); w.Char(")"); END;
 					|3: w.String("Protocoll: "); w.Hex(d.bDeviceProtocol, -2); w.Char("H");
 						IF protocol # NIL THEN w. String(" ("); w.String(protocol^); w.Char(")"); END;
-					|4: w.String("idVendor: "); w.Hex(SYSTEM.LSH(d.idVendor, -8) MOD 100H, -2); w.Hex(d.idVendor MOD 100H, -2); w.Char("H");
+					|4: w.String("idVendor: "); w.Hex(LSH(d.idVendor, -8) MOD 100H, -2); w.Hex(d.idVendor MOD 100H, -2); w.Char("H");
 						IF vendor # NIL THEN w.String(" ("); w.String(vendor^); w.Char(")"); END;
-					|5: w.String("idProduct: "); w.Hex(SYSTEM.LSH(d.idProduct, -8) MOD 100H, -2); w.Hex(d.idProduct MOD 100H, -2); w.Char("H");
-					|6: w.String("Device Version: "); w.Hex(SYSTEM.LSH(d.bcdDevice, -8) MOD 10H, -2); w.Char("."); w.Hex(d.bcdDevice MOD 10H, -2);
+					|5: w.String("idProduct: "); w.Hex(LSH(d.idProduct, -8) MOD 100H, -2); w.Hex(d.idProduct MOD 100H, -2); w.Char("H");
+					|6: w.String("Device Version: "); w.Hex(LSH(d.bcdDevice, -8) MOD 10H, -2); w.Char("."); w.Hex(d.bcdDevice MOD 10H, -2);
 					|7: w.String("NumConfigurations: "); w.Int(d.bNumConfigurations, 0);
 					|8: w.String("iManufacturer: "); w.Int(d.iManufacturer, 0); w.String(" (");
 					      IF d.iManufacturer = 0 THEN w.String("No string descriptor)");
@@ -546,7 +546,7 @@ TYPE
 			w.Get(string); AddUsbNode(tn, parent, string);
 		END AddVideoClass;
 
-		PROCEDURE AddConfiguration(c :  Usb.ConfigurationDescriptor; nbr: SYSTEM.ADDRESS; parent : WMTrees.TreeNode);
+		PROCEDURE AddConfiguration(c :  Usb.ConfigurationDescriptor; nbr: ADDRESS; parent : WMTrees.TreeNode);
 		VAR dn, tn  : WMTrees.TreeNode; w : Streams.StringWriter; i : LONGINT;
 		BEGIN
 			NEW(dn); NEW(w, WriterSize);
@@ -664,14 +664,14 @@ TYPE
 			END;
 			IF SYSTEM.VAL(LONGINT, e.bmAttributes * {0..1}) = 1 THEN (* Isochronous endpoint *)
 				w.String(" (Synchronization: ");
-				CASE SYSTEM.VAL(LONGINT, SYSTEM.LSH(e.bmAttributes * {2..3}, -2)) OF
+				CASE SYSTEM.VAL(LONGINT, LSH(e.bmAttributes * {2..3}, -2)) OF
 					0: w.String("None");
 					|1: w.String("Asynchronous");
 					|2: w.String("Adaptive");
 					|3: w.String("Synchronous");
 				END;
 				w.String(", Usage: ");
-				CASE SYSTEM.VAL(LONGINT, SYSTEM.LSH(e.bmAttributes * {4..5}, -4)) OF
+				CASE SYSTEM.VAL(LONGINT, LSH(e.bmAttributes * {4..5}, -4)) OF
 					0: w.String("Data");
 					|1: w.String("Feedback");
 					|2: w.String("Implicit Feedback Data");
@@ -688,7 +688,7 @@ TYPE
 		END AddEndpoint;
 
 		PROCEDURE ViewModeDetailed(dev : Usb.UsbDevice; parent : WMTrees.TreeNode; w : Streams.StringWriter);
-		VAR i : SYSTEM.ADDRESS; cn : WMTrees.TreeNode;
+		VAR i : ADDRESS; cn : WMTrees.TreeNode;
 		BEGIN
 			ASSERT((dev # NIL) & (parent # NIL) & (w # NIL) );
 			ASSERT(viewmode = VmDetailed);

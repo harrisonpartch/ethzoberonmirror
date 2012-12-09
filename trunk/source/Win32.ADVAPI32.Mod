@@ -45,10 +45,10 @@ CONST
 
 TYPE
 	(** Handle to a registry key. *)
-	HKEY* = Kernel32.ADDRESS;
+	HKEY* = ADDRESS;
 
 	(* ALEX *)
-    	LPSTR* = Kernel32.ADDRESS;
+    	LPSTR* = ADDRESS;
     	LPCSTR* = ARRAY  OF CHAR;
     	HWND* = Kernel32.HANDLE;
 	HINSTANCE* = Kernel32.HINSTANCE;
@@ -56,7 +56,7 @@ TYPE
 	LPCTSTR* = LPCSTR;
 	SC_HANDLE* = Kernel32.HANDLE;
 	DWORD* = LONGINT;
-	LPDWORD* = Kernel32.ADDRESS;
+	LPDWORD* = ADDRESS;
 	BOOL* = Kernel32.BOOL;
 	LPSERVICE_MAIN_FUNCTIONA = PROCEDURE {WINAPI} (dwNumServicesArgs: DWORD; VAR lpServiceArgVectors: ARRAY  OF CHAR): BOOL;
 	LPSERVICE_MAIN_FUNCTION* = LPSERVICE_MAIN_FUNCTIONA;
@@ -109,7 +109,7 @@ VAR
 			about a specified file. *)
 	GetFileVersionInfoSize-: PROCEDURE {WINAPI} (lpstrFilename: ARRAY   OF CHAR;  VAR lpdwHandle: LONGINT): LONGINT;
 	(** The VerQueryValue function returns selected version information from the specified version-information resource. *)
-	VerQueryValue-: PROCEDURE {WINAPI} (pBlock: ARRAY   OF SYSTEM.BYTE;  lpSubBlock: ARRAY   OF CHAR;  VAR lplpBuffer: Kernel32.ADDRESS;  VAR puLen: LONGINT): Kernel32.BOOL;
+	VerQueryValue-: PROCEDURE {WINAPI} (pBlock: ARRAY   OF SYSTEM.BYTE;  lpSubBlock: ARRAY   OF CHAR;  VAR lplpBuffer: ADDRESS;  VAR puLen: LONGINT): Kernel32.BOOL;
 
 
 
@@ -220,7 +220,7 @@ VAR
 
 
 
-PROCEDURE GetProcAddress(hModule: LONGINT; VAR adr: LONGINT; procName: ARRAY OF CHAR);
+PROCEDURE GetProcAddress(hModule: ADDRESS; VAR adr: ADDRESS; procName: ARRAY OF CHAR);
 BEGIN
 	Kernel32.GetProcAddress(hModule,procName,adr);
 END GetProcAddress;
@@ -233,34 +233,34 @@ BEGIN
 	str := "ADVAPI32.DLL";
 	mod := Kernel32.LoadLibrary(str);
 	advapi32 := mod;
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetUserName  ),"GetUserNameA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegCloseKey  ),"RegCloseKey");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegCreateKeyEx  ),"RegCreateKeyExA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegDeleteKey  ),"RegDeleteKeyA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegDeleteValue  ),"RegDeleteValueA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegEnumKeyEx  ),"RegEnumKeyExA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegEnumValue  ),"RegEnumValueA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegOpenKeyEx  ),"RegOpenKeyExA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegQueryValueEx  ),"RegQueryValueExA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RegSetValueEx  ),"RegSetValueExA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetUserName  ),"GetUserNameA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegCloseKey  ),"RegCloseKey");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegCreateKeyEx  ),"RegCreateKeyExA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegDeleteKey  ),"RegDeleteKeyA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegDeleteValue  ),"RegDeleteValueA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegEnumKeyEx  ),"RegEnumKeyExA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegEnumValue  ),"RegEnumValueA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegOpenKeyEx  ),"RegOpenKeyExA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegQueryValueEx  ),"RegQueryValueExA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RegSetValueEx  ),"RegSetValueExA");
 str := "Version";
 mod := Kernel32.LoadLibrary(str);
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetFileVersionInfo ),"GetFileVersionInfoA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetFileVersionInfoSize),"GetFileVersionInfoSizeA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,VerQueryValue),"VerQueryValueA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetFileVersionInfo ),"GetFileVersionInfoA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetFileVersionInfoSize),"GetFileVersionInfoSizeA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,VerQueryValue),"VerQueryValueA");
 
 		(* ALEX *)
-		Kernel32.GetProcAddress(advapi32, "CloseServiceHandle", SYSTEM.VAL(LONGINT, CloseServiceHandle));
-		Kernel32.GetProcAddress(advapi32, "CreateServiceA", SYSTEM.VAL(LONGINT, CreateService));
-		Kernel32.GetProcAddress(advapi32, "DeleteService", SYSTEM.VAL(LONGINT, DeleteService));
-		Kernel32.GetProcAddress(advapi32, "OpenSCManagerA", SYSTEM.VAL(LONGINT, OpenSCManager));
-		Kernel32.GetProcAddress(advapi32, "OpenServiceA", SYSTEM.VAL(LONGINT, OpenService));
+		Kernel32.GetProcAddress(advapi32, "CloseServiceHandle", SYSTEM.VAL(ADDRESS, CloseServiceHandle));
+		Kernel32.GetProcAddress(advapi32, "CreateServiceA", SYSTEM.VAL(ADDRESS, CreateService));
+		Kernel32.GetProcAddress(advapi32, "DeleteService", SYSTEM.VAL(ADDRESS, DeleteService));
+		Kernel32.GetProcAddress(advapi32, "OpenSCManagerA", SYSTEM.VAL(ADDRESS, OpenSCManager));
+		Kernel32.GetProcAddress(advapi32, "OpenServiceA", SYSTEM.VAL(ADDRESS, OpenService));
 
-		Kernel32.GetProcAddress(advapi32, "RegisterServiceCtrlHandlerA", SYSTEM.VAL(LONGINT, RegisterServiceCtrlHandler));
-		Kernel32.GetProcAddress(advapi32, "SetServiceStatusA", SYSTEM.VAL(LONGINT, SetServiceStatus));
+		Kernel32.GetProcAddress(advapi32, "RegisterServiceCtrlHandlerA", SYSTEM.VAL(ADDRESS, RegisterServiceCtrlHandler));
+		Kernel32.GetProcAddress(advapi32, "SetServiceStatusA", SYSTEM.VAL(ADDRESS, SetServiceStatus));
 
-		Kernel32.GetProcAddress(advapi32, "StartServiceA", SYSTEM.VAL(LONGINT, StartService));
-		Kernel32.GetProcAddress(advapi32, "StartServiceCtrlDispatcherA", SYSTEM.VAL(LONGINT, StartServiceCtrlDispatcher));
+		Kernel32.GetProcAddress(advapi32, "StartServiceA", SYSTEM.VAL(ADDRESS, StartService));
+		Kernel32.GetProcAddress(advapi32, "StartServiceCtrlDispatcherA", SYSTEM.VAL(ADDRESS, StartServiceCtrlDispatcher));
 		Modules.InstallTermHandler(TermMod)
 
 END Init;

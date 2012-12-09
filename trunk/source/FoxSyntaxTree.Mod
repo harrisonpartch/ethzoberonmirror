@@ -623,7 +623,7 @@ TYPE
 
 	END ByteType;
 
-	(** <<SYSTEM.ADDRESS>>
+	(** <<ADDRESS>>
 		address type
 	**)
 	AddressType*=OBJECT(BasicType)
@@ -648,7 +648,7 @@ TYPE
 		END Accept;
 	END AddressType;
 
-	(** <<SYSTEM.SIZE>>
+	(** <<SIZE>>
 		size type (signed address type)
 	**)
 	SizeType*=OBJECT(BasicType)

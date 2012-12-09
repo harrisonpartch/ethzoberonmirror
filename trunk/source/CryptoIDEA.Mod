@@ -114,7 +114,7 @@ TYPE
 
 	PROCEDURE shor( a, b: CARD16 ): CARD16;
 	BEGIN
-		RETURN S.VAL( LI, S.VAL( SET, S.LSH( a, 9 ) ) + S.VAL( SET, S.LSH( b, -7 ) ) ) MOD 10000H;
+		RETURN S.VAL( LI, S.VAL( SET, LSH( a, 9 ) ) + S.VAL( SET, LSH( b, -7 ) ) ) MOD 10000H;
 	END shor;
 
 	PROCEDURE CalcEncryptionKeys( CONST src: ARRAY OF CHAR;  pos: LONGINT;  VAR e: KeyBlock );
@@ -193,7 +193,7 @@ TYPE
 		ELSIF b = 0 THEN  p := 10001H - a
 		ELSE
 			q := (a MOD 10000H)*(b MOD 10000H);
-			p := (q MOD 10000H) - S.LSH( q, -16 );
+			p := (q MOD 10000H) - LSH( q, -16 );
 			IF p <= 0 THEN  INC( p, 10001H )  END
 		END;
 		RETURN p MOD 10000H;

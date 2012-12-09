@@ -49,7 +49,7 @@ MODULE PCI;	(** non-portable *)
 		(*
 		RouteBuffer = RECORD
 			BufferSize, SegSelector: INTEGER;
-			DataBufferAdr: SYSTEM.ADDRESS
+			DataBufferAdr: ADDRESS
 		END;
 		*)
 
@@ -178,8 +178,8 @@ MODULE PCI;	(** non-portable *)
 		IF pciEnabled THEN
 			(*
 			eax := PCIFunctionId + getIrqRoutingOptions;
-			rb.BufferSize := dbN; rb.SegSelector := 0; rb.DataBufferAdr := SYSTEM.ADR(db[0]);
-			ebx := 0H; edi := Machine.Ensure32BitAddress(SYSTEM.VAL (SYSTEM.ADDRESS, rb));
+			rb.BufferSize := dbN; rb.SegSelector := 0; rb.DataBufferAdr := ADDRESSOF(db[0]);
+			ebx := 0H; edi := Machine.Ensure32BitAddress(SYSTEM.VAL (ADDRESS, rb));
 			state := Machine.DisableInterrupts();
 			pcicall(pciEntry, eax, ebx, ecx, edx, esi, edi, eflags);
 			Machine.RestoreInterrupts(state);

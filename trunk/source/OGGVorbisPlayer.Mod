@@ -281,7 +281,7 @@ TYPE
 			tmp: LONGINT;
 			BEGIN
 			tmp := 1;
-			res := GetBits(buf, 31) + GetBit(buf) * SYSTEM.LSH(tmp, 31);
+			res := GetBits(buf, 31) + GetBit(buf) * LSH(tmp, 31);
 			RETURN res;
 		END Get32UnsignedBits;
 
@@ -1069,7 +1069,7 @@ TYPE
 					class := partitionClassList[i];
 					cdim := classDimensions[class];
 					cbits := classSubclasses[class];
-					csub := SYSTEM.LSH(LONG(LONG(1)), cbits) - 1;
+					csub := LSH(LONG(LONG(1)), cbits) - 1;
 					cval := 0;
 					IF (cbits > 0) THEN
 						book := classMasterbooks[class];
@@ -1078,7 +1078,7 @@ TYPE
 					END;
 					FOR j := 0 TO cdim-1 DO
 						book := subclassBooks[class, BIT.LAND(cval, csub)];
-						cval := SYSTEM.LSH(cval, -cbits); (* right shift cval by cbits *)
+						cval := LSH(cval, -cbits); (* right shift cval by cbits *)
 						IF (book >= 0) THEN
 							codebook := decState.codec.codebooks[book];
 							decState.floor1Y[j + offset] := codebook.GetCodeword(bufReader, buf)
@@ -1126,7 +1126,7 @@ TYPE
 						RETURN FALSE
 					END
 				END;
-				FOR j := 0 TO (SYSTEM.LSH(LONG(LONG(1)),classSubclasses[i])) - 1 DO
+				FOR j := 0 TO (LSH(LONG(LONG(1)),classSubclasses[i])) - 1 DO
 					subclassBooks[i, j] := bufReader.GetBits(buf, 8) - 1;
 					IF (subclassBooks[i, j] > codec.codebookCnt) THEN
 						IF (Error IN Debug) THEN
@@ -1151,7 +1151,7 @@ TYPE
 			END;
 			INC(values, 2);
 			xList[0] := 0;
-			xList[1] := SYSTEM.LSH(LONG(LONG(1)), rangebits);
+			xList[1] := LSH(LONG(LONG(1)), rangebits);
 
 			(* sort xList => do not apply, xList is used unsorted only: xListSortPtr *)
 			xListSize := 2;
@@ -1735,7 +1735,7 @@ TYPE
 				length := cur.long;
 				IF (length # UnusedCodebookEntry) THEN
 					entry := marker[length];
-					tmp := SYSTEM.LSH(entry, -1*length); (* <=> entry >> length in C *)
+					tmp := LSH(entry, -1*length); (* <=> entry >> length in C *)
 					IF ((length < 32) & (tmp # 0)) THEN
 						IF (Error IN Debug) THEN
 							OGGUtilities.String("error@OGGUtilities::HuffmanTree::MakeCodewords() - lengths must specify an overpopulated tree");
@@ -1754,7 +1754,7 @@ TYPE
 								IF (j = 1) THEN
 									INC(marker[1])
 								ELSE
-									marker[j] := SYSTEM.LSH(marker[j-1], 1) (* <=> marker[j-1] << 1 *)
+									marker[j] := LSH(marker[j-1], 1) (* <=> marker[j-1] << 1 *)
 								END;
 								EXIT
 							END;
@@ -1767,9 +1767,9 @@ TYPE
 						dangle them from our *new* node *)
 					LOOP
 						FOR j := length+1 TO OGGUtilities.MaxCodewordLength-1 DO
-							IF (SYSTEM.LSH(marker[j], -1) = entry) THEN
+							IF (LSH(marker[j], -1) = entry) THEN
 								entry := marker[j];
-								marker[j] := SYSTEM.LSH(marker[j-1], 1)
+								marker[j] := LSH(marker[j-1], 1)
 							ELSE
 								EXIT
 							END
@@ -1960,14 +1960,14 @@ TYPE
 				float := - Math.sin((Math.pi / n) * (4 * i + 2));
 				trig[co + i * 2] := OGGUtilities.ScaleUp(float);
 			END;
-			mask := SYSTEM.LSH(LONG(LONG(1)), log2n - 1) - 1;
-			msb := SYSTEM.LSH(LONG(LONG(1)), log2n - 2);
+			mask := LSH(LONG(LONG(1)), log2n - 1) - 1;
+			msb := LSH(LONG(LONG(1)), log2n - 2);
 			FOR i := 0 TO n DIV 8 - 1 DO
 				acc := 0;
 				j := 0;
-				WHILE (SYSTEM.LSH(msb, -j) # 0) DO
-					IF ((BIT.LAND(SYSTEM.LSH(msb, -j), i)) # 0) THEN
-						acc := BIT.LOR(acc, SYSTEM.LSH(LONG(LONG(1)), j))
+				WHILE (LSH(msb, -j) # 0) DO
+					IF ((BIT.LAND(LSH(msb, -j), i)) # 0) THEN
+						acc := BIT.LOR(acc, LSH(LONG(LONG(1)), j))
 					END;
 					INC(j)
 				END;
@@ -2096,8 +2096,8 @@ TYPE
 			wA, wB, aev, aov: HUGEINT;
 		BEGIN
 			FOR i := 0 TO log2n - 3 - 1 DO
-				k0 := SYSTEM.LSH(n, -(i + 2));
-				k1 := SYSTEM.LSH(LONG(LONG(1)), i + 3);
+				k0 := LSH(n, -(i + 2));
+				k1 := LSH(LONG(LONG(1)), i + 3);
 				wbase := n2 - 2;
 				a := 0;
 				FOR r := 0 TO (k0 DIV 4) - 1 DO
@@ -2107,7 +2107,7 @@ TYPE
 					aov := trig[a + 1];
 					DEC(wbase, 2);
 					INC(k0);
-					sEnd := SYSTEM.LSH((LONG(LONG(2))), i);
+					sEnd := LSH((LONG(LONG(2))), i);
 					FOR s := 0 TO sEnd - 1 DO
 						wB := w[w1] - w[w2];
 						x[w1] := w[w1] + w[w2];
@@ -2526,9 +2526,9 @@ TYPE
 
 			(* blocksizes *)
 			tmp := bufReader.GetBits(buf, 4);
-			info.blocksizes[0] := SYSTEM.LSH(LONG(LONG(1)), tmp); (* blocksize0 := 2^tmp *)
+			info.blocksizes[0] := LSH(LONG(LONG(1)), tmp); (* blocksize0 := 2^tmp *)
 			tmp := bufReader.GetBits(buf, 4);
-			info.blocksizes[1] := SYSTEM.LSH(LONG(LONG(1)), tmp); (* blocksize1 := 2^tmp *)
+			info.blocksizes[1] := LSH(LONG(LONG(1)), tmp); (* blocksize1 := 2^tmp *)
 			IF (info.blocksizes[0] > info.blocksizes[1]) THEN RETURN ErrorIdentification END;
 
 			(* framing bit *)

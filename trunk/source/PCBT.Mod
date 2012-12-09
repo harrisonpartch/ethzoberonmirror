@@ -213,7 +213,7 @@ TYPE
 			IF size >= LEN(const^) THEN
 				INC(size,(-size) MOD 256); (* align to 255 bytes to prevent from allocating too often *)
 				NEW(c, size);
-				SYSTEM.MOVE(SYSTEM.ADR(const[0]), SYSTEM.ADR(c[0]), LEN(const));
+				SYSTEM.MOVE(ADDRESSOF(const[0]), ADDRESSOF(c[0]), LEN(const));
 				const := c
 			END;
 			size := constsize;
@@ -232,7 +232,7 @@ TYPE
 			ASSERT(base+len < MaxConstSize);
 			IF base+len >= LEN(const^) THEN
 				NEW(c, LEN(const) + 256);
-				SYSTEM.MOVE(SYSTEM.ADR(const[0]), SYSTEM.ADR(c[0]), LEN(const));
+				SYSTEM.MOVE(ADDRESSOF(const[0]), ADDRESSOF(c[0]), LEN(const));
 				const := c
 			END;
 
@@ -244,7 +244,7 @@ TYPE
 				END;
 			END;
 
-			SYSTEM.MOVE(SYSTEM.ADR(a[0]), SYSTEM.ADR(const[base]), len);
+			SYSTEM.MOVE(ADDRESSOF(a[0]), ADDRESSOF(const[base]), len);
 			INC(constsize, SHORT(len + (-len) MOD 4));
 			RETURN base
 		END NewConst;
@@ -260,11 +260,11 @@ TYPE
 			ASSERT(base+len < MaxConstSize);
 			IF base+len >= LEN(const^) THEN
 				NEW(c, LEN(const) + 256);
-				SYSTEM.MOVE(SYSTEM.ADR(const[0]), SYSTEM.ADR(c[0]), LEN(const));
+				SYSTEM.MOVE(ADDRESSOF(const[0]), ADDRESSOF(c[0]), LEN(const));
 				const := c
 			END;
 
-			SYSTEM.MOVE(SYSTEM.ADR(a[0]), SYSTEM.ADR(const[base]), len);
+			SYSTEM.MOVE(ADDRESSOF(a[0]), ADDRESSOF(const[base]), len);
 
 			INC(constsize, SHORT(len + (-len) MOD 4));
 			RETURN base
@@ -284,10 +284,10 @@ TYPE
 			clen := LEN( const^ );
 			IF base + alen >= clen THEN
 				NEW( c, clen + 256 + 256 * (base + alen - clen) DIV 256 );
-				SYSTEM.MOVE( SYSTEM.ADR( const[0] ), SYSTEM.ADR( c[0] ), clen );  const := c;
+				SYSTEM.MOVE( ADDRESSOF( const[0] ), ADDRESSOF( c[0] ), clen );  const := c;
 			END;
 			tbase := base;
-			SYSTEM.MOVE( SYSTEM.ADR( a[0] ), SYSTEM.ADR( const[tbase] ), tlen );   (* data copy *)
+			SYSTEM.MOVE( ADDRESSOF( a[0] ), ADDRESSOF( const[tbase] ), tlen );   (* data copy *)
 			INC( constsize, SHORT( alen + (-alen) MOD 4 ) );
 			RETURN base;
 		END NewArrayConst;

@@ -909,7 +909,7 @@ END Len;
 PROCEDURE CopyBuffer*(VAR bufFrom: ARRAY OF CHAR; offFrom: LONGINT; VAR bufTo: ARRAY OF CHAR; offTo, len: LONGINT);
 BEGIN
 	ASSERT(offTo + len <= LEN(bufTo));
-	SYSTEM.MOVE(SYSTEM.ADR(bufFrom[offFrom]), SYSTEM.ADR(bufTo[offTo]), len);
+	SYSTEM.MOVE(ADDRESSOF(bufFrom[offFrom]), ADDRESSOF(bufTo[offTo]), len);
 END CopyBuffer;
 
 END RfsClientProxy.

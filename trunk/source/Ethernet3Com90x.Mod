@@ -195,7 +195,7 @@ TYPE
 								IF buf # NIL THEN
 									(* get buffer from UPD for upcall *)
 									buf := upd.buffer;
-									type := LONG(SYSTEM.ROT(upd.type, 8)) MOD 10000H;
+									type := LONG(ROT(upd.type, 8)) MOD 10000H;
 									buf.ofs := 0;
 									buf.len := len;
 									buf.calcChecksum := {};
@@ -243,7 +243,7 @@ TYPE
 			InitDPD(dpd);
 			InitUPD(upd);
 			InitAddress(dev);	(* sets dev.local and dev.broadcast *)
-			SYSTEM.MOVE(SYSTEM.ADR(dev.local[0]), SYSTEM.ADR(dpd.src[0]), 6);
+			SYSTEM.MOVE(ADDRESSOF(dev.local[0]), ADDRESSOF(dpd.src[0]), 6);
 			InitInterface(SELF);
 			InitRegisters(SELF);
 			IF (irq >= 1) & (irq <= 15) THEN
@@ -317,17 +317,17 @@ TYPE
 			base := ctrl.base; dpd := ctrl.dpd;
 
 			(* set up ethernet header *)
-			SYSTEM.MOVE(SYSTEM.ADR(dst[0]), SYSTEM.ADR(dpd.dst[0]), 6);
-			dpd.type := SYSTEM.ROT(SHORT(type), 8);
+			SYSTEM.MOVE(ADDRESSOF(dst[0]), ADDRESSOF(dpd.dst[0]), 6);
+			dpd.type := ROT(SHORT(type), 8);
 
 			(* set up the download *)
 			IssueCommand(base, 3002H);	(* DnStall (p. 10-4) *)
 			CheckTransmission(base);
 
 			(* set up the DPD *)
-			Machine.TranslateVirtual(SYSTEM.ADR(l3hdr[0]), h3len, h3n, h3phys);
-			Machine.TranslateVirtual(SYSTEM.ADR(l4hdr[0]), h4len, h4n, h4phys);
-			Machine.TranslateVirtual(SYSTEM.ADR(data[dofs]), dlen, dn, dphys);
+			Machine.TranslateVirtual(ADDRESSOF(l3hdr[0]), h3len, h3n, h3phys);
+			Machine.TranslateVirtual(ADDRESSOF(l4hdr[0]), h4len, h4n, h4phys);
+			Machine.TranslateVirtual(ADDRESSOF(data[dofs]), dlen, dn, dphys);
 
 			(* max. 2 fragments allowed (all packets smaller than one 4K page) *)
 			ASSERT(h3n <= 2);
@@ -341,7 +341,7 @@ TYPE
 				Network.Copy(l3hdr, hdr, 0, 0, h3len);
 				Network.Copy(l4hdr, hdr, 0, h3len, h4len);
 				hlen := h3len + h4len;
-				Machine.TranslateVirtual(SYSTEM.ADR(hdr[0]), hlen, hn, hphys);
+				Machine.TranslateVirtual(ADDRESSOF(hdr[0]), hlen, hn, hphys);
 				PutToDPD(hn, hphys);
 			ELSE
 				(* this is the normal case *)
@@ -411,7 +411,7 @@ BEGIN
 	ReadConfig(base, 0CH, flags, word[2]);	(* OEM Node Address / word 2 *)
 	SetWindow(base, 2);
 	FOR i := 0 TO 2 DO
-		word[i] := SYSTEM.ROT(word[i], 8);
+		word[i] := ROT(word[i], 8);
 		d.local[2*i] := CHR(word[i] MOD 100H);
 		d.local[2*i+1] := CHR(word[i] DIV 100H MOD 100H);
 		Machine.Portout16(base+2*i, word[i]);	(* StationAddress *)
@@ -446,7 +446,7 @@ BEGIN
 	media := GetSetting("3C90xMedia");
 	IF media # 0 THEN
 		ASSERT((media >= 1) & (media <= 9));
-		ctrl.media := SYSTEM.VAL(SET, SYSTEM.LSH(media-1, 20)) * MediaMask;
+		ctrl.media := SYSTEM.VAL(SET, LSH(media-1, 20)) * MediaMask;
 		Machine.Portout32(base, SYSTEM.VAL (LONGINT, config - MediaMask + ctrl.media))
 	ELSIF ~(24 IN config) THEN
 		ctrl.media := config * MediaMask	(* autoselect off, no changes needed *)
@@ -523,17 +523,17 @@ BEGIN
 	i := 0;
 	LOOP
 		NEW(dpd);
-		Machine.TranslateVirtual(SYSTEM.ADR(dpd.nextPhysAdr), SYSTEM.SIZEOF(DPD), n, phys);
+		Machine.TranslateVirtual(ADDRESSOF(dpd.nextPhysAdr), SIZEOF(DPD), n, phys);
 		IF n = 1 THEN EXIT END;	(* contiguous *)
 		INC(i); Machine.AtomicInc(NnewRetry);
 		IF i = NewTries THEN HALT(3802) END	(* can not allocate contiguous DPD *)
 	END;
-	ASSERT(phys[0].size = SYSTEM.SIZEOF(DPD));
+	ASSERT(phys[0].size = SIZEOF(DPD));
 	dpd.physAdr := Machine.Ensure32BitAddress (phys[0].adr);
 	ASSERT(dpd.physAdr MOD 8 = 0);	(* alignment constraint (p. 6-3) *)
 	dpd.nextPhysAdr := 0;
 		(* entry 0 always points to ethernet header *)
-	dpd.frag[0].dataPhysAdr := Machine.Ensure32BitAddress ((SYSTEM.ADR(dpd.dst[0])-SYSTEM.ADR(dpd.nextPhysAdr)) + dpd.physAdr);
+	dpd.frag[0].dataPhysAdr := Machine.Ensure32BitAddress ((ADDRESSOF(dpd.dst[0])-ADDRESSOF(dpd.nextPhysAdr)) + dpd.physAdr);
 	dpd.frag[0].dataLen := 14	(* ethernet header *)
 END InitDPD;
 
@@ -547,17 +547,17 @@ BEGIN
 		i := 0;
 		LOOP
 			NEW(upd);
-			Machine.TranslateVirtual(SYSTEM.ADR(upd.nextPhysAdr), SYSTEM.SIZEOF(UPD), n, phys);
+			Machine.TranslateVirtual(ADDRESSOF(upd.nextPhysAdr), SIZEOF(UPD), n, phys);
 			IF n = 1 THEN EXIT END;	(* contiguous *)
 			INC(i); Machine.AtomicInc(NnewRetry);
 			IF i = NewTries THEN HALT(3803) END	(* can not allocate contiguous UPD *)
 		END;
-		ASSERT(phys[0].size = SYSTEM.SIZEOF(UPD));
+		ASSERT(phys[0].size = SIZEOF(UPD));
 		upd.physAdr := Machine.Ensure32BitAddress (phys[0].adr);
 		ASSERT(upd.physAdr MOD 8 = 0);	(* alignment constraint (p. 7-2) *)
 		upd.status := {};
 			(* entry 0 always points to ethernet header *)
-		upd.frag[0].dataPhysAdr := Machine.Ensure32BitAddress ((SYSTEM.ADR(upd.dst[0])-SYSTEM.ADR(upd.nextPhysAdr)) + upd.physAdr);
+		upd.frag[0].dataPhysAdr := Machine.Ensure32BitAddress ((ADDRESSOF(upd.dst[0])-ADDRESSOF(upd.nextPhysAdr)) + upd.physAdr);
 		upd.frag[0].dataLen := 14;	(* ethernet header *)
 
 		(* get new empty buffer and attach it to the UPD *)
@@ -584,7 +584,7 @@ BEGIN
 	ASSERT(upd # NIL);
 	IF buffer # NIL THEN
 		(* entry 1-2 points to data *)
-		Machine.TranslateVirtual(SYSTEM.ADR(buffer.data[0]), LEN(buffer.data), n, phys);
+		Machine.TranslateVirtual(ADDRESSOF(buffer.data[0]), LEN(buffer.data), n, phys);
 		ASSERT(n <= 2);
 		FOR i := 1 TO n DO
 			upd.frag[i].dataPhysAdr := Machine.Ensure32BitAddress (phys[i-1].adr); upd.frag[i].dataLen := Machine.Ensure32BitAddress (phys[i-1].size)

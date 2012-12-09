@@ -303,7 +303,7 @@ PROCEDURE WriteStringWithPaddingToBuffer(buf: ARRAY OF CHAR; offset: LONGINT; st
 VAR i, strLen: LONGINT;
 BEGIN
 	strLen := LEN(str) - 1; (* we don't write the terminating 0X *)
-	SYSTEM.MOVE(SYSTEM.ADR(str), SYSTEM.ADR(buf) + offset, strLen);
+	SYSTEM.MOVE(ADDRESSOF(str), ADDRESSOF(buf) + offset, strLen);
 	FOR i := 0 TO len - strLen - 1 DO
 		buf[offset + i] := 0X;
 	END;

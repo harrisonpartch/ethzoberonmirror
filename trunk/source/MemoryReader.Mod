@@ -10,7 +10,7 @@ CONST
 TYPE
 	Reader* = OBJECT (Streams.Reader)
 		VAR
-			memoryAdr: SYSTEM.ADDRESS;
+			memoryAdr: ADDRESS;
 			available : LONGINT;
 
 		PROCEDURE Receive(VAR buf: ARRAY OF CHAR; ofs, size, min : LONGINT; VAR len, res: LONGINT);
@@ -19,7 +19,7 @@ TYPE
 			IF available # 0 THEN
 				IF size >= available THEN len := available
 				ELSE len := size END;
-				SYSTEM.MOVE(memoryAdr, SYSTEM.ADR(buf[0])+ofs, len);
+				SYSTEM.MOVE(memoryAdr, ADDRESSOF(buf[0])+ofs, len);
 				INC(memoryAdr, len);
 				DEC(available, len);
 				res := Streams.Ok
@@ -29,7 +29,7 @@ TYPE
 			END
 		END Receive;
 
-		PROCEDURE &InitMemoryReader*(memoryAdr: SYSTEM.ADDRESS; length : LONGINT);
+		PROCEDURE &InitMemoryReader*(memoryAdr: ADDRESS; length : LONGINT);
 		BEGIN
 			SELF.memoryAdr := memoryAdr;
 			available := length;

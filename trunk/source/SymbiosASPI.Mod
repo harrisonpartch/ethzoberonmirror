@@ -200,10 +200,10 @@ MODULE SymbiosASPI;	(** non-portable *)
 	END LogHex;
 
 	PROCEDURE CheckAlign(target: TargetPtr): BOOLEAN;
-	VAR adr: SYSTEM.ADDRESS;
+	VAR adr: ADDRESS;
 	BEGIN
-		adr := SYSTEM.ADR(target.bufTab[0].count);
-		RETURN (adr MOD 4 = 0) & (adr DIV PageSize = (adr+SYSTEM.SIZEOF(NCRScript.BufferTable)-1) DIV PageSize)
+		adr := ADDRESSOF(target.bufTab[0].count);
+		RETURN (adr MOD 4 = 0) & (adr DIV PageSize = (adr+SIZEOF(NCRScript.BufferTable)-1) DIV PageSize)
 	END CheckAlign;
 
 	PROCEDURE Wait(t: LONGINT);
@@ -212,8 +212,8 @@ MODULE SymbiosASPI;	(** non-portable *)
 		WHILE t > 0 DO DEC(t) END
 	END Wait;
 
-	PROCEDURE PhysAdr(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE): Machine.Address32;
-	VAR n, i: LONGINT; size0: SYSTEM.ADDRESS; phys: ARRAY MaxRanges OF Machine.Range;
+	PROCEDURE PhysAdr(adr: ADDRESS; size: SIZE): Machine.Address32;
+	VAR n, i: LONGINT; size0: ADDRESS; phys: ARRAY MaxRanges OF Machine.Range;
 	BEGIN
 		ASSERT(size <= PageSize, 100);
 		Machine.TranslateVirtual(adr, size, n, phys);
@@ -225,7 +225,7 @@ MODULE SymbiosASPI;	(** non-portable *)
 		RETURN Machine.Ensure32BitAddress (phys[0].adr);
 	END PhysAdr;
 
-	PROCEDURE SetTableEntry(VAR t: NCRScript.TableEntry; adr: SYSTEM.ADDRESS; count: LONGINT);
+	PROCEDURE SetTableEntry(VAR t: NCRScript.TableEntry; adr: ADDRESS; count: LONGINT);
 	BEGIN
 		t.count := count;
 		t.address := PhysAdr(adr, count)
@@ -484,23 +484,23 @@ MODULE SymbiosASPI;	(** non-portable *)
 			Dev.identify[0] := CHR(DisconnectIdent + 80H + ORD(srb.Lun));
 (*
 			Dev.curTarget.bufTab[NCRScript.dsaMsgOut].count := Dev.identLen;
-			Dev.curTarget.bufTab[NCRScript.dsaMsgOut].address := SYSTEM.ADR(Dev.identify[0]);
+			Dev.curTarget.bufTab[NCRScript.dsaMsgOut].address := ADDRESSOF(Dev.identify[0]);
 			Dev.curTarget.bufTab[NCRScript.dsaCmd].count := ORD(srb.CDBLen);
-			Dev.curTarget.bufTab[NCRScript.dsaCmd].address := SYSTEM.ADR(srb.CDB[0]);
+			Dev.curTarget.bufTab[NCRScript.dsaCmd].address := ADDRESSOF(srb.CDB[0]);
 			Dev.curTarget.bufTab[NCRScript.dsaData].count := srb.BufLen;
 			Dev.curTarget.bufTab[NCRScript.dsaData].address := srb.BufPointer;
 			Dev.curTarget.bufTab[NCRScript.dsaStatus].count := 1;
-			Dev.curTarget.bufTab[NCRScript.dsaStatus].address := SYSTEM.ADR(srb.TargStat);
+			Dev.curTarget.bufTab[NCRScript.dsaStatus].address := ADDRESSOF(srb.TargStat);
 			Dev.curTarget.bufTab[NCRScript.dsaMsgIn].count := 1;
-			Dev.curTarget.bufTab[NCRScript.dsaMsgIn].address := SYSTEM.ADR(Dev.msgIn);
-			Write32(Dev, DSA, SYSTEM.ADR(Dev.curTarget.bufTab[0].count));
+			Dev.curTarget.bufTab[NCRScript.dsaMsgIn].address := ADDRESSOF(Dev.msgIn);
+			Write32(Dev, DSA, ADDRESSOF(Dev.curTarget.bufTab[0].count));
 *)
-			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaMsgOut], SYSTEM.ADR(Dev.identify[0]), Dev.identLen);
-			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaCmd], SYSTEM.ADR(srb.CDB[0]), ORD(srb.CDBLen));
+			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaMsgOut], ADDRESSOF(Dev.identify[0]), Dev.identLen);
+			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaCmd], ADDRESSOF(srb.CDB[0]), ORD(srb.CDBLen));
 			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaData], srb.BufPointer, srb.BufLen);
-			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaStatus], SYSTEM.ADR(srb.TargStat), 1);
-			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaMsgIn], SYSTEM.ADR(Dev.msgIn), 1);
-			Write32(Dev, DSA, PhysAdr(SYSTEM.ADR(Dev.curTarget.bufTab[0].count), SYSTEM.SIZEOF(NCRScript.BufferTable)));
+			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaStatus], ADDRESSOF(srb.TargStat), 1);
+			SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaMsgIn], ADDRESSOF(Dev.msgIn), 1);
+			Write32(Dev, DSA, PhysAdr(ADDRESSOF(Dev.curTarget.bufTab[0].count), SIZEOF(NCRScript.BufferTable)));
 			Dev.dnad := srb.BufPointer; Dev.dbc := srb.BufLen;		(* if save pointer messages arrives before sending/receiving data *)
 			nextdsp := NCRScript.EntSelection;
 			IF srb.meas # NIL THEN GetTime(srb.meas.EnterTime); INC(srb.meas.started) END;
@@ -533,9 +533,9 @@ MODULE SymbiosASPI;	(** non-portable *)
 		xferp := CHR(Dev.curTarget.bufTab[NCRScript.dsaSelect].count DIV 100H);
 		Write8(Dev, SXFER, xferp);
 (*
-		Write32(Dev, DSA, SYSTEM.ADR(Dev.curTarget.bufTab[0].count))
+		Write32(Dev, DSA, ADDRESSOF(Dev.curTarget.bufTab[0].count))
 *)
-		Write32(Dev, DSA, PhysAdr(SYSTEM.ADR(Dev.curTarget.bufTab[0].count), SYSTEM.SIZEOF(NCRScript.BufferTable)))
+		Write32(Dev, DSA, PhysAdr(ADDRESSOF(Dev.curTarget.bufTab[0].count), SIZEOF(NCRScript.BufferTable)))
 	END ReloadDSA;
 
 	PROCEDURE abnormFinished(Dev: DevicePtr; code: LONGINT; VAR nextdsp: LONGINT);
@@ -700,10 +700,10 @@ MODULE SymbiosASPI;	(** non-portable *)
 							ELSE (* other message: reject *)
 									Dev.msgInPtr := 0; Dev.msgOut := 7X;
 (*
-									Dev.curTarget.bufTab[NCRScript.dsaMsgOut].address := SYSTEM.ADR(Dev.msgOut);
+									Dev.curTarget.bufTab[NCRScript.dsaMsgOut].address := ADDRESSOF(Dev.msgOut);
 									Dev.curTarget.bufTab[NCRScript.dsaMsgOut].count := 1;
 *)
-									SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaMsgOut], SYSTEM.ADR(Dev.msgOut), 1);
+									SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaMsgOut], ADDRESSOF(Dev.msgOut), 1);
 									nextdsp := NCRScript.EntRejectMsg
 							END
 					| 2, 3:
@@ -713,10 +713,10 @@ MODULE SymbiosASPI;	(** non-portable *)
 							ELSE (* some msg bytes more *)
 								Dev.msgInPtr := 0; Dev.msgOut := 7X;
 (*
-								Dev.curTarget.bufTab[NCRScript.dsaMsgOut].address := SYSTEM.ADR(Dev.msgOut);
+								Dev.curTarget.bufTab[NCRScript.dsaMsgOut].address := ADDRESSOF(Dev.msgOut);
 								Dev.curTarget.bufTab[NCRScript.dsaMsgOut].count := 1;
 *)
-								SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaMsgOut], SYSTEM.ADR(Dev.msgOut), 1);
+								SetTableEntry(Dev.curTarget.bufTab[NCRScript.dsaMsgOut], ADDRESSOF(Dev.msgOut), 1);
 								nextdsp := NCRScript.EntRejectMsg
 							END
 					| 4:
@@ -892,7 +892,7 @@ MODULE SymbiosASPI;	(** non-portable *)
 	BEGIN
 		NEW(srb);
 		srb.HaId := CHR(Dev.devIdx); srb.Flags := {};
-		srb.BufLen := LEN(data); srb.BufPointer := Machine.Ensure32BitAddress (SYSTEM.ADR(data)); srb.SenseLen := 0X;
+		srb.BufLen := LEN(data); srb.BufPointer := Machine.Ensure32BitAddress (ADDRESSOF(data)); srb.SenseLen := 0X;
 		srb.CDBLen := 6X;
 		srb.CDB[0] := 12X; srb.CDB[1] := 0X; srb.CDB[2] := 0X; srb.CDB[3] := 0X; srb.CDB[4] := 0FFX; srb.CDB[5] := 0X;
 		srb.meas := NIL;
@@ -910,7 +910,7 @@ MODULE SymbiosASPI;	(** non-portable *)
 			WHILE (lun < MaxLun) & (lun = Dev.target[targ].luns) DO
 				srb.Lun := CHR(lun);
 				Dev.identify[0] := CHR(DisconnectIdent + 80H + lun);
-				srb.CDB[1] := CHR(SYSTEM.LSH(lun, 5));
+				srb.CDB[1] := CHR(LSH(lun, 5));
 				SendASPICommand(srb, TRUE);
 				IF (srb.Status = SSComp) & (data[0] # 7FX) THEN
 					Dev.target[targ].lun[Dev.target[targ].luns].DevType := data[0];
@@ -918,7 +918,7 @@ MODULE SymbiosASPI;	(** non-portable *)
 					LogInt(Dev.devIdx); KernelLog.Char(" "); LogInt(targ); KernelLog.Char(" ");
 					LogInt(lun); KernelLog.Char(" "); LogInt(ORD(data[0]));
 					IF scsidebug THEN
-						KernelLog.Memory(SYSTEM.ADR(data), 144)
+						KernelLog.Memory(ADDRESSOF(data), 144)
 					END;
 					KernelLog.Exit;
 					INC(Dev.target[targ].luns)
@@ -951,7 +951,7 @@ MODULE SymbiosASPI;	(** non-portable *)
 
 	PROCEDURE GetASPISupportInfo*(): LONGINT;
 	BEGIN
-		RETURN SYSTEM.LSH(Initres, 8) + DevNum
+		RETURN LSH(Initres, 8) + DevNum
 	END GetASPISupportInfo;
 
 	PROCEDURE Stop;

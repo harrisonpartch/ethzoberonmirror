@@ -5,15 +5,15 @@ MODULE StdIO;	(** AUTHOR gf;  PURPOSE "Unix standard IO and argument channels *)
 IMPORT S := SYSTEM, Commands, Streams, Unix;
 
 CONST 
-	AddrSize = S.SIZEOF( S.ADDRESS );
+	AddrSize = SIZEOF( ADDRESS );
 VAR 
 	env-: Commands.Context;
 	argc-: LONGINT;
 	
 	
-	argv: S.ADDRESS;
+	argv: ADDRESS;
 	iarg: LONGINT;
-	addr: S.ADDRESS; 
+	addr: ADDRESS; 
 	ch: CHAR;
 	
 
@@ -42,7 +42,7 @@ VAR ures: LONGINT;
 BEGIN
 	len := 0;
 	REPEAT
-		ures := Unix.read( 0, S.ADR( data[ofs] ), size );
+		ures := Unix.read( 0, ADDRESSOF( data[ofs] ), size );
 		IF ures > 0 THEN  INC( ofs, ures );  DEC( size, ures );  INC( len, ures )  END;
 	UNTIL (len >= min) OR ((ures <= 0) & (Unix.errno() # Unix.EINTR));
 	IF len > 0 THEN  res := Streams.Ok  ELSE  res := Streams.EOF  END
@@ -51,14 +51,14 @@ END ReceiveStdin;
 PROCEDURE SendStdout( CONST data: ARRAY OF CHAR;  ofs, len: LONGINT;  prop: BOOLEAN;  VAR res: LONGINT );
 VAR ignore: LONGINT;
 BEGIN
-	ignore := Unix.write( 1, S.ADR( data[ofs] ), len );  res := Streams.Ok
+	ignore := Unix.write( 1, ADDRESSOF( data[ofs] ), len );  res := Streams.Ok
 END SendStdout;
 
 
 PROCEDURE SendErrout( CONST data: ARRAY OF CHAR;  ofs, len: LONGINT;  prop: BOOLEAN;  VAR res: LONGINT );
 VAR ignore: LONGINT;
 BEGIN
-	ignore := Unix.write( 2, S.ADR( data[ofs] ), len );  res := Streams.Ok
+	ignore := Unix.write( 2, ADDRESSOF( data[ofs] ), len );  res := Streams.Ok
 END SendErrout;
 
 PROCEDURE Setup;

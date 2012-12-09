@@ -27,7 +27,7 @@ BEGIN
 		status := EFI.table.BS.HandleProtocol(buffer[0], EFISimpleFS.GUID, prot);
 		Trace.Int(status, 0); Trace.Ln;
 		fs := SYSTEM.VAL(EFISimpleFS.Protocol,prot);
-		Trace.Address(SYSTEM.VAL(SYSTEM.ADDRESS, prot)); Trace.Ln;
+		Trace.Address(SYSTEM.VAL(ADDRESS, prot)); Trace.Ln;
 
 		IF (fs # NIL) THEN
 			status := fs.OpenVolume(fs, root);
@@ -40,7 +40,7 @@ BEGIN
 				IF status = EFI.Success THEN
 					NEW(buf);
 					size := 20;
-					status := file.Read(file, size, SYSTEM.ADR(buf[0]));
+					status := file.Read(file, size, ADDRESSOF(buf[0]));
 					Trace.String(buf^);
 					buf^ := "pipapo";
 					size := LEN(buf);

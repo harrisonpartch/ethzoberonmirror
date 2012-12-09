@@ -144,9 +144,9 @@ TYPE
 	VAR v: LONGINT;
 	BEGIN
 		v := S.VAL( LI, s );
-		buf[pos] := CHR( S.LSH( v, -24 ) );
-		buf[pos + 1] := CHR( S.LSH( v, -16 ) MOD 100H );
-		buf[pos + 2] := CHR( S.LSH( v, -8 ) MOD 100H );
+		buf[pos] := CHR( LSH( v, -24 ) );
+		buf[pos + 1] := CHR( LSH( v, -16 ) MOD 100H );
+		buf[pos + 2] := CHR( LSH( v, -8 ) MOD 100H );
 		buf[pos + 3] := CHR( v MOD 100H );
 	END Chars;
 

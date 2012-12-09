@@ -637,13 +637,13 @@ BEGIN
 	IF n > nrOfDeltas THEN RETURN; END;
 	Files.ReadLInt(dr, fPos);
 	REPEAT
-		NEW(bytes, SYSTEM.SIZEOF(TLog));
-		dr.file.ReadBytes(dr, bytes^, 0, SYSTEM.SIZEOF(TLog));
-		SYSTEM.MOVE(SYSTEM.ADR(bytes^), SYSTEM.ADR(oldLog), SYSTEM.SIZEOF(TLog));
+		NEW(bytes, SIZEOF(TLog));
+		dr.file.ReadBytes(dr, bytes^, 0, SIZEOF(TLog));
+		SYSTEM.MOVE(ADDRESSOF(bytes^), ADDRESSOF(oldLog), SIZEOF(TLog));
 		IF oldLog.versionID=n THEN
-			df.Set(dr, dr.file.Pos(dr)-SYSTEM.SIZEOF(TLog));
-			SYSTEM.MOVE(SYSTEM.ADR(log), SYSTEM.ADR(bytes^), SYSTEM.SIZEOF(TLog));
-			dr.file.WriteBytes(dr, bytes^, 0, SYSTEM.SIZEOF(TLog));
+			df.Set(dr, dr.file.Pos(dr)-SIZEOF(TLog));
+			SYSTEM.MOVE(ADDRESSOF(log), ADDRESSOF(bytes^), SIZEOF(TLog));
+			dr.file.WriteBytes(dr, bytes^, 0, SIZEOF(TLog));
 		END;
 		IF oldLog.lenOfDelta > 0 THEN
 			df.Set(dr, dr.file.Pos(dr)+oldLog.lenOfDelta);

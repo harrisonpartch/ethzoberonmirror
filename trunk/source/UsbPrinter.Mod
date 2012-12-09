@@ -102,7 +102,7 @@ TYPE
 			string : POINTER TO ARRAY OF CHAR;
 		BEGIN
 			wValue := config;
-			wIndex := SYSTEM.LSH(intf, 8) + alt;
+			wIndex := LSH(intf, 8) + alt;
 			NEW(buffer, 2);
 			(* First we get the length of the device ID string (first 2 bytes) *)
 			IF device.Request(Usbdi.ToHost + Usbdi.Class + Usbdi.Interface, PrGetDeviceId, wValue, wIndex, 2, buffer^) = Usbdi.Ok THEN

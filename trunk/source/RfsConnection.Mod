@@ -133,7 +133,7 @@ END Len;
 (*copy buf1 of Size len into offset of buf2 *)
 PROCEDURE CopyBuffer(VAR buf1: ARRAY OF CHAR; len: LONGINT; VAR buf2: ARRAY OF CHAR; off: LONGINT);
 BEGIN
-	SYSTEM.MOVE(SYSTEM.ADR(buf1[0]), SYSTEM.ADR(buf2[off]), len);
+	SYSTEM.MOVE(ADDRESSOF(buf1[0]), ADDRESSOF(buf2[off]), len);
 END CopyBuffer;
 
 END RfsConnection.

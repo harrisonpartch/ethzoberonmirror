@@ -49,7 +49,7 @@ TYPE
 				IF ~valid THEN dev.Transfer(Disks.Read, block, blocks, buf.data^, 0, res)
 				ELSE res := Disks.Ok
 				END;
-				SYSTEM.MOVE(SYSTEM.ADR(buf.data[0]), SYSTEM.ADR(blk[0]), blockSize);
+				SYSTEM.MOVE(ADDRESSOF(buf.data[0]), ADDRESSOF(blk[0]), blockSize);
 				cache.Release(buf, FALSE, FALSE)
 			ELSE
 				dev.Transfer(Disks.Read, block, blocks, blk, 0, res)
@@ -69,7 +69,7 @@ TYPE
 				ASSERT(cache.blockSize >= blockSize);
 				cache.Acquire(dev, block, buf, valid);
 				ASSERT(LEN(buf.data) >= blockSize);	(* index check *)
-				SYSTEM.MOVE(SYSTEM.ADR(blk[0]), SYSTEM.ADR(buf.data[0]), blockSize);
+				SYSTEM.MOVE(ADDRESSOF(blk[0]), ADDRESSOF(buf.data[0]), blockSize);
 				IF writeback THEN
 					cache.Release(buf, TRUE, FALSE)
 				ELSE

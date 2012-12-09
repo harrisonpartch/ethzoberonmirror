@@ -117,7 +117,7 @@ TYPE
 			DataOfs = 10H;	(* data block offset in transmit command block *)
 			C = 15;
 		VAR
-			actAdr, prevAdr: SYSTEM.ADDRESS; txLen, i: LONGINT;
+			actAdr, prevAdr: ADDRESS; txLen, i: LONGINT;
 			byteCount, EOF, TxThreshold, state, cmdHdr, sendStatus: SET;
 		BEGIN {EXCLUSIVE}
 			(* if C Bit in next TxCmd Block is not set, the transmit command has not yet finished processing all bytes
@@ -126,14 +126,14 @@ TYPE
 			ctrl.ExecCmd(MaskAllIntr, ~keepMasks);
 
 			REPEAT
-				sendStatus := SYSTEM.VAL(SET, SYSTEM.GET32(SYSTEM.ADR(ctrl.actTxCmd.next.data[0])));
+				sendStatus := SYSTEM.VAL(SET, SYSTEM.GET32(ADDRESSOF(ctrl.actTxCmd.next.data[0])));
 			UNTIL (C IN sendStatus);
 
 			txLen := 14 + h3len + h4len + dlen;	(* number of bytes to transmit *)
-			prevAdr := SYSTEM.ADR(ctrl.actTxCmd.data[0]);
+			prevAdr := ADDRESSOF(ctrl.actTxCmd.data[0]);
 
 			ctrl.actTxCmd := ctrl.actTxCmd.next;
-			actAdr := SYSTEM.ADR(ctrl.actTxCmd.data[0]);
+			actAdr := ADDRESSOF(ctrl.actTxCmd.data[0]);
 
 			(* setup cmd hdr *)
 			SYSTEM.PUT32(actAdr, Suspend + ActionCmdTx);
@@ -148,14 +148,14 @@ TYPE
 			SYSTEM.PUT32(actAdr + 0CH, byteCount + EOF + TxThreshold);
 
 			(* set data field *)
-			SYSTEM.MOVE(SYSTEM.ADR(dst[0]), actAdr + DataOfs, 6);	(* the first 6 bytes of data field are dst address *)
-			SYSTEM.MOVE(SYSTEM.ADR(local[0]), actAdr + DataOfs + 6, 6);
-			SYSTEM.PUT16(actAdr + DataOfs + 12, SYSTEM.ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
+			SYSTEM.MOVE(ADDRESSOF(dst[0]), actAdr + DataOfs, 6);	(* the first 6 bytes of data field are dst address *)
+			SYSTEM.MOVE(ADDRESSOF(local[0]), actAdr + DataOfs + 6, 6);
+			SYSTEM.PUT16(actAdr + DataOfs + 12, ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
 			i := 14;
-			IF h3len > 0 THEN SYSTEM.MOVE(SYSTEM.ADR(l3hdr[0]), actAdr + DataOfs + i, h3len); INC(i, h3len) END;
-			IF h4len > 0 THEN SYSTEM.MOVE(SYSTEM.ADR(l4hdr[0]), actAdr + DataOfs + i, h4len); INC(i, h4len) END;
+			IF h3len > 0 THEN SYSTEM.MOVE(ADDRESSOF(l3hdr[0]), actAdr + DataOfs + i, h3len); INC(i, h3len) END;
+			IF h4len > 0 THEN SYSTEM.MOVE(ADDRESSOF(l4hdr[0]), actAdr + DataOfs + i, h4len); INC(i, h4len) END;
 			IF i+dlen < MaxETHFrameSize THEN
-				SYSTEM.MOVE(SYSTEM.ADR(data[0])+dofs, actAdr + DataOfs + i, dlen);
+				SYSTEM.MOVE(ADDRESSOF(data[0])+dofs, actAdr + DataOfs + i, dlen);
 				INC(i, dlen);
 			END;
 
@@ -186,7 +186,7 @@ TYPE
 		BEGIN
 			ASSERT(size <= ctrl.rcvSize);	(* enough data left *)
 			ASSERT((size >= 0) & (ofs+size <= LEN(data)));	(* index check *)
-			SYSTEM.MOVE(ctrl.rcvAdr, SYSTEM.ADR(data[ofs]), size);
+			SYSTEM.MOVE(ctrl.rcvAdr, ADDRESSOF(data[ofs]), size);
 			INC(ctrl.rcvAdr, size);
 			DEC(ctrl.rcvSize, size);
 		END ReceiveData;
@@ -202,13 +202,13 @@ TYPE
 	Controller = OBJECT
 		VAR
 			next: Controller;
-			base: SYSTEM.ADDRESS; irq: LONGINT;
+			base: ADDRESS; irq: LONGINT;
 			dev: LinkDevice;
 			actRFD, lastRFD: DataBlock;
 			actTxCmd: DataBlock;
 			rcvAdr, rcvSize: LONGINT;
 
-		PROCEDURE &Init*(dev: LinkDevice; base: SYSTEM.ADDRESS; irq: LONGINT);
+		PROCEDURE &Init*(dev: LinkDevice; base: ADDRESS; irq: LONGINT);
 		VAR res, i: LONGINT;
 			configCmd, iASetupCmd: DataBlock;
 		BEGIN
@@ -281,8 +281,8 @@ TYPE
 			(* read permanent MAC address *)
 			FOR i := 0 TO 2 DO
 				ReadEEPROM(MacAdrBase + i, reg);	(* EEPROM registers are 2 bytes *)
-				SYSTEM.PUT16(SYSTEM.ADR(dev.local[2*i]), reg);	(* put MAC in dev.local *)
-				SYSTEM.PUT16(SYSTEM.ADR(cmd.data[8 + 2*i]), reg);	(* put MAC in Action Command Block *)
+				SYSTEM.PUT16(ADDRESSOF(dev.local[2*i]), reg);	(* put MAC in dev.local *)
+				SYSTEM.PUT16(ADDRESSOF(cmd.data[8 + 2*i]), reg);	(* put MAC in Action Command Block *)
 			END;
 		END SetMACAddress;
 
@@ -319,24 +319,24 @@ TYPE
 			byteArray[20] := ToChar({0..5});	(* prio field in byte #31 in flow control frame *)
 			byteArray[21] := ToChar({2, 0});
 
-			SYSTEM.MOVE(SYSTEM.ADR(byteArray[0]), SYSTEM.ADR(cmd.data[0]) + 08H, 22);
+			SYSTEM.MOVE(ADDRESSOF(byteArray[0]), ADDRESSOF(cmd.data[0]) + 08H, 22);
 		END SetByteMap8255x;
 
 		PROCEDURE SetupTxRing;
 		VAR
 			r: LONGINT;
-			adr, physAdr: SYSTEM.ADDRESS;
+			adr, physAdr: ADDRESS;
 			txCmd, prev: DataBlock;
 		BEGIN
 			FOR r := 0 TO TxRingSize - 1 DO
 				MakeBlock(txCmd, SizeOfTxCmdHdr + MaxETHFrameSize);
 
-				adr := SYSTEM.ADR(txCmd.data[0]);
+				adr := ADDRESSOF(txCmd.data[0]);
 				SYSTEM.PUT32(adr, {15});	(* set C Bit for LinkDevice.Send => no C Bit means Send Buffer Overflow *)
 				IF prev # NIL THEN
 					prev.next := txCmd;
 					physAdr := Machine.PhysicalAdr(adr, txCmd.size); ASSERT(physAdr # Machine.NilAdr);
-					SYSTEM.PUT32(SYSTEM.ADR(prev.data[0]) + 04H, physAdr);	(* set link address to physical address *)
+					SYSTEM.PUT32(ADDRESSOF(prev.data[0]) + 04H, physAdr);	(* set link address to physical address *)
 				ELSE
 					actTxCmd := txCmd;	(* set first TxCmd *)
 				END;
@@ -344,29 +344,29 @@ TYPE
 			END;
 			(* link last TxCmd to first TxCmd *)
 			txCmd.next := actTxCmd;
-			physAdr := Machine.PhysicalAdr(SYSTEM.ADR(actTxCmd.data[0]), actTxCmd.size);
+			physAdr := Machine.PhysicalAdr(ADDRESSOF(actTxCmd.data[0]), actTxCmd.size);
 			ASSERT(physAdr # Machine.NilAdr);
-			adr := SYSTEM.ADR(txCmd.data[0]);
+			adr := ADDRESSOF(txCmd.data[0]);
 			SYSTEM.PUT32(adr + 04H, Machine.Ensure32BitAddress (physAdr));
 		END SetupTxRing;
 
 		PROCEDURE SetupRxRing;
 		VAR
 			r: LONGINT;
-			adr, physAdr: SYSTEM.ADDRESS;
+			adr, physAdr: ADDRESS;
 			rxFrame, prev: DataBlock;
 		BEGIN
 			FOR r := 0 TO RxRingSize - 1 DO
 				MakeBlock(rxFrame, SizeOfRFDHdr + MaxETHFrameSize);
 				(* configure RFD *)
-				adr := SYSTEM.ADR(rxFrame.data[0]);
+				adr := ADDRESSOF(rxFrame.data[0]);
 				SYSTEM.PUT32(adr, 0);
 				SYSTEM.PUT32(adr + 0CH, 0);
 				SYSTEM.PUT16(adr + 0CH + 2H, SHORT(rxFrame.size));
 				IF prev # NIL THEN
 					prev.next := rxFrame;
 					physAdr := Machine.PhysicalAdr(adr, rxFrame.size); ASSERT(physAdr # Machine.NilAdr);
-					SYSTEM.PUT32(SYSTEM.ADR(prev.data[0]) + 4H, physAdr);	(* set link address to physical address *)
+					SYSTEM.PUT32(ADDRESSOF(prev.data[0]) + 4H, physAdr);	(* set link address to physical address *)
 				ELSE
 					actRFD := rxFrame;	(* set first RFD *)
 				END;
@@ -375,17 +375,17 @@ TYPE
 			lastRFD := rxFrame;
 			(* link last RFD TO first RFD *)
 			lastRFD.next := actRFD;
-			physAdr := Machine.PhysicalAdr(SYSTEM.ADR(actRFD.data[0]), actRFD.size); ASSERT(physAdr # Machine.NilAdr);
-			adr := SYSTEM.ADR(lastRFD.data[0]);
+			physAdr := Machine.PhysicalAdr(ADDRESSOF(actRFD.data[0]), actRFD.size); ASSERT(physAdr # Machine.NilAdr);
+			adr := ADDRESSOF(lastRFD.data[0]);
 			SYSTEM.PUT32(adr + 4H, Machine.Ensure32BitAddress (physAdr));
 			SYSTEM.PUT32(adr, Suspend);	(* after having received the last block, suspend reception of further frames *)
 		END SetupRxRing;
 
 		PROCEDURE StartRxUnit;
 		VAR
-			adr: SYSTEM.ADDRESS;
+			adr: ADDRESS;
 		BEGIN
-			adr := Machine.PhysicalAdr(SYSTEM.ADR(actRFD.data[0]), actRFD.size); ASSERT(adr # Machine.NilAdr);
+			adr := Machine.PhysicalAdr(ADDRESSOF(actRFD.data[0]), actRFD.size); ASSERT(adr # Machine.NilAdr);
 			WriteSCBGenPtr(Machine.Ensure32BitAddress (adr));
 			ASSERT(GetRUState() # RUReady);
 			ExecCmd(RUStart, keepMasks);
@@ -393,7 +393,7 @@ TYPE
 
 		PROCEDURE SetCmdHdr(bits: SET; VAR cmd: DataBlock);
 		BEGIN
-			SYSTEM.PUT32(SYSTEM.ADR(cmd.data[0]), bits * {16..31});	(* set status word bits to 0 *)
+			SYSTEM.PUT32(ADDRESSOF(cmd.data[0]), bits * {16..31});	(* set status word bits to 0 *)
 		END SetCmdHdr;
 
 		PROCEDURE MakeBlock(VAR cmd: DataBlock; dataSize: LONGINT);
@@ -450,18 +450,18 @@ TYPE
 			status: SET;
 		BEGIN
 			(* check command completion *)
-			status := SYSTEM.VAL(SET, SYSTEM.GET32(SYSTEM.ADR(cmd.data[0])));
+			status := SYSTEM.VAL(SET, SYSTEM.GET32(ADDRESSOF(cmd.data[0])));
 			Kernel.SetTimer(t, SecsToWait * 1000);
 			WHILE ~(C IN status) & ~Kernel.Expired(t) DO
-				status := SYSTEM.VAL(SET, SYSTEM.GET32(SYSTEM.ADR(cmd.data[0])));
+				status := SYSTEM.VAL(SET, SYSTEM.GET32(ADDRESSOF(cmd.data[0])));
 			END;
 			ASSERT(C IN status);
 
 			(* check command ok *)
-			status := SYSTEM.VAL(SET, SYSTEM.GET32(SYSTEM.ADR(cmd.data[0])));
+			status := SYSTEM.VAL(SET, SYSTEM.GET32(ADDRESSOF(cmd.data[0])));
 			Kernel.SetTimer(t, SecsToWait * 1000);
 			WHILE ~(OK IN status) & ~Kernel.Expired(t) DO
-				status := SYSTEM.VAL(SET, SYSTEM.GET32(SYSTEM.ADR(cmd.data[0])));
+				status := SYSTEM.VAL(SET, SYSTEM.GET32(ADDRESSOF(cmd.data[0])));
 			END;
 			ASSERT(OK IN status);
 		END WaitForActionCmd;
@@ -472,10 +472,10 @@ TYPE
 			OK = 13;
 			EOF = 15;
 		VAR
-			adr: SYSTEM.ADDRESS;
+			adr: ADDRESS;
 			status: SET;
 		BEGIN
-			adr := SYSTEM.ADR(rxFrame.data[0]);
+			adr := ADDRESSOF(rxFrame.data[0]);
 			status := SYSTEM.VAL(SET, SYSTEM.GET32(adr));
 			IF (C IN status) & (OK IN status) THEN
 				RETURN EOF IN SYSTEM.VAL(SET, SYSTEM.GET32(adr + 0CH));	(* data placing completed ? *)
@@ -487,9 +487,9 @@ TYPE
 		CONST
 			ActiveState = 7;
 		VAR
-			adr: SYSTEM.ADDRESS;
+			adr: ADDRESS;
 		BEGIN
-			adr := Machine.PhysicalAdr(SYSTEM.ADR(cmd.data[0]), cmd.size); ASSERT(adr # Machine.NilAdr);
+			adr := Machine.PhysicalAdr(ADDRESSOF(cmd.data[0]), cmd.size); ASSERT(adr # Machine.NilAdr);
 			WriteSCBGenPtr(Machine.Ensure32BitAddress (adr));
 			ASSERT(~(ActiveState IN GetStatus()));	(* CU must not be in active state *)
 			ExecCmd(CUStart, keepMasks);
@@ -541,7 +541,7 @@ TYPE
 				x: SET;
 				dummy: LONGINT;
 			BEGIN
-				mask := SYSTEM.LSH(1, count-1);
+				mask := LSH(1, count-1);
 				x := GetEEPROMReg();
 				EXCL(x, EEDO); EXCL(x, EEDI);
 				REPEAT
@@ -554,7 +554,7 @@ TYPE
 					Delay(1);
 					RaiseClk(x);
 					LowerClk(x);
-					mask := SYSTEM.LSH(mask, -1);
+					mask := LSH(mask, -1);
 				UNTIL mask = 0;
 
 				EXCL(x, EEDI);
@@ -571,7 +571,7 @@ TYPE
 				d := 0;
 
 				FOR i := 0 TO 15 DO
-					d := SYSTEM.LSH(d, 1);
+					d := LSH(d, 1);
 					RaiseClk(x);
 
 					x := GetEEPROMReg();
@@ -709,11 +709,11 @@ TYPE
 		PROCEDURE IncLastRFD;
 		VAR
 			prevStatus: SET;
-			prevAdr, adr: SYSTEM.ADDRESS;
+			prevAdr, adr: ADDRESS;
 		BEGIN
-			prevAdr := SYSTEM.ADR(lastRFD.data[0]);
+			prevAdr := ADDRESSOF(lastRFD.data[0]);
 			lastRFD := lastRFD.next;
-			adr := SYSTEM.ADR(lastRFD.data[0]);
+			adr := ADDRESSOF(lastRFD.data[0]);
 			SYSTEM.PUT32(adr, Suspend);	(* set Suspend Bit *)
 			SYSTEM.PUT32(adr + 0CH, 0);	(* delete EOF Bit *)
 			SYSTEM.PUT16(adr + 0CH + 2H, SHORT(lastRFD.size));
@@ -730,17 +730,17 @@ TYPE
 		CONST
 			DataOfs = 10H;	(* receive buffer offset *)
 		VAR
-			frameAdr: SYSTEM.ADDRESS; type, actualCount: LONGINT;
+			frameAdr: ADDRESS; type, actualCount: LONGINT;
 			srcAdr (* , dstAdr *) : Network.LinkAdr;
 			(* handler: Network.Receiver; *)
 			buf: Network.Buffer;
 		BEGIN
 			WHILE ContainsRxData(actRFD) DO
-				frameAdr := SYSTEM.ADR(actRFD.data[0]);
+				frameAdr := ADDRESSOF(actRFD.data[0]);
 				actualCount := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.GET32(frameAdr + 0CH)) * {0..13});
 
-				(*SYSTEM.MOVE(frameAdr + DataOfs, SYSTEM.ADR(dstAdr), 6);*)
-				SYSTEM.MOVE(frameAdr + DataOfs + 6, SYSTEM.ADR(srcAdr), 6);
+				(*SYSTEM.MOVE(frameAdr + DataOfs, ADDRESSOF(dstAdr), 6);*)
+				SYSTEM.MOVE(frameAdr + DataOfs + 6, ADDRESSOF(srcAdr), 6);
 				type := Network.GetNet2(actRFD.data^, DataOfs + 12);	(* Endianess ! *)
 				(*
 				dev.GetReceiver(type, handler, hSize);
@@ -817,7 +817,7 @@ END Remove;
 PROCEDURE ScanPCI(vendor, device: LONGINT);
 VAR
 	index, bus, dev, fct, res, irq, i: LONGINT;
-	base: SYSTEM.ADDRESS;
+	base: ADDRESS;
 	d: LinkDevice;
 	c: Controller;
 	name: Plugins.Name;

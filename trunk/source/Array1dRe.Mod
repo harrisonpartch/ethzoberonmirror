@@ -11,7 +11,7 @@ TYPE
 	Array* = POINTER TO ARRAY OF Value;
 	Index* = LONGINT;
 CONST
-	sz = SYSTEM.SIZEOF( Value );
+	sz = SIZEOF( Value );
 
 	(**
 		defined operations (a,b: Array; i: Integer; arr: ARRAY OF Integer) :
@@ -35,7 +35,7 @@ TYPE
 	BEGIN
 		Array1dBytes.RangeCheck( srcoffset, len, LEN( x ) );  Array1dBytes.RangeCheck( destoffset, len, LEN( res ) );
 
-		Array1dBytes.MoveB( SYSTEM.ADR( x[srcoffset] ), SYSTEM.ADR( res[destoffset] ), len * sz );
+		Array1dBytes.MoveB( ADDRESSOF( x[srcoffset] ), ADDRESSOF( res[destoffset] ), len * sz );
 	END Copy;
 
 	PROCEDURE CreateCopy*( VAR x: ARRAY OF Value ): Array;
@@ -50,7 +50,7 @@ TYPE
 		Array1dBytes.PatRangeCheck( srcoffset, srcstep, piecelen, pieces, LEN( x ) );
 		Array1dBytes.PatRangeCheck( destoffset, deststep, piecelen, pieces, LEN( res ) );
 
-		Array1dBytes.MoveBPat( SYSTEM.ADR( x[srcoffset] ), SYSTEM.ADR( res[destoffset] ), srcstep * sz, deststep * sz,
+		Array1dBytes.MoveBPat( ADDRESSOF( x[srcoffset] ), ADDRESSOF( res[destoffset] ), srcstep * sz, deststep * sz,
 												 piecelen * sz, pieces );
 	END CopyPat;
 
@@ -67,7 +67,7 @@ TYPE
 	BEGIN
 		Array1dBytes.RangeCheck( offset, len, LEN( res ) );
 
-		Array1dBytes.Fill( SYSTEM.ADR( res[offset] ), x, len );
+		Array1dBytes.Fill( ADDRESSOF( res[offset] ), x, len );
 		(* implicitly selects the right version of Fill in  Array1dBytes  *)
 	END Fill;
 
@@ -75,7 +75,7 @@ TYPE
 	BEGIN
 		Array1dBytes.PatRangeCheck( offset, step, piecelen, pieces, LEN( res ) );
 
-		Array1dBytes.FillPat( SYSTEM.ADR( res[offset] ), x, step, piecelen, pieces );
+		Array1dBytes.FillPat( ADDRESSOF( res[offset] ), x, step, piecelen, pieces );
 		(* implicitly selects the right version of FillPat in  Array1dBytes  *)
 	END FillPat;
 

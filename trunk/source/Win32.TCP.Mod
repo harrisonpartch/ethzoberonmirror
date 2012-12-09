@@ -106,16 +106,16 @@ TYPE
 				IF lport # NilPort THEN
 					adr.sinFamily := WSock32.PFINet;  adr.sinAddr := 0;
 					adr.sinPort := WSock32.htons( SHORT( lport ) );
-					err := WSock32.bind( socket, adr, SYSTEM.SIZEOF( WSock32.sockaddrIn ) );
+					err := WSock32.bind( socket, adr, SIZEOF( WSock32.sockaddrIn ) );
 					IF err # 0 THEN
 						res := NotConnected;  state := Closed;  WSock32.DispError;
 						RETURN
 					END
 				END;
 
-				adr.sinFamily := WSock32.PFINet;   (* SYSTEM.MOVE( SYSTEM.ADR( fip ), SYSTEM.ADR( adr.sinAddr ), 4 ); *)
+				adr.sinFamily := WSock32.PFINet;   (* SYSTEM.MOVE( ADDRESSOF( fip ), ADDRESSOF( adr.sinAddr ), 4 ); *)
 				adr.sinAddr := (fip.ipv4Adr);  adr.sinPort := WSock32.htons( SHORT( fport ) );
-				err := WSock32.connect( socket, adr, SYSTEM.SIZEOF( WSock32.sockaddrIn ) );
+				err := WSock32.connect( socket, adr, SIZEOF( WSock32.sockaddrIn ) );
 				IF err # 0 THEN
 					res := NotConnected;  WSock32.DispError;  state := Closed;
 					err := WSock32.closesocket( socket );
@@ -129,7 +129,7 @@ TYPE
 				SELF.int := NIL;  SELF.lport := lport;  SELF.fip := IP.NilAdr;
 				SELF.fport := NilPort;  adr.sinFamily := WSock32.PFINet;
 				adr.sinAddr := 0;  adr.sinPort := WSock32.htons( SHORT( lport ) );
-				err := WSock32.bind( socket, adr, SYSTEM.SIZEOF( WSock32.sockaddrIn ) );
+				err := WSock32.bind( socket, adr, SIZEOF( WSock32.sockaddrIn ) );
 				IF err = 0 THEN err := WSock32.listen( socket, WSock32.SOMaxConn ) END;
 				IF err # 0 THEN
 					res := NotConnected;  state := Closed;
@@ -281,13 +281,13 @@ TYPE
 		PROCEDURE SetPortAndIp;
 		VAR sockname: WSock32.sockaddrIn;  lensockname: LONGINT;  res: LONGINT;
 		BEGIN
-			lensockname := SYSTEM.SIZEOF( WSock32.sockaddrIn );
+			lensockname := SIZEOF( WSock32.sockaddrIn );
 			res := WSock32.getsockname( socket, sockname, lensockname );
 			IF res = Ok THEN
 				(* lip := sockname.sinAddr; *)
 				lport := WSock32.ntohs( sockname.sinPort );   (* lip := WSock32.ntohl( lip );  *)
 			END;
-			lensockname := SYSTEM.SIZEOF( WSock32.sockaddrIn );
+			lensockname := SIZEOF( WSock32.sockaddrIn );
 			res := WSock32.getpeername( socket, sockname, lensockname );
 			IF res = Ok THEN
 				fip.usedProtocol := IP.IPv4;
@@ -304,13 +304,13 @@ TYPE
 		BEGIN
 			IF Trace THEN KernelLog.Enter;  KernelLog.String( "Accepting connections" );  Report( SELF );  KernelLog.Exit; END;
 			ASSERT ( (state = Listen) & (socket # WSock32.InvalidSocket) );
-			adr.sinFamily := WSock32.PFINet;  adrlen := SYSTEM.SIZEOF( WSock32.sockaddrIn );
+			adr.sinFamily := WSock32.PFINet;  adrlen := SIZEOF( WSock32.sockaddrIn );
 			s := WSock32.accept( socket, adr, adrlen );   (* blocks ! *)
 
 			BEGIN {EXCLUSIVE}
 				IF s # WSock32.InvalidSocket THEN
 					NEW( client );  client.lport := NilPort;
-					IF (adrlen = SYSTEM.SIZEOF( WSock32.sockaddrIn )) &
+					IF (adrlen = SIZEOF( WSock32.sockaddrIn )) &
 						(adr.sinFamily = WSock32.PFINet) THEN
 						client.fip.usedProtocol := IP.IPv4;
 						client.fip.ipv4Adr := adr.sinAddr;   (* WSock32.ntohl( adr.sinAddr ); *)

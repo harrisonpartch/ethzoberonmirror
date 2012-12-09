@@ -15,7 +15,7 @@ CONST
 
 TYPE
 	SetCacheMessage = POINTER TO RECORD (Machine.Message)
-		physAdr: SYSTEM.ADDRESS; size, type: LONGINT;
+		physAdr: ADDRESS; size, type: LONGINT;
 		res: ARRAY Machine.MaxCPU OF LONGINT
 	END;
 
@@ -39,7 +39,7 @@ END GetMTTRdefTypeLow;
 
 (* Return the value of the specified MTTRphysBase register. *)
 
-PROCEDURE -GetMTTRphysBaseLow(n: SYSTEM.ADDRESS): SET;
+PROCEDURE -GetMTTRphysBaseLow(n: ADDRESS): SET;
 CODE {SYSTEM.Pentium, SYSTEM.Privileged}
 	POP ECX
 	SHL ECX, 1
@@ -49,7 +49,7 @@ END GetMTTRphysBaseLow;
 
 (* Return the value of the specified MTTRphysMask register. *)
 
-PROCEDURE -GetMTTRphysMaskLow(n: SYSTEM.ADDRESS): SET;
+PROCEDURE -GetMTTRphysMaskLow(n: ADDRESS): SET;
 CODE {SYSTEM.Pentium, SYSTEM.Privileged}
 	POP ECX
 	SHL ECX, 1
@@ -59,7 +59,7 @@ END GetMTTRphysMaskLow;
 
 (* Set the specified MTTRphysBase register. *)
 
-PROCEDURE -SetMTTRphysBase(n: SYSTEM.ADDRESS; high, low: SET);
+PROCEDURE -SetMTTRphysBase(n: ADDRESS; high, low: SET);
 CODE {SYSTEM.Pentium, SYSTEM.Privileged}
 	POP EAX
 	POP EDX
@@ -71,7 +71,7 @@ END SetMTTRphysBase;
 
 (* Set the specified MTTRphysMask register. *)
 
-PROCEDURE -SetMTTRphysMask(n: SYSTEM.ADDRESS; high, low: SET);
+PROCEDURE -SetMTTRphysMask(n: ADDRESS; high, low: SET);
 CODE {SYSTEM.Pentium, SYSTEM.Privileged}
 	POP EAX
 	POP EDX
@@ -83,8 +83,8 @@ END SetMTTRphysMask;
 
 (** Set the cache properties of the specified physical memory area on the current processor. {physAdr, size MOD PS = 0}  Must be called from supervisor mode. *)
 
-PROCEDURE LocalSetCacheProperties*(physAdr: SYSTEM.ADDRESS; size, type: LONGINT; VAR res: LONGINT);
-VAR i, n, f: LONGINT; mask, base: SET; j, k: SYSTEM.ADDRESS;
+PROCEDURE LocalSetCacheProperties*(physAdr: ADDRESS; size, type: LONGINT; VAR res: LONGINT);
+VAR i, n, f: LONGINT; mask, base: SET; j, k: ADDRESS;
 BEGIN
 	ASSERT((physAdr MOD PS = 0) & (size MOD PS = 0) & (size # 0));
 	IF (physAdr >= M) OR (physAdr < 0) THEN
@@ -148,7 +148,7 @@ END HandleSetCacheProperties;
 
 (** Broadcast a LocalSetCacheProperties operation to all processors. *)
 
-PROCEDURE GlobalSetCacheProperties*(physAdr: SYSTEM.ADDRESS; size, type: LONGINT; VAR res: LONGINT);
+PROCEDURE GlobalSetCacheProperties*(physAdr: ADDRESS; size, type: LONGINT; VAR res: LONGINT);
 VAR i: LONGINT; msg: SetCacheMessage;
 BEGIN
 	NEW(msg); msg.physAdr := physAdr; msg.size := size; msg.type := type;

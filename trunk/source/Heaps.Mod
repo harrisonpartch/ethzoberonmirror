@@ -16,7 +16,7 @@ CONST
 	DebugValue = LONGINT(0DEADDEADH);	(* set non-0 to clear free storage to this value *)
 	Stats* = TRUE;					(* maintain statistical counters *)
 
-	AddressSize = SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	AddressSize = SIZEOF(ADDRESS);
 
 	MaxTries = 16;				(* max number of times to try and allocate memory, before trapping *)
 	Unmarked = -1;				(* mark value of free blocks *)
@@ -85,8 +85,8 @@ TYPE
 	HeapBlock* = POINTER TO HeapBlockDesc;	(* base object of all heap blocks *)
 	HeapBlockDesc* = RECORD
 		mark: LONGINT;
-		dataAdr-: SYSTEM.ADDRESS;
-		size-: SYSTEM.SIZE;
+		dataAdr-: ADDRESS;
+		size-: SIZE;
 		nextRealtime: HeapBlock;
 	END;
 
@@ -119,11 +119,11 @@ TYPE
 
 	StaticTypeBlock*= POINTER TO StaticTypeDesc;
 	StaticTypeDesc = RECORD
-		recSize: SYSTEM.SIZE;
+		recSize: SIZE;
 		pointerOffsets* {UNTRACED}: PointerOffsets;
 	END;
 
-	PointerOffsets = POINTER TO ARRAY OF SYSTEM.SIZE;
+	PointerOffsets = POINTER TO ARRAY OF SIZE;
 
 TYPE
 	GCStatus* = OBJECT
@@ -150,28 +150,28 @@ CONST
 	MaxFreeLists = 14;
 	FreeListBarrier = 7;
 TYPE
-	FreeList= RECORD minSize: SYSTEM.SIZE; first {UNTRACED}, last{UNTRACED}: FreeBlock END;
+	FreeList= RECORD minSize: SIZE; first {UNTRACED}, last{UNTRACED}: FreeBlock END;
 	FreeLists = ARRAY MaxFreeLists+1 OF FreeList;
 VAR
 	freeLists: FreeLists;
 	GC*: PROCEDURE;	(** activate the garbage collector *)
 	initBlock: ANY;	(* anchor for init calls *)
-	markStack: ARRAY MarkStackSize OF SYSTEM.ADDRESS; (* temporary marking stack *)
-	lowestForgotten: SYSTEM.ADDRESS; (* lowest forgotten block due to mark stack overflow *)
+	markStack: ARRAY MarkStackSize OF ADDRESS; (* temporary marking stack *)
+	lowestForgotten: ADDRESS; (* lowest forgotten block due to mark stack overflow *)
 	markStackHeight: LONGINT; (* current free position in mark stack *)
 	currentMarkValue: LONGINT; (* all objects that have this value in their mark field are still used - initial value filled in by linker *)
 	sweepMarkValue: LONGINT; (* most recent mark value *)
-	sweepBlockAdr: SYSTEM.ADDRESS;	(* where to resume sweeping *)
+	sweepBlockAdr: ADDRESS;	(* where to resume sweeping *)
 	sweepMemBlock {UNTRACED}: Machine.MemoryBlock; (* where to resume sweeping *)
-	candidates: ARRAY MaxCandidates OF SYSTEM.ADDRESS; (* procedure stack pointer candidates *)
+	candidates: ARRAY MaxCandidates OF ADDRESS; (* procedure stack pointer candidates *)
 	numCandidates: LONGINT;
 	rootList {UNTRACED}: RootObject;	(* list of root objects during GC - tracing does not harm but is unnecessary *)
 	realtimeList {UNTRACED}: HeapBlock; (* list of realtime objects - tracing does not harm but is unnecessary *)
-	newSum: SYSTEM.SIZE;
+	newSum: SIZE;
 	checkRoot: FinalizerNode;	(* list of checked objects (contains weak references to the checked objects) *)
 	finalizeRoot: FinalizerNode;	(* objects scheduled for finalization (contains references to scheduled objects) *)
 
-	freeBlockTag, systemBlockTag, recordBlockTag, protRecBlockTag, arrayBlockTag: SYSTEM.ADDRESS;  (* same values of type SYSTEM.ADDRESS *)
+	freeBlockTag, systemBlockTag, recordBlockTag, protRecBlockTag, arrayBlockTag: ADDRESS;  (* same values of type ADDRESS *)
 
 	(** Statistics. Will only be maintained if Stats = TRUE *)
 
@@ -193,8 +193,8 @@ VAR
 	EnableFreeLists, EnableReturnBlocks, trace-: BOOLEAN;
 
 (* check validity of p *)
-PROCEDURE CheckPointer(p: SYSTEM.ADDRESS): BOOLEAN;
-VAR ret: BOOLEAN; heapBlockAdr, tdAdr: SYSTEM.ADDRESS;
+PROCEDURE CheckPointer(p: ADDRESS): BOOLEAN;
+VAR ret: BOOLEAN; heapBlockAdr, tdAdr: ADDRESS;
 BEGIN
 	ret := FALSE;
 	IF Machine.ValidHeapAddress(p)THEN
@@ -209,11 +209,11 @@ BEGIN
 	RETURN ret
 END CheckPointer;
 
-PROCEDURE Inspect(blockAdr: SYSTEM.ADDRESS);
-VAR adr: SYSTEM.ADDRESS; heapBlock {UNTRACED}: HeapBlock; rootObj: RootObject; staticTypeBlock {UNTRACED}: StaticTypeBlock;
+PROCEDURE Inspect(blockAdr: ADDRESS);
+VAR adr: ADDRESS; heapBlock {UNTRACED}: HeapBlock; rootObj: RootObject; staticTypeBlock {UNTRACED}: StaticTypeBlock;
 	block {UNTRACED}: ANY;
 BEGIN
-	(* ug: check for validity of block is necessary since users may assign values to pointer variables that are not real heap blocks, e.g. by using SYSTEM.VAL or SYSTEM.ADR *)
+	(* ug: check for validity of block is necessary since users may assign values to pointer variables that are not real heap blocks, e.g. by using SYSTEM.VAL or ADDRESSOF *)
 	IF (blockAdr = NilVal) OR ~CheckPointer(blockAdr) THEN RETURN END;
 	SYSTEM.GET(blockAdr + HeapBlockOffset, heapBlock);
 	IF (heapBlock = NIL) OR (heapBlock.mark >= currentMarkValue) THEN RETURN END;
@@ -231,7 +231,7 @@ BEGIN
 			IF markStackHeight # MarkStackSize THEN
 				markStack[markStackHeight] := blockAdr; INC(markStackHeight);
 			ELSE (* overflow *)
-				adr := SYSTEM.VAL(SYSTEM.ADDRESS, heapBlock) - BlockHeaderSize; (* lowestForgotten points to block start *)
+				adr := SYSTEM.VAL(ADDRESS, heapBlock) - BlockHeaderSize; (* lowestForgotten points to block start *)
 				IF Machine.LessThan(adr, lowestForgotten) THEN lowestForgotten := adr END
 			END
 		END
@@ -240,14 +240,14 @@ END Inspect;
 
 (** Mark - Mark an object and its decendents. Used by findRoots. *)
 PROCEDURE Mark*(p: ANY);
-VAR orgBlock, block: SYSTEM.ADDRESS; staticTypeBlock {UNTRACED}: StaticTypeBlock;
+VAR orgBlock, block: ADDRESS; staticTypeBlock {UNTRACED}: StaticTypeBlock;
 	orgHeapBlock {UNTRACED}: HeapBlock;
-	currentArrayElemAdr, lastArrayElemAdr: SYSTEM.ADDRESS; i: LONGINT;
+	currentArrayElemAdr, lastArrayElemAdr: ADDRESS; i: LONGINT;
 BEGIN
 	IF Stats THEN INC(Nmark) END;
 	markStackHeight := 0; 	(* clear mark stack *)
 	lowestForgotten := Machine.memBlockTail.endBlockAdr; 	(* sentinel: no overflow has happened *)
-	block := SYSTEM.VAL(SYSTEM.ADDRESS, p);
+	block := SYSTEM.VAL(ADDRESS, p);
 	Inspect(block);
 	LOOP
 		WHILE markStackHeight # 0 DO
@@ -274,12 +274,12 @@ BEGIN
 					END
 				END;
 				IF orgHeapBlock IS ProtRecBlock THEN
-					Inspect(SYSTEM.VAL(SYSTEM.ADDRESS, orgHeapBlock(ProtRecBlock).awaitingLock.head));
+					Inspect(SYSTEM.VAL(ADDRESS, orgHeapBlock(ProtRecBlock).awaitingLock.head));
 					(* inspection of orgHeapBlock.awaitingLock.tail implicitly done *)
-					Inspect(SYSTEM.VAL(SYSTEM.ADDRESS, orgHeapBlock(ProtRecBlock).awaitingCond.head));
+					Inspect(SYSTEM.VAL(ADDRESS, orgHeapBlock(ProtRecBlock).awaitingCond.head));
 					(* inspection of orgHeapBlock.awaitingCond.tail implicity done *)
-					Inspect(SYSTEM.VAL(SYSTEM.ADDRESS, orgHeapBlock(ProtRecBlock).lockedBy));
-					Inspect(SYSTEM.VAL(SYSTEM.ADDRESS, orgHeapBlock(ProtRecBlock).lock))
+					Inspect(SYSTEM.VAL(ADDRESS, orgHeapBlock(ProtRecBlock).lockedBy));
+					Inspect(SYSTEM.VAL(ADDRESS, orgHeapBlock(ProtRecBlock).lock))
 				END
 			ELSE
 				(* mark stack entry is of type HeapBlock or extended type - this may happen, do nothing in this case *)
@@ -295,7 +295,7 @@ END Mark;
 PROCEDURE FindForgottenBlock;
 VAR memBlock {UNTRACED}, startMemBlock {UNTRACED}: Machine.MemoryBlock; p {UNTRACED}, heapBlock {UNTRACED}: HeapBlock;
 	staticTypeBlock {UNTRACED}: StaticTypeBlock;
-	blockAdr, currentArrayElemAdr, lastArrayElemAdr, refBlock: SYSTEM.ADDRESS;
+	blockAdr, currentArrayElemAdr, lastArrayElemAdr, refBlock: ADDRESS;
 	isMarkStackEntry, isOverflow: BOOLEAN; i: LONGINT;
 
 BEGIN
@@ -349,15 +349,15 @@ BEGIN
 				IF ~isMarkStackEntry & (p IS ProtRecBlock) THEN
 					(* check whether awaiting queues are not marked, only queue heads need to be checked, tails will be found as a consequence *)
 					IF p(ProtRecBlock).awaitingLock.head # NIL THEN
-						SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, p(ProtRecBlock).awaitingLock.head) + HeapBlockOffset, heapBlock);
+						SYSTEM.GET(SYSTEM.VAL(ADDRESS, p(ProtRecBlock).awaitingLock.head) + HeapBlockOffset, heapBlock);
 						IF heapBlock.mark < currentMarkValue THEN isMarkStackEntry := TRUE END
 					END;
 					IF p(ProtRecBlock).awaitingCond.head # NIL THEN
-						SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, p(ProtRecBlock).awaitingCond.head) + HeapBlockOffset, heapBlock);
+						SYSTEM.GET(SYSTEM.VAL(ADDRESS, p(ProtRecBlock).awaitingCond.head) + HeapBlockOffset, heapBlock);
 						IF heapBlock.mark < currentMarkValue THEN isMarkStackEntry := TRUE END
 					END;
 					IF p(ProtRecBlock).lockedBy # NIL THEN
-						SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, p(ProtRecBlock).lockedBy) + HeapBlockOffset, heapBlock);
+						SYSTEM.GET(SYSTEM.VAL(ADDRESS, p(ProtRecBlock).lockedBy) + HeapBlockOffset, heapBlock);
 						IF heapBlock.mark < currentMarkValue THEN isMarkStackEntry := TRUE END
 					END;
 				END;
@@ -392,8 +392,8 @@ BEGIN
 END MarkRealtimeObjects;
 
 (** WriteType - Write a type name (for tracing only). *)
-PROCEDURE WriteType*(t: SYSTEM.ADDRESS);	(* t is static type descriptor *)
-VAR m: SYSTEM.ADDRESS; i: LONGINT; ch: CHAR; name: ARRAY 32 OF CHAR;
+PROCEDURE WriteType*(t: ADDRESS);	(* t is static type descriptor *)
+VAR m: ADDRESS; i: LONGINT; ch: CHAR; name: ARRAY 32 OF CHAR;
 BEGIN
 	SYSTEM.GET (t + TypeDescOffset, t);
 	SYSTEM.GET (t + ModOfs, m);	(* m is only a hint *)
@@ -407,7 +407,7 @@ BEGIN
 		Trace.String("NIL")
 	END;
 	Trace.Char(".");
-	SYSTEM.MOVE(t + TypeNameOfs, SYSTEM.ADR(name[0]), 32);
+	SYSTEM.MOVE(t + TypeNameOfs, ADDRESSOF(name[0]), 32);
 	IF name[0] = 0X THEN Trace.String("-")
 	ELSE Trace.String(name)
 	END
@@ -486,7 +486,7 @@ BEGIN
 	END;
 END AppendFreeBlock;
 
-PROCEDURE FindFreeBlock( size: SYSTEM.SIZE ): FreeBlock;
+PROCEDURE FindFreeBlock( size: SIZE ): FreeBlock;
 VAR prev, block: FreeBlock;  i: LONGINT;
 BEGIN
 	i := MaxFreeLists;
@@ -521,13 +521,13 @@ BEGIN
 	RETURN block
 END FindFreeBlock;
 
-PROCEDURE GetFreeBlockAndSplit(size: SYSTEM.SIZE): FreeBlock;
+PROCEDURE GetFreeBlockAndSplit(size: SIZE): FreeBlock;
 VAR p,remainder: FreeBlock;
 BEGIN
 	p := FindFreeBlock(size);
 	IF (p # NIL) & Machine.GreaterThan(p.size, size) THEN (* block too big - divide block into two parts: block with required size and remaining free block *)
-		ASSERT(Machine.GreaterOrEqual(p.size - size, BlockHeaderSize + SYSTEM.SIZEOF(FreeBlockDesc)));
-		remainder := SYSTEM.VAL(FreeBlock, SYSTEM.VAL(SYSTEM.ADDRESS, p) + size);
+		ASSERT(Machine.GreaterOrEqual(p.size - size, BlockHeaderSize + SIZEOF(FreeBlockDesc)));
+		remainder := SYSTEM.VAL(FreeBlock, SYSTEM.VAL(ADDRESS, p) + size);
 		InitFreeBlock(remainder, Unmarked, NilVal, p.size - size);
 		AppendFreeBlock(remainder);
 		p.size := size;
@@ -536,7 +536,7 @@ BEGIN
 	RETURN p
 END GetFreeBlockAndSplit;
 
-PROCEDURE GetFreeBlock(size: SYSTEM.SIZE; VAR p: FreeBlock);
+PROCEDURE GetFreeBlock(size: SIZE; VAR p: FreeBlock);
 BEGIN
 	IF EnableFreeLists THEN
 		IF sweepMarkValue < currentMarkValue THEN
@@ -551,9 +551,9 @@ BEGIN
 END GetFreeBlock;
 
 (* Sweep phase *)
-PROCEDURE LazySweep(size: SYSTEM.SIZE; VAR p: FreeBlock);
-VAR lastFreeBlockAdr: SYSTEM.ADDRESS; found : BOOLEAN;
-	block: HeapBlock; freeBlock, lastFreeBlock: FreeBlock; blockMark: LONGINT; blockSize: SYSTEM.SIZE;
+PROCEDURE LazySweep(size: SIZE; VAR p: FreeBlock);
+VAR lastFreeBlockAdr: ADDRESS; found : BOOLEAN;
+	block: HeapBlock; freeBlock, lastFreeBlock: FreeBlock; blockMark: LONGINT; blockSize: SIZE;
 BEGIN
 	found := FALSE;
 	lastFreeBlockAdr := NilVal;
@@ -576,7 +576,7 @@ BEGIN
 				IF (block IS SystemBlock) OR (block IS RecordBlock) OR (block IS ProtRecBlock) OR (block IS ArrayBlock) THEN
 					freeBlock := SYSTEM.VAL(FreeBlock, block);
 					InitFreeBlock(freeBlock, Unmarked, NilVal, block.size); (* convert this block into a free heap block and clear its data *)
-					Machine.Fill32(sweepBlockAdr + BlockHeaderSize + SYSTEM.SIZEOF(FreeBlockDesc), freeBlock.size - BlockHeaderSize - SYSTEM.SIZEOF(FreeBlockDesc), DebugValue);
+					Machine.Fill32(sweepBlockAdr + BlockHeaderSize + SIZEOF(FreeBlockDesc), freeBlock.size - BlockHeaderSize - SIZEOF(FreeBlockDesc), DebugValue);
 				ELSE
 					ASSERT(block IS FreeBlock);
 					freeBlock := block(FreeBlock); (* free block has data cleared by definition *)
@@ -588,7 +588,7 @@ BEGIN
 					(* there are two contiguous free blocks - merge them *)
 					lastFreeBlock.size := lastFreeBlock.size + block.size;
 					(* clear header fields of concatenated block *)
-					Machine.Fill32(sweepBlockAdr, BlockHeaderSize + SYSTEM.SIZEOF(FreeBlockDesc), DebugValue);
+					Machine.Fill32(sweepBlockAdr, BlockHeaderSize + SIZEOF(FreeBlockDesc), DebugValue);
 				END
 			END;
 			IF (blockMark = TemporaryMarkValue) OR (blockMark >= sweepMarkValue) OR (sweepBlockAdr + blockSize = sweepMemBlock.endBlockAdr) THEN (* no further merging is possible *)
@@ -600,8 +600,8 @@ BEGIN
 					IF Machine.GreaterOrEqual(lastFreeBlock.size, size) THEN (* block found - may be too big *)
 						p := lastFreeBlock;
 						IF Machine.GreaterThan(p.size, size) THEN (* block too big - divide block into two parts: block with required size and remaining free block *)
-							ASSERT(Machine.GreaterOrEqual(p.size - size, BlockHeaderSize + SYSTEM.SIZEOF(FreeBlockDesc)));
-							freeBlock := SYSTEM.VAL(FreeBlock, SYSTEM.VAL(SYSTEM.ADDRESS, p) + size);
+							ASSERT(Machine.GreaterOrEqual(p.size - size, BlockHeaderSize + SIZEOF(FreeBlockDesc)));
+							freeBlock := SYSTEM.VAL(FreeBlock, SYSTEM.VAL(ADDRESS, p) + size);
 							InitFreeBlock(freeBlock, Unmarked, NilVal, p.size - size);
 							p.size := size
 						END;
@@ -627,11 +627,11 @@ BEGIN
 END LazySweep;
 
 PROCEDURE CheckHeap;
-VAR memBlock {UNTRACED}: Machine.MemoryBlock; p, refBlock, currentArrayElemAdr, lastArrayElemAdr: SYSTEM.ADDRESS;
+VAR memBlock {UNTRACED}: Machine.MemoryBlock; p, refBlock, currentArrayElemAdr, lastArrayElemAdr: ADDRESS;
 	heapBlock {UNTRACED}: HeapBlock; staticTypeBlock {UNTRACED}: StaticTypeBlock; i: LONGINT;
 
-	PROCEDURE CheckBlock(block: SYSTEM.ADDRESS): BOOLEAN;
-	VAR heapBlockAdr: SYSTEM.ADDRESS;
+	PROCEDURE CheckBlock(block: ADDRESS): BOOLEAN;
+	VAR heapBlockAdr: ADDRESS;
 	BEGIN
 		IF block = NilVal THEN
 			RETURN TRUE
@@ -667,11 +667,11 @@ BEGIN
 						END
 					END;
 					IF heapBlock IS ProtRecBlock THEN
-						IF CheckBlock(SYSTEM.VAL(SYSTEM.ADDRESS, heapBlock(ProtRecBlock).awaitingLock.head)) &
-							CheckBlock(SYSTEM.VAL(SYSTEM.ADDRESS, heapBlock(ProtRecBlock).awaitingLock.tail)) &
-							CheckBlock(SYSTEM.VAL(SYSTEM.ADDRESS, heapBlock(ProtRecBlock).awaitingCond.head)) &
-							CheckBlock(SYSTEM.VAL(SYSTEM.ADDRESS, heapBlock(ProtRecBlock).awaitingCond.tail)) &
-							CheckBlock(SYSTEM.VAL(SYSTEM.ADDRESS, heapBlock(ProtRecBlock).lockedBy)) THEN
+						IF CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).awaitingLock.head)) &
+							CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).awaitingLock.tail)) &
+							CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).awaitingCond.head)) &
+							CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).awaitingCond.tail)) &
+							CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).lockedBy)) THEN
 						ELSE
 							Trace.String("SEVERE ERROR in awaiting queues of block = "); Trace.Hex(heapBlock.dataAdr, 8); Trace.Ln
 						END
@@ -709,8 +709,8 @@ END CheckHeap;
 
 (* CheckCandidates - Check which candidates could be pointers, and mark them. (exported for debugging only) *)
 PROCEDURE CheckCandidates*;
-CONST MinDataOffset = BlockHeaderSize + SYSTEM.SIZEOF(HeapBlockDesc) + BlockHeaderSize; (* minimal offset of data address with respect to block start address *)
-VAR i, j, h: LONGINT; p, blockStart, tdAdr: SYSTEM.ADDRESS; memBlock {UNTRACED}: Machine.MemoryBlock;
+CONST MinDataOffset = BlockHeaderSize + SIZEOF(HeapBlockDesc) + BlockHeaderSize; (* minimal offset of data address with respect to block start address *)
+VAR i, j, h: LONGINT; p, blockStart, tdAdr: ADDRESS; memBlock {UNTRACED}: Machine.MemoryBlock;
 	heapBlock {UNTRACED}: HeapBlock;
 BEGIN
 	(* {numCandidates > 0} *)
@@ -754,8 +754,8 @@ BEGIN
 END CheckCandidates;
 
 (* Check validity of single pointer candidate *)
-PROCEDURE Candidate*(p: SYSTEM.ADDRESS);
-VAR memBlock {UNTRACED}: Machine.MemoryBlock; heapBlockAdr, tdAdr: SYSTEM.ADDRESS;
+PROCEDURE Candidate*(p: ADDRESS);
+VAR memBlock {UNTRACED}: Machine.MemoryBlock; heapBlockAdr, tdAdr: ADDRESS;
 BEGIN
 	IF Machine.GreaterOrEqual(p, Machine.memBlockHead.beginBlockAdr) & Machine.LessThan(p, Machine.memBlockTail.endBlockAdr) THEN
 		memBlock := Machine.memBlockHead;
@@ -778,8 +778,8 @@ BEGIN
 END Candidate;
 
 (** RegisterCandidates - Register a block of pointer candidates *)
-PROCEDURE RegisterCandidates*(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
-VAR end, p: SYSTEM.ADDRESS;
+PROCEDURE RegisterCandidates*(adr: ADDRESS; size: SIZE);
+VAR end, p: ADDRESS;
 BEGIN
 	(* current processor must hold Heaps lock *)
 	end := adr + size;
@@ -797,14 +797,14 @@ VAR n, p, t: FinalizerNode; heapBlock {UNTRACED}: HeapBlock;
 	PROCEDURE MarkDelegate(p: Finalizer);
 	VAR pointer: ANY;
 	BEGIN
-		SYSTEM.GET(SYSTEM.ADR(p)+SYSTEM.SIZEOF(SYSTEM.ADDRESS),pointer);
+		SYSTEM.GET(ADDRESSOF(p)+SIZEOF(ADDRESS),pointer);
 		IF pointer # NIL THEN Mark(pointer) END;
 	END MarkDelegate;
 
 BEGIN
 	n := checkRoot;
 	WHILE n # NIL DO	(* move unmarked checked objects to finalize list *)
-		SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, n.objWeak) + HeapBlockOffset, heapBlock);
+		SYSTEM.GET(SYSTEM.VAL(ADDRESS, n.objWeak) + HeapBlockOffset, heapBlock);
 		IF heapBlock.mark < currentMarkValue THEN
 			IF n = checkRoot THEN checkRoot := n.nextFin ELSE p.nextFin := n.nextFin END;
 			n.objStrong := n.objWeak;	(* anchor the object for finalization *)
@@ -847,15 +847,15 @@ BEGIN
 END GetFinalizer;
 
 (** Check finalizers registered in the specified module, which is about to be freed or shut down. Remove all finalizer procedures in this module from the finalizer lists so they won't be called any more. *)
-PROCEDURE CleanupModuleFinalizers*(codeAdr: SYSTEM.ADDRESS; codeLen: SYSTEM.SIZE; CONST name: ARRAY OF CHAR);
-VAR n, p, t: FinalizerNode; codeEnd: SYSTEM.ADDRESS; N1, N2: LONGINT;
+PROCEDURE CleanupModuleFinalizers*(codeAdr: ADDRESS; codeLen: SIZE; CONST name: ARRAY OF CHAR);
+VAR n, p, t: FinalizerNode; codeEnd: ADDRESS; N1, N2: LONGINT;
 BEGIN
 	codeEnd := codeAdr + codeLen; N1 := 0; N2 := 0;
 	Machine.Acquire(Machine.Heaps);
 	n := checkRoot;
 	WHILE n # NIL DO	(* iterate over checked list *)
 		t := n; n := n.nextFin;
-		IF Machine.LessOrEqual(codeAdr, SYSTEM.VAL (SYSTEM.ADDRESS, t.finalizer)) & Machine.LessOrEqual(SYSTEM.VAL (SYSTEM.ADDRESS, t.finalizer), codeEnd) THEN
+		IF Machine.LessOrEqual(codeAdr, SYSTEM.VAL (ADDRESS, t.finalizer)) & Machine.LessOrEqual(SYSTEM.VAL (ADDRESS, t.finalizer), codeEnd) THEN
 			IF t = checkRoot THEN checkRoot := t.nextFin ELSE p.nextFin := t.nextFin END;	(* remove from list *)
 			IF Stats THEN DEC(NfinalizeAlive) END;
 			INC(N1)
@@ -867,7 +867,7 @@ BEGIN
 	n := finalizeRoot;
 	WHILE n # NIL DO	(* iterate over finalized list *)
 		t := n; n := n.nextFin;
-		IF Machine.LessOrEqual(codeAdr, SYSTEM.VAL (SYSTEM.ADDRESS, t.finalizer)) & Machine.LessOrEqual(SYSTEM.VAL (SYSTEM.ADDRESS, t.finalizer), codeEnd) THEN
+		IF Machine.LessOrEqual(codeAdr, SYSTEM.VAL (ADDRESS, t.finalizer)) & Machine.LessOrEqual(SYSTEM.VAL (ADDRESS, t.finalizer), codeEnd) THEN
 			IF t = finalizeRoot THEN finalizeRoot := t.nextFin ELSE p.nextFin := t.nextFin END;	(* remove from list *)
 			IF Stats THEN DEC(NfinalizeDead) END;
 			INC(N2)
@@ -889,7 +889,7 @@ END CleanupModuleFinalizers;
 PROCEDURE AddRootObject*(rootObject: RootObject);
 BEGIN
 	IF rootObject = NIL THEN (* nothing *)
-	ELSIF CheckPointer(SYSTEM.VAL(SYSTEM.ADDRESS,rootObject)) THEN
+	ELSIF CheckPointer(SYSTEM.VAL(ADDRESS,rootObject)) THEN
 		(* object in heap, must be fully marked and traversed *)
 		Mark(rootObject)
 	ELSE
@@ -977,7 +977,7 @@ BEGIN
 END InvokeGC;
 
 PROCEDURE ReturnBlocks;
-VAR memBlock {UNTRACED}, free{UNTRACED}: Machine.MemoryBlock; p: SYSTEM.ADDRESS; heapBlock {UNTRACED}: HeapBlock; f: FreeBlock;
+VAR memBlock {UNTRACED}, free{UNTRACED}: Machine.MemoryBlock; p: ADDRESS; heapBlock {UNTRACED}: HeapBlock; f: FreeBlock;
 BEGIN
 	GetFreeBlock(MAX(LONGINT), f); (* merge all empty blocks, if necessary *)
 	memBlock := Machine.memBlockHead;
@@ -1015,23 +1015,23 @@ BEGIN
 END LazySweepGC;
 
 (* initialize a free heap block *)
-PROCEDURE InitFreeBlock(freeBlock: FreeBlock; mark: LONGINT; dataAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
-VAR freeBlockAdr: SYSTEM.ADDRESS;
+PROCEDURE InitFreeBlock(freeBlock: FreeBlock; mark: LONGINT; dataAdr: ADDRESS; size: SIZE);
+VAR freeBlockAdr: ADDRESS;
 BEGIN
 	freeBlock.mark := mark;
 	freeBlock.dataAdr := dataAdr;
 	freeBlock.size := size;
 	freeBlock.next := NIL;
 	(* initialize heap block header *)
-	freeBlockAdr := SYSTEM.VAL(SYSTEM.ADDRESS, freeBlock);
+	freeBlockAdr := SYSTEM.VAL(ADDRESS, freeBlock);
 	SYSTEM.PUT(freeBlockAdr + TypeDescOffset, freeBlockTag);
 	SYSTEM.PUT(freeBlockAdr + HeapBlockOffset, NilVal)
 END InitFreeBlock;
 
 (* NewBlock - Allocate a heap block. {(size MOD BlockSize = 0)}. Caller must hold Heap lock. *)
-PROCEDURE NewBlock(size: SYSTEM.SIZE): SYSTEM.ADDRESS;
+PROCEDURE NewBlock(size: SIZE): ADDRESS;
 VAR try: LONGINT; p {UNTRACED}, freeBlock {UNTRACED}: FreeBlock; memBlock {UNTRACED}: Machine.MemoryBlock;
-	beginHeapBlockAdr, endHeapBlockAdr: SYSTEM.ADDRESS;
+	beginHeapBlockAdr, endHeapBlockAdr: ADDRESS;
 
 	PROCEDURE CheckPostGC;
 	BEGIN
@@ -1072,18 +1072,18 @@ BEGIN
 	IF p # NIL THEN
 		IF Stats THEN INC(Nnew); INC(NnewBytes, size) END;
 		ASSERT(p.size >= size);
-		RETURN SYSTEM.VAL(SYSTEM.ADDRESS, p)
+		RETURN SYSTEM.VAL(ADDRESS, p)
 	ELSE 	(* try = MaxTries *)
 		SYSTEM.HALT(14) 	(* out of memory *)
 	END;
 END NewBlock;
 
 (** NewSys - Implementation of SYSTEM.NEW. *)
-PROCEDURE NewSys*(VAR p: ANY; size: SYSTEM.SIZE; isRealtime: BOOLEAN);
-VAR blockSize, systemBlockSize: SYSTEM.SIZE; systemBlockAdr, dataBlockAdr: SYSTEM.ADDRESS;
-	systemBlock {UNTRACED}: SystemBlock; pc: SYSTEM.ADDRESS;
+PROCEDURE NewSys*(VAR p: ANY; size: SIZE; isRealtime: BOOLEAN);
+VAR blockSize, systemBlockSize: SIZE; systemBlockAdr, dataBlockAdr: ADDRESS;
+	systemBlock {UNTRACED}: SystemBlock; pc: ADDRESS;
 BEGIN
-	systemBlockSize := BlockHeaderSize + SYSTEM.SIZEOF(SystemBlockDesc);
+	systemBlockSize := BlockHeaderSize + SIZEOF(SystemBlockDesc);
 	INC(systemBlockSize, (-systemBlockSize) MOD ArrayAlignment); (* round up to multiple of ArrayAlignment to ensure alignment of first data element to 0 MOD ArrayAlignment *)
 	blockSize := systemBlockSize + BlockHeaderSize + size;
 	INC(blockSize, (-blockSize) MOD BlockSize);  (* round up to multiple of BlockSize *)
@@ -1092,7 +1092,7 @@ BEGIN
 	systemBlockAdr:= NewBlock(blockSize);
 	IF systemBlockAdr # 0 THEN
 		SYSTEM.PUT(systemBlockAdr + TypeDescOffset, systemBlockTag);
-		SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS),pc);
+		SYSTEM.GET(Machine.CurrentBP()+SIZEOF(ADDRESS),pc);
 		SYSTEM.PUT(systemBlockAdr + HeapBlockOffset,pc);
 		dataBlockAdr := systemBlockAdr + systemBlockSize (* - BlockHeaderSize + BlockHeaderSize *);
 		SYSTEM.PUT(dataBlockAdr + TypeDescOffset, NilVal);		(* no type descriptor *)
@@ -1116,40 +1116,40 @@ BEGIN
 	Machine.Release(Machine.Heaps)
 END NewSys;
 
-PROCEDURE SetPC(p: ANY; pc: SYSTEM.ADDRESS);
-VAR blockAdr: SYSTEM.ADDRESS;
+PROCEDURE SetPC(p: ANY; pc: ADDRESS);
+VAR blockAdr: ADDRESS;
 BEGIN
 	IF p # NIL THEN
-		SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, p)+HeapBlockOffset,blockAdr);
+		SYSTEM.GET(SYSTEM.VAL(ADDRESS, p)+HeapBlockOffset,blockAdr);
 		SYSTEM.PUT(blockAdr+HeapBlockOffset, pc);
 	END;
 END SetPC;
 
 (** NewRec - Implementation of NEW with a record. *)
-PROCEDURE NewRec*(VAR p: ANY; tag: SYSTEM.ADDRESS; isRealtime: BOOLEAN);
-VAR flags: SET; size, blockSize: SYSTEM.SIZE; typeInfoAdr, recordBlockAdr, dataBlockAdr : SYSTEM.ADDRESS;
-	recordBlock {UNTRACED}: RecordBlock; pc: SYSTEM.ADDRESS;
+PROCEDURE NewRec*(VAR p: ANY; tag: ADDRESS; isRealtime: BOOLEAN);
+VAR flags: SET; size, blockSize: SIZE; typeInfoAdr, recordBlockAdr, dataBlockAdr : ADDRESS;
+	recordBlock {UNTRACED}: RecordBlock; pc: ADDRESS;
 BEGIN
 	SYSTEM.GET (tag - AddressSize, typeInfoAdr);
 	SYSTEM.GET (typeInfoAdr + FlagsOfs, flags);
 	IF ProtTypeBit IN flags THEN
 		NewProtRec(p, tag, isRealtime);
-		SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+		SYSTEM.GET(Machine.CurrentBP()+SIZEOF(ADDRESS), pc);
 		SetPC(p,pc);
 	ELSE
 		SYSTEM.GET(tag, size);
 		(* the block size is the sum of the size of the RecordBlock and the DataBlock.
 		    Two extra fields per subblock contain the tag and the reference to the heap block *)
-		blockSize := BlockHeaderSize + SYSTEM.SIZEOF(RecordBlockDesc) + BlockHeaderSize + size;
+		blockSize := BlockHeaderSize + SIZEOF(RecordBlockDesc) + BlockHeaderSize + size;
 		INC(blockSize, (-blockSize) MOD BlockSize); 	(* round up to multiple of BlockSize *)
 
 		Machine.Acquire(Machine.Heaps);
 		recordBlockAdr := NewBlock(blockSize);
 		IF recordBlockAdr # 0 THEN
 			SYSTEM.PUT(recordBlockAdr + TypeDescOffset, recordBlockTag);
-			SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS),pc);
+			SYSTEM.GET(Machine.CurrentBP()+SIZEOF(ADDRESS),pc);
 			SYSTEM.PUT(recordBlockAdr + HeapBlockOffset,pc);
-			dataBlockAdr := recordBlockAdr + SYSTEM.SIZEOF(RecordBlockDesc) + BlockHeaderSize;
+			dataBlockAdr := recordBlockAdr + SIZEOF(RecordBlockDesc) + BlockHeaderSize;
 			SYSTEM.PUT(dataBlockAdr + TypeDescOffset, tag);
 			SYSTEM.PUT(dataBlockAdr + HeapBlockOffset, recordBlockAdr);
 			recordBlock := SYSTEM.VAL(RecordBlock, recordBlockAdr);
@@ -1167,7 +1167,7 @@ BEGIN
 			p := SYSTEM.VAL(ANY, dataBlockAdr);
 
 			(* clear must be done inside lock to ensure all traced pointer fields are initialized to NIL *)
-			Machine.Fill32(dataBlockAdr, blockSize - SYSTEM.SIZEOF(RecordBlockDesc) - 2 * BlockHeaderSize, 0);	(* clear everything from dataBlockAdr until end of block *)
+			Machine.Fill32(dataBlockAdr, blockSize - SIZEOF(RecordBlockDesc) - 2 * BlockHeaderSize, 0);	(* clear everything from dataBlockAdr until end of block *)
 		ELSE
 			p := NIL
 		END;
@@ -1176,21 +1176,21 @@ BEGIN
 END NewRec;
 
 (** NewProtRec - Implementation of NEW with a protected record. *)
-PROCEDURE NewProtRec*(VAR p: ANY; tag: SYSTEM.ADDRESS; isRealtime: BOOLEAN);
-VAR size, blockSize: SYSTEM.SIZE; protRecBlockAdr, dataBlockAdr: SYSTEM.ADDRESS;
-	protRecBlock {UNTRACED}: ProtRecBlock; i: LONGINT; pc: SYSTEM.ADDRESS;
+PROCEDURE NewProtRec*(VAR p: ANY; tag: ADDRESS; isRealtime: BOOLEAN);
+VAR size, blockSize: SIZE; protRecBlockAdr, dataBlockAdr: ADDRESS;
+	protRecBlock {UNTRACED}: ProtRecBlock; i: LONGINT; pc: ADDRESS;
 BEGIN
 	SYSTEM.GET(tag, size);
-	blockSize := BlockHeaderSize + SYSTEM.SIZEOF(ProtRecBlockDesc) + BlockHeaderSize + size;
+	blockSize := BlockHeaderSize + SIZEOF(ProtRecBlockDesc) + BlockHeaderSize + size;
 	INC(blockSize, (-blockSize) MOD BlockSize); (* round up to multiple of BlockSize *)
 
 	Machine.Acquire(Machine.Heaps);
 	protRecBlockAdr := NewBlock(blockSize);
 	IF protRecBlockAdr # 0 THEN
 		SYSTEM.PUT(protRecBlockAdr + TypeDescOffset, protRecBlockTag);
-		SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS),pc);
+		SYSTEM.GET(Machine.CurrentBP()+SIZEOF(ADDRESS),pc);
 		SYSTEM.PUT(protRecBlockAdr + HeapBlockOffset,pc);
-		dataBlockAdr := protRecBlockAdr + SYSTEM.SIZEOF(ProtRecBlockDesc) + BlockHeaderSize;
+		dataBlockAdr := protRecBlockAdr + SIZEOF(ProtRecBlockDesc) + BlockHeaderSize;
 		SYSTEM.PUT(dataBlockAdr + TypeDescOffset, tag);
 		SYSTEM.PUT(dataBlockAdr + HeapBlockOffset, protRecBlockAdr);
 		protRecBlock := SYSTEM.VAL(ProtRecBlock, protRecBlockAdr);
@@ -1217,7 +1217,7 @@ BEGIN
 		p := SYSTEM.VAL(ANY, dataBlockAdr);
 
 		(* clear must be done inside lock to ensure all traced pointer fields are initialized to NIL *)
-		Machine.Fill32(dataBlockAdr, blockSize - SYSTEM.SIZEOF(ProtRecBlockDesc) - 2 * BlockHeaderSize, 0);	(* clear everything from dataBlockAdr to end of block *)
+		Machine.Fill32(dataBlockAdr, blockSize - SIZEOF(ProtRecBlockDesc) - 2 * BlockHeaderSize, 0);	(* clear everything from dataBlockAdr to end of block *)
 	ELSE
 		p := NIL
 	END;
@@ -1226,16 +1226,16 @@ END NewProtRec;
 
 
 (** NewArr - Implementation of NEW with an array containing pointers. *)
-PROCEDURE NewArr*(VAR p: ANY; elemTag: SYSTEM.ADDRESS; numElems, numDims: SYSTEM.SIZE; isRealtime: BOOLEAN);
-VAR arrayBlockAdr, dataBlockAdr: SYSTEM.ADDRESS; arrayBlock {UNTRACED}: ArrayBlock;
-	elemSize, arrSize, blockSize, arrayBlockSize, fillSize, size, ptrOfs, arrayDataOffset: SYSTEM.SIZE;
-	firstElem: SYSTEM.ADDRESS; pc: SYSTEM.ADDRESS;
+PROCEDURE NewArr*(VAR p: ANY; elemTag: ADDRESS; numElems, numDims: SIZE; isRealtime: BOOLEAN);
+VAR arrayBlockAdr, dataBlockAdr: ADDRESS; arrayBlock {UNTRACED}: ArrayBlock;
+	elemSize, arrSize, blockSize, arrayBlockSize, fillSize, size, ptrOfs, arrayDataOffset: SIZE;
+	firstElem: ADDRESS; pc: ADDRESS;
 BEGIN
 	SYSTEM.GET(elemTag, elemSize);
 	arrSize := numElems * elemSize;
 	IF arrSize = 0 THEN
 		NewSys(p, numDims * AddressSize + 3 * AddressSize, isRealtime); (* no data, thus no specific alignment *)
-		SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+		SYSTEM.GET(Machine.CurrentBP()+SIZEOF(ADDRESS), pc);
 		SetPC(p,pc);
 	ELSE
 		ASSERT(BlockHeaderSize MOD ArrayAlignment = 0);
@@ -1245,10 +1245,10 @@ BEGIN
 		IF ptrOfs = MinPtrOfs - AddressSize THEN (* no pointers in element type *)
 			size := arrayDataOffset + arrSize;
 			NewSys(p, size, isRealtime);
-			SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+			SYSTEM.GET(Machine.CurrentBP()+SIZEOF(ADDRESS), pc);
 			SetPC(p, pc);
 		ELSE
-			arrayBlockSize := BlockHeaderSize + SYSTEM.SIZEOF(ArrayBlockDesc);
+			arrayBlockSize := BlockHeaderSize + SIZEOF(ArrayBlockDesc);
 			INC(arrayBlockSize, (-arrayBlockSize) MOD ArrayAlignment); (* do. *)
 			blockSize := arrayBlockSize + BlockHeaderSize + (arrayDataOffset + arrSize);
 			INC(blockSize, (-blockSize) MOD BlockSize); (* round up to multiple of BlockSize *)
@@ -1256,7 +1256,7 @@ BEGIN
 			arrayBlockAdr := NewBlock(blockSize);
 			IF arrayBlockAdr # 0 THEN
 				SYSTEM.PUT(arrayBlockAdr + TypeDescOffset, arrayBlockTag);
-				SYSTEM.GET(Machine.CurrentBP()+SYSTEM.SIZEOF(SYSTEM.ADDRESS),pc);
+				SYSTEM.GET(Machine.CurrentBP()+SIZEOF(ADDRESS),pc);
 				SYSTEM.PUT(arrayBlockAdr + HeapBlockOffset,pc);
 				dataBlockAdr := arrayBlockAdr + arrayBlockSize (* - BlockHeaderSize + BlockHeaderSize *);
 				SYSTEM.PUT(dataBlockAdr + TypeDescOffset, elemTag);
@@ -1290,9 +1290,9 @@ BEGIN
 	END
 END NewArr;
 
-PROCEDURE FillStaticType*(VAR staticTypeAddr: SYSTEM.ADDRESS; startAddr, typeInfoAdr: SYSTEM.ADDRESS; size, recSize: SYSTEM.SIZE;
+PROCEDURE FillStaticType*(VAR staticTypeAddr: ADDRESS; startAddr, typeInfoAdr: ADDRESS; size, recSize: SIZE;
 							numPtrs, numSlots: LONGINT);
-VAR p, offset: SYSTEM.ADDRESS; staticTypeBlock {UNTRACED}: StaticTypeBlock;
+VAR p, offset: ADDRESS; staticTypeBlock {UNTRACED}: StaticTypeBlock;
 BEGIN
 	Machine.Acquire(Machine.Heaps);
 
@@ -1310,7 +1310,7 @@ BEGIN
 
 	(* create the pointer for the dynamic array of pointer offsets, the dynamic array of pointer offsets is stored in the static type
 	    descriptor, it has no header part *)
-	INC(p, SYSTEM.SIZEOF(StaticTypeDesc));
+	INC(p, SIZEOF(StaticTypeDesc));
 	IF p MOD (2 * AddressSize) # 0 THEN INC(p, AddressSize) END;
 	SYSTEM.PUT(p + 3 * AddressSize, numPtrs); (* internal structure of dynamic array without pointers: the first 3 fields are unused *)
 	staticTypeBlock.pointerOffsets := SYSTEM.VAL(PointerOffsets, p); (* the fourth field contains the dimension of the array *)
@@ -1330,8 +1330,8 @@ BEGIN
 END AddFinalizer;
 
 (** Compute total heap size, free space and largest free block size in bytes. This is a slow operation. *)
-PROCEDURE GetHeapInfo*(VAR total, free, largest: SYSTEM.SIZE);
-VAR memBlock {UNTRACED}: Machine.MemoryBlock; blockAdr: SYSTEM.ADDRESS;
+PROCEDURE GetHeapInfo*(VAR total, free, largest: SIZE);
+VAR memBlock {UNTRACED}: Machine.MemoryBlock; blockAdr: ADDRESS;
 	block {UNTRACED}: HeapBlock;
 BEGIN
 	Machine.Acquire(Machine.Heaps);
@@ -1361,7 +1361,7 @@ END NilGC;
 
 (* Init - Initialize the heap. *)
 PROCEDURE Init;
-VAR beginBlockAdr, endBlockAdr, freeBlockAdr, p: SYSTEM.ADDRESS;
+VAR beginBlockAdr, endBlockAdr, freeBlockAdr, p: ADDRESS;
 	heapBlock {UNTRACED}: HeapBlock; freeBlock {UNTRACED}: FreeBlock; memBlock {UNTRACED}: Machine.MemoryBlock;
 	s: ARRAY 32 OF CHAR; minSize,i: LONGINT;
 BEGIN

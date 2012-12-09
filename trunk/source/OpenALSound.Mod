@@ -203,8 +203,8 @@ TYPE
 			BEGIN				
 				SELF.driver := driver;
 				
-				AL.alGenBuffers( NumBuffers, S.ADR( buffers[0] ) );
-				AL.alGenSources( 1, S.ADR( source ) );
+				AL.alGenBuffers( NumBuffers, ADDRESSOF( buffers[0] ) );
+				AL.alGenSources( 1, ADDRESSOF( source ) );
 				IF AL.alGetError() # AL.AL_NO_ERROR THEN
 					Log.Enter;
 					Log.String( "PlayChannel.Initialize: failed to allocat sources" );  
@@ -246,11 +246,11 @@ TYPE
 			BEGIN {EXCLUSIVE}
 				AWAIT( state = StatePlaying );
 				IF count < NumBuffers THEN
-					AL.alBufferData( buffers[count], format, S.ADR( x.data[0] ),  x.len, frequency );
+					AL.alBufferData( buffers[count], format, ADDRESSOF( x.data[0] ),  x.len, frequency );
 					bufferListener( x );
 					INC( count );
 					IF count = NumBuffers THEN
-						AL.alSourceQueueBuffers( source, count, S.ADR( buffers[0] ) );
+						AL.alSourceQueueBuffers( source, count, ADDRESSOF( buffers[0] ) );
 						AL.alSourcePlay( source );
 						IF AL.alGetError() # AL.AL_NO_ERROR THEN
 							Log.Enter;
@@ -263,12 +263,12 @@ TYPE
 						AL.alGetSourcei( source, AL.AL_BUFFERS_PROCESSED, freeBuffers );
 						IF freeBuffers <= 0 THEN  Objects.Sleep( 5 )  END;	
 					UNTIL freeBuffers > 0;
-					AL.alSourceUnqueueBuffers( source, 1, S.ADR( buffer ) );
+					AL.alSourceUnqueueBuffers( source, 1, ADDRESSOF( buffer ) );
 					DEC( freeBuffers );
-					AL.alBufferData( buffer, format, S.ADR( x.data[0] ),  x.len, frequency );
+					AL.alBufferData( buffer, format, ADDRESSOF( x.data[0] ),  x.len, frequency );
 					bufferListener( x );
 					INC( count ); 
-					AL.alSourceQueueBuffers( source, 1, S.ADR( buffer ) );
+					AL.alSourceQueueBuffers( source, 1, ADDRESSOF( buffer ) );
 					IF AL.alGetError( ) # AL.AL_NO_ERROR THEN
 						Log.Enter;
 						Log.String( "OpenALSound.PlayChannel.QueueBuffer: queueing failed" );  Log.Int( count, 5 ); 
@@ -327,7 +327,7 @@ TYPE
 			BEGIN
 				Stop;
 				AL.alDeleteSources( 1, source );
-				AL.alDeleteBuffers( NumBuffers, S.ADR( buffers[0] ) );
+				AL.alDeleteBuffers( NumBuffers, ADDRESSOF( buffers[0] ) );
 				driver.DestroyALContext;
 				driver.playChannel := NIL;
 				state := StateClosed;

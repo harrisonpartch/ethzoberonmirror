@@ -16,7 +16,7 @@ TYPE
 		Array1dBytes.RangeCheck2( srcx, srcy, w, h, LEN( src[0] ), LEN( src ) );
 		Array1dBytes.RangeCheck2( destx, desty, w, h, LEN( dest[0] ), LEN( dest ) );
 
-		IF (SYSTEM.ADR( src[0] ) = SYSTEM.ADR( dest[0] )) (* same array *) & (srcy < desty) THEN  (*reverse copy order *)
+		IF (ADDRESSOF( src[0] ) = ADDRESSOF( dest[0] )) (* same array *) & (srcy < desty) THEN  (*reverse copy order *)
 			y := h - 1;
 			WHILE (y >= 0) DO Array1d.Copy( src[srcy + y], dest[desty + y], srcx, destx, w );  DEC( y ) END;
 		ELSE

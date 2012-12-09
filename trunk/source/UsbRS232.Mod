@@ -284,9 +284,9 @@ TYPE
 				END;
 
 				data4[0] := CHR(divisor);
-				data4[1] := CHR(SYSTEM.LSH(divisor, -8));
-				data4[2] := CHR(SYSTEM.LSH(divisor, -16));
-				data4[3] := CHR(SYSTEM.LSH(divisor, -24));
+				data4[1] := CHR(LSH(divisor, -8));
+				data4[2] := CHR(LSH(divisor, -16));
+				data4[3] := CHR(LSH(divisor, -24));
 				status := device.Request(Usbdi.ToDevice + Usbdi.Vendor + Usbdi.Device, MctSetBaudrate, 0, 0, 4, data4^);
 			END;
 

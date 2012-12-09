@@ -101,7 +101,7 @@ TYPE
 					SB6[T DIV 100H MOD 40H] /
 					SB4[T DIV 10000H MOD 40H] /
 					SB2[T DIV 1000000H MOD 40H];
-			T := S.VAL( LONGINT, ske[ski] / S.ROT( X, -4 ) );  INC( ski );
+			T := S.VAL( LONGINT, ske[ski] / ROT( X, -4 ) );  INC( ski );
 			Y := Y /	SB7[T MOD 40H] /
 					SB5[T DIV 100H MOD 40H] /
 					SB3[T DIV 10000H MOD 40H] /
@@ -116,7 +116,7 @@ TYPE
 					SB6[T DIV 100H MOD 40H] /
 					SB4[T DIV 10000H MOD 40H] /
 					SB2[T DIV 1000000H MOD 40H];
-			T := S.VAL( LONGINT, skd[ski] / S.ROT( X, -4 ) );  INC(ski );
+			T := S.VAL( LONGINT, skd[ski] / ROT( X, -4 ) );  INC(ski );
 			Y := Y /	SB7[T MOD 40H] /
 					SB5[T DIV 100H MOD 40H] /
 					SB3[T DIV 10000H MOD 40H] /
@@ -147,25 +147,25 @@ TYPE
 	PROCEDURE IP*( VAR X, Y: SET );	(* initial permutation *)
 	VAR T: SET;
 	BEGIN
-		T := (S.LSH( X, -4 ) / Y)* S.VAL( SET, 0F0F0F0FH );	Y := Y / T;  X := X / S.LSH( T, 4 );
-		T := (S.LSH( X, -16 ) / Y)* S.VAL( SET, 0000FFFFH );	Y := Y / T;  X := X / S.LSH( T, 16 );
-		T := (S.LSH( Y, -2 ) / X)* S.VAL( SET, 33333333H );	X := X / T;  Y := Y / S.LSH( T, 2 );
-		T := (S.LSH( Y, -8 ) / X)* S.VAL( SET, 00FF00FFH );	X := X / T;  Y := Y / S.LSH( T, 8 );
-		Y := S.ROT( Y, 1 );
+		T := (LSH( X, -4 ) / Y)* S.VAL( SET, 0F0F0F0FH );	Y := Y / T;  X := X / LSH( T, 4 );
+		T := (LSH( X, -16 ) / Y)* S.VAL( SET, 0000FFFFH );	Y := Y / T;  X := X / LSH( T, 16 );
+		T := (LSH( Y, -2 ) / X)* S.VAL( SET, 33333333H );	X := X / T;  Y := Y / LSH( T, 2 );
+		T := (LSH( Y, -8 ) / X)* S.VAL( SET, 00FF00FFH );	X := X / T;  Y := Y / LSH( T, 8 );
+		Y := ROT( Y, 1 );
 		T := (X / Y) * S.VAL( SET, 0AAAAAAAAH );  Y := Y / T;  X := X / T; 
-		X := S.ROT( X, 1 );			
+		X := ROT( X, 1 );			
 	END IP;
 		
 	PROCEDURE FP*( VAR X, Y: SET );	(* final permutation *)
 	VAR T: SET;
 	BEGIN
-		X := S.ROT( X, -1 );
+		X := ROT( X, -1 );
 		T := (X / Y) * S.VAL( SET, 0AAAAAAAAH );  X := X / T;  Y := Y / T;
-		Y := S.ROT( Y, -1 );
-		T := (S.LSH( Y, -8 ) / X)* S.VAL( SET, 00FF00FFH );	X := X / T;  Y := Y / S.LSH( T, 8 );
-		T := (S.LSH( Y, -2 ) / X)* S.VAL( SET, 33333333H );	X := X / T;  Y := Y / S.LSH( T, 2 );
-		T := (S.LSH( X, -16 ) /Y)* S.VAL( SET, 0000FFFFH );	Y := Y / T;  X := X / S.LSH( T, 16 );
-		T := (S.LSH( X, -4 ) / Y)* S.VAL( SET, 0F0F0F0FH );	Y := Y / T;  X := X / S.LSH( T, 4 );
+		Y := ROT( Y, -1 );
+		T := (LSH( Y, -8 ) / X)* S.VAL( SET, 00FF00FFH );	X := X / T;  Y := Y / LSH( T, 8 );
+		T := (LSH( Y, -2 ) / X)* S.VAL( SET, 33333333H );	X := X / T;  Y := Y / LSH( T, 2 );
+		T := (LSH( X, -16 ) /Y)* S.VAL( SET, 0000FFFFH );	Y := Y / T;  X := X / LSH( T, 16 );
+		T := (LSH( X, -4 ) / Y)* S.VAL( SET, 0F0F0F0FH );	Y := Y / T;  X := X / LSH( T, 4 );
 	END FP;
 	
 	
@@ -176,17 +176,17 @@ TYPE
 		PROCEDURE sms( CONST LRHs: BitSwap;  x: SET; rs, ls: LONGINT ): SET;
 		VAR i: LONGINT;
 		BEGIN
-			i := S.VAL( LONGINT, S.LSH( x, -rs ) ) MOD 16;
-			RETURN S.VAL( SET, S.LSH( LRHs[i], ls ) )
+			i := S.VAL( LONGINT, LSH( x, -rs ) ) MOD 16;
+			RETURN S.VAL( SET, LSH( LRHs[i], ls ) )
 		END sms;
 			
 		PROCEDURE sm( b: SET; shift, mask: LONGINT ): SET;
 		BEGIN
-			RETURN S.LSH( b, shift ) * S.VAL( SET, mask )
+			RETURN LSH( b, shift ) * S.VAL( SET, mask )
 		END sm;
 		
 	BEGIN
-		T := ( S.LSH( Y, -4 ) / X) * S.VAL( SET,  0F0F0F0FH );  X := X / T;  Y := Y / S.LSH( T, 4 );		
+		T := ( LSH( Y, -4 ) / X) * S.VAL( SET,  0F0F0F0FH );  X := X / T;  Y := Y / LSH( T, 4 );		
 		T := (Y / X) * S.VAL( SET,  010101010H); X := X / T;  Y := Y / T;
 			
 		X := sms( LHs, X, 0, 3 ) + sms( LHs, X, 8, 2 ) + sms( LHs, X, 16, 1 ) + sms( LHs, X, 24, 0 ) +
@@ -196,9 +196,9 @@ TYPE
 
 		FOR i := 0 TO 15 DO
 			IF i IN {0, 1, 8, 15} THEN
-				X := S.LSH( X, 1 ) + S.LSH( X, -27 );  Y := S.LSH( Y, 1 ) + S.LSH( Y, -27 )
+				X := LSH( X, 1 ) + LSH( X, -27 );  Y := LSH( Y, 1 ) + LSH( Y, -27 )
 			ELSE
-				X := S.LSH( X, 2 ) + S.LSH( X, -26 );  Y := S.LSH( Y, 2 ) + S.LSH( Y, -26 )
+				X := LSH( X, 2 ) + LSH( X, -26 );  Y := LSH( Y, 2 ) + LSH( Y, -26 )
 			END;
 					
 			sk[ofs + 2*i] :=	

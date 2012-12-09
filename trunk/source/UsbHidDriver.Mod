@@ -82,14 +82,14 @@ TYPE
 
 		(*init settings*)
 		PROCEDURE Init;
-		VAR i : SYSTEM.ADDRESS; k : ARRAY 32 OF CHAR;
+		VAR i : ADDRESS; k : ARRAY 32 OF CHAR;
 		BEGIN
 			(* Get  *)
 			Machine.GetConfig("Keyboard", k);
 			i := -1;
 			IF k # "" THEN i := TableFromFile(k); END;
 			IF i = -1 THEN (* Fallback to default *) i := UsbKeyboard.TableUS(); END;
-			SYSTEM.PUT(SYSTEM.ADR(keytable), i);
+			SYSTEM.PUT(ADDRESSOF(keytable), i);
 
 			(* Apply Numlock boot up state *)
 			Machine.GetConfig("NumLock", k);
@@ -1237,7 +1237,7 @@ TYPE
 						KernelLog.String("        bits to shift: "); KernelLog.Int(bitsToShift,0); KernelLog.Ln;
 					END;
 
-					rv := SYSTEM.VAL(LONGINT,SYSTEM.LSH(SYSTEM.VAL(CHAR,temp),-bitsToShift));
+					rv := SYSTEM.VAL(LONGINT,LSH(SYSTEM.VAL(CHAR,temp),-bitsToShift));
 
 					IF Debug THEN
 						KernelLog.String("        the value of the byte after shifting: "); KernelLog.Bits(SYSTEM.VAL(SET, rv),0,8); KernelLog.Ln;
@@ -1265,7 +1265,7 @@ TYPE
 				END;
 
 				temp := ReadBitsBuffer(indexEightAligned+1,endIndex-indexEightAligned, localBuf);
-				temp := SYSTEM.LSH(temp,indexEightAligned-index+1);
+				temp := LSH(temp,indexEightAligned-index+1);
 				rv := temp + ReadBitsBuffer(index, indexEightAligned-index+1,localBuf);
 			END;
 			RETURN rv;

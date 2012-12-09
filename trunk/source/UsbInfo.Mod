@@ -186,7 +186,7 @@ END ShowDevice;
 PROCEDURE ShowDescriptor(d : Usb.DeviceDescriptor;  indent : LONGINT; out : Streams.Writer);
 BEGIN
 	Indent(indent, out);
-	out.String("USB Version: "); PrintHex(SYSTEM.LSH(d.bcdUSB, -8), out); out.Char("."); PrintHex(d.bcdUSB MOD 100H, out);
+	out.String("USB Version: "); PrintHex(LSH(d.bcdUSB, -8), out); out.Char("."); PrintHex(d.bcdUSB MOD 100H, out);
 	out.String(", Device Class: "); PrintHex(d.bDeviceClass, out);
 	out.String("H, Subclass: "); PrintHex(d.bDeviceSubClass, out);
 	out.String("H, Protocol: "); PrintHex(d.bDeviceProtocol, out); out.String("H");
@@ -196,7 +196,7 @@ BEGIN
 	Indent(indent, out);
 	out.String("idVendor: "); PrintHex(d.idVendor, out);
 	out.String("H,  idProduct: "); PrintHex(d.idProduct, out);
-	out.String("H,  Device Version: "); PrintHex(SYSTEM.LSH(d.bcdDevice, -8), out); out.Char("."); PrintHex(d.bcdDevice MOD 100H, out);
+	out.String("H,  Device Version: "); PrintHex(LSH(d.bcdDevice, -8), out); out.Char("."); PrintHex(d.bcdDevice MOD 100H, out);
 	out.Ln;
 END ShowDescriptor;
 
@@ -257,14 +257,14 @@ BEGIN
 	END;
 	IF attr = 1 THEN
 		out.String(", Synchronization: ");
-		CASE SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, attr) * {2..3}, -2)) OF
+		CASE SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, attr) * {2..3}, -2)) OF
 			0 : out.String("None");
 			|1: out.String("Asynchronous");
 			|2: out.String("Adaptive");
 			|3: out.String("Synchronous");
 		END;
 		out.String(", Usage: ");
-		CASE SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, attr) * {2..3}, -2)) OF
+		CASE SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, attr) * {2..3}, -2)) OF
 			0 : out.String("Data");
 			|1: out.String("Feedback");
 			|2: out.String("Implicit Feedback");

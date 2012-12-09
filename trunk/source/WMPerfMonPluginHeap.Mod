@@ -14,12 +14,12 @@ TYPE
 	BlocksHelper = OBJECT(WMPerfMonPlugins.Helper)
 	VAR
 		blocks, recblks, sysblks, arrblks, protrecblks, freeblks, unknowns : LONGINT;
-		blockssize, recblksize, sysblksize, arrblksize, protrecblksize, freeblksize, unknownsize : SYSTEM.SIZE;
-		heapsize : SYSTEM.SIZE;
+		blockssize, recblksize, sysblksize, arrblksize, protrecblksize, freeblksize, unknownsize : SIZE;
+		heapsize : SIZE;
 		blockSizes, recblkSizes, sysblkSizes, arrblkSizes, protrecblkSizes, freeblkSizes : SizeArray;
 
 		PROCEDURE Update;
-		VAR p : SYSTEM.ADDRESS; memBlock {UNTRACED}: Machine.MemoryBlock; heapBlock: Heaps.HeapBlock;
+		VAR p : ADDRESS; memBlock {UNTRACED}: Machine.MemoryBlock; heapBlock: Heaps.HeapBlock;
 		BEGIN
 			blocks := 0; recblks := 0; sysblks := 0; arrblks := 0;
 			protrecblks := 0; freeblks := 0;
@@ -75,7 +75,7 @@ TYPE
 			END;
 		END ClearSizeArrays;
 
-		PROCEDURE AddSize(size : SYSTEM.SIZE; VAR array : SizeArray);
+		PROCEDURE AddSize(size : SIZE; VAR array : SizeArray);
 		CONST K = 1024; M = 1024*1024;
 		BEGIN
 			IF (size <= 320) THEN

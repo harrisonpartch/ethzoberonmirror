@@ -869,7 +869,7 @@ TYPE
 			IF SYSTEM.VAL(SET, ORD(buffer[3])) * {2} # {} THEN isCompound := TRUE; END;
 			IF SYSTEM.VAL(SET, ORD(buffer[3])) * {7} # {} THEN portIndicators := TRUE; END;
 
-			i := SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, ORD(buffer[3])) * {3..4}, -3));
+			i := SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, ORD(buffer[3])) * {3..4}, -3));
 			CASE i OF
 				0 : ocProtection := Global;
 				|1 : ocProtection := PerPort;
@@ -877,7 +877,7 @@ TYPE
 				ocProtection := NotAvailable;
 			END;
 
-		 	thinkTime := SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, ORD(buffer[3])) * {3..4}, -3));
+		 	thinkTime := SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, ORD(buffer[3])) * {3..4}, -3));
 			pwrOn2pwrGood := ORD(buffer[5]) * 2; (* PowerOn 2 PowerGood measured in 2ms steps *)
 		 	ctrlCurrent := ORD(buffer[6]);
 
@@ -1091,7 +1091,7 @@ TYPE
 				ASSERT((feature > 0) & (feature <= 22) & (feature # PortConnection)); (* Valid feature selector *)
 			END;
 			IF Debug.Trace & Debug.traceHubRequests THEN Show("Port "); KernelLog.Int(port + 1, 0); KernelLog.String(": Clear feature "); KernelLog.Int(feature, 0); KernelLog.Ln; END;
-			RETURN hub.defaultpipe.Request(ToDevice + Class + Other, ClearFeature, feature, (port + 1) + SYSTEM.LSH(selector, 8), 0, Usbdi.NoData) = Usbdi.Ok;
+			RETURN hub.defaultpipe.Request(ToDevice + Class + Other, ClearFeature, feature, (port + 1) + LSH(selector, 8), 0, Usbdi.NoData) = Usbdi.Ok;
 		END ClearPortFeature;
 
 		(* This hub class request sets a value reported in the hub status. *)
@@ -1102,7 +1102,7 @@ TYPE
 				ASSERT((feature > 0) & (feature <= 22) & (feature # PortConnection)); (* Valid feature selector *)
 			END;
 			IF Debug.Trace & Debug.traceHubRequests THEN Show("Port "); KernelLog.Int(port + 1, 0); KernelLog.String(": Set feature "); KernelLog.Int(feature, 0); KernelLog.Ln; END;
-			RETURN hub.defaultpipe.Request(ToDevice + Class + Other, SetFeature, feature, (port + 1) + SYSTEM.LSH(selector, 8), 0, Usbdi.NoData) = Usbdi.Ok;
+			RETURN hub.defaultpipe.Request(ToDevice + Class + Other, SetFeature, feature, (port + 1) + LSH(selector, 8), 0, Usbdi.NoData) = Usbdi.Ok;
 		END SetPortFeature;
 
 		(* This hub class request returns the current hub status and the states that have change since the previous acknowledgment. *)
@@ -1112,7 +1112,7 @@ TYPE
 			IF Debug.Trace & Debug.traceHubRequests THEN Show("Get Hub Status."); KernelLog.Ln; END;
 			NEW(buffer, 4);
 			IF hub.defaultpipe.Request(ToHost + Class + Device, GetStatus, 0, 0, 4, buffer^) = Usbdi.Ok THEN
-				hubstatus := SYSTEM.VAL(SET, SYSTEM.GET32(SYSTEM.ADR(buffer[0])));
+				hubstatus := SYSTEM.VAL(SET, SYSTEM.GET32(ADDRESSOF(buffer[0])));
 				RETURN TRUE;
 			END;
 			RETURN FALSE;
@@ -1128,7 +1128,7 @@ TYPE
 			END;
 			NEW(buffer, 4);
 			IF hub.defaultpipe.Request(ToHost + Class + Other, GetStatus, 0, port+1, 4, buffer^) = Usbdi.Ok THEN
-				s := SYSTEM.VAL(SET, SYSTEM.GET32(SYSTEM.ADR(buffer[0])));
+				s := SYSTEM.VAL(SET, SYSTEM.GET32(ADDRESSOF(buffer[0])));
 
 				IF ack & (s * PsChangeMask # {}) THEN (* Acknowledge the changes *)
 					IF s * PsConnectStatusChange # {} THEN
@@ -1284,8 +1284,8 @@ TYPE
 				RETURN FALSE;
 			END;
 			(* wValue: {0..3}: Endpoint Number, {4..10}: Device Address, {11..12}: Endpoint Type, {13..13}: Reserved, {15}: Endpoint Direction *)
-			wValue := SYSTEM.VAL(SET, endp.bEndpointAddress) * {0..3} + SYSTEM.LSH(SYSTEM.VAL(SET, dev.address), 4) * {4..10};
-			wValue := wValue + SYSTEM.LSH(endp.bmAttributes ,11) * {11..12} + SYSTEM.LSH(SYSTEM.VAL(SET, endp.bEndpointAddress) * {7}, 8);
+			wValue := SYSTEM.VAL(SET, endp.bEndpointAddress) * {0..3} + LSH(SYSTEM.VAL(SET, dev.address), 4) * {4..10};
+			wValue := wValue + LSH(endp.bmAttributes ,11) * {11..12} + LSH(SYSTEM.VAL(SET, endp.bEndpointAddress) * {7}, 8);
 			RETURN hub.defaultpipe.Request(ToDevice + Class + Other, ClearTtBuffer, SYSTEM.VAL(LONGINT, wValue), (port + 1), 0, Usbdi.NoData) = Usbdi.Ok;
 		END ClearTTBuffer;
 

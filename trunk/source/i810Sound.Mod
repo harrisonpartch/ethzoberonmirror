@@ -289,8 +289,8 @@ TYPE
 				NEW(DMAOut);
 
 				(* Size is 32 entries * 2 fields * 8 byte = 256 byte *)
-				DMAInPhysAdr := GetPhysicalAdr(SYSTEM.ADR(DMAIn[0]), 256);
-				DMAOutPhysAdr := GetPhysicalAdr(SYSTEM.ADR(DMAOut[0]), 256);
+				DMAInPhysAdr := GetPhysicalAdr(ADDRESSOF(DMAIn[0]), 256);
+				DMAOutPhysAdr := GetPhysicalAdr(ADDRESSOF(DMAOut[0]), 256);
 
 				(* Read Buffer Descriptor List Base Addresses *)
 				NABMBAR.RegWrite32(BMRInBase + BMRBufferDescriptorBaseAddress, DMAInPhysAdr);
@@ -308,13 +308,13 @@ TYPE
 					playBufferList[i].len := BufferSize; recBufferList[i].len := BufferSize;
 
 					DMAOut[i].addr := GetPhysicalAdr(
-						SYSTEM.ADR(playBufferList[i].data[0]), BufferSize);
+						ADDRESSOF(playBufferList[i].data[0]), BufferSize);
 					DMAIn[i].addr := GetPhysicalAdr(
-						SYSTEM.ADR(recBufferList[i].data[0]), BufferSize);
+						ADDRESSOF(recBufferList[i].data[0]), BufferSize);
 
-					DMAOut[i].CmdAndLength := SYSTEM.LSH(BufferSize, -1);
+					DMAOut[i].CmdAndLength := LSH(BufferSize, -1);
 					SetBit(DMAOut[i].CmdAndLength, 31);
-					DMAIn[i].CmdAndLength := SYSTEM.LSH(BufferSize, -1);
+					DMAIn[i].CmdAndLength := LSH(BufferSize, -1);
 					SetBit(DMAIn[i].CmdAndLength, 31)
 				END;
 
@@ -445,9 +445,9 @@ TYPE
 				MixBuffers;
 
 				DMAOut[playLastValidIndex].addr := GetPhysicalAdr(
-					SYSTEM.ADR(playBufferList[playCurrentBufferIndex].data[0]), BufferSize);
+					ADDRESSOF(playBufferList[playCurrentBufferIndex].data[0]), BufferSize);
 
-				noOfSamples := SYSTEM.LSH(playBufferList[playCurrentBufferIndex].len, -1);
+				noOfSamples := LSH(playBufferList[playCurrentBufferIndex].len, -1);
 				DMAOut[playLastValidIndex].CmdAndLength := noOfSamples;
 				SetBit(DMAOut[playLastValidIndex].CmdAndLength, 31);
 
@@ -503,8 +503,8 @@ TYPE
 				END;
 
 				SYSTEM.MOVE(
-					SYSTEM.ADR(playBuffer.data[0]),
-					SYSTEM.ADR(playBufferList[playCurrentBufferIndex].data[0]),
+					ADDRESSOF(playBuffer.data[0]),
+					ADDRESSOF(playBufferList[playCurrentBufferIndex].data[0]),
 					BufferSize);
 				playBufferList[playCurrentBufferIndex].len := playBuffer.len;
 
@@ -542,7 +542,7 @@ TYPE
 
 
 					buffer.data[i] := CHR(mix);
-					buffer.data[i+1] := CHR(SYSTEM.LSH(mix, -8));
+					buffer.data[i+1] := CHR(LSH(mix, -8));
 
 					INC(i)
 				END
@@ -933,7 +933,7 @@ TYPE
 				volume := driver.AC97.RegRead16(volumeReg);
 				volBits := 0;
 				WHILE ODD(volume) DO
-					volume := SYSTEM.LSH(volume, -1);
+					volume := LSH(volume, -1);
 					INC(volBits)
 				END;
 
@@ -958,8 +958,8 @@ TYPE
 
 				(* Shift away "overflow" bits *)
 				volume := 255 - volume;
-				volume := SYSTEM.LSH(volume, volBits - 8);
-				volume := volume + SYSTEM.LSH(volume, 8);
+				volume := LSH(volume, volBits - 8);
+				volume := volume + LSH(volume, 8);
 				IF SELF.mute THEN SetBit(volume, 15) END;
 				IF Boost THEN SetBit(volume, 6) END;
 				driver.AC97.RegWrite16(volumeReg, volume);
@@ -1064,9 +1064,9 @@ TYPE
 				right := right * volume DIV 256;
 
 				sample[0] := CHR(left);
-				sample[1] := CHR(SYSTEM.LSH(left, -8));
+				sample[1] := CHR(LSH(left, -8));
 				sample[2] := CHR(right);
-				sample[3] := CHR(SYSTEM.LSH(right, -8))
+				sample[3] := CHR(LSH(right, -8))
 			END SampleSetVolume;
 
 			PROCEDURE GetVolume*() : LONGINT;
@@ -1373,8 +1373,8 @@ TYPE
 						END;
 
 						SYSTEM.MOVE(
-							SYSTEM.ADR(sample[0]),
-							SYSTEM.ADR(firstBuffer.buffer.data[0]) + firstBufferPos,
+							ADDRESSOF(sample[0]),
+							ADDRESSOF(firstBuffer.buffer.data[0]) + firstBufferPos,
 							sampleSize);
 						INC(firstBufferPos, sampleSize);
 
@@ -1402,10 +1402,10 @@ TYPE
 				(* Take average of left and right channel *)
 				left := SYSTEM.VAL(INTEGER, sample);
 				right := SYSTEM.VAL(INTEGER, sample[2]);
-				mix := SYSTEM.LSH(left + right, -1);
+				mix := LSH(left + right, -1);
 
 				sample[0] := CHR(mix);
-				sample[1] := CHR(SYSTEM.LSH(mix, -8))
+				sample[1] := CHR(LSH(mix, -8))
 			END StereoToMono;
 
 			(* 16 bit => 8 bit conversion *)
@@ -1454,7 +1454,7 @@ TYPE
 	END Max;
 
 	(* Get physical address for DMA transfers *)
-	PROCEDURE GetPhysicalAdr(adr: SYSTEM.ADDRESS; size : SYSTEM.SIZE) : Machine.Address32;
+	PROCEDURE GetPhysicalAdr(adr: ADDRESS; size : SIZE) : Machine.Address32;
 	VAR
 		physadr : Machine.Address32;
 	BEGIN

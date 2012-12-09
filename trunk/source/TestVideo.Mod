@@ -284,7 +284,7 @@ VAR i, x, y, w , h,  color: LONGINT;
 	nofLabels : INTEGER;
 	lbufpos, lastLineLbufPos, minClass : LONGINT;
 	lastsum, sum, cl, ctl, ct, ctr, tlabel : INTEGER;
-	adr : SYSTEM.ADDRESS;
+	adr : ADDRESS;
 	ch : CHAR;
 
 	PROCEDURE Equivalence(x, y : LONGINT);

@@ -119,7 +119,7 @@ TYPE
 	VAR a, b: LONGINT;
 	BEGIN 
 		a := S.VAL( LONGINT, 
-			S.VAL( SET, S.ROT( x , 30 ) ) / S.VAL( SET, S.ROT( x, 19 ) ) / S.VAL( SET, S.ROT( x, 10 ) ) );
+			S.VAL( SET, ROT( x , 30 ) ) / S.VAL( SET, ROT( x, 19 ) ) / S.VAL( SET, ROT( x, 10 ) ) );
 		b := S.VAL( LONGINT,
 			(S.VAL( SET, x ) * S.VAL( SET, y )) / (S.VAL( SET, x ) * S.VAL( SET, z )) / (S.VAL( SET, y ) * S.VAL( SET, z )) );
 		RETURN a + b
@@ -129,7 +129,7 @@ TYPE
 	VAR a, b: LONGINT;
 	BEGIN 
 		a := S.VAL( LONGINT, 
-				S.VAL( SET, S.ROT( x , 26 ) ) / S.VAL( SET, S.ROT( x, 21 ) ) / S.VAL( SET, S.ROT( x, 7 ) ) );
+				S.VAL( SET, ROT( x , 26 ) ) / S.VAL( SET, ROT( x, 21 ) ) / S.VAL( SET, ROT( x, 7 ) ) );
 		b := S.VAL( LONGINT,
 				(S.VAL( SET, x ) * S.VAL( SET, y )) / ((-S.VAL( SET, x )) * S.VAL( SET, z )) );
 		RETURN a + b
@@ -138,13 +138,13 @@ TYPE
 	PROCEDURE sigma0( x: LONGINT ): LONGINT;
 	BEGIN 
 		RETURN S.VAL( LONGINT, 
-				S.VAL( SET, S.ROT( x , 25 ) ) / S.VAL( SET, S.ROT( x, 14 ) ) / S.VAL( SET, S.LSH( x, -3 ) ) )
+				S.VAL( SET, ROT( x , 25 ) ) / S.VAL( SET, ROT( x, 14 ) ) / S.VAL( SET, LSH( x, -3 ) ) )
 	END sigma0;
 	
 	PROCEDURE sigma1( x: LONGINT ): LONGINT;
 	BEGIN 
 		RETURN S.VAL( LONGINT, 
-				S.VAL( SET, S.ROT( x , 15 ) ) / S.VAL( SET, S.ROT( x, 13 ) ) / S.VAL( SET, S.LSH( x, -10 ) ) )
+				S.VAL( SET, ROT( x , 15 ) ) / S.VAL( SET, ROT( x, 13 ) ) / S.VAL( SET, LSH( x, -10 ) ) )
 	END sigma1;
 	
 

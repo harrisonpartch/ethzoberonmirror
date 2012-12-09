@@ -12,7 +12,7 @@ CONST
 	WaitTime = 100;	(* ms *)
 
 TYPE
-	Callback = PROCEDURE (id : LONGINT; process : Objects.Process; pc, bp, lowAdr, highAdr : SYSTEM.ADDRESS);
+	Callback = PROCEDURE (id : LONGINT; process : Objects.Process; pc, bp, lowAdr, highAdr : ADDRESS);
 
 VAR
 	callback : Callback;

@@ -341,7 +341,7 @@ BEGIN
 				n := Min(n, size)	(* n is number of bytes to copy from buffer now *)
 			END;
 			ASSERT(dst+n <= LEN(buf));	(* index check *)
-			SYSTEM.MOVE(SYSTEM.ADR(c.rcvbuf[c.rcvbufpos]), SYSTEM.ADR(buf[dst]), n);
+			SYSTEM.MOVE(ADDRESSOF(c.rcvbuf[c.rcvbufpos]), ADDRESSOF(buf[dst]), n);
 			INC(c.rcvbufpos, n); DEC(c.rcvbuflen, n);
 			INC(dst, n); DEC(size, n); INC(len, n)
 		END
@@ -611,7 +611,7 @@ BEGIN
 		KernelLog.Int(w, 5); KernelLog.Int(h, 5); KernelLog.Exit
 	END;
 	bh := LEN(c.imgbuf^) DIV (w*c.bytesPerPixel);	(* number of lines that will fit in buffer *)
-	Raster.Init(c.nb, w, bh, c.fmt, w*c.bytesPerPixel, SYSTEM.ADR(c.imgbuf[0]));
+	Raster.Init(c.nb, w, bh, c.fmt, w*c.bytesPerPixel, ADDRESSOF(c.imgbuf[0]));
 	WHILE h > 0 DO
 		IF h >= bh THEN h0 := bh ELSE h0 := h END;
 		len := h0*w*c.bytesPerPixel;
@@ -649,7 +649,7 @@ PROCEDURE ReceivePixel(c: Connection; VAR pixel: Raster.Pixel);
 VAR len: LONGINT; buf: ARRAY 4 OF CHAR;
 BEGIN
 	ReceiveBytes(c, buf, c.bytesPerPixel, len);
-	c.fmt.unpack(c.fmt, SYSTEM.ADR(buf[0]), 0, pixel);
+	c.fmt.unpack(c.fmt, ADDRESSOF(buf[0]), 0, pixel);
 	pixel[Raster.a] := 0FFX
 END ReceivePixel;
 

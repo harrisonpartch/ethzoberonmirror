@@ -121,7 +121,7 @@ TYPE
 							DES.SB6[T DIV 100H MOD 40H] /
 							DES.SB4[T DIV 10000H MOD 40H] /
 							DES.SB2[T DIV 1000000H MOD 40H];
-					T := S.VAL( LONGINT, ske[ski] / S.ROT( X, -4 ) );  INC( ski );
+					T := S.VAL( LONGINT, ske[ski] / ROT( X, -4 ) );  INC( ski );
 					Y := Y /	DES.SB7[T MOD 40H] /
 							DES.SB5[T DIV 100H MOD 40H] /
 							DES.SB3[T DIV 10000H MOD 40H] /
@@ -136,7 +136,7 @@ TYPE
 							DES.SB6[T DIV 100H MOD 40H] /
 							DES.SB4[T DIV 10000H MOD 40H] /
 							DES.SB2[T DIV 1000000H MOD 40H];
-					T := S.VAL( LONGINT, skd[ski] / S.ROT( X, -4 ) );  INC(ski );
+					T := S.VAL( LONGINT, skd[ski] / ROT( X, -4 ) );  INC(ski );
 					Y := Y /	DES.SB7[T MOD 40H] /
 							DES.SB5[T DIV 100H MOD 40H] /
 							DES.SB3[T DIV 10000H MOD 40H] /

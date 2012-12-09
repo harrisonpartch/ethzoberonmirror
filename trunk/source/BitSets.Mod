@@ -57,11 +57,11 @@ TYPE BitSet* = OBJECT
 	END GetBit;
 
 	PROCEDURE SetBits* (startPos, bits, value: LONGINT);
-	VAR adr: SYSTEM.ADDRESS;
+	VAR adr: ADDRESS;
 	BEGIN
 		ASSERT (startPos >= 0); ASSERT (startPos+bits <= size);
 		IF (bits = 8) & (startPos MOD 8 = 0) THEN
-			adr := SYSTEM.ADR(data[0])+startPos DIV 8;
+			adr := ADDRESSOF(data[0])+startPos DIV 8;
 			SYSTEM.PUT(adr, CHR(value));
 		ELSE
 			WHILE bits > 0 DO
@@ -76,11 +76,11 @@ TYPE BitSet* = OBJECT
 	END SetBits;
 
 	PROCEDURE GetBits* (startPos, bits: LONGINT): LONGINT;
-	VAR value: LONGINT; adr: SYSTEM.ADDRESS;
+	VAR value: LONGINT; adr: ADDRESS;
 	BEGIN
 		ASSERT (startPos >= 0); ASSERT (startPos+bits <= size);
 		IF (bits = 8) & (startPos MOD 8 =0) THEN
-			adr := SYSTEM.ADR(data[0])+startPos DIV 8;
+			adr := ADDRESSOF(data[0])+startPos DIV 8;
 			value := SYSTEM.GET8(adr)
 		ELSE
 			INC (startPos, bits); value := 0;

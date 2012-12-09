@@ -12,7 +12,7 @@ MODULE PCDebug; (** AUTHOR "prk"; PURPOSE "Parallel Compiler: low-level trace fu
 
 	TYPE
 		List = POINTER TO RECORD	(* list of PC positions *)
-			pc: SYSTEM.ADDRESS;
+			pc: ADDRESS;
 			next: List
 		END;
 
@@ -22,7 +22,7 @@ MODULE PCDebug; (** AUTHOR "prk"; PURPOSE "Parallel Compiler: low-level trace fu
 
 	(* Read a compressed integer from memory *)
 
-	PROCEDURE ReadNum (VAR pos: SYSTEM.ADDRESS; VAR i: LONGINT);
+	PROCEDURE ReadNum (VAR pos: ADDRESS; VAR i: LONGINT);
 		VAR n: LONGINT; s: SHORTINT; x: CHAR;
 	BEGIN
 		s := 0; n := 0; SYSTEM.GET(pos, x); INC(pos);
@@ -40,7 +40,7 @@ MODULE PCDebug; (** AUTHOR "prk"; PURPOSE "Parallel Compiler: low-level trace fu
 		name[pos] := 0X
 	END WriteString;
 
-	PROCEDURE WriteHex*(val: SYSTEM.ADDRESS; VAR name: ARRAY OF CHAR; VAR pos: LONGINT);
+	PROCEDURE WriteHex*(val: ADDRESS; VAR name: ARRAY OF CHAR; VAR pos: LONGINT);
 	VAR i: LONGINT;
 	BEGIN
 		INC(pos, 8); i := 1;
@@ -52,8 +52,8 @@ MODULE PCDebug; (** AUTHOR "prk"; PURPOSE "Parallel Compiler: low-level trace fu
 	END WriteHex;
 
 
-	PROCEDURE GetProcedure*(pc: SYSTEM.ADDRESS; VAR name: ARRAY OF CHAR);
-		VAR mod: Modules.Module; refpos, limit, refstart: SYSTEM.ADDRESS; ch, ch0: CHAR; i, procstart: LONGINT;
+	PROCEDURE GetProcedure*(pc: ADDRESS; VAR name: ARRAY OF CHAR);
+		VAR mod: Modules.Module; refpos, limit, refstart: ADDRESS; ch, ch0: CHAR; i, procstart: LONGINT;
 	BEGIN
 		i := 0;
 		mod := Modules.ThisModuleByAdr(pc);
@@ -62,19 +62,19 @@ MODULE PCDebug; (** AUTHOR "prk"; PURPOSE "Parallel Compiler: low-level trace fu
 		ELSE
 			WriteString(mod.name, name, i); WriteString(".", name, i);
 			IF (SYSTEM.VAL(LONGINT, mod.refs) # 0) & (LEN(mod.refs) # 0) THEN
-				refstart := 0;  refpos := SYSTEM.ADR(mod.refs[0]);
+				refstart := 0;  refpos := ADDRESSOF(mod.refs[0]);
 				limit := refpos + LEN(mod.refs);
 				LOOP
 					SYSTEM.GET(refpos, ch); INC(refpos);
 					IF refpos >= limit THEN EXIT END;
 					IF ch = 0F8X THEN (* start proc *)
 						ReadNum(refpos, procstart);
-						IF pc < SYSTEM.ADR(mod.code[0]) + procstart THEN EXIT END;
+						IF pc < ADDRESSOF(mod.code[0]) + procstart THEN EXIT END;
 						refstart := refpos;
 						REPEAT SYSTEM.GET(refpos, ch); INC(refpos) UNTIL ch = 0X; (*skip name*)
 					ELSIF ch = 0F9X THEN (*proc, new format*)
 						ReadNum(refpos, procstart);
-						IF pc < SYSTEM.ADR(mod.code[0]) + procstart THEN EXIT END;
+						IF pc < ADDRESSOF(mod.code[0]) + procstart THEN EXIT END;
 						INC(refpos, 1+1+1+1);
 						refstart := refpos;
 						REPEAT SYSTEM.GET(refpos, ch); INC(refpos) UNTIL ch = 0X; (*skip name*)
@@ -91,7 +91,7 @@ MODULE PCDebug; (** AUTHOR "prk"; PURPOSE "Parallel Compiler: low-level trace fu
 					name[i] := 0X
 				END
 			END;
-			WriteString("  PC = ", name, i); WriteHex(pc-SYSTEM.ADR(mod.code[0]), name, i); WriteString("H", name, i)
+			WriteString("  PC = ", name, i); WriteHex(pc-ADDRESSOF(mod.code[0]), name, i); WriteString("H", name, i)
 		END
 	END GetProcedure;
 
@@ -117,10 +117,10 @@ MODULE PCDebug; (** AUTHOR "prk"; PURPOSE "Parallel Compiler: low-level trace fu
 	END GetTypeName;
 
 	PROCEDURE ToDo*(class: LONGINT);
-		VAR pc, bp: SYSTEM.ADDRESS; p, q: List; name: ARRAY 64 OF CHAR;
+		VAR pc, bp: ADDRESS; p, q: List; name: ARRAY 64 OF CHAR;
 	BEGIN {EXCLUSIVE}
 		bp := Machine.CurrentBP ();
-		SYSTEM.GET (bp + SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+		SYSTEM.GET (bp + SIZEOF(ADDRESS), pc);
 		p := pclist;
 		WHILE (p.next # NIL) & (p.next.pc < pc) DO p := p.next END;
 		IF (p.next = NIL) OR (p.next.pc # pc) THEN

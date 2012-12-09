@@ -750,7 +750,7 @@ BEGIN
 
 	Machine.AtomicInc(IP.NIPRcvTotal);
 	IF buffer.len >= MinIPHdrLen THEN
-		IF SYSTEM.LSH(ORD(buffer.data[buffer.ofs]), -4) = IP.IPv4 THEN
+		IF LSH(ORD(buffer.data[buffer.ofs]), -4) = IP.IPv4 THEN
 			hlen := ORD(buffer.data[buffer.ofs]) MOD 10H * 4;
 			IF (hlen >= MinIPHdrLen) & (hlen <= MaxIPHdrLen) THEN
 				IF (Network.ChecksumIP IN buffer.calcChecksum) OR (IP.Checksum2(buffer.data, buffer.ofs, hlen, 0) = 0) THEN

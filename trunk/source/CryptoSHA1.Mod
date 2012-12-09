@@ -129,26 +129,26 @@ TYPE
 
 	PROCEDURE tr0019( a: LONGINT; VAR b: LONGINT; c, d, e: LONGINT; VAR  f: LONGINT; x: SET );
 	BEGIN
-		f := S.VAL( LONGINT, x ) + e + 5A827999H + S.ROT( a, 5 ) + F1( b, c, d );
-		b := S.ROT( b, 30 );
+		f := S.VAL( LONGINT, x ) + e + 5A827999H + ROT( a, 5 ) + F1( b, c, d );
+		b := ROT( b, 30 );
 	END tr0019;
 
 	PROCEDURE tr2039( a: LONGINT;  VAR b: LONGINT;  c, d, e: LONGINT;  VAR f: LONGINT;  x: SET );
 	BEGIN
-		f := S.VAL( LONGINT, x ) + e + 6ED9EBA1H + S.ROT( a, 5 ) + F2( b, c, d );
-		b := S.ROT( b, 30 );
+		f := S.VAL( LONGINT, x ) + e + 6ED9EBA1H + ROT( a, 5 ) + F2( b, c, d );
+		b := ROT( b, 30 );
 	END tr2039;
 
 	PROCEDURE tr4059( a: LONGINT;  VAR b: LONGINT;  c, d, e: LONGINT;  VAR f: LONGINT;  x: SET);
 	BEGIN
-		f := S.VAL( LONGINT, x ) + e + LONGINT(8F1BBCDCH) + S.ROT( a, 5 ) + F3( b, c, d );
-		b := S.ROT( b, 30 )
+		f := S.VAL( LONGINT, x ) + e + LONGINT(8F1BBCDCH) + ROT( a, 5 ) + F3( b, c, d );
+		b := ROT( b, 30 )
 	END tr4059;
 
 	PROCEDURE tr6079( a: LONGINT;  VAR b: LONGINT;  c, d, e: LONGINT;  VAR f: LONGINT;  x: SET );
 	BEGIN
-		f := S.VAL( LONGINT, x ) + e + LONGINT(0CA62C1D6H) + S.ROT( a, 5 ) + F2( b, c, d );
-		b := S.ROT( b, 30 );
+		f := S.VAL( LONGINT, x ) + e + LONGINT(0CA62C1D6H) + ROT( a, 5 ) + F2( b, c, d );
+		b := ROT( b, 30 );
 	END tr6079;
 
 	PROCEDURE HashBlock( VAR c: Context;  CONST buf: ARRAY OF CHAR;  VAR pos: LONGINT );
@@ -174,73 +174,73 @@ TYPE
 		chars2set( buf, pos, xe ); 	tr0019( E, T, A, B, C, D, xe );
 		chars2set( buf, pos, xf  );		tr0019( D, E, T, A, B, C, xf  );
 
-		x0 := S.ROT( x0 / x2 / x8 / xd, 1 );		tr0019( C, D, E, T, A, B, x0 );
-		x1 := S.ROT( x1 / x3 / x9 / xe, 1 );		tr0019( B, C, D, E, T, A, x1 );
-		x2 := S.ROT( x2 / x4 / xa / xf,  1 );		tr0019( A, B, C, D, E, T, x2 );
-		x3 := S.ROT( x3 / x5 / xb / x0, 1 );		tr0019( T, A, B, C, D, E, x3 );
+		x0 := ROT( x0 / x2 / x8 / xd, 1 );		tr0019( C, D, E, T, A, B, x0 );
+		x1 := ROT( x1 / x3 / x9 / xe, 1 );		tr0019( B, C, D, E, T, A, x1 );
+		x2 := ROT( x2 / x4 / xa / xf,  1 );		tr0019( A, B, C, D, E, T, x2 );
+		x3 := ROT( x3 / x5 / xb / x0, 1 );		tr0019( T, A, B, C, D, E, x3 );
 
-		x4 := S.ROT( x4 / x6 / xc / x1, 1 );		tr2039( E, T, A, B, C, D, x4 );
-		x5 := S.ROT( x5 / x7 / xd / x2, 1 );		tr2039( D, E, T, A, B, C, x5 );
-		x6 := S.ROT( x6 / x8 / xe / x3, 1 );		tr2039( C, D, E, T, A, B, x6 );
-		x7 := S.ROT( x7 / x9 / xf  / x4, 1 );		tr2039( B, C, D, E, T, A, x7 );
-		x8 := S.ROT( x8 / xa / x0 / x5, 1 );		tr2039( A, B, C, D, E, T, x8 );
-		x9 := S.ROT( x9 / xb / x1 / x6, 1 );		tr2039( T, A, B, C, D, E, x9 );
-		xa := S.ROT( xa / xc / x2 / x7, 1 ); 		tr2039( E, T, A, B, C, D, xa );
-		xb := S.ROT( xb / xd / x3 / x8, 1 );		tr2039( D, E, T, A, B, C, xb );
-		xc := S.ROT( xc / xe  / x4 / x9, 1 ); 		tr2039( C, D, E, T, A, B, xc );
-		xd := S.ROT( xd / xf  / x5 / xa, 1 );		tr2039( B, C, D, E, T, A, xd );
-		xe := S.ROT( xe / x0 / x6 / xb, 1 );		tr2039( A, B, C, D, E, T, xe );
-		xf  := S.ROT( xf  / x1 / x7 / xc, 1 );		tr2039( T, A, B, C, D, E, xf  );
-		x0 := S.ROT( x0 / x2 / x8 / xd, 1 );		tr2039( E, T, A, B, C, D, x0 );
-		x1 := S.ROT( x1 / x3 / x9 / xe, 1 );		tr2039( D, E, T, A, B, C, x1 );
-		x2 := S.ROT( x2 / x4 / xa / xf,  1 );		tr2039( C, D, E, T, A, B, x2 );
-		x3 := S.ROT( x3 / x5 / xb / x0, 1 );		tr2039( B, C, D, E, T, A, x3 );
-		x4 := S.ROT( x4 / x6 / xc / x1, 1 );		tr2039( A, B, C, D, E, T, x4 );
-		x5 := S.ROT( x5 / x7 / xd / x2, 1 );		tr2039( T, A, B, C, D, E, x5 );
-		x6 := S.ROT( x6 / x8 / xe / x3, 1 );		tr2039( E, T, A, B, C, D, x6 );
-		x7 := S.ROT( x7 / x9 / xf  / x4, 1 );		tr2039( D, E, T, A, B, C, x7 );
+		x4 := ROT( x4 / x6 / xc / x1, 1 );		tr2039( E, T, A, B, C, D, x4 );
+		x5 := ROT( x5 / x7 / xd / x2, 1 );		tr2039( D, E, T, A, B, C, x5 );
+		x6 := ROT( x6 / x8 / xe / x3, 1 );		tr2039( C, D, E, T, A, B, x6 );
+		x7 := ROT( x7 / x9 / xf  / x4, 1 );		tr2039( B, C, D, E, T, A, x7 );
+		x8 := ROT( x8 / xa / x0 / x5, 1 );		tr2039( A, B, C, D, E, T, x8 );
+		x9 := ROT( x9 / xb / x1 / x6, 1 );		tr2039( T, A, B, C, D, E, x9 );
+		xa := ROT( xa / xc / x2 / x7, 1 ); 		tr2039( E, T, A, B, C, D, xa );
+		xb := ROT( xb / xd / x3 / x8, 1 );		tr2039( D, E, T, A, B, C, xb );
+		xc := ROT( xc / xe  / x4 / x9, 1 ); 		tr2039( C, D, E, T, A, B, xc );
+		xd := ROT( xd / xf  / x5 / xa, 1 );		tr2039( B, C, D, E, T, A, xd );
+		xe := ROT( xe / x0 / x6 / xb, 1 );		tr2039( A, B, C, D, E, T, xe );
+		xf  := ROT( xf  / x1 / x7 / xc, 1 );		tr2039( T, A, B, C, D, E, xf  );
+		x0 := ROT( x0 / x2 / x8 / xd, 1 );		tr2039( E, T, A, B, C, D, x0 );
+		x1 := ROT( x1 / x3 / x9 / xe, 1 );		tr2039( D, E, T, A, B, C, x1 );
+		x2 := ROT( x2 / x4 / xa / xf,  1 );		tr2039( C, D, E, T, A, B, x2 );
+		x3 := ROT( x3 / x5 / xb / x0, 1 );		tr2039( B, C, D, E, T, A, x3 );
+		x4 := ROT( x4 / x6 / xc / x1, 1 );		tr2039( A, B, C, D, E, T, x4 );
+		x5 := ROT( x5 / x7 / xd / x2, 1 );		tr2039( T, A, B, C, D, E, x5 );
+		x6 := ROT( x6 / x8 / xe / x3, 1 );		tr2039( E, T, A, B, C, D, x6 );
+		x7 := ROT( x7 / x9 / xf  / x4, 1 );		tr2039( D, E, T, A, B, C, x7 );
 
-		x8 := S.ROT( x8 / xa / x0 / x5, 1 );		tr4059( C, D, E, T, A, B, x8 );
-		x9 := S.ROT( x9 / xb / x1 / x6, 1 );		tr4059( B, C, D, E, T, A, x9 );
-		xa := S.ROT( xa / xc / x2 / x7, 1 );		tr4059( A, B, C, D, E, T, xa );
-		xb := S.ROT( xb / xd / x3 / x8, 1 );		tr4059( T, A, B, C, D, E, xb );
-		xc := S.ROT( xc / xe  / x4 / x9, 1 );		tr4059( E, T, A, B, C, D, xc );
-		xd := S.ROT( xd / xf  / x5 / xa, 1 );  		tr4059( D, E, T, A, B, C, xd );
-		xe := S.ROT( xe / x0 / x6 / xb, 1 );  		tr4059( C, D, E, T, A, B, xe );
-		xf  := S.ROT( xf  / x1 / x7 / xc, 1 );		tr4059( B, C, D, E, T, A, xf  );
-		x0 := S.ROT( x0 / x2 / x8 / xd, 1 );		tr4059( A, B, C, D, E, T, x0 );
-		x1 := S.ROT( x1 / x3 / x9 / xe, 1 );		tr4059( T, A, B, C, D, E, x1 );
-		x2 := S.ROT( x2 / x4 / xa / xf,  1 );		tr4059( E, T, A, B, C, D, x2 );
-		x3 := S.ROT( x3 / x5 / xb / x0, 1 );		tr4059( D, E, T, A, B, C, x3 );
-		x4 := S.ROT( x4 / x6 / xc / x1, 1 );		tr4059( C, D, E, T, A, B, x4 );
-		x5 := S.ROT( x5 / x7 / xd / x2, 1 );		tr4059( B, C, D, E, T, A, x5 );
-		x6 := S.ROT( x6 / x8 / xe / x3, 1 );		tr4059( A, B, C, D, E, T, x6 );
-		x7 := S.ROT( x7 / x9 / xf  / x4, 1 );		tr4059( T, A, B, C, D, E, x7 );
-		x8 := S.ROT( x8 / xa / x0 / x5, 1 );		tr4059( E, T, A, B, C, D, x8 );
-		x9 := S.ROT( x9 / xb / x1 / x6, 1 );		tr4059( D, E, T, A, B, C, x9 );
-		xa := S.ROT( xa / xc / x2 / x7, 1 );		tr4059( C, D, E, T, A, B, xa );
-		xb := S.ROT( xb / xd / x3 / x8, 1 );		tr4059( B, C, D, E, T, A, xb );
+		x8 := ROT( x8 / xa / x0 / x5, 1 );		tr4059( C, D, E, T, A, B, x8 );
+		x9 := ROT( x9 / xb / x1 / x6, 1 );		tr4059( B, C, D, E, T, A, x9 );
+		xa := ROT( xa / xc / x2 / x7, 1 );		tr4059( A, B, C, D, E, T, xa );
+		xb := ROT( xb / xd / x3 / x8, 1 );		tr4059( T, A, B, C, D, E, xb );
+		xc := ROT( xc / xe  / x4 / x9, 1 );		tr4059( E, T, A, B, C, D, xc );
+		xd := ROT( xd / xf  / x5 / xa, 1 );  		tr4059( D, E, T, A, B, C, xd );
+		xe := ROT( xe / x0 / x6 / xb, 1 );  		tr4059( C, D, E, T, A, B, xe );
+		xf  := ROT( xf  / x1 / x7 / xc, 1 );		tr4059( B, C, D, E, T, A, xf  );
+		x0 := ROT( x0 / x2 / x8 / xd, 1 );		tr4059( A, B, C, D, E, T, x0 );
+		x1 := ROT( x1 / x3 / x9 / xe, 1 );		tr4059( T, A, B, C, D, E, x1 );
+		x2 := ROT( x2 / x4 / xa / xf,  1 );		tr4059( E, T, A, B, C, D, x2 );
+		x3 := ROT( x3 / x5 / xb / x0, 1 );		tr4059( D, E, T, A, B, C, x3 );
+		x4 := ROT( x4 / x6 / xc / x1, 1 );		tr4059( C, D, E, T, A, B, x4 );
+		x5 := ROT( x5 / x7 / xd / x2, 1 );		tr4059( B, C, D, E, T, A, x5 );
+		x6 := ROT( x6 / x8 / xe / x3, 1 );		tr4059( A, B, C, D, E, T, x6 );
+		x7 := ROT( x7 / x9 / xf  / x4, 1 );		tr4059( T, A, B, C, D, E, x7 );
+		x8 := ROT( x8 / xa / x0 / x5, 1 );		tr4059( E, T, A, B, C, D, x8 );
+		x9 := ROT( x9 / xb / x1 / x6, 1 );		tr4059( D, E, T, A, B, C, x9 );
+		xa := ROT( xa / xc / x2 / x7, 1 );		tr4059( C, D, E, T, A, B, xa );
+		xb := ROT( xb / xd / x3 / x8, 1 );		tr4059( B, C, D, E, T, A, xb );
 
-		xc := S.ROT( xc / xe / x4 / x9, 1 );		tr6079( A, B, C, D, E, T, xc );
-		xd := S.ROT( xd / xf  / x5 / xa, 1 );		tr6079( T, A, B, C, D, E, xd );
-		xe := S.ROT( xe / x0 / x6 / xb, 1 ); 		tr6079( E, T, A, B, C, D, xe );
-		xf  := S.ROT( xf  / x1 / x7 / xc, 1 );		tr6079( D, E, T, A, B, C, xf  );
-		x0 := S.ROT( x0 / x2 / x8 / xd, 1 );		tr6079( C, D, E, T, A, B, x0 );
-		x1 := S.ROT( x1 / x3 / x9 / xe, 1 );		tr6079( B, C, D, E, T, A, x1 );
-		x2 := S.ROT( x2 / x4 / xa / xf,  1 );		tr6079( A, B, C, D, E, T, x2 );
-		x3 := S.ROT( x3 / x5 / xb / x0, 1 );		tr6079( T, A, B, C, D, E, x3 );
-		x4 := S.ROT( x4 / x6 / xc / x1, 1 );		tr6079( E, T, A, B, C, D, x4 );
-		x5 := S.ROT( x5 / x7 / xd / x2, 1 );		tr6079( D, E, T, A, B, C, x5 );
-		x6 := S.ROT( x6 / x8 / xe / x3, 1 );		tr6079( C, D, E, T, A, B, x6 );
-		x7 := S.ROT( x7 / x9 / xf  / x4, 1 );		tr6079( B, C, D, E, T, A, x7 );
-		x8 := S.ROT( x8 / xa / x0 / x5, 1 );		tr6079( A, B, C, D, E, T, x8 );
-		x9 := S.ROT( x9 / xb / x1 / x6, 1 );		tr6079( T, A, B, C, D, E, x9 );
-		xa := S.ROT( xa / xc / x2 / x7, 1 );		tr6079( E, T, A, B, C, D, xa );
-		xb := S.ROT( xb / xd / x3 / x8, 1 );		tr6079( D, E, T, A, B, C, xb );
-		xc := S.ROT( xc / xe  / x4 / x9, 1 );		tr6079( C, D, E, T, A, B, xc );
-		xd := S.ROT( xd / xf  / x5 / xa, 1 );		tr6079( B, C, D, E, T, A, xd );
-		xe := S.ROT( xe / x0 / x6 / xb, 1 );		tr6079( A, B, C, D, E, T, xe );
-		xf  := S.ROT( xf  / x1 / x7 / xc, 1 );		tr6079( T, A, B, C, D, E, xf  );
+		xc := ROT( xc / xe / x4 / x9, 1 );		tr6079( A, B, C, D, E, T, xc );
+		xd := ROT( xd / xf  / x5 / xa, 1 );		tr6079( T, A, B, C, D, E, xd );
+		xe := ROT( xe / x0 / x6 / xb, 1 ); 		tr6079( E, T, A, B, C, D, xe );
+		xf  := ROT( xf  / x1 / x7 / xc, 1 );		tr6079( D, E, T, A, B, C, xf  );
+		x0 := ROT( x0 / x2 / x8 / xd, 1 );		tr6079( C, D, E, T, A, B, x0 );
+		x1 := ROT( x1 / x3 / x9 / xe, 1 );		tr6079( B, C, D, E, T, A, x1 );
+		x2 := ROT( x2 / x4 / xa / xf,  1 );		tr6079( A, B, C, D, E, T, x2 );
+		x3 := ROT( x3 / x5 / xb / x0, 1 );		tr6079( T, A, B, C, D, E, x3 );
+		x4 := ROT( x4 / x6 / xc / x1, 1 );		tr6079( E, T, A, B, C, D, x4 );
+		x5 := ROT( x5 / x7 / xd / x2, 1 );		tr6079( D, E, T, A, B, C, x5 );
+		x6 := ROT( x6 / x8 / xe / x3, 1 );		tr6079( C, D, E, T, A, B, x6 );
+		x7 := ROT( x7 / x9 / xf  / x4, 1 );		tr6079( B, C, D, E, T, A, x7 );
+		x8 := ROT( x8 / xa / x0 / x5, 1 );		tr6079( A, B, C, D, E, T, x8 );
+		x9 := ROT( x9 / xb / x1 / x6, 1 );		tr6079( T, A, B, C, D, E, x9 );
+		xa := ROT( xa / xc / x2 / x7, 1 );		tr6079( E, T, A, B, C, D, xa );
+		xb := ROT( xb / xd / x3 / x8, 1 );		tr6079( D, E, T, A, B, C, xb );
+		xc := ROT( xc / xe  / x4 / x9, 1 );		tr6079( C, D, E, T, A, B, xc );
+		xd := ROT( xd / xf  / x5 / xa, 1 );		tr6079( B, C, D, E, T, A, xd );
+		xe := ROT( xe / x0 / x6 / xb, 1 );		tr6079( A, B, C, D, E, T, xe );
+		xf  := ROT( xf  / x1 / x7 / xc, 1 );		tr6079( T, A, B, C, D, E, xf  );
 
 		c.h0 := c.h0 + E;  c.h1 := c.h1 + T;  c.h2 := c.h2 + A;  c.h3 := c.h3 + B;  c.h4 := c.h4 + C;
 	END HashBlock;

@@ -47,7 +47,7 @@ CONST
 CONST
 	TraceVerbose = FALSE;	(* write out verbose trace info *)
 
-	AddressSize = SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	AddressSize = SIZEOF(ADDRESS);
 	SetSize = MAX (SET) + 1;
 
 	(** error codes *)
@@ -180,7 +180,7 @@ CONST
 	(* low level tracing *)
 	TraceV24 = 2; TraceScreen = 0;
 	TraceWidth = 80; TraceHeight = 25;
-	TraceLen = TraceWidth * SYSTEM.SIZEOF (INTEGER);
+	TraceLen = TraceWidth * SIZEOF (INTEGER);
 	TraceSize = TraceLen * TraceHeight;
 
 TYPE
@@ -190,9 +190,9 @@ TYPE
 
 TYPE
 	Stack* = RECORD	(** values are read-only *)
-		low: SYSTEM.ADDRESS;		(* lowest virtual address that may be allocated for stack *)
-		adr*: SYSTEM.ADDRESS;		(* lowest address on allocated stack *)	(* exported for Objects only *)
-		high*: SYSTEM.ADDRESS;	(* next virtual address after stack *)	(* exported for Objects only *)
+		low: ADDRESS;		(* lowest virtual address that may be allocated for stack *)
+		adr*: ADDRESS;		(* lowest address on allocated stack *)	(* exported for Objects only *)
+		high*: ADDRESS;	(* next virtual address after stack *)	(* exported for Objects only *)
 	END;
 
 	(* task state segment *)
@@ -224,7 +224,7 @@ TYPE
 	GDT = ARRAY GDTSize OF SegDesc;
 
 	Range* = RECORD
-		adr*: SYSTEM.ADDRESS; size*: SYSTEM.SIZE;
+		adr*: ADDRESS; size*: SIZE;
 	END;
 
 TYPE
@@ -239,10 +239,10 @@ TYPE
 
 	(** exception state, ordering of record fields is predefined! *)
 	ExceptionState* = RECORD
-		halt*: SYSTEM.ADDRESS;	(** halt code *)
-		pf*: SYSTEM.ADDRESS;		(** page fault address *)
+		halt*: ADDRESS;	(** halt code *)
+		pf*: ADDRESS;		(** page fault address *)
 		locks*: SET;					(** active locks *)
-		SP*: SYSTEM.ADDRESS;	(** actual ESP value at time of interrupt *)
+		SP*: ADDRESS;	(** actual ESP value at time of interrupt *)
 		SS*, ES*, DS*, FS*, GS*: LONGINT;	(** segment registers *)
 		CR*: ARRAY 5 OF LONGINT;	(** control registers *)
 		DR*: ARRAY 8 OF LONGINT;	(** debug registers *)
@@ -270,9 +270,9 @@ TYPE
 	MemoryBlock* = POINTER TO MemoryBlockDesc;
 	MemoryBlockDesc* = RECORD
 		next- {UNTRACED}: MemoryBlock;
-		startAdr-: SYSTEM.ADDRESS; 		(* unused field for I386 *)
-		size-: SYSTEM.SIZE; 					(* unused field for I386 *)
-		beginBlockAdr-, endBlockAdr-: SYSTEM.ADDRESS
+		startAdr-: ADDRESS; 		(* unused field for I386 *)
+		size-: SIZE; 					(* unused field for I386 *)
+		beginBlockAdr-, endBlockAdr-: ADDRESS
 	END;
 
 TYPE
@@ -286,11 +286,11 @@ TYPE
 	Address32* = LONGINT;
 
 VAR
-	lowTop*: SYSTEM.ADDRESS;	(** top of low memory *)
-	memTop*: SYSTEM.ADDRESS;	(** top of memory *)
-	dmaSize*: SYSTEM.SIZE;	(** size of ISA dma area, above lowTop (for use in Aos.Diskettes) *)
+	lowTop*: ADDRESS;	(** top of low memory *)
+	memTop*: ADDRESS;	(** top of memory *)
+	dmaSize*: SIZE;	(** size of ISA dma area, above lowTop (for use in Aos.Diskettes) *)
 
-	configMP: SYSTEM.ADDRESS;	(** MP spec config table physical address (outside reported RAM) *)
+	configMP: ADDRESS;	(** MP spec config table physical address (outside reported RAM) *)
 	revMP: CHAR;					(** MP spec revision *)
 	featureMP: ARRAY 5 OF CHAR;	(** MP spec feature bytes 1-5 *)
 
@@ -312,9 +312,9 @@ VAR
 	chs: ARRAY MaxDisks OF RECORD cyls, hds, spt: LONGINT END;
 	initRegs: ARRAY 2 OF LONGINT;	(* kernel parameters *)
 	config: ARRAY 2048 OF CHAR;	(* config strings *)
-	bootFlag: SYSTEM.ADDRESS;
+	bootFlag: ADDRESS;
 
-	idAdr: SYSTEM.ADDRESS;	(* address of processor ID register *)
+	idAdr: ADDRESS;	(* address of processor ID register *)
 	map: IDMap;
 	bootID: LONGINT;	(* ID of boot processor (0) *)
 
@@ -355,20 +355,20 @@ VAR
 	gdt: GDT;					(* global descriptor table *)
 	procm: ARRAY MaxCPU OF RECORD	(* indexed by ID () *)
 		tss: TSSDesc;
-		sp: SYSTEM.ADDRESS;	(* snapshot for GC *)
+		sp: ADDRESS;	(* snapshot for GC *)
 		stack: Stack
 	END;
-	kernelPD: SYSTEM.ADDRESS;	(* physical address of page directory *)
+	kernelPD: ADDRESS;	(* physical address of page directory *)
 
-	freeLowPage: SYSTEM.ADDRESS;	(* free low page stack pointer (link at offset 0 in page). All addresses physical. NIL = -1 *)
+	freeLowPage: ADDRESS;	(* free low page stack pointer (link at offset 0 in page). All addresses physical. NIL = -1 *)
 	freeLowPages, freeHighPages, totalPages: LONGINT;	(* number of free pages and total number of pages *)
 
-	mapTop: SYSTEM.ADDRESS;	(* virtual address of end of memory mapping area *)
-	heapEndAdr: SYSTEM.ADDRESS;	(* virtual address of end of heap (page aligned) *)
+	mapTop: ADDRESS;	(* virtual address of end of memory mapping area *)
+	heapEndAdr: ADDRESS;	(* virtual address of end of heap (page aligned) *)
 
 	topPageNum: LONGINT;		(* page containing byte memTop-1 *)
-	pageHeapAdr: SYSTEM.ADDRESS;	(* address (physical and virtual) of bottom of page heap area *)
-	pageStackAdr: SYSTEM.ADDRESS;	(* virtual address of top page of free page stack *)
+	pageHeapAdr: ADDRESS;	(* address (physical and virtual) of bottom of page heap area *)
+	pageStackAdr: ADDRESS;	(* virtual address of top page of free page stack *)
 
 	freeStack: ARRAY (MaxUserStacks+SetSize-1) DIV SetSize OF SET;	(* free stack bitmap *)
 	freeStackIndex: LONGINT;	(* current position in bitmap (rotates) *)
@@ -382,7 +382,7 @@ VAR
 	idt: IDT;	(* interrupt descriptor table *)
 	glue: ARRAY IDTSize OF ARRAY 15 OF CHAR;	(* code *)
 	intHandler: ARRAY IDTSize, MaxNumHandlers OF HandlerRec; (* array of handlers for interrupts, the table is only filled up to MaxNumHandlers - 1, the last element in each row acts as a sentinel *)
-	stateTag: SYSTEM.ADDRESS;
+	stateTag: ADDRESS;
 	default: HandlerRec;
 	ticks*: LONGINT;	(** timer ticks. Use Kernel.GetTicks() to read, don't write *)
 
@@ -393,7 +393,7 @@ VAR
 	numProcessors-: LONGINT;	(* number of processors we attempted to boot (some may have failed) *)
 	maxProcessors: LONGINT;	(* max number of processors we are allowed to boot (-1 for uni) *)
 	allProcessors-: SET;	(* IDs of all successfully booted processors *)
-	localAPIC: SYSTEM.ADDRESS;	(* address of local APIC, 0 if not present *)
+	localAPIC: ADDRESS;	(* address of local APIC, 0 if not present *)
 	apicVer: ARRAY MaxCPU OF LONGINT;	(* APIC version *)
 	started: ARRAY MaxCPU OF BOOLEAN;	(* CPU started successfully / CPU halted *)
 	busHz0, busHz1: ARRAY MaxCPU OF LONGINT;	(* unrounded and rounded bus speed in Hz *)
@@ -405,9 +405,9 @@ VAR
 	time: TimeArray;
 	eventCount, eventMax: LONGINT;
 	event: Handler;
-	expandMin, heapMinKB, heapMaxKB : SYSTEM.SIZE;
+	expandMin, heapMinKB, heapMaxKB : SIZE;
 
-	gcThreshold-: SYSTEM.SIZE;
+	gcThreshold-: SIZE;
 	memBlockHead-{UNTRACED}, memBlockTail-{UNTRACED}: MemoryBlock; (* refer to the same memory block for I386, not traced by GC *)
 
 	traceProcessorProc*: EventHandler;	(** temp tracing *)
@@ -419,8 +419,8 @@ VAR
 
 VAR
 	traceMode: SET;	(* tracing mode: Screen or V24 *)
-	traceBase: SYSTEM.ADDRESS;	(* screen buffer base address *)
-	tracePos: SYSTEM.SIZE;	(* current screen cursor *)
+	traceBase: ADDRESS;	(* screen buffer base address *)
+	tracePos: SIZE;	(* current screen cursor *)
 	tracePort: LONGINT;	(* serial base port *)
 	traceColor: SHORTINT;	(* current screen tracing color *)
 
@@ -447,7 +447,7 @@ CODE {SYSTEM.i386}
 END SpinHint;
 
 (* Compare two unsigned addresses *)
-PROCEDURE -LessThan* (a, b: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE -LessThan* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -455,7 +455,7 @@ CODE {SYSTEM.i386}
 	SETB AL
 END LessThan;
 
-PROCEDURE -LessOrEqual* (a, b: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE -LessOrEqual* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -463,7 +463,7 @@ CODE {SYSTEM.i386}
 	SETBE AL
 END LessOrEqual;
 
-PROCEDURE -GreaterThan* (a, b: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE -GreaterThan* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -471,7 +471,7 @@ CODE {SYSTEM.i386}
 	SETA AL
 END GreaterThan;
 
-PROCEDURE -GreaterOrEqual* (a, b: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE -GreaterOrEqual* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -480,7 +480,7 @@ CODE {SYSTEM.i386}
 END GreaterOrEqual;
 
 (** Fill "size" bytes at "destAdr" with "filler". "size" must be multiple of 4. *)
-PROCEDURE Fill32* (destAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE; filler: LONGINT);
+PROCEDURE Fill32* (destAdr: ADDRESS; size: SIZE; filler: LONGINT);
 CODE {SYSTEM.i386}
 	MOV EDI, [EBP+destAdr]
 	MOV ECX, [EBP+size]
@@ -863,7 +863,7 @@ BEGIN
 END InitProcessor;
 
 (** Initialize APIC ID address. *)
-PROCEDURE InitAPICIDAdr* (adr: SYSTEM.ADDRESS; CONST m: IDMap);
+PROCEDURE InitAPICIDAdr* (adr: ADDRESS; CONST m: IDMap);
 VAR s: SET;
 BEGIN
 	s := DisableInterrupts ();
@@ -881,9 +881,9 @@ VAR
 	PROCEDURE GetString(VAR string : ARRAY OF CHAR; offset : LONGINT; register : SET);
 	BEGIN
 		string[offset] :=CHR(SYSTEM.VAL(LONGINT, register * {0..7}));
-		string[offset+1] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(register * {8..15}, -8)));
-		string[offset+2] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(register * {16..23}, -16)));
-		string[offset+3] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(register * {24..31}, -24)));
+		string[offset+1] := CHR(SYSTEM.VAL(LONGINT, LSH(register * {8..15}, -8)));
+		string[offset+2] := CHR(SYSTEM.VAL(LONGINT, LSH(register * {16..23}, -16)));
+		string[offset+3] := CHR(SYSTEM.VAL(LONGINT, LSH(register * {24..31}, -24)));
 	END GetString;
 
 BEGIN
@@ -911,13 +911,13 @@ BEGIN
 
 			IF (HTT IN features) THEN (* multithreading supported by CPU *)
 				(* logical processor count = number of cores * number of threads per core = total number of threads supported *)
-				logicalProcessorCount := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * {16..23}, -16));
+				logicalProcessorCount := SYSTEM.VAL(LONGINT, LSH(ebx * {16..23}, -16));
 				IF (vendor = "GenuineIntel") THEN
 					IF (largestFunction >= 4) THEN
 						(* CPUID standard function 4 returns: number of processor cores -1 on this die eax[26.31] *)
 						ecx := SYSTEM.VAL(SET, 0); (* input parameter - must be set to 0 *)
 						CPUID(4, eax, ebx, ecx, edx);
-						coresPerProcessor := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {26..31}, -26)) + 1;
+						coresPerProcessor := SYSTEM.VAL(LONGINT, LSH(eax * {26..31}, -26)) + 1;
 						threadsPerCore := logicalProcessorCount DIV coresPerProcessor;
 					ELSE
 						threadsPerCore := logicalProcessorCount;
@@ -954,7 +954,7 @@ BEGIN
 	InitFPU;
 	fcr := (FCR () - {0, 2, 3, 10, 11}) + {0 .. 5, 8, 9};	(* default FCR RC=00B *)
 	bootID := 0; map[0] := 0;
-	idAdr := SYSTEM.ADR (bootID);
+	idAdr := ADDRESSOF (bootID);
 	(* allow user to specify GetTimer rate, for tracing purposes *)
 	GetConfig ("MHz", u);
 	i := 0; mhz := StrToInt (i, u);
@@ -1073,7 +1073,7 @@ BEGIN
 END Shutdown;
 
 (* Get hard disk parameters. *)
-PROCEDURE GetPar (p: SYSTEM.ADDRESS; ofs: LONGINT): LONGINT;
+PROCEDURE GetPar (p: ADDRESS; ofs: LONGINT): LONGINT;
 VAR ch: CHAR;
 BEGIN
 	SYSTEM.GET (p + 12 + ofs, ch);
@@ -1081,8 +1081,8 @@ BEGIN
 END GetPar;
 
 (* Read boot table. *)
-PROCEDURE ReadBootTable (bt: SYSTEM.ADDRESS);
-VAR i, p: SYSTEM.ADDRESS; j, d, type, addr, size, heapSize: LONGINT; ch: CHAR;
+PROCEDURE ReadBootTable (bt: ADDRESS);
+VAR i, p: ADDRESS; j, d, type, addr, size, heapSize: LONGINT; ch: CHAR;
 BEGIN
 	heapSize := 0; lowTop := 0;
 	p := bt; d := 0;
@@ -1132,8 +1132,8 @@ BEGIN
 END PutNVByte;
 
 (** Compute a checksum for the Intel SMP spec floating pointer structure. *)
-PROCEDURE ChecksumMP* (adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE): LONGINT;
-VAR sum: LONGINT; x: SYSTEM.ADDRESS; ch: CHAR;
+PROCEDURE ChecksumMP* (adr: ADDRESS; size: SIZE): LONGINT;
+VAR sum: LONGINT; x: ADDRESS; ch: CHAR;
 BEGIN
 	sum := 0;
 	FOR x := adr TO adr + size-1 DO
@@ -1144,7 +1144,7 @@ BEGIN
 END ChecksumMP;
 
 (* Search for MP floating pointer structure. *)
-PROCEDURE SearchMem (adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE): SYSTEM.ADDRESS;
+PROCEDURE SearchMem (adr: ADDRESS; size: SIZE): ADDRESS;
 VAR x, len: LONGINT; ch: CHAR;
 BEGIN
 	WHILE size > 0 DO
@@ -1167,7 +1167,7 @@ END SearchMem;
 
 (* Search for MP spec info. *)
 PROCEDURE SearchMP;
-VAR adr: SYSTEM.ADDRESS;
+VAR adr: ADDRESS;
 BEGIN
 	adr := 0;
 	SYSTEM.GET (040EH, SYSTEM.VAL (INTEGER, adr));	(* EBDA address *)
@@ -1188,7 +1188,7 @@ BEGIN
 		revMP := 0X; configMP := NilAdr
 	ELSE
 		SYSTEM.GET (adr + 9, revMP);
-		SYSTEM.MOVE(adr + 11, SYSTEM.ADR(featureMP[0]), 5);	(* feature bytes *)
+		SYSTEM.MOVE(adr + 11, ADDRESSOF(featureMP[0]), 5);	(* feature bytes *)
 		configMP := SYSTEM.GET32 (adr + 4);	(* physical address outside reported RAM (spec 1.4 p. 4-2) *)
 		IF configMP = 0 THEN configMP := NilAdr END
 	END
@@ -1196,7 +1196,7 @@ END SearchMP;
 
 (* Allocate area for ISA DMA. *)
 PROCEDURE AllocateDMA;
-VAR old: SYSTEM.ADDRESS;
+VAR old: ADDRESS;
 BEGIN
 	old := lowTop;
 	dmaSize := DefaultDMASize*1024;
@@ -1209,7 +1209,7 @@ BEGIN
 END AllocateDMA;
 
 (* Check if the specified address is RAM. *)
-PROCEDURE IsRAM(adr: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE IsRAM(adr: ADDRESS): BOOLEAN;
 CONST Pattern1 = SHORT(0BEEFC0DEH); Pattern2 = SHORT(0AA55FF00H);
 VAR save, x: LONGINT; ok: BOOLEAN;
 BEGIN
@@ -1231,7 +1231,7 @@ END IsRAM;
 (* Check amount of memory available and update memTop. *)
 PROCEDURE CheckMemory;
 CONST M = 100000H; ExtMemAdr = M; Step = M;
-VAR s: ARRAY 16 OF CHAR; adr: SYSTEM.ADDRESS; i: LONGINT;
+VAR s: ARRAY 16 OF CHAR; adr: ADDRESS; i: LONGINT;
 BEGIN
 	GetConfig("ExtMemSize", s);	(* in MB *)
 	IF s[0] # 0X THEN	(* override detection *)
@@ -1241,7 +1241,7 @@ BEGIN
 		Trace.String("Machine: Detecting memory... ");
 		IF memTop >= 15*M THEN	(* search for more memory (ignore aliasing) *)
 			adr := memTop-4;
-			WHILE (SYSTEM.LSH(memTop, -12) < SYSTEM.LSH(MaxMemTop, -12)) & IsRAM(adr) DO
+			WHILE (LSH(memTop, -12) < LSH(MaxMemTop, -12)) & IsRAM(adr) DO
 				memTop := adr + 4;
 				INC (adr, Step)
 			END;
@@ -1482,7 +1482,7 @@ CODE {SYSTEM.i386}
 END ReleaseObject;
 
 (* Load global descriptor table *)
-PROCEDURE LoadGDT(base: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
+PROCEDURE LoadGDT(base: ADDRESS; size: SIZE);
 CODE {SYSTEM.i386, SYSTEM.Privileged}
 	SHL DWORD [EBP+size], 16
 	MOV EBX, 2
@@ -1510,7 +1510,7 @@ END CS;
 (** -- Memory management -- *)
 
 (* Allocate a physical page below 1M. Parameter adr returns physical and virtual address (or NilAdr).*)
-PROCEDURE NewLowPage(VAR adr: SYSTEM.ADDRESS);
+PROCEDURE NewLowPage(VAR adr: ADDRESS);
 BEGIN
 	adr := freeLowPage;
 	IF freeLowPage # NilAdr THEN
@@ -1520,7 +1520,7 @@ BEGIN
 END NewLowPage;
 
 (* Allocate a directly-mapped page. Parameter adr returns physical and virtual address (or NilAdr). *)
-PROCEDURE NewDirectPage(VAR adr: SYSTEM.ADDRESS);
+PROCEDURE NewDirectPage(VAR adr: ADDRESS);
 BEGIN
 	IF pageHeapAdr # heapEndAdr THEN
 		DEC(pageHeapAdr, PS); adr := pageHeapAdr;
@@ -1531,8 +1531,8 @@ BEGIN
 END NewDirectPage;
 
 (* Allocate a physical page. *)
-PROCEDURE NewPage(VAR physAdr: SYSTEM.ADDRESS);
-VAR sp, prev: SYSTEM.ADDRESS;
+PROCEDURE NewPage(VAR physAdr: ADDRESS);
+VAR sp, prev: ADDRESS;
 BEGIN
 	SYSTEM.GET(pageStackAdr + NodeSP, sp);
 	ASSERT((sp >= MinSP) & (sp <= MaxSP) & (sp MOD AddressSize = 0));	(* index check *)
@@ -1551,8 +1551,8 @@ BEGIN
 END NewPage;
 
 (* Deallocate a physical page. *)
-PROCEDURE DisposePage(physAdr: SYSTEM.ADDRESS);
-VAR sp, next, newAdr: SYSTEM.ADDRESS;
+PROCEDURE DisposePage(physAdr: ADDRESS);
+VAR sp, next, newAdr: ADDRESS;
 BEGIN
 	SYSTEM.GET (pageStackAdr + NodeSP, sp);
 	ASSERT((sp >= MinSP) & (sp <= MaxSP) & (sp MOD AddressSize = 0));	(* index check *)
@@ -1586,7 +1586,7 @@ BEGIN
 END DisposePage;
 
 (* Allocate virtual address space for mapping. Parameter size must be multiple of page size. Parameter virtAdr returns virtual address or NilAdr on failure. *)
-PROCEDURE NewVirtual(VAR virtAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
+PROCEDURE NewVirtual(VAR virtAdr: ADDRESS; size: SIZE);
 BEGIN
 	ASSERT(size MOD PS = 0);
 	IF mapTop+size > MapAreaAdr+MapAreaSize THEN
@@ -1597,13 +1597,13 @@ BEGIN
 	END
 END NewVirtual;
 
-PROCEDURE DisposeVirtual(virtAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
+PROCEDURE DisposeVirtual(virtAdr: ADDRESS; size: SIZE);
 	(* to do *)
 END DisposeVirtual;
 
 (* Map a physical page into the virtual address space. Parameter virtAdr is mapped address and phys is mapping value. Returns TRUE iff mapping successful. *)
-PROCEDURE MapPage(virtAdr, phys: SYSTEM.ADDRESS): BOOLEAN;
-VAR i, pt: SYSTEM.ADDRESS;
+PROCEDURE MapPage(virtAdr, phys: ADDRESS): BOOLEAN;
+VAR i, pt: ADDRESS;
 BEGIN
 	i := virtAdr DIV RS MOD PTEs;
 	SYSTEM.GET (kernelPD + AddressSize*i, pt);
@@ -1620,8 +1620,8 @@ BEGIN
 END MapPage;
 
 (* Return mapped page address for a given virtual address (ODD if mapped) *)
-PROCEDURE MappedPage(virtAdr: SYSTEM.ADDRESS): SYSTEM.ADDRESS;
-VAR pt: SYSTEM.ADDRESS;
+PROCEDURE MappedPage(virtAdr: ADDRESS): ADDRESS;
+VAR pt: ADDRESS;
 BEGIN
 	SYSTEM.GET (kernelPD + AddressSize*(virtAdr DIV RS MOD PTEs), pt);
 	IF ODD(pt) THEN	(* pt present *)
@@ -1633,8 +1633,8 @@ BEGIN
 END MappedPage;
 
 (* Unmap a page and return the previous mapping, like MappedPage (). Caller must flush TLB. *)
-PROCEDURE UnmapPage(virtAdr: SYSTEM.ADDRESS): SYSTEM.ADDRESS;
-VAR t, pt: SYSTEM.ADDRESS;
+PROCEDURE UnmapPage(virtAdr: ADDRESS): ADDRESS;
+VAR t, pt: ADDRESS;
 BEGIN
 	SYSTEM.GET (kernelPD + AddressSize*(virtAdr DIV RS MOD PTEs), pt);
 	IF ODD(pt) THEN	(* pt present *)
@@ -1649,7 +1649,7 @@ BEGIN
 END UnmapPage;
 
 (* Map area [virtAdr..virtAdr+size) directly to area [Adr(phys)..Adr(phys)+size). Returns TRUE iff successful. *)
-PROCEDURE MapDirect(virtAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE; phys: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE MapDirect(virtAdr: ADDRESS; size: SIZE; phys: ADDRESS): BOOLEAN;
 BEGIN
 (*
 	Trace.String("MapDirect "); Trace.Address (virtAdr); Trace.Char(' '); Trace.Address (phys); Trace.Char (' '); Trace.Int (size, 0);
@@ -1667,14 +1667,14 @@ END MapDirect;
 
 (* Policy decision for heap expansion. NewBlock for the same block has failed try times. *)
 PROCEDURE ExpandNow(try: LONGINT): BOOLEAN;
-VAR size: SYSTEM.SIZE;
+VAR size: SIZE;
 BEGIN
-	size := SYSTEM.LSH(memBlockTail.endBlockAdr - memBlockHead.beginBlockAdr, -10);	(* heap size in KB *)
+	size := LSH(memBlockTail.endBlockAdr - memBlockHead.beginBlockAdr, -10);	(* heap size in KB *)
 	RETURN (~ODD(try) OR (size < heapMinKB)) & (size < heapMaxKB)
 END ExpandNow;
 
 (* Try to expand the heap by at least "size" bytes *)
-PROCEDURE ExpandHeap*(try: LONGINT; size: SYSTEM.SIZE; VAR memBlock: MemoryBlock; VAR beginBlockAdr, endBlockAdr: SYSTEM.ADDRESS);
+PROCEDURE ExpandHeap*(try: LONGINT; size: SIZE; VAR memBlock: MemoryBlock; VAR beginBlockAdr, endBlockAdr: ADDRESS);
 BEGIN
 	IF ExpandNow(try) THEN
 		IF size < expandMin THEN size := expandMin END;
@@ -1692,7 +1692,7 @@ BEGIN
 END ExpandHeap;
 
 (* Set memory block end address *)
-PROCEDURE SetMemoryBlockEndAddress*(memBlock: MemoryBlock; endBlockAdr: SYSTEM.ADDRESS);
+PROCEDURE SetMemoryBlockEndAddress*(memBlock: MemoryBlock; endBlockAdr: ADDRESS);
 BEGIN
 	ASSERT(endBlockAdr >= memBlock.beginBlockAdr);
 	memBlock.endBlockAdr := endBlockAdr
@@ -1705,12 +1705,12 @@ BEGIN
 END FreeMemBlock;
 
 (** Attempt to set the heap end address to the specified address. The returned value is the actual new end address (never smaller than previous value). *)
-PROCEDURE SetHeapEndAdr(VAR endAdr: SYSTEM.ADDRESS);
-VAR n, m: SYSTEM.SIZE;
+PROCEDURE SetHeapEndAdr(VAR endAdr: ADDRESS);
+VAR n, m: SIZE;
 BEGIN
 	Acquire(Memory);
-	n := SYSTEM.LSH(endAdr+(PS-1), -PSlog2) - SYSTEM.LSH(heapEndAdr, -PSlog2);	(* pages requested *)
-	m := SYSTEM.LSH(pageHeapAdr, -PSlog2) - SYSTEM.LSH(heapEndAdr, -PSlog2) - ReservedPages;	(* max pages *)
+	n := LSH(endAdr+(PS-1), -PSlog2) - LSH(heapEndAdr, -PSlog2);	(* pages requested *)
+	m := LSH(pageHeapAdr, -PSlog2) - LSH(heapEndAdr, -PSlog2) - ReservedPages;	(* max pages *)
 	IF n > m THEN n := m END;
 	IF n > 0 THEN INC(heapEndAdr, n*PS); DEC(freeHighPages, n) END;
 	endAdr := heapEndAdr;
@@ -1718,12 +1718,12 @@ BEGIN
 END SetHeapEndAdr;
 
 (** Map a physical memory area (physAdr..physAdr+size-1) into the virtual address space. Parameter virtAdr returns the virtual address of mapped region, or NilAdr on failure. *)
-PROCEDURE MapPhysical*(physAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE; VAR virtAdr: SYSTEM.ADDRESS);
-VAR ofs: SYSTEM.ADDRESS;
+PROCEDURE MapPhysical*(physAdr: ADDRESS; size: SIZE; VAR virtAdr: ADDRESS);
+VAR ofs: ADDRESS;
 BEGIN
-	IF (SYSTEM.LSH(physAdr, -PSlog2) <= topPageNum) &
-			(SYSTEM.LSH(physAdr+size-1, -PSlog2) <= topPageNum) &
-			(SYSTEM.LSH(physAdr, -PSlog2) >= SYSTEM.LSH(LowAdr, -PSlog2)) THEN
+	IF (LSH(physAdr, -PSlog2) <= topPageNum) &
+			(LSH(physAdr+size-1, -PSlog2) <= topPageNum) &
+			(LSH(physAdr, -PSlog2) >= LSH(LowAdr, -PSlog2)) THEN
 		virtAdr := physAdr	(* directly mapped *)
 	ELSE
 		ofs := physAdr MOD PS;
@@ -1757,15 +1757,15 @@ BEGIN
 END MapPhysical;
 
 (** Unmap an area previously mapped with MapPhysical. *)
-PROCEDURE UnmapPhysical*(virtAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
+PROCEDURE UnmapPhysical*(virtAdr: ADDRESS; size: SIZE);
 	(* to do *)
 END UnmapPhysical;
 
 (** Return the physical address of the specified range of memory, or NilAdr if the range is not contiguous. It is the caller's responsibility to assure the range remains allocated during the time it is in use. *)
-PROCEDURE PhysicalAdr*(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE): SYSTEM.ADDRESS;
-VAR physAdr, mapped, expected: SYSTEM.ADDRESS;
+PROCEDURE PhysicalAdr*(adr: ADDRESS; size: SIZE): ADDRESS;
+VAR physAdr, mapped, expected: ADDRESS;
 BEGIN
-	IF (SYSTEM.LSH(adr, -PSlog2) <= topPageNum) & (SYSTEM.LSH(adr+size-1, -PSlog2) <= topPageNum) THEN
+	IF (LSH(adr, -PSlog2) <= topPageNum) & (LSH(adr+size-1, -PSlog2) <= topPageNum) THEN
 		RETURN adr	(* directly mapped *)
 	ELSE
 		Acquire(Memory);
@@ -1776,13 +1776,13 @@ BEGIN
 			(* now check if whole range is physically contiguous *)
 			DEC(size, PS - adr MOD PS);	(* subtract distance to current page end *)
 			IF size > 0 THEN	(* range crosses current page end *)
-				expected := SYSTEM.LSH(mapped, -PSlog2)+1;	(* expected physical page *)
+				expected := LSH(mapped, -PSlog2)+1;	(* expected physical page *)
 				LOOP
 					INC(adr, PS);	(* step to next page *)
 					Acquire(Memory);
 					mapped := MappedPage(adr);
 					Release(Memory);
-					IF ~ODD(mapped) OR (SYSTEM.LSH(mapped, -PSlog2) # expected) THEN
+					IF ~ODD(mapped) OR (LSH(mapped, -PSlog2) # expected) THEN
 						physAdr := NilAdr; EXIT
 					END;
 					DEC(size, PS);
@@ -1800,8 +1800,8 @@ BEGIN
 END PhysicalAdr;
 
 (** Translate a virtual address range to num ranges of physical address. num returns 0 on error. *)
-PROCEDURE TranslateVirtual*(virtAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE;  VAR num: LONGINT; VAR physAdr: ARRAY OF Range);
-VAR ofs, phys1: SYSTEM.ADDRESS; size1: SYSTEM.SIZE;
+PROCEDURE TranslateVirtual*(virtAdr: ADDRESS; size: SIZE;  VAR num: LONGINT; VAR physAdr: ARRAY OF Range);
+VAR ofs, phys1: ADDRESS; size1: SIZE;
 BEGIN
 	Acquire(Memory);
 	num := 0;
@@ -1822,7 +1822,7 @@ BEGIN
 END TranslateVirtual;
 
 (** Return information on free memory in Kbytes. *)
-PROCEDURE GetFreeK*(VAR total, lowFree, highFree: SYSTEM.SIZE);
+PROCEDURE GetFreeK*(VAR total, lowFree, highFree: SIZE);
 CONST KperPage = PS DIV 1024;
 BEGIN
 	Acquire(Memory);
@@ -1835,8 +1835,8 @@ END GetFreeK;
 (** -- Stack -- *)
 
 (** Extend the stack to include the specified address, if possible. Returns TRUE iff ok. *)
-PROCEDURE ExtendStack*(VAR s: Stack; virtAdr: SYSTEM.ADDRESS): BOOLEAN;
-VAR phys: SYSTEM.ADDRESS; ok: BOOLEAN;
+PROCEDURE ExtendStack*(VAR s: Stack; virtAdr: ADDRESS): BOOLEAN;
+VAR phys: ADDRESS; ok: BOOLEAN;
 BEGIN
 	Acquire(Memory);
 	ok := FALSE;
@@ -1866,8 +1866,8 @@ BEGIN
 END ExtendStack;
 
 (** Allocate a stack. Parameter initSP returns initial stack pointer value. *)
-PROCEDURE NewStack*(VAR s: Stack; process: ANY; VAR initSP: SYSTEM.ADDRESS);
-VAR adr, phys: SYSTEM.ADDRESS; old: LONGINT; free: SET;
+PROCEDURE NewStack*(VAR s: Stack; process: ANY; VAR initSP: ADDRESS);
+VAR adr, phys: ADDRESS; old: LONGINT; free: SET;
 BEGIN
 	ASSERT(InitUserStackSize = PS);	(* for now *)
 	Acquire(Memory);
@@ -1909,7 +1909,7 @@ END GetProcessPtr;
 
 (** True iff current process works on a kernel stack *)
 PROCEDURE WorkingOnKernelStack* (): BOOLEAN;
-VAR id: LONGINT; sp: SYSTEM.ADDRESS;
+VAR id: LONGINT; sp: ADDRESS;
 BEGIN
 	ASSERT(KernelStackSize # MaxUserStackSize - UserStackGuardSize); (* detection does only work with this assumption *)
 	sp := CurrentSP ();
@@ -1919,7 +1919,7 @@ END WorkingOnKernelStack;
 
 (** Deallocate a stack. Current thread should not dispose its own stack. Uses privileged instructions. *)
 PROCEDURE DisposeStack*(CONST s: Stack);
-VAR adr, phys: SYSTEM.ADDRESS;
+VAR adr, phys: ADDRESS;
 BEGIN
 	(* First make sure there are no references to virtual addresses of the old stack in the TLBs. This is required because we are freeing the pages, and they could be remapped later at different virtual addresses. DisposeStack will only be called from the thread finalizer, which ensures that the user will no longer be referencing this memory. Therefore we can make this upcall from outside the locked region, avoiding potential deadlock. *)
 	GlobalFlushTLB;	(* finalizers are only called after Processors has initialized this upcall *)
@@ -1937,7 +1937,7 @@ BEGIN
 END DisposeStack;
 
 (** Check if the specified stack is valid. *)
-PROCEDURE ValidStack*(CONST s: Stack; sp: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE ValidStack*(CONST s: Stack; sp: ADDRESS): BOOLEAN;
 VAR valid: BOOLEAN;
 BEGIN
 	Acquire(Memory);
@@ -1972,12 +1972,12 @@ END GetKernelStacks;
 
 (* Init page tables (paging still disabled until EnableMM is called). *)
 PROCEDURE InitPages;
-VAR i, j, phys, lTop, mTop: SYSTEM.ADDRESS;
+VAR i, j, phys, lTop, mTop: ADDRESS;
 BEGIN
 	(* get top of high and low memory *)
 	mTop := memTop;
 	DEC(mTop, mTop MOD PS);	(* mTop MOD PS = 0 *)
-	topPageNum := SYSTEM.LSH(mTop-1, -PSlog2);
+	topPageNum := LSH(mTop-1, -PSlog2);
 	lTop := lowTop;
 	DEC(lTop, lTop MOD PS);	(* lTop MOD PS = 0 *)
 	(* initialize NewDirectPage and SetHeapEndAdr (get kernel range) *)
@@ -1991,7 +1991,7 @@ BEGIN
 	INC(heapEndAdr, (-heapEndAdr) MOD PS);	(* round up to page size *)
 *)
 	pageHeapAdr := mTop;
-	freeHighPages := SYSTEM.LSH(pageHeapAdr, -PSlog2) - SYSTEM.LSH(heapEndAdr, -PSlog2);
+	freeHighPages := LSH(pageHeapAdr, -PSlog2) - LSH(heapEndAdr, -PSlog2);
 	IF TraceVerbose THEN
 		Trace.String("Kernel: "); Trace.Address (LinkAdr); Trace.String(" .. ");
 		Trace.Address (heapEndAdr-1); Trace.Ln;
@@ -2001,9 +2001,9 @@ BEGIN
 	END;
 	(* initialize empty free page stack *)
 	NewDirectPage(pageStackAdr); ASSERT(pageStackAdr # NilAdr);
-	SYSTEM.PUT (pageStackAdr+NodeSP, SYSTEM.VAL (SYSTEM.ADDRESS, MinSP));
-	SYSTEM.PUT (pageStackAdr+NodeNext, SYSTEM.VAL (SYSTEM.ADDRESS, NilAdr));
-	SYSTEM.PUT (pageStackAdr+NodePrev, SYSTEM.VAL (SYSTEM.ADDRESS, NilAdr));
+	SYSTEM.PUT (pageStackAdr+NodeSP, SYSTEM.VAL (ADDRESS, MinSP));
+	SYSTEM.PUT (pageStackAdr+NodeNext, SYSTEM.VAL (ADDRESS, NilAdr));
+	SYSTEM.PUT (pageStackAdr+NodePrev, SYSTEM.VAL (ADDRESS, NilAdr));
 	(* free low pages *)
 	freeLowPage := NilAdr; freeLowPages := 0;
 	i := lTop DIV PS; j := LowAdr DIV PS;
@@ -2018,7 +2018,7 @@ BEGIN
 	IF TraceVerbose THEN
 		Trace.String(" = "); Trace.Int(freeLowPages, 1); Trace.StringLn (" free pages")
 	END;
-	totalPages := SYSTEM.LSH(memTop - M + lowTop + dmaSize + PS, -PSlog2);	(* what BIOS gave us *)
+	totalPages := LSH(memTop - M + lowTop + dmaSize + PS, -PSlog2);	(* what BIOS gave us *)
 	(* stacks *)
 	ASSERT((StackAreaAdr MOD MaxUserStackSize = 0) & (StackAreaSize MOD MaxUserStackSize = 0));
 	FOR i := 0 TO LEN(freeStack)-1 DO freeStack[i] := {0..SetSize-1} END;
@@ -2057,7 +2057,7 @@ BEGIN
 END GenMemSegDesc;
 
 (* Generate a TSS descriptor. *)
-PROCEDURE GenTSSDesc(base: SYSTEM.ADDRESS; limit, dpl: LONGINT; VAR sd: SegDesc);
+PROCEDURE GenTSSDesc(base: ADDRESS; limit, dpl: LONGINT; VAR sd: SegDesc);
 VAR s: SET;
 BEGIN
 	sd.low := ASH(base MOD 10000H, 16) + limit MOD 10000H;
@@ -2085,7 +2085,7 @@ BEGIN
 	GenMemSegDesc(3, 0, M DIV PS, 3, TRUE, gdt[5]);
 	(* GDT TSSOfs..n: Kernel TSS *)
 	FOR i := 0 TO MaxCPU-1 DO
-		GenTSSDesc(SYSTEM.ADR(procm[i].tss), SYSTEM.SIZEOF(TSSDesc)-1, 0, gdt[TSSOfs+i]);
+		GenTSSDesc(ADDRESSOF(procm[i].tss), SIZEOF(TSSDesc)-1, 0, gdt[TSSOfs+i]);
 		procm[i].sp := 0; procm[i].stack.high := 0
 	END
 END InitSegments;
@@ -2093,13 +2093,13 @@ END InitSegments;
 (* Enable segmentation on the current processor. *)
 PROCEDURE EnableSegments;
 BEGIN
-	LoadGDT(SYSTEM.ADR(gdt[0]), SYSTEM.SIZEOF(GDT)-1);
+	LoadGDT(ADDRESSOF(gdt[0]), SIZEOF(GDT)-1);
 	LoadSegRegs(DataSel)
 END EnableSegments;
 
 (* Allocate a kernel stack. *)
 PROCEDURE NewKernelStack(VAR stack: Stack);
-VAR phys, virt: SYSTEM.ADDRESS; size: SYSTEM.SIZE;
+VAR phys, virt: ADDRESS; size: SIZE;
 BEGIN
 	size := KernelStackSize;
 	NewVirtual(virt, size + PS);	(* add one page for overflow protection *)
@@ -2116,7 +2116,7 @@ BEGIN
 END NewKernelStack;
 
 (* Set task register *)
-PROCEDURE -SetTR(tr: SYSTEM.ADDRESS);
+PROCEDURE -SetTR(tr: ADDRESS);
 CODE {SYSTEM.i386, SYSTEM.Privileged}
 	POP EAX
 	LTR AX
@@ -2133,7 +2133,7 @@ END SetTR;
 			locals	<-- ESP
 *)
 
-PROCEDURE -EnableMM(pd, esp: SYSTEM.ADDRESS);
+PROCEDURE -EnableMM(pd, esp: ADDRESS);
 CODE {SYSTEM.Pentium, SYSTEM.Privileged}
 	POP EBX				; esp
 	POP EAX				; pd
@@ -2177,7 +2177,7 @@ BEGIN
 	NewKernelStack(procm[id].stack);
 	procm[id].sp := 0;
 	(* initialize TSS *)
-	Fill32(SYSTEM.ADR(procm[id].tss), SYSTEM.SIZEOF(TSSDesc), 0);
+	Fill32(ADDRESSOF(procm[id].tss), SIZEOF(TSSDesc), 0);
 	procm[id].tss.ESP0 := procm[id].stack.high;	(* kernel stack org *)
 	procm[id].tss.ESS0 := KernelStackSel;
 	procm[id].tss.IOBitmapOffset := -1;	(* no bitmap *)
@@ -2187,9 +2187,9 @@ BEGIN
 END InitMemory;
 
 (** Initialize a boot page for MP booting. Parameter physAdr returns the physical address of a low page. *)
-PROCEDURE InitBootPage*(start: Startup; VAR physAdr: SYSTEM.ADDRESS);
+PROCEDURE InitBootPage*(start: Startup; VAR physAdr: ADDRESS);
 CONST BootOfs = 800H;
-VAR adr, a: SYSTEM.ADDRESS;
+VAR adr, a: ADDRESS;
 BEGIN
 	Acquire(Memory);
 	NewLowPage(physAdr);
@@ -2208,14 +2208,14 @@ BEGIN
 	SYSTEM.PUT32(a, 09008022EH); INC(a, 4);
 	(* these offsets are from the last two dwords in SMP.Asm *)
 	SYSTEM.PUT32(adr+2, SYSTEM.VAL (LONGINT, start));	(* not a method *)
-	SYSTEM.PUT32(adr+16, SYSTEM.ADR(gdt[0]));
+	SYSTEM.PUT32(adr+16, ADDRESSOF(gdt[0]));
 	(* jump at start *)
 	SYSTEM.PUT8(physAdr, 0EAX);	(* jmp far *)
 	SYSTEM.PUT32(physAdr + 1, ASH(physAdr, 16-4) + BootOfs)	(* seg:ofs *)
 END InitBootPage;
 
 (** The BP in a MP system calls this to map the APIC physical address directly. *)
-PROCEDURE InitAPICArea*(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
+PROCEDURE InitAPICArea*(adr: ADDRESS; size: SIZE);
 BEGIN
 	ASSERT((size = PS) & (adr >= IntelAreaAdr) & (adr+size-1 < IntelAreaAdr+IntelAreaSize));
 	IF ~MapDirect(adr, size, adr + UserPage) THEN HALT(99) END
@@ -2223,7 +2223,7 @@ END InitAPICArea;
 
 (* Set machine-dependent parameters gcThreshold, expandMin, heapMinKB and heapMaxKB *)
 PROCEDURE SetGCParams*;
-VAR size, t: SYSTEM.SIZE;
+VAR size, t: SIZE;
 BEGIN
 	GetFreeK(size, t, t);	(* size is total memory size in KB *)
 	heapMinKB := size * HeapMin DIV 100;
@@ -2236,8 +2236,8 @@ END SetGCParams;
 
 (** Get first memory block and first free address, heap area in first memory block is automatically expanded to account for the first
       few calls to NEW  *)
-PROCEDURE GetStaticHeap*(VAR beginBlockAdr, endBlockAdr, freeBlockAdr: SYSTEM.ADDRESS);
-VAR memBlockAdr, endAdr: SYSTEM.ADDRESS;
+PROCEDURE GetStaticHeap*(VAR beginBlockAdr, endBlockAdr, freeBlockAdr: ADDRESS);
+VAR memBlockAdr, endAdr: ADDRESS;
 BEGIN
 	SYSTEM.GET(LinkAdr + EndBlockOfs, freeBlockAdr);
 	ASSERT(freeBlockAdr MOD StaticBlockSize = 0);
@@ -2255,13 +2255,13 @@ BEGIN
 END GetStaticHeap;
 
 (* returns if an address is a currently allocated heap address *)
-PROCEDURE ValidHeapAddress*(p: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE ValidHeapAddress*(p: ADDRESS): BOOLEAN;
 BEGIN
 	RETURN GreaterOrEqual(p,memBlockHead.beginBlockAdr) & LessOrEqual(p,memBlockTail.endBlockAdr)
 END ValidHeapAddress;
 
 (** Jump from kernel to user mode. Every processor calls this during initialization. *)
-PROCEDURE JumpToUserLevel*(userEBP: SYSTEM.ADDRESS);
+PROCEDURE JumpToUserLevel*(userEBP: ADDRESS);
 CODE {SYSTEM.i386}
 	PUSH UserStackSel		; SS3
 	PUSH DWORD [EBP+userEBP]		; ESP3
@@ -2276,12 +2276,12 @@ L2:
 	RET 8					; jump to body of first active object
 END JumpToUserLevel;
 
-PROCEDURE Ensure32BitAddress*(adr: SYSTEM.ADDRESS): LONGINT;
+PROCEDURE Ensure32BitAddress*(adr: ADDRESS): LONGINT;
 BEGIN
 	RETURN adr
 END Ensure32BitAddress;
 
-PROCEDURE Is32BitAddress*(adr: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE Is32BitAddress*(adr: ADDRESS): BOOLEAN;
 BEGIN RETURN SYSTEM.VAL (Address32, adr) = adr;
 END Is32BitAddress;
 
@@ -2309,7 +2309,7 @@ BEGIN
 	ELSE
 		Acquire (TraceOutput);
 		Trace.StringLn ("Unexpected interrupt");
-		Trace.Memory(SYSTEM.ADR(state), SYSTEM.SIZEOF(State)-4*4);	(* exclude last 4 fields *)
+		Trace.Memory(ADDRESSOF(state), SIZEOF(State)-4*4);	(* exclude last 4 fields *)
 		IF int = 3 THEN	(* was a HALT or ASSERT *)
 			(* It seems that no trap handler is installed (Traps not linked), so wait endlessly, while holding trace lock. This should quiten down the system, although other processors may possibly still run processes. *)
 			LOOP END
@@ -2525,7 +2525,7 @@ CODE {SYSTEM.i386, SYSTEM.Privileged}
 END CLTS;
 
 (* GetFPU - Store floating-point environment (28 bytes) and mask all floating-point exceptions. *)
-PROCEDURE  -GetFPU(adr: SYSTEM.ADDRESS);
+PROCEDURE  -GetFPU(adr: ADDRESS);
 CODE {SYSTEM.i386, SYSTEM.FPU}
 	POP EBX
 	FNSTENV [EBX]	; also masks all exceptions
@@ -2533,7 +2533,7 @@ CODE {SYSTEM.i386, SYSTEM.FPU}
 END GetFPU;
 
 (* CR2 - Get page fault address. *)
-PROCEDURE -CR2* (): SYSTEM.ADDRESS;
+PROCEDURE -CR2* (): ADDRESS;
 CODE {SYSTEM.i386, SYSTEM.Privileged}
 	MOV EAX, CR2
 END CR2;
@@ -2549,8 +2549,8 @@ BEGIN
 	GetDR0to7(exc.DR);
 	CLTS;	(* ignore task switch flag *)
 	IF int.INT = MF THEN
-		GetFPU(SYSTEM.ADR(exc.FPU[0]));
-		int.PC := SYSTEM.VAL (SYSTEM.ADDRESS, exc.FPU[3]);	(* modify PC according to FPU info *)
+		GetFPU(ADDRESSOF(exc.FPU[0]));
+		int.PC := SYSTEM.VAL (ADDRESS, exc.FPU[3]);	(* modify PC according to FPU info *)
 		(* set halt code according to FPU info *)
 		IF 2 IN exc.FPU[1] THEN exc.halt := -32		(* division by 0 *)
 		ELSIF 3 IN exc.FPU[1] THEN exc.halt := -33	(* overflow *)
@@ -2562,7 +2562,7 @@ BEGIN
 		ELSE	(* {exc.halt = -16} *)
 		END
 	ELSE
-		Fill32(SYSTEM.ADR(exc.FPU[0]), LEN(exc.FPU)*SYSTEM.SIZEOF(SET), 0)
+		Fill32(ADDRESSOF(exc.FPU[0]), LEN(exc.FPU)*SIZEOF(SET), 0)
 	END;
 	SetupFPU;
 	level0 := (int.CS MOD 4 = KernelLevel);
@@ -2585,7 +2585,7 @@ BEGIN
 	(* get segment registers *)
 	GetSegments(exc.SS, exc.ES, exc.DS, exc.FS, exc.GS);
 	IF level0 THEN	(* from same level, no ESP, SS etc. on stack *)
-		exc.SP := SYSTEM.ADR(int.SP)	(* stack was here when interrupt happened *)
+		exc.SP := ADDRESSOF(int.SP)	(* stack was here when interrupt happened *)
 	ELSE	(* from outer level *)
 		exc.SP := int.SP; exc.SS := int.SS
 	END
@@ -2712,7 +2712,7 @@ irq0:
 END FieldIRQ;
 
 (* LoadIDT - Load interrupt descriptor table *)
-PROCEDURE LoadIDT(base: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
+PROCEDURE LoadIDT(base: ADDRESS; size: SIZE);
 CODE {SYSTEM.i386, SYSTEM.Privileged}
 	SHL DWORD [EBP+size], 16
 	MOV EBX, 2
@@ -2732,7 +2732,7 @@ END LoadIDT;
 *)
 
 PROCEDURE InitInterrupts*;
-VAR a: SYSTEM.ADDRESS; o, i: LONGINT; p: PROCEDURE; mask: SET;
+VAR a: ADDRESS; o, i: LONGINT; p: PROCEDURE; mask: SET;
 BEGIN
 	stateTag := SYSTEM.TYPECODE(State);
 	(* initialise 8259 interrupt controller chips *)
@@ -2761,13 +2761,13 @@ BEGIN
 		glue[i][o] := 87X; INC (o); glue[i][o] := 2CX; INC (o); glue[i][o] := 24X; INC (o);	(* XCHG [ESP], EBP *)
 		glue[i][o] := 6AX; INC (o); glue[i][o] := CHR(i); INC (o);	(* PUSH i *)
 		IF (i >= IRQ0) & (i <= IRQ15) THEN p := FieldIRQ ELSE p := FieldInterrupt END;
-		a := SYSTEM.VAL (SYSTEM.ADDRESS, p) + 3 - (SYSTEM.ADR(glue[i][o]) + 5);
+		a := SYSTEM.VAL (ADDRESS, p) + 3 - (ADDRESSOF(glue[i][o]) + 5);
 		glue[i][o] := 0E9X; INC (o);	(* JMP FieldInterrupt.entry *)
-		SYSTEM.PUT32 (SYSTEM.ADR(glue[i][o]), a);
+		SYSTEM.PUT32 (ADDRESSOF(glue[i][o]), a);
 
 		(* set up IDT entry *)
-		IF (i > 31) OR ~(i IN {8, 10..14, 17}) THEN a := SYSTEM.ADR(glue[i][0])	(* include PUSH 0 *)
-		ELSE a := SYSTEM.ADR(glue[i][2])	(* skip PUSH 0, processor supplies error code *)
+		IF (i > 31) OR ~(i IN {8, 10..14, 17}) THEN a := ADDRESSOF(glue[i][0])	(* include PUSH 0 *)
+		ELSE a := ADDRESSOF(glue[i][2])	(* skip PUSH 0, processor supplies error code *)
 		END;
 		idt[i].offsetBits0to15 := SHORT(a MOD 10000H);
 		(* IRQ0 must be at level 0 because time slicing in Objects needs to set interrupted process' ESP *)
@@ -2787,36 +2787,36 @@ END InitInterrupts;
 PROCEDURE Start*;
 BEGIN
 	ASSERT(default.valid);	(* initialized *)
-	LoadIDT(SYSTEM.ADR(idt[0]), SYSTEM.SIZEOF(IDT)-1);
+	LoadIDT(ADDRESSOF(idt[0]), SIZEOF(IDT)-1);
 	Sti
 END Start;
 
 (* Return current instruction pointer *)
-PROCEDURE CurrentPC* (): SYSTEM.ADDRESS;
+PROCEDURE CurrentPC* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, [EBP+4]
 END CurrentPC;
 
 (* Return current frame pointer *)
-PROCEDURE -CurrentBP* (): SYSTEM.ADDRESS;
+PROCEDURE -CurrentBP* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, EBP
 END CurrentBP;
 
 (* Set current frame pointer *)
-PROCEDURE -SetBP* (bp: SYSTEM.ADDRESS);
+PROCEDURE -SetBP* (bp: ADDRESS);
 CODE {SYSTEM.i386}
 	POP EBP
 END SetBP;
 
 (* Return current stack pointer *)
-PROCEDURE -CurrentSP* (): SYSTEM.ADDRESS;
+PROCEDURE -CurrentSP* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, ESP
 END CurrentSP;
 
 (* Set current stack pointer *)
-PROCEDURE -SetSP* (sp: SYSTEM.ADDRESS);
+PROCEDURE -SetSP* (sp: ADDRESS);
 CODE {SYSTEM.i386}
 	POP ESP
 END SetSP;
@@ -2852,7 +2852,7 @@ CODE {SYSTEM.i386, SYSTEM.FPU}
 END FPURestoreFull;
 
 (* stateAdr must be the address of a 16-byte aligned memory area of at least 512 bytes *)
-PROCEDURE -SSESaveFull* (stateAdr: SYSTEM.ADDRESS);
+PROCEDURE -SSESaveFull* (stateAdr: ADDRESS);
 CODE {SYSTEM.P2, SYSTEM.FPU, SYSTEM.SSE2}
 	POP EAX
 	FXSAVE [EAX]
@@ -2860,13 +2860,13 @@ CODE {SYSTEM.P2, SYSTEM.FPU, SYSTEM.SSE2}
 	FNINIT
 END SSESaveFull;
 
-PROCEDURE -SSERestoreFull* (stateAdr: SYSTEM.ADDRESS);
+PROCEDURE -SSERestoreFull* (stateAdr: ADDRESS);
 CODE {SYSTEM.P2, SYSTEM.FPU, SYSTEM.SSE2}
 	POP EAX
 	FXRSTOR [EAX]
 END SSERestoreFull;
 
-PROCEDURE -SSESaveMin* (stateAdr: SYSTEM.ADDRESS);
+PROCEDURE -SSESaveMin* (stateAdr: ADDRESS);
 CODE {SYSTEM.i386, SYSTEM.FPU, SYSTEM.SSE2}
 	POP EAX
 	FNSTCW [EAX]
@@ -2874,7 +2874,7 @@ CODE {SYSTEM.i386, SYSTEM.FPU, SYSTEM.SSE2}
 	STMXCSR [EAX+24]
 END SSESaveMin;
 
-PROCEDURE -SSERestoreMin* (stateAdr: SYSTEM.ADDRESS);
+PROCEDURE -SSERestoreMin* (stateAdr: ADDRESS);
 CODE {SYSTEM.i386, SYSTEM.FPU, SYSTEM.SSE2}
 	POP EAX
 	FLDCW [EAX]
@@ -3109,24 +3109,24 @@ CODE { SYSTEM.Pentium }
 END ChangeByteOrder;
 
 (* Write a value to the APIC. *)
-PROCEDURE  ApicPut(ofs: SYSTEM.SIZE; val: SET);
+PROCEDURE  ApicPut(ofs: SIZE; val: SET);
 BEGIN
 	IF TraceApic THEN
 		Acquire(TraceOutput);
-		Trace.Hex(ofs, SYSTEM.SIZEOF(SYSTEM.SIZE)*2); Trace.String(" := "); Trace.Hex(SYSTEM.VAL (LONGINT, val), 9); Trace.Ln;
+		Trace.Hex(ofs, SIZEOF(SIZE)*2); Trace.String(" := "); Trace.Hex(SYSTEM.VAL (LONGINT, val), 9); Trace.Ln;
 		Release(TraceOutput);
 	END;
 	SYSTEM.PUT(localAPIC+ofs, SYSTEM.VAL (LONGINT, val))
 END ApicPut;
 
 (* Read a value from the APIC. *)
-PROCEDURE ApicGet(ofs: SYSTEM.SIZE): SET;
+PROCEDURE ApicGet(ofs: SIZE): SET;
 VAR val: SET;
 BEGIN
 	SYSTEM.GET(localAPIC+ofs, SYSTEM.VAL (LONGINT, val));
 	IF TraceApic THEN
 		Acquire(TraceOutput);
-		Trace.String(" ("); Trace.Hex(ofs, SYSTEM.SIZEOF(SYSTEM.SIZE)*2); Trace.String(" = ");
+		Trace.String(" ("); Trace.Hex(ofs, SIZEOF(SIZE)*2); Trace.String(" = ");
 		Trace.Hex(SYSTEM.VAL(LONGINT, val), 9); Trace.StringLn (")");
 		Release(TraceOutput);
 	END;
@@ -3292,7 +3292,7 @@ BEGIN
 	Release (TraceOutput);
 END GlobalGetTimestamp;
 
-PROCEDURE ParseProcessor(adr: SYSTEM.ADDRESS);
+PROCEDURE ParseProcessor(adr: ADDRESS);
 VAR id, idx, signature, family, feat, ver, log: LONGINT; flags: SET; string : ARRAY 8 OF CHAR;
 BEGIN
 	SYSTEM.GET(adr, SYSTEM.VAL (LONGINT, flags));
@@ -3324,7 +3324,7 @@ BEGIN
 			Trace.String("Machine: Hyperthreading disabled."); Trace.Ln;
 			RETURN;
 		END;
-		log := (SYSTEM.LSH(CPUID1(), -16) MOD 256);
+		log := (LSH(CPUID1(), -16) MOD 256);
 		WHILE log > 1 DO
 			INC(id); DEC(log);
 			IF numProcessors < maxProcessors THEN
@@ -3337,7 +3337,7 @@ END ParseProcessor;
 
 (* Parse MP configuration table. *)
 PROCEDURE ParseMPConfig;
-VAR adr, x: SYSTEM.ADDRESS; i: LONGINT; entries: INTEGER; ch: CHAR; s: SET; str: ARRAY 8 OF CHAR;
+VAR adr, x: ADDRESS; i: LONGINT; entries: INTEGER; ch: CHAR; s: SET; str: ARRAY 8 OF CHAR;
 BEGIN
 	localAPIC := 0; numProcessors := 1; allProcessors := {0};
 	FOR i := 0 TO LEN(idMap)-1 DO idMap[i] := -1 END;	(* all unassigned *)
@@ -3549,7 +3549,7 @@ BEGIN	(* running at kernel level with interrupts off *)
 END EnterMP;
 
 (* Start another processor. *)
-PROCEDURE StartProcessor(phys: SYSTEM.ADDRESS; apicid: LONGINT; startup: BOOLEAN);
+PROCEDURE StartProcessor(phys: ADDRESS; apicid: LONGINT; startup: BOOLEAN);
 VAR j, k: LONGINT; s: SET; timer: LONGINT;
 BEGIN
 	(* clear APIC errors *)
@@ -3583,7 +3583,7 @@ END StartProcessor;
 
 (* Boot other processors, one at a time. *)
 PROCEDURE BootMP;
-VAR phys, page0Adr: SYSTEM.ADDRESS; i: LONGINT; timer: LONGINT;
+VAR phys, page0Adr: ADDRESS; i: LONGINT; timer: LONGINT;
 BEGIN
 	stopped := TRUE; ipcBusy := {};	(* other processors can be woken with StartAll *)
 	InitBootPage(EnterMP, phys);
@@ -3678,12 +3678,12 @@ VAR status: SHORTINT;
 
 	(* Scroll the screen by one line. *)
 	PROCEDURE Scroll;
-	VAR adr: SYSTEM.ADDRESS; off: SYSTEM.SIZE;
+	VAR adr: ADDRESS; off: SIZE;
 	BEGIN
 		adr := traceBase + TraceLen;
 		SYSTEM.MOVE (adr, adr - TraceLen, TraceSize - TraceLen);
 		adr := traceBase + TraceSize - TraceLen;
-		FOR off := 0 TO TraceLen - SYSTEM.SIZEOF(INTEGER) BY SYSTEM.SIZEOF(INTEGER) DO SYSTEM.PUT16 (adr + off, 100H * 7H + 32) END
+		FOR off := 0 TO TraceLen - SIZEOF(INTEGER) BY SIZEOF(INTEGER) DO SYSTEM.PUT16 (adr + off, 100H * 7H + 32) END
 	END Scroll;
 
 BEGIN
@@ -3709,7 +3709,7 @@ BEGIN
 				DEC (tracePos, TraceLen)
 			END;
 			SYSTEM.PUT16 (traceBase + tracePos, 100H * traceColor + ORD (c));
-			INC (tracePos, SYSTEM.SIZEOF(INTEGER))
+			INC (tracePos, SIZEOF(INTEGER))
 		END
 	END
 END TraceChar;
@@ -3722,16 +3722,16 @@ END TraceColor;
 (* Initialise tracing. *)
 PROCEDURE InitTrace;
 CONST MaxPorts = 8;
-VAR i, p, bps: LONGINT; off: SYSTEM.SIZE; s, name: ARRAY 32 OF CHAR;
+VAR i, p, bps: LONGINT; off: SIZE; s, name: ARRAY 32 OF CHAR;
 	baselist: ARRAY MaxPorts OF LONGINT;
 BEGIN
 	GetConfig ("TraceMode", s);
 	p := 0; traceMode := SYSTEM.VAL (SET, StrToInt (p, s));
 	IF TraceScreen IN traceMode THEN
 		GetConfig ("TraceMem", s);
-		p := 0; traceBase := SYSTEM.VAL (SYSTEM.ADDRESS, StrToInt (p, s));
+		p := 0; traceBase := SYSTEM.VAL (ADDRESS, StrToInt (p, s));
 		IF traceBase = 0 THEN traceBase := 0B8000H END;	(* default screen buffer *)
-		FOR off := 0 TO TraceSize - SYSTEM.SIZEOF(INTEGER) BY SYSTEM.SIZEOF(INTEGER) DO SYSTEM.PUT16 (traceBase + off, 100H * 7H + 32) END;
+		FOR off := 0 TO TraceSize - SIZEOF(INTEGER) BY SIZEOF(INTEGER) DO SYSTEM.PUT16 (traceBase + off, 100H * 7H + 32) END;
 		tracePos := 0;
 		Portout8(3D4H, 0EX);
 		Portout8(3D5H, CHR((TraceWidth*TraceHeight) DIV 100H));

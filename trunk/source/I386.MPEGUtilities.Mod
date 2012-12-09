@@ -314,33 +314,33 @@ TYPE
 			adr, tempAdr: LONGINT;
 
 		BEGIN
-			adr := SYSTEM.ADR( blk[baseIndex] );
+			adr := ADDRESSOF( blk[baseIndex] );
 
 			(* shortcut *)
-			x1 := SYSTEM.GET32( adr + 4*SYSTEM.SIZEOF(LONGINT) ) * 2048;
-			x2 := SYSTEM.GET32( adr + 6*SYSTEM.SIZEOF(LONGINT) );
-			x3 := SYSTEM.GET32( adr + 2*SYSTEM.SIZEOF(LONGINT) );
-			x4 := SYSTEM.GET32( adr + SYSTEM.SIZEOF(LONGINT) );
-			x5 := SYSTEM.GET32( adr + 7*SYSTEM.SIZEOF(LONGINT) );
-			x6 := SYSTEM.GET32( adr + 5*SYSTEM.SIZEOF(LONGINT) );
-			x7 := SYSTEM.GET32( adr + 3*SYSTEM.SIZEOF(LONGINT) );
+			x1 := SYSTEM.GET32( adr + 4*SIZEOF(LONGINT) ) * 2048;
+			x2 := SYSTEM.GET32( adr + 6*SIZEOF(LONGINT) );
+			x3 := SYSTEM.GET32( adr + 2*SIZEOF(LONGINT) );
+			x4 := SYSTEM.GET32( adr + SIZEOF(LONGINT) );
+			x5 := SYSTEM.GET32( adr + 7*SIZEOF(LONGINT) );
+			x6 := SYSTEM.GET32( adr + 5*SIZEOF(LONGINT) );
+			x7 := SYSTEM.GET32( adr + 3*SIZEOF(LONGINT) );
 
 			IF ( x1 = 0 ) & ( x2 = 0 ) & ( x3 = 0 ) & ( x4 = 0 ) & ( x5 = 0 ) & ( x6 = 0 ) & ( x7 = 0 )  THEN
 				x0 := SYSTEM.GET32( adr ) * 8;
 				SYSTEM.PUT32( adr , x0 );
-				tempAdr := adr + SYSTEM.SIZEOF( LONGINT );
+				tempAdr := adr + SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
 				RETURN
 			END;
@@ -375,19 +375,19 @@ TYPE
 
 			(* fourth stage *)
 			SYSTEM.PUT32( adr, ( x7 + x1 ) DIV 256 );
-			tempAdr := adr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := adr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, ( x3 + x2 ) DIV 256 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, ( x0 + x4 ) DIV 256 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, ( x8 + x6 ) DIV 256 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, ( x8 - x6 ) DIV 256 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, ( x0 - x4 ) DIV 256 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, ( x3 - x2 ) DIV 256 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, ( x7 - x1 ) DIV 256 )
 		END IDCTRow;
 
@@ -397,33 +397,33 @@ TYPE
 			adr, tempAdr, sourceAdr: LONGINT;
 
 		BEGIN
-			adr := SYSTEM.ADR( blk[baseIndex] );
+			adr := ADDRESSOF( blk[baseIndex] );
 
 			(* shortcut *)
-			x1 := SYSTEM.GET32( adr + 32*SYSTEM.SIZEOF(LONGINT) ) * 256;
-			x2 := SYSTEM.GET32( adr + 48*SYSTEM.SIZEOF(LONGINT) );
-			x3 := SYSTEM.GET32( adr + 16*SYSTEM.SIZEOF(LONGINT) );
-			x4 := SYSTEM.GET32( adr + 8*SYSTEM.SIZEOF(LONGINT) );
-			x5 := SYSTEM.GET32( adr + 56*SYSTEM.SIZEOF(LONGINT) );
-			x6 := SYSTEM.GET32( adr + 40*SYSTEM.SIZEOF(LONGINT) );
-			x7 := SYSTEM.GET32( adr + 24*SYSTEM.SIZEOF(LONGINT) );
+			x1 := SYSTEM.GET32( adr + 32*SIZEOF(LONGINT) ) * 256;
+			x2 := SYSTEM.GET32( adr + 48*SIZEOF(LONGINT) );
+			x3 := SYSTEM.GET32( adr + 16*SIZEOF(LONGINT) );
+			x4 := SYSTEM.GET32( adr + 8*SIZEOF(LONGINT) );
+			x5 := SYSTEM.GET32( adr + 56*SIZEOF(LONGINT) );
+			x6 := SYSTEM.GET32( adr + 40*SIZEOF(LONGINT) );
+			x7 := SYSTEM.GET32( adr + 24*SIZEOF(LONGINT) );
 
 			IF ( x1 = 0 ) & ( x2 = 0 ) & ( x3 = 0 ) & ( x4 = 0 ) & ( x5 = 0 ) & ( x6 = 0 ) & ( x7 = 0 )  THEN
 				x0 := IdctBorder[( ( SYSTEM.GET32( adr ) + 32 ) DIV 64 ) + 512];	(* +512 is the base offset in the array *)
 				SYSTEM.PUT32( adr , x0 );
-				tempAdr := adr + 8*SYSTEM.SIZEOF( LONGINT );
+				tempAdr := adr + 8*SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
-				tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+				tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 				SYSTEM.PUT32( tempAdr, x0 );
 				RETURN
 			END;
@@ -459,22 +459,22 @@ TYPE
 
 			(* fourth stage *)
 			tempAdr := adr;
-			sourceAdr := SYSTEM.ADR(IdctBorder[512] );
-			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x7 + x1 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x3 + x2 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x0 + x4 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x8 + x6 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x8 - x6 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x0 - x4 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x3 - x2 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x7 - x1 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) )
+			sourceAdr := ADDRESSOF(IdctBorder[512] );
+			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x7 + x1 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x3 + x2 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x0 + x4 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x8 + x6 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x8 - x6 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x0 - x4 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x3 - x2 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+			SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x7 - x1 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) )
 		END IDCTCol;
 	END IDCT;
 
@@ -501,7 +501,7 @@ TYPE
 			first := 0;
 			last := -1;
 			bitIndex := 0;
-			bufAdr := SYSTEM.ADR(buffer[0]);
+			bufAdr := ADDRESSOF(buffer[0]);
 			input := r;
 			eof := FALSE;
 
@@ -519,7 +519,7 @@ TYPE
 			first := 0;
 			last := -1;
 			bitIndex := 0;
-			bufAdr := SYSTEM.ADR(buffer[0]);
+			bufAdr := ADDRESSOF(buffer[0]);
 			eof := FALSE;
 
 			(* fill the buffer with the first bytes *)
@@ -580,13 +580,13 @@ TYPE
 				bufa := Machine.ChangeByteOrder(SYSTEM.GET32(bufAdr + first));
 				bufb := Machine.ChangeByteOrder(SYSTEM.GET32(bufAdr + 4 - first));
 
-				 temp := SYSTEM.LSH(SYSTEM.LSH(bufa, bitIndex), nbit - bitIndex );
-				RETURN SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(bufb, nbit - 32)) + SYSTEM.VAL(SET, temp));
+				 temp := LSH(LSH(bufa, bitIndex), nbit - bitIndex );
+				RETURN SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(bufb, nbit - 32)) + SYSTEM.VAL(SET, temp));
 			ELSE
 				(* the n bits are completely in the first 32 bits *)
 				bufa := Machine.ChangeByteOrder(SYSTEM.GET32(bufAdr + first));
 
-				RETURN SYSTEM.LSH(SYSTEM.LSH(bufa, bitIndex), n - 32);
+				RETURN LSH(LSH(bufa, bitIndex), n - 32);
 			END;
 		END ShowBits;
 
@@ -648,7 +648,7 @@ TYPE
 			first := 0;
 			last := -1;
 			bitIndex := 0;
-			bufAdr := SYSTEM.ADR(buffer[0]);
+			bufAdr := ADDRESSOF(buffer[0]);
 			eof := FALSE;
 
 			(* fill the buffer with the first bytes *)
@@ -1811,15 +1811,15 @@ TYPE
 			END;
 
 			pusOut := pucOut.adr;
-			pucYBaseOffset := SYSTEM.ADR( puc[0] )+ pucYBaseOffset;
-			pucUBaseOffset := SYSTEM.ADR ( puc[0] ) + pucUBaseOffset;
-			pucVBaseOffset := SYSTEM.ADR( puc[0] ) + pucVBaseOffset;
+			pucYBaseOffset := ADDRESSOF( puc[0] )+ pucYBaseOffset;
+			pucUBaseOffset := ADDRESSOF ( puc[0] ) + pucUBaseOffset;
+			pucVBaseOffset := ADDRESSOF( puc[0] ) + pucVBaseOffset;
 
 			horizCount := -(widthY DIV 8);
 
 			FOR y := 0 TO heightY-1 DO
 				ScanLine565MMX(horizCount, pucVBaseOffset, pucUBaseOffset, pucYBaseOffset, pusOut,
-					SYSTEM.ADR( mmxConsts.mmwMultY ) );
+					ADDRESSOF( mmxConsts.mmwMultY ) );
 
 					pucYBaseOffset := pucYBaseOffset + strideY;
 					IF ( y MOD 2 ) > 0 THEN
@@ -1967,7 +1967,7 @@ TYPE
 			y, u, v: LONGINT;
 
 		BEGIN
-			strideDiff := (strideOut - widthY)*SYSTEM.SIZEOF(INTEGER); (* expressed in bytes *)
+			strideDiff := (strideOut - widthY)*SIZEOF(INTEGER); (* expressed in bytes *)
 
 			IF heightY < 0 THEN
 				(* we are flipping our output upside-down *)
@@ -1980,9 +1980,9 @@ TYPE
 			END;
 
 			pusOut := pucOut.adr;
-			pucYBaseOffset := SYSTEM.ADR( puc[0] )+ pucYBaseOffset;
-			pucUBaseOffset := SYSTEM.ADR ( puc[0] ) + pucUBaseOffset;
-			pucVBaseOffset := SYSTEM.ADR( puc[0] ) + pucVBaseOffset;
+			pucYBaseOffset := ADDRESSOF( puc[0] )+ pucYBaseOffset;
+			pucUBaseOffset := ADDRESSOF ( puc[0] ) + pucUBaseOffset;
+			pucVBaseOffset := ADDRESSOF( puc[0] ) + pucVBaseOffset;
 
 
 			FOR yCount := 0 TO heightY - 1 DO
@@ -2003,7 +2003,7 @@ TYPE
 					SYSTEM.PUT16( pusOut,  SYSTEM.VAL( INTEGER, SYSTEM.VAL( SET, r DIV 8 ) + SYSTEM.VAL( SET, ( g DIV 4 ) * 32 ) +
 																SYSTEM.VAL( SET, (b DIV 8 ) * 2048 ) ) );
 
-					pusOut := pusOut + SYSTEM.SIZEOF( INTEGER );
+					pusOut := pusOut + SIZEOF( INTEGER );
 				END;
 
 				pucYBaseOffset := pucYBaseOffset + strideY;
@@ -2042,9 +2042,9 @@ TYPE
 			END;
 
 			pusOut := pucOut.adr;
-			pucYBaseOffset := SYSTEM.ADR( puc[0] )+ pucYBaseOffset;
-			pucUBaseOffset := SYSTEM.ADR ( puc[0] ) + pucUBaseOffset;
-			pucVBaseOffset := SYSTEM.ADR( puc[0] ) + pucVBaseOffset;
+			pucYBaseOffset := ADDRESSOF( puc[0] )+ pucYBaseOffset;
+			pucUBaseOffset := ADDRESSOF ( puc[0] ) + pucUBaseOffset;
+			pucVBaseOffset := ADDRESSOF( puc[0] ) + pucVBaseOffset;
 
 			FOR yCount := 0 TO heightY - 1 DO
 				FOR xCount := 0 TO  widthY - 1 DO
@@ -2090,7 +2090,7 @@ TYPE
 			i: LONGINT;			(* loop var *)
 
 		BEGIN
-			d := SYSTEM.ADR(dest[destOffs]);
+			d := ADDRESSOF(dest[destOffs]);
 
 			FOR i := 0 TO 7 DO
 				SYSTEM.PUT32(d, 0);			(* wipes 4 CHARs each time *)
@@ -2103,7 +2103,7 @@ TYPE
 		PROCEDURE ClearBlockLongint*(block: PointerToArrayOfLONGINT);
 		BEGIN
 			IF EnableMMX THEN
-				ClearBlockMMX(SYSTEM.ADR(block[0]));
+				ClearBlockMMX(ADDRESSOF(block[0]));
 			ELSE
 				ClearBlockGeneric(block);
 			END;
@@ -2115,11 +2115,11 @@ TYPE
 			i: LONGINT;
 			adr: LONGINT;
 		BEGIN
-			adr := SYSTEM.ADR( block[0] );
+			adr := ADDRESSOF( block[0] );
 
 			FOR i := 0 TO 63 DO
 				SYSTEM.PUT32( adr, 0 );
-				INC(adr, SYSTEM.SIZEOF(LONGINT));
+				INC(adr, SIZEOF(LONGINT));
 			END;
 		END ClearBlockGeneric;
 
@@ -2143,8 +2143,8 @@ TYPE
 			i: LONGINT;			(* loop var *)
 
 		BEGIN
-			s := SYSTEM.ADR(src[srcOffs]);
-			d := SYSTEM.ADR(dest[destOffs]);
+			s := ADDRESSOF(src[srcOffs]);
+			d := ADDRESSOF(dest[destOffs]);
 
 			FOR i := 0 TO (lines-1) DO
 				SYSTEM.MOVE(s, d, 8);
@@ -2164,8 +2164,8 @@ TYPE
 			tmp1, tmp2: LONGINT;			(* temporary var *)
 
 		BEGIN
-			s := SYSTEM.ADR(src[destOffs])+ (mvY DIV 2)*destIncr + (mvX DIV 2);
-			d := SYSTEM.ADR(dest[destOffs]);
+			s := ADDRESSOF(src[destOffs])+ (mvY DIV 2)*destIncr + (mvX DIV 2);
+			d := ADDRESSOF(dest[destOffs]);
 
 			IF (mvX MOD 2) = 0 THEN
 				IF (mvY MOD 2) = 0 THEN
@@ -2173,7 +2173,7 @@ TYPE
 					CopyBlock(src, dest, destOffs + (mvY DIV 2)*destIncr + (mvX DIV 2), destOffs, srcIncr, destIncr, lines);
 				ELSE
 					(* vertical interpolation only *)
-					bufadr := SYSTEM.ADR(buffer[0]);
+					bufadr := ADDRESSOF(buffer[0]);
 
 					SYSTEM.MOVE(s, bufadr, 8);
 					INC(s, srcIncr);
@@ -2193,7 +2193,7 @@ TYPE
 			ELSE
 				IF (mvY MOD 2) = 0 THEN
 					(* horizontal interpolation only *)
-					bufadr := SYSTEM.ADR(buffer[0]);
+					bufadr := ADDRESSOF(buffer[0]);
 
 					FOR i := 0 TO (lines-1) DO
 						SYSTEM.MOVE(s+1, bufadr, 8);
@@ -2208,7 +2208,7 @@ TYPE
 					END;
 				ELSE
 					(* vertical and horizontal interpolation *)
-					bufadr := SYSTEM.ADR(buffer[0]);
+					bufadr := ADDRESSOF(buffer[0]);
 
 					(* setup *)
 					SYSTEM.MOVE(s+1, bufadr, 8);
@@ -2257,8 +2257,8 @@ TYPE
 			tmp1, tmp2: LONGINT;			(* temporary var *)
 
 		BEGIN
-			s := SYSTEM.ADR(src[destOffs])+ (mvY DIV 2)*destIncr + (mvX DIV 2);
-			d := SYSTEM.ADR(dest[destOffs]);
+			s := ADDRESSOF(src[destOffs])+ (mvY DIV 2)*destIncr + (mvX DIV 2);
+			d := ADDRESSOF(dest[destOffs]);
 
 			IF (mvX MOD 2) = 0 THEN
 				IF (mvY MOD 2) = 0 THEN
@@ -2275,7 +2275,7 @@ TYPE
 					END;
 				ELSE
 					(* vertical interpolation only *)
-					bufadr := SYSTEM.ADR(buffer[0]);
+					bufadr := ADDRESSOF(buffer[0]);
 
 					SYSTEM.MOVE(s, bufadr, 8);
 					INC(s, srcIncr);
@@ -2297,7 +2297,7 @@ TYPE
 			ELSE
 				IF (mvY MOD 2) = 0 THEN
 					(* horizontal interpolation only *)
-					bufadr := SYSTEM.ADR(buffer[0]);
+					bufadr := ADDRESSOF(buffer[0]);
 
 					FOR i := 0 TO (lines-1) DO
 						SYSTEM.MOVE(s+1, bufadr, 8);
@@ -2313,7 +2313,7 @@ TYPE
 					END;
 				ELSE
 					(* vertical and horizontal interpolation *)
-					bufadr := SYSTEM.ADR(buffer[0]);
+					bufadr := ADDRESSOF(buffer[0]);
 
 					(* setup *)
 					SYSTEM.MOVE(s+1, bufadr, 8);
@@ -2355,7 +2355,7 @@ TYPE
 		PROCEDURE TransferIDCTAdd*( source: PointerToArrayOfLONGINT; dest: PointerToArrayOfCHAR; destOffset, stride: LONGINT );
 		BEGIN
 			IF EnableMMX THEN
-				TransferIDCTAddMMX( SYSTEM.ADR( source[0] ), SYSTEM.ADR( dest[destOffset] ), stride );
+				TransferIDCTAddMMX( ADDRESSOF( source[0] ), ADDRESSOF( dest[destOffset] ), stride );
 			ELSE
 				TransferIDCTAddGeneric( source, dest, destOffset, stride );
 			END;
@@ -2364,7 +2364,7 @@ TYPE
 		PROCEDURE TransferIDCTCopy*( source: PointerToArrayOfLONGINT; dest: PointerToArrayOfCHAR; destOffset, stride: LONGINT );
 		BEGIN
 			IF EnableMMX THEN
-				TransferIDCTCopyMMX( SYSTEM.ADR( source[0] ), SYSTEM.ADR( dest[destOffset] ), stride );
+				TransferIDCTCopyMMX( ADDRESSOF( source[0] ), ADDRESSOF( dest[destOffset] ), stride );
 			ELSE
 				TransferIDCTCopyGeneric( source, dest, destOffset, stride );
 			END;
@@ -2376,8 +2376,8 @@ TYPE
 			x, y, s, d, sum: LONGINT;
 		BEGIN
 			stride := stride -  8;
-			s := SYSTEM.ADR( source[0] );
-			d := SYSTEM.ADR( dest[destOffset] );
+			s := ADDRESSOF( source[0] );
+			d := ADDRESSOF( dest[destOffset] );
 
 			FOR y := 0 TO 7 DO
 				FOR x := 0 TO 7 DO
@@ -2390,8 +2390,8 @@ TYPE
 					ELSE
 						SYSTEM.PUT8( d, sum )
 					END;
-					s := s + SYSTEM.SIZEOF( LONGINT );
-					d := d + SYSTEM.SIZEOF( CHAR );
+					s := s + SIZEOF( LONGINT );
+					d := d + SIZEOF( CHAR );
 
 				END;
 				d := d + stride
@@ -2432,8 +2432,8 @@ TYPE
 			x, y, s, d, val: LONGINT;
 		BEGIN
 			stride := stride - 8;
-			s := SYSTEM.ADR( source[0] );
-			d := SYSTEM.ADR( dest[destOffset] );
+			s := ADDRESSOF( source[0] );
+			d := ADDRESSOF( dest[destOffset] );
 
 			FOR y := 0 TO 7 DO
 				FOR x:= 0 TO 7 DO
@@ -2445,8 +2445,8 @@ TYPE
 					ELSE
 						SYSTEM.PUT8( d, val )
 					END;
-					s := s + SYSTEM.SIZEOF(LONGINT);
-					d := d + SYSTEM.SIZEOF( CHAR );
+					s := s + SIZEOF(LONGINT);
+					d := d + SIZEOF( CHAR );
 				END;
 				d := d + stride
 			END;

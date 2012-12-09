@@ -16,8 +16,8 @@ VAR
 
 TYPE Protocol* = POINTER TO ProtocolDescription;
 
-TYPE DiskIOReadDisk* = PROCEDURE{C}(This : Protocol; MediaId : EFI.Int32; Offset : EFI.Int64; BufferSize : EFI.Int; Buffer : SYSTEM.ADDRESS) : EFI.Status;
-TYPE DiskIOWriteDisk* = PROCEDURE{C}(This : Protocol; MediaId : EFI.Int32; Offset : EFI.Int64; BufferSize : EFI.Int; Buffer : SYSTEM.ADDRESS) : EFI.Status;
+TYPE DiskIOReadDisk* = PROCEDURE{C}(This : Protocol; MediaId : EFI.Int32; Offset : EFI.Int64; BufferSize : EFI.Int; Buffer : ADDRESS) : EFI.Status;
+TYPE DiskIOWriteDisk* = PROCEDURE{C}(This : Protocol; MediaId : EFI.Int32; Offset : EFI.Int64; BufferSize : EFI.Int; Buffer : ADDRESS) : EFI.Status;
 
 TYPE ProtocolDescription* = RECORD(EFI.ProtocolDescription)
 	Revision-: EFI.Int64;

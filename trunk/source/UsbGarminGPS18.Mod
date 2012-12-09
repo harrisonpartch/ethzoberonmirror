@@ -218,20 +218,20 @@ TYPE
 		PROCEDURE Parse(data : ARRAY OF CHAR);
 		BEGIN {EXCLUSIVE}
 			IF LEN(data) # 64 THEN RETURN END;
-			SYSTEM.GET(SYSTEM.ADR(data[0]), pvtData.alt);
-			SYSTEM.GET(SYSTEM.ADR(data[4]), pvtData.epe);
-			SYSTEM.GET(SYSTEM.ADR(data[8]), pvtData.eph);
-			SYSTEM.GET(SYSTEM.ADR(data[12]), pvtData.epv);
-			SYSTEM.GET(SYSTEM.ADR(data[16]), pvtData.fix);
-			SYSTEM.GET(SYSTEM.ADR(data[18]), pvtData.tow);
-			SYSTEM.GET(SYSTEM.ADR(data[26]), pvtData.posn.lat);
-			SYSTEM.GET(SYSTEM.ADR(data[34]), pvtData.posn.long);
-			SYSTEM.GET(SYSTEM.ADR(data[42]), pvtData.east);
-			SYSTEM.GET(SYSTEM.ADR(data[46]), pvtData.north);
-			SYSTEM.GET(SYSTEM.ADR(data[50]), pvtData.up);
-			SYSTEM.GET(SYSTEM.ADR(data[54]), pvtData.mslHeight);
-			SYSTEM.GET(SYSTEM.ADR(data[59]), pvtData.leapSeconds);
-			SYSTEM.GET(SYSTEM.ADR(data[60]), pvtData.wnDays);
+			SYSTEM.GET(ADDRESSOF(data[0]), pvtData.alt);
+			SYSTEM.GET(ADDRESSOF(data[4]), pvtData.epe);
+			SYSTEM.GET(ADDRESSOF(data[8]), pvtData.eph);
+			SYSTEM.GET(ADDRESSOF(data[12]), pvtData.epv);
+			SYSTEM.GET(ADDRESSOF(data[16]), pvtData.fix);
+			SYSTEM.GET(ADDRESSOF(data[18]), pvtData.tow);
+			SYSTEM.GET(ADDRESSOF(data[26]), pvtData.posn.lat);
+			SYSTEM.GET(ADDRESSOF(data[34]), pvtData.posn.long);
+			SYSTEM.GET(ADDRESSOF(data[42]), pvtData.east);
+			SYSTEM.GET(ADDRESSOF(data[46]), pvtData.north);
+			SYSTEM.GET(ADDRESSOF(data[50]), pvtData.up);
+			SYSTEM.GET(ADDRESSOF(data[54]), pvtData.mslHeight);
+			SYSTEM.GET(ADDRESSOF(data[59]), pvtData.leapSeconds);
+			SYSTEM.GET(ADDRESSOF(data[60]), pvtData.wnDays);
 			valid := TRUE;
 		END Parse;
 
@@ -623,16 +623,16 @@ END RadianToDegree;
 PROCEDURE Get4(CONST buf : ARRAY OF CHAR; ofs : LONGINT): LONGINT;
 BEGIN
 	ASSERT(ofs + 3 < LEN(buf));
-	RETURN ORD(buf[ofs]) + SYSTEM.LSH(ORD(buf[ofs+1]), 8) + SYSTEM.LSH(ORD(buf[ofs+2]), 16) + SYSTEM.LSH(ORD(buf[ofs+3]), 24);
+	RETURN ORD(buf[ofs]) + LSH(ORD(buf[ofs+1]), 8) + LSH(ORD(buf[ofs+2]), 16) + LSH(ORD(buf[ofs+3]), 24);
 END Get4;
 
 PROCEDURE Put4(buf : Usbdi.BufferPtr; ofs, value : LONGINT);
 BEGIN
 	ASSERT(ofs + 3 < LEN(buf));
 	buf[ofs] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, value) * {0..7}));
-	buf[ofs+1] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, value) * {8..15}, -8)));
-	buf[ofs+2] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, value) * {16..23}, -16)));
-	buf[ofs+3] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, value) * {24..31}, -24)));
+	buf[ofs+1] := CHR(SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, value) * {8..15}, -8)));
+	buf[ofs+2] := CHR(SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, value) * {16..23}, -16)));
+	buf[ofs+3] := CHR(SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, value) * {24..31}, -24)));
 END Put4;
 
 PROCEDURE ShowPacket(type, id : LONGINT);

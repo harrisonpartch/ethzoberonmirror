@@ -397,7 +397,7 @@ TYPE
 			IF((globalState.state[IDReportSize]>0) & (globalState.state[IDReportSize]<=32)) THEN
 				(*logicalMinimum and logicalMaximum must not exceed 4 bytes, so the reportSize must be in [1,32]*)
 				minReportSize:=1;
-				maxReportSize:=SYSTEM.LSH(minReportSize,globalState.state[IDReportSize]);
+				maxReportSize:=LSH(minReportSize,globalState.state[IDReportSize]);
 				IF((globalState.state[IDLogicalMaximum]-globalState.state[IDLogicalMinimum])>=maxReportSize) THEN
 					errorList.Add(itemNr, UsbHidErrors.GlobalItemLogicalMinimum, 0);
 					errorList.Add(itemNr, UsbHidErrors.GlobalItemLogicalMaximum, 0);

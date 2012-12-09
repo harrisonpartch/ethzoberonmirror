@@ -48,9 +48,9 @@ TYPE
 						(* compute round subkeys for PHT *)
 						A := f32( i*step, k32e, keybits );  			 (* A uses even key dwords *)
 						B := f32( i*step + bump, k32o, keybits );   (* B uses odd  key dwords *)
-						B := S.ROT( B, 8 );
+						B := ROT( B, 8 );
 						subkeys[i*2] := A + B;   							(* combine with a PHT *)
-						subkeys[i*2 + 1] := S.ROT( A + 2*B, 9 );
+						subkeys[i*2 + 1] := ROT( A + 2*B, 9 );
 					END
 				END InitKey;
 
@@ -90,11 +90,11 @@ TYPE
 					(* main Twofish encryption loop *)
 					FOR r := 0 TO N - 1 DO
 						t0 := f32( S.VAL( LI, x[0] ), sbox, keybits );
-						t1 := f32( S.ROT( S.VAL( LI, x[1] ), 8 ), sbox, keybits );
-						x[3] := S.ROT( x[3], 1 );
+						t1 := f32( ROT( S.VAL( LI, x[1] ), 8 ), sbox, keybits );
+						x[3] := ROT( x[3], 1 );
 						x[2] := x[2]/S.VAL( SET, t0 + t1 + subkeys[8 + 2*r] );
 						x[3] := x[3]/S.VAL( SET, t0 + t1*2 + subkeys[8 + 2*r + 1] );
-						x[2] := S.ROT( x[2], -1 );
+						x[2] := ROT( x[2], -1 );
 						IF r < N - 1 THEN  (* unswap, except for last round *)
 							s0 := x[0];  x[0] := x[2];  x[2] := s0;  s1 := x[1];  x[1] := x[3];  x[3] := s1;
 						END
@@ -114,9 +114,9 @@ TYPE
 					(* main Twofish decryption loop *)
 					FOR r := N - 1 TO 0 BY -1 DO
 						t0 := f32( S.VAL( LI, x[0] ), sbox, keybits );
-						t1 := f32( S.ROT( S.VAL( LI, x[1] ), 8 ), sbox, keybits );
-						x[2] := S.ROT( x[2], 1 );  x[2] := x[2]/S.VAL( SET, t0 + t1 + subkeys[8 + 2*r] );
-						x[3] := x[3]/S.VAL( SET, t0 + t1*2 + subkeys[8 + 2*r + 1] );  x[3] := S.ROT( x[3], -1 );
+						t1 := f32( ROT( S.VAL( LI, x[1] ), 8 ), sbox, keybits );
+						x[2] := ROT( x[2], 1 );  x[2] := x[2]/S.VAL( SET, t0 + t1 + subkeys[8 + 2*r] );
+						x[3] := x[3]/S.VAL( SET, t0 + t1*2 + subkeys[8 + 2*r + 1] );  x[3] := ROT( x[3], -1 );
 						IF r > 0 THEN  (* unswap, except for last round *)
 							s0 := x[0];  x[0] := x[2];  x[2] := s0;
 							s1 := x[1];  x[1] := x[3];  x[3] := s1;

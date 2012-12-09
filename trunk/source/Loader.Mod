@@ -15,7 +15,7 @@ CONST
 	IncompatibleImport = 3405;
 	IncompatibleModuleName = 3406;
 
-	AddressSize = SYSTEM.SIZEOF (SYSTEM.ADDRESS);
+	AddressSize = SIZEOF (ADDRESS);
 
 	MaxStructs = 1024;	(* maximum number of structures in export block *)
 
@@ -48,19 +48,19 @@ TYPE
 		mod: LONGINT;
 		entry: LONGINT;
 		fixups: LONGINT;
-		ofs: POINTER TO ARRAY OF SYSTEM.SIZE
+		ofs: POINTER TO ARRAY OF SIZE
 	END;
 
 	LinkRec = RECORD
 		mod: LONGINT;
 		entry: LONGINT;
-		link: SYSTEM.SIZE
+		link: SIZE
 	END;
 
 	TypeRec = RECORD
 		init: BOOLEAN;
 		entry, methods, inhMethods, baseMod: LONGINT;
-		baseEntry: SYSTEM.ADDRESS;
+		baseEntry: ADDRESS;
 	END;
 
 VAR
@@ -143,9 +143,9 @@ BEGIN
 END ReadString8;
 
 PROCEDURE AllocateModule(m: Modules.Module; h: ObjHeader);
-VAR dataSize: SYSTEM.SIZE;
+VAR dataSize: SIZE;
 BEGIN
-	dataSize := SYSTEM.VAL(SYSTEM.SIZE, h.dataSize) + (-h.dataSize) MOD 8;	(* round up to 8 to align constant block *)
+	dataSize := SYSTEM.VAL(SIZE, h.dataSize) + (-h.dataSize) MOD 8;	(* round up to 8 to align constant block *)
 
 	NEW(m.entry, h.entries);
 	NEW(m.command, h.commands);
@@ -158,7 +158,7 @@ BEGIN
 	NEW(m.refs, h.refSize);
 	NEW(m.exTable, h.exTableLen);
 
-	m.sb := SYSTEM.ADR(m.data[0]) + dataSize;	(* constants positive, data negative *)
+	m.sb := ADDRESSOF(m.data[0]) + dataSize;	(* constants positive, data negative *)
 END AllocateModule;
 
 (* ReadEntryBlock - Read the entry block. *)
@@ -170,9 +170,9 @@ BEGIN
 	IF tag = 82X THEN	(* entry tag *)
 		FOR i := 0 TO LEN(m.entry)-1 DO
 			r.RawNum(num);
-			m.entry[i] := num + SYSTEM.ADR(m.code[0])
+			m.entry[i] := num + ADDRESSOF(m.code[0])
 		END;
-		(*ASSERT((m.entries > 0) & (m.entry[0] = SYSTEM.ADR(m.code[0])));*)	(* entry[0] is beginning of code (cf. OPL.Init) *)
+		(*ASSERT((m.entries > 0) & (m.entry[0] = ADDRESSOF(m.code[0])));*)	(* entry[0] is beginning of code (cf. OPL.Init) *)
 		RETURN TRUE
 	ELSE
 		RETURN FALSE
@@ -288,7 +288,7 @@ END ReadLinkBlock;
 (* ReadConstBlock - Read the constant block. *)
 
 PROCEDURE ReadConstBlock(r: Streams.Reader;  m: Modules.Module; h: ObjHeader): BOOLEAN;
-VAR tag: CHAR;  i: LONGINT; t: SYSTEM.ADDRESS;
+VAR tag: CHAR;  i: LONGINT; t: ADDRESS;
 BEGIN
 	r.Char(tag);
 	IF tag = 87X THEN	(* constant tag *)
@@ -308,7 +308,7 @@ END ReadConstBlock;
 
 PROCEDURE ReadExportBlock(r: Streams.Reader;  m: Modules.Module): BOOLEAN;
 TYPE ExportPtr = POINTER TO Modules.ExportDesc; (* this type is introduced to dereference fields of an ExportDesc variable *)
-VAR tag: CHAR;  structs, i: LONGINT; struct: ARRAY MaxStructs OF SYSTEM.ADDRESS;
+VAR tag: CHAR;  structs, i: LONGINT; struct: ARRAY MaxStructs OF ADDRESS;
 	p {UNTRACED}: ExportPtr; (* this variable must be untraced since it will be casted from a pure address field, it is not a valid heap block *)
 
 	PROCEDURE LoadScope(VAR scope: Modules.ExportDesc;  level, adr: LONGINT);
@@ -321,7 +321,7 @@ VAR tag: CHAR;  structs, i: LONGINT; struct: ARRAY MaxStructs OF SYSTEM.ADDRESS;
 			scope.dsc[0].adr := adr
 		END;
 		IF level = EUrecScope THEN
-			INC(structs); struct[structs] := SYSTEM.VAL(SYSTEM.ADDRESS, SYSTEM.ADR(scope))
+			INC(structs); struct[structs] := SYSTEM.VAL(ADDRESS, ADDRESSOF(scope))
 		END;
 		r.RawNum(fp);
 		WHILE fp # EUEnd DO
@@ -383,8 +383,8 @@ VAR tag: CHAR;  i: LONGINT;  name, prevname: ARRAY 256 OF CHAR; (*fof: not Modul
 		END
 	END Err;
 
-	PROCEDURE FixupCall(code: SYSTEM.ADDRESS; link: SYSTEM.SIZE; fixval: SYSTEM.ADDRESS);
-	VAR nextlink: SYSTEM.SIZE; opcode: CHAR;
+	PROCEDURE FixupCall(code: ADDRESS; link: SIZE; fixval: ADDRESS);
+	VAR nextlink: SIZE; opcode: CHAR;
 	BEGIN
 		REPEAT
 			ASSERT((link >= 0) & (link < LEN(m.code)));
@@ -400,8 +400,8 @@ VAR tag: CHAR;  i: LONGINT;  name, prevname: ARRAY 256 OF CHAR; (*fof: not Modul
 		UNTIL link = Sentinel
 	END FixupCall;
 
-	PROCEDURE FixupVar(code: SYSTEM.ADDRESS; link: SYSTEM.SIZE; fixval: SYSTEM.ADDRESS);
-	VAR i: LONGINT; val, adr: SYSTEM.ADDRESS;
+	PROCEDURE FixupVar(code: ADDRESS; link: SIZE; fixval: ADDRESS);
+	VAR i: LONGINT; val, adr: ADDRESS;
 	BEGIN
 		ASSERT(dataLink[link].mod # 0);	(* this must be non-local module (?) *)
 		FOR i := 0 TO dataLink[link].fixups-1 DO
@@ -412,7 +412,7 @@ VAR tag: CHAR;  i: LONGINT;  name, prevname: ARRAY 256 OF CHAR; (*fof: not Modul
 	END FixupVar;
 
 	PROCEDURE CheckScope(scope: Modules.ExportDesc;  level: LONGINT);
-	VAR fp, i, link: LONGINT; adr: SYSTEM.SIZE; tdadr: SYSTEM.ADDRESS; tmpErr: BOOLEAN;
+	VAR fp, i, link: LONGINT; adr: SIZE; tdadr: ADDRESS; tmpErr: BOOLEAN;
 	BEGIN
 		tmpErr := (level = EUerrScope);
 		i := 0;  link := 0;
@@ -446,10 +446,10 @@ VAR tag: CHAR;  i: LONGINT;  name, prevname: ARRAY 256 OF CHAR; (*fof: not Modul
 						DEC(i)
 					ELSIF (level = EUobjScope) & (link # 0) THEN
 						IF ~(EUProcFlagBit IN SYSTEM.VAL(SET, link)) THEN
-							FixupVar(SYSTEM.ADR(m.code[0]), link, mod.sb + scope.dsc[i].adr)
+							FixupVar(ADDRESSOF(m.code[0]), link, mod.sb + scope.dsc[i].adr)
 						ELSE
-							FixupCall(SYSTEM.ADR(m.code[0]), SYSTEM.VAL(SYSTEM.SIZE, SYSTEM.VAL(SET, link) - {EUProcFlagBit}),
-								scope.dsc[i].adr + SYSTEM.ADR(mod.code[0]))
+							FixupCall(ADDRESSOF(m.code[0]), SYSTEM.VAL(SIZE, SYSTEM.VAL(SET, link) - {EUProcFlagBit}),
+								scope.dsc[i].adr + ADDRESSOF(mod.code[0]))
 						END
 					END
 				END
@@ -482,16 +482,16 @@ PROCEDURE ReadTypeBlock(r: Streams.Reader;  m: Modules.Module;  VAR type: ARRAY 
 VAR
 	tag: CHAR;  i, j, newMethods, pointers, method, entry, num: LONGINT;
 	tdSize: LONGINT; (* ug *)
-	recSize, ofs, totTdSize (* ug *): SYSTEM.SIZE; base: SYSTEM.ADDRESS;
+	recSize, ofs, totTdSize (* ug *): SIZE; base: ADDRESS;
 	name: Modules.Name;  flags: SET;
-	startAddr, tdAdr: SYSTEM.ADDRESS;
+	startAddr, tdAdr: ADDRESS;
 	staticTypeBlock {UNTRACED}: Heaps.StaticTypeBlock;
 BEGIN
 	r.Char(tag);
 	IF tag = 8BX THEN	(* type tag *)
 		totTdSize := 0;
 		IF LEN(m.staticTypeDescs) > 0 THEN
-			startAddr := SYSTEM.ADR(m.staticTypeDescs[0]);
+			startAddr := ADDRESSOF(m.staticTypeDescs[0]);
 		END;
 		FOR i := 0 TO LEN(type)-1 DO
 			type[i].init := FALSE;
@@ -509,7 +509,7 @@ BEGIN
 			r.RawString(name);
 			r.RawLInt(tdSize);	(* ug *)
 			NEW(m.typeInfo[i]);
-			Heaps.FillStaticType(tdAdr, startAddr, SYSTEM.VAL(SYSTEM.ADDRESS, m.typeInfo[i]), tdSize, recSize, pointers,
+			Heaps.FillStaticType(tdAdr, startAddr, SYSTEM.VAL(ADDRESS, m.typeInfo[i]), tdSize, recSize, pointers,
 								Modules.MaxTags + type[i].methods);
 			m.typeInfo[i].tag := tdAdr;
 			m.typeInfo[i].flags := flags;
@@ -528,12 +528,12 @@ BEGIN
 				r.RawNum(num); ofs := num;
 				ASSERT(ofs MOD AddressSize  =  0);	(* no deep copy flag *)
 				staticTypeBlock.pointerOffsets[j] := ofs;
-				ASSERT(SYSTEM.ADR(staticTypeBlock.pointerOffsets[j]) < startAddr + tdSize)
+				ASSERT(ADDRESSOF(staticTypeBlock.pointerOffsets[j]) < startAddr + tdSize)
 			END;
 
 			ASSERT(m.typeInfo[i].tag # 0);
-			ASSERT( (SYSTEM.ADR(m.data[0]) <=  m.sb + type[i].entry) ,1001);
-			ASSERT( (m.sb + type[i].entry+4  <= SYSTEM.ADR(m.data[LEN(m.data)-1])+1) ,1002 );
+			ASSERT( (ADDRESSOF(m.data[0]) <=  m.sb + type[i].entry) ,1001);
+			ASSERT( (m.sb + type[i].entry+4  <= ADDRESSOF(m.data[LEN(m.data)-1])+1) ,1002 );
 
 			SYSTEM.PUT(m.sb + type[i].entry, m.typeInfo[i].tag); (* patch in constant area *)
 
@@ -564,11 +564,11 @@ END ReadRefBlock;
 (* FixupGlobals - Fix up references to global variables. *)
 
 PROCEDURE FixupGlobals(m: Modules.Module;  VAR dataLink: ARRAY OF DataLinkRec);
-VAR i: LONGINT; t: SYSTEM.SIZE; adr: SYSTEM.ADDRESS;
+VAR i: LONGINT; t: SIZE; adr: ADDRESS;
 BEGIN
 	IF dataLink[0].mod = 0 THEN	(* local module has globals *)
 		FOR i := 0 TO dataLink[0].fixups-1 DO
-			adr := SYSTEM.ADR(m.code[0]) + dataLink[0].ofs[i];
+			adr := ADDRESSOF(m.code[0]) + dataLink[0].ofs[i];
 			SYSTEM.GET(adr, t);  SYSTEM.PUT(adr, t + m.sb)
 		END
 	END
@@ -579,24 +579,24 @@ END FixupGlobals;
 PROCEDURE FixupLinks(m: Modules.Module;  VAR link: ARRAY OF LinkRec; VAR fixupCounts: ARRAY OF LONGINT; caseTableSize: LONGINT; VAR res: LONGINT);
 VAR i: LONGINT;
 
-	PROCEDURE FixRelative(ofs: SYSTEM.SIZE; val: SYSTEM.ADDRESS);
-	VAR t: SYSTEM.SIZE; adr: SYSTEM.ADDRESS;
+	PROCEDURE FixRelative(ofs: SIZE; val: ADDRESS);
+	VAR t: SIZE; adr: ADDRESS;
 	BEGIN
 		ASSERT(val # 0);
 		WHILE ofs # Sentinel DO
-			adr := SYSTEM.ADR(m.code[0])+ofs;
+			adr := ADDRESSOF(m.code[0])+ofs;
 			SYSTEM.GET(adr, t);
 			SYSTEM.PUT(adr, val - (adr+4));	(* fixup for relative CALL instruction => no relocation required *)
 			ofs := t
 		END
 	END FixRelative;
 
-	PROCEDURE FixEntry(ofs: SYSTEM.SIZE; VAR fixupCounts: ARRAY OF LONGINT);
-	VAR t: SYSTEM.SIZE; adr: SYSTEM.ADDRESS; i: LONGINT;
+	PROCEDURE FixEntry(ofs: SIZE; VAR fixupCounts: ARRAY OF LONGINT);
+	VAR t: SIZE; adr: ADDRESS; i: LONGINT;
 	BEGIN
 		i := 0;
 		WHILE ofs # Sentinel DO
-			adr := SYSTEM.ADR(m.code[0])+ofs;
+			adr := ADDRESSOF(m.code[0])+ofs;
 			SYSTEM.GET(adr, t);
 			WHILE fixupCounts[i] = 0 DO INC(i) END;
 			SYSTEM.PUT(adr, m.entry[i]);
@@ -605,14 +605,14 @@ VAR i: LONGINT;
 		END
 	END FixEntry;
 
-	PROCEDURE FixCase(ofs: SYSTEM.SIZE; caseTableSize: LONGINT);
-	VAR i: LONGINT; t: SYSTEM.SIZE; adr: SYSTEM.ADDRESS;
+	PROCEDURE FixCase(ofs: SIZE; caseTableSize: LONGINT);
+	VAR i: LONGINT; t: SIZE; adr: ADDRESS;
 	BEGIN
 		i := caseTableSize;
 		WHILE i > 0 DO
 			adr := m.sb+ofs;
 			SYSTEM.GET(adr, t);
-			SYSTEM.PUT(adr, SYSTEM.ADR(m.code[0]) + t);
+			SYSTEM.PUT(adr, ADDRESSOF(m.code[0]) + t);
 			DEC(i); INC (ofs, AddressSize);
 		END
 	END FixCase;
@@ -635,7 +635,7 @@ PROCEDURE FixupCommands(m : Modules.Module);
 VAR i : LONGINT;
 BEGIN
 	FOR i := 0 TO LEN(m.command)-1 DO
-		m.command[i].entryAdr := m.command[i].entryAdr + SYSTEM.ADR(m.code[0]);
+		m.command[i].entryAdr := m.command[i].entryAdr + ADDRESSOF(m.code[0]);
 		IF (m.command[i].argTdAdr > 1) THEN
 			SYSTEM.GET(m.sb + m.command[i].argTdAdr, m.command[i].argTdAdr);
 		END;
@@ -648,7 +648,7 @@ END FixupCommands;
 (* InitType - Initialize a dynamic  type. *)
 
 PROCEDURE InitType(m: Modules.Module;  VAR type: ARRAY OF TypeRec;  i: LONGINT);
-VAR j, baseMod, extLevel: LONGINT; t: SYSTEM.ADDRESS; root, baseTag, baseMth, baseRoot: SYSTEM.ADDRESS; baseM: Modules.Module;
+VAR j, baseMod, extLevel: LONGINT; t: ADDRESS; root, baseTag, baseMth, baseRoot: ADDRESS; baseM: Modules.Module;
 BEGIN
 	IF ~type[i].init THEN
 		(* init type for dynamic type descriptors *)
@@ -723,9 +723,9 @@ BEGIN
 				r.RawNum(pcFrom);
 				r.RawNum(pcTo);
 				r.RawNum(pcHandler);
-				m.exTable[i].pcFrom := pcFrom + SYSTEM.ADR(m.code[0]);
-				m.exTable[i].pcTo := pcTo + SYSTEM.ADR(m.code[0]);
-				m.exTable[i].pcHandler := pcHandler + SYSTEM.ADR(m.code[0]);
+				m.exTable[i].pcFrom := pcFrom + ADDRESSOF(m.code[0]);
+				m.exTable[i].pcTo := pcTo + ADDRESSOF(m.code[0]);
+				m.exTable[i].pcHandler := pcHandler + ADDRESSOF(m.code[0]);
 			ELSE
 				RETURN FALSE;
 			END;
@@ -754,7 +754,7 @@ VAR tag: CHAR; i, j, codeoffset, beginOffset, endOffset, nofptrs, p : LONGINT;
 
 	PROCEDURE SwapProcTableEntries(p, q : LONGINT);
 	VAR procentry : Modules.ProcTableEntry;
-		k, i, basep, baseq: LONGINT; ptr: SYSTEM.SIZE;
+		k, i, basep, baseq: LONGINT; ptr: SIZE;
 	BEGIN
 		k := Max(procTable[p].noPtr, procTable[q].noPtr);
 		IF k > 0 THEN (* swap entries in ptrTable first *)
@@ -792,9 +792,9 @@ BEGIN
 			r.RawNum(beginOffset);
 			r.RawNum(endOffset);
 			r.RawLInt(nofptrs);	(* fixed size *)
-			procTable[i].pcFrom := codeoffset + SYSTEM.ADR(m.code[0]);
-			procTable[i].pcStatementBegin := beginOffset + SYSTEM.ADR(m.code[0]);
-			procTable[i].pcStatementEnd := endOffset + SYSTEM.ADR(m.code[0]);
+			procTable[i].pcFrom := codeoffset + ADDRESSOF(m.code[0]);
+			procTable[i].pcStatementBegin := beginOffset + ADDRESSOF(m.code[0]);
+			procTable[i].pcStatementEnd := endOffset + ADDRESSOF(m.code[0]);
 			procTable[i].noPtr := nofptrs;
 			FOR j := 0 TO nofptrs - 1 DO
 				r.RawNum(p);
@@ -806,7 +806,7 @@ BEGIN
 		FOR i := 0 TO m.noProcs - 2 DO
 			procTable[i].pcLimit := procTable[i + 1].pcFrom
 		END;
-		procTable[m.noProcs - 1].pcLimit := SYSTEM.ADR(m.code[0]) + LEN(m.code) + 1;   (* last element reserved for end of code segment,
+		procTable[m.noProcs - 1].pcLimit := ADDRESSOF(m.code[0]) + LEN(m.code) + 1;   (* last element reserved for end of code segment,
 																						    allow 1 byte extra, cf. Modules.ThisModuleByAdr *)
 		procTable := NIL; ptrTable := NIL;
 		RETURN TRUE
@@ -841,7 +841,7 @@ BEGIN
 				m.crc := h.crc;
 				AllocateModule(m,h);
 				IF trace THEN
-					KernelLog.Hex(SYSTEM.ADR(m.code[0]), 8);  KernelLog.Char(" ");
+					KernelLog.Hex(ADDRESSOF(m.code[0]), 8);  KernelLog.Char(" ");
 					KernelLog.String(m.name);  KernelLog.Hex(m.sb, 9);  KernelLog.Ln
 				END;
 				NEW(dataLink, h.dataLinks);  NEW(link, h.links);  NEW(fixupCounts, h.entries);

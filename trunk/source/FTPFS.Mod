@@ -33,7 +33,7 @@ CONST
 	FillerSize = 4;
 
 	MapIndexSize = (SS-4) DIV 4;
-	MapSize = SS DIV SYSTEM.SIZEOF (SET);	(* {MapSize MOD SYSTEM.SIZEOF (SET) = 0} *)
+	MapSize = SS DIV SIZEOF (SET);	(* {MapSize MOD SIZEOF (SET) = 0} *)
 	MapMark = LONGINT(9C2F977FH);
 
 	MaxBufs = 4;
@@ -631,7 +631,7 @@ TYPE
 			f := NIL; Check(name, namebuf, res);
 			IF res <= 0 THEN
 				NEW(buf); buf.apos := 0; buf.mod := TRUE; buf.lim := HS; buf.next := buf;
-				head := SYSTEM.VAL(FileHd, SYSTEM.ADR(buf.data));
+				head := SYSTEM.VAL(FileHd, ADDRESSOF(buf.data));
 				head.mark := HeaderMark;
 				head.aleng := 0; head.bleng := HS; head.name := namebuf;
 				Clock.Get(head.time, head.date);
@@ -723,7 +723,7 @@ TYPE
 					NEW(buf); buf.apos := 0; buf.next := buf; buf.mod := FALSE;
 
 					GetSector(vol, header, buf.data);
-					head := SYSTEM.VAL(FileHd, SYSTEM.ADR(buf.data));
+					head := SYSTEM.VAL(FileHd, ADDRESSOF(buf.data));
 
 					NEW(f); f.fs := SELF; f.key := header;
 					f.aleng := head.aleng; f.bleng := head.bleng;
@@ -890,16 +890,16 @@ TYPE
 		END Read;
 
 		PROCEDURE ReadBytes(VAR r: Files.Rider; VAR x: ARRAY OF CHAR; ofs, len: LONGINT);
-		VAR src, dst: SYSTEM.ADDRESS; m: LONGINT; buf: Buffer;
+		VAR src, dst: ADDRESS; m: LONGINT; buf: Buffer;
 		BEGIN {EXCLUSIVE}
 			IF LEN(x)-ofs < len THEN SYSTEM.HALT(19) END;
 			IF len > 0 THEN
-				dst := SYSTEM.ADR(x[ofs]);
+				dst := ADDRESSOF(x[ofs]);
 				buf := r.hint(Buffer);
 				IF r.apos # buf.apos THEN buf := GetBuf(SELF, r.apos); r.hint := buf END;
 				LOOP
 					IF len <= 0 THEN EXIT END ;
-					src := SYSTEM.ADR(buf.data.B[0]) + r.bpos; m := r.bpos + len;
+					src := ADDRESSOF(buf.data.B[0]) + r.bpos; m := r.bpos + len;
 					IF m <= buf.lim THEN
 						SYSTEM.MOVE(src, dst, len); r.bpos := m; r.res := 0; EXIT
 					ELSIF buf.lim = SS THEN
@@ -956,16 +956,16 @@ TYPE
 		END Write;
 
 		PROCEDURE WriteBytes(VAR r: Files.Rider; CONST x: ARRAY OF CHAR; ofs, len: LONGINT);
-		VAR src, dst: SYSTEM.ADDRESS; m: LONGINT; buf: Buffer;
+		VAR src, dst: ADDRESS; m: LONGINT; buf: Buffer;
 		BEGIN {EXCLUSIVE}
 			IF LEN(x)-ofs < len THEN SYSTEM.HALT(19) END;
 			IF len > 0 THEN
-				src := SYSTEM.ADR(x[ofs]);
+				src := ADDRESSOF(x[ofs]);
 				buf := r.hint(Buffer);
 				IF r.apos # buf.apos THEN buf := GetBuf(SELF, r.apos); r.hint := buf END;
 				LOOP
 					IF len <= 0 THEN EXIT END;
-					buf.mod := TRUE; dst := SYSTEM.ADR(buf.data.B[0]) + r.bpos; m := r.bpos + len;
+					buf.mod := TRUE; dst := ADDRESSOF(buf.data.B[0]) + r.bpos; m := r.bpos + len;
 					IF m <= buf.lim THEN
 						SYSTEM.MOVE(src, dst, len); r.bpos := m; EXIT
 					ELSIF m <= SS THEN
@@ -1400,8 +1400,8 @@ END UseNet;
 
 BEGIN
 	net := TRUE; (*alm 9/16/04*)
-	ASSERT((SYSTEM.SIZEOF(FileHeader) = SS) & (SYSTEM.SIZEOF(IndexSector) = SS) & (SYSTEM.SIZEOF(DataSector) = SS) &
-			(SYSTEM.SIZEOF(DirPage) = SS) & (SYSTEM.SIZEOF(MapIndex) = SS) & (SYSTEM.SIZEOF(MapSector) = SS));
+	ASSERT((SIZEOF(FileHeader) = SS) & (SIZEOF(IndexSector) = SS) & (SIZEOF(DataSector) = SS) &
+			(SIZEOF(DirPage) = SS) & (SIZEOF(MapIndex) = SS) & (SIZEOF(MapSector) = SS));
 	Modules.InstallTermHandler(Cleanup)
 END FTPFS.
 

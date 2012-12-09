@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5065)";
+	Version = "Aos (rev.5040)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -15,8 +15,8 @@ CONST
 	(** bits in features variable *)
 	MTTR* = 12;  MMX* = 23; 
 	
-	AdrSize = S.SIZEOF( S.ADDRESS );
-	SizeSize = S.SIZEOF( S.SIZE );
+	AdrSize = SIZEOF( ADDRESS );
+	SizeSize = SIZEOF( SIZE );
 	
 	BlockSize = 32;
 	MemBlockSize* = 64*1024*1024;
@@ -38,8 +38,8 @@ CONST
 	
 
 TYPE
-	Address = S.ADDRESS;
-	Size = S.SIZE;
+	Address = ADDRESS;
+	Size = SIZE;
 	
 	Vendor* = ARRAY 13 OF CHAR;	
 
@@ -890,14 +890,14 @@ END ChangeByteOrder;
 		firstMemBlock.endBlockAdr := firstBlock + size;  
 		firstMemBlock.size := size;
 	
-		memBlockHead := S.VAL( MemoryBlock, S.ADR( firstMemBlock ) );
+		memBlockHead := S.VAL( MemoryBlock, ADDRESSOF( firstMemBlock ) );
 		memBlockTail := memBlockHead;
 	END InitHeap;
 
 	PROCEDURE InitConfig;
 	VAR a: Address;  i: LONGINT;  c: CHAR;
 	BEGIN
-		a := Unix.getenv( S.ADR( "AOSCONFIG" ) );
+		a := Unix.getenv( ADDRESSOF( "AOSCONFIG" ) );
 		IF a = 0 THEN  config := DefaultConfig
 		ELSE
 			REPEAT
@@ -937,14 +937,14 @@ END ChangeByteOrder;
 	PROCEDURE Log1( c: CHAR );
 	VAR ignore: LONGINT;
 	BEGIN
-		ignore := Unix.write( 1, S.ADR( c ), 1 );
-		ignore := Unix.write( logfile, S.ADR( c ), 1 );
+		ignore := Unix.write( 1, ADDRESSOF( c ), 1 );
+		ignore := Unix.write( logfile, ADDRESSOF( c ), 1 );
 	END Log1;
 	
 	PROCEDURE Log2( c: CHAR );
 	VAR ignore: LONGINT;
 	BEGIN
-		ignore := Unix.write( logfile, S.ADR( c ), 1 );
+		ignore := Unix.write( logfile, ADDRESSOF( c ), 1 );
 	END Log2;
 	
 	
@@ -957,7 +957,7 @@ END ChangeByteOrder;
 			name[i] := CHR( pid MOD 10 + ORD( '0' ) );  DEC( i );
 			pid := pid DIV 10;		
 		UNTIL i = 3;
-		logfile := Unix.open( S.ADR( name ), Unix.rdwr + Unix.creat + Unix.trunc, Unix.rwrwr );
+		logfile := Unix.open( ADDRESSOF( name ), Unix.rdwr + Unix.creat + Unix.trunc, Unix.rwrwr );
 		IF Unix.argc < 3 THEN  VerboseLog  
 		ELSE  standaloneAppl := TRUE;  SilentLog
 		END

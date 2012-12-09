@@ -41,7 +41,7 @@ VAR
 	BEGIN
 		i := 0; ch := str[0]; h := 0;
 		WHILE ch # 0X DO
-			h :=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ROT(h, 7)) / SYSTEM.VAL(SET, LONG(ORD(ch))));
+			h :=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ROT(h, 7)) / SYSTEM.VAL(SET, LONG(ORD(ch))));
 			INC(i); ch := str[i]
 		END;
 		h := h MOD poolIndexSize;
@@ -54,7 +54,7 @@ VAR
 		VAR new: StringPool;
 	BEGIN
 		NEW(new, 2*LEN(pool));
-		SYSTEM.MOVE(SYSTEM.ADR(pool[0]), SYSTEM.ADR(new[0]), LEN(pool));
+		SYSTEM.MOVE(ADDRESSOF(pool[0]), ADDRESSOF(new[0]), LEN(pool));
 		pool := new
 	END GrowPool;
 
@@ -76,7 +76,7 @@ VAR
 			idx0 := idx; h := 0;
 			ch := pool[idx];
 			WHILE ch # 0X DO
-				h :=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ROT(h, 7)) / SYSTEM.VAL(SET, LONG(ORD(ch))));
+				h :=SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ROT(h, 7)) / SYSTEM.VAL(SET, LONG(ORD(ch))));
 				INC(idx); ch := pool[idx]
 			END;
 			h := h MOD poolIndexSize;
@@ -199,11 +199,11 @@ VAR
 
 	PROCEDURE CompareString0*(index: Index;  VAR str: ARRAY OF CHAR): LONGINT;
 		(* using VAR str makes the _whole_ compiler 10% faster!!! *)
-		VAR  ch1, ch2: CHAR; adr1, adr2: SYSTEM.ADDRESS; i: LONGINT;
+		VAR  ch1, ch2: CHAR; adr1, adr2: ADDRESS; i: LONGINT;
 	BEGIN
 		INC(ACompareString0);
-		adr1 := SYSTEM.ADR(pool[index]);
-		adr2 := SYSTEM.ADR(str[0]);
+		adr1 := ADDRESSOF(pool[index]);
+		adr2 := ADDRESSOF(str[0]);
 		REPEAT
 			SYSTEM.GET(adr1+i, ch1);
 			SYSTEM.GET(adr2+i, ch2);

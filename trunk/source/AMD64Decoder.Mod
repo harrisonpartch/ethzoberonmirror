@@ -1476,8 +1476,8 @@ TYPE
 			VAR
 				value: HUGEINT;
 			BEGIN
-				SYSTEM.PUT (SYSTEM.ADR (value), ReadLInt ());
-				SYSTEM.PUT (SYSTEM.ADR (value) + 4, ReadLInt ());
+				SYSTEM.PUT (ADDRESSOF (value), ReadLInt ());
+				SYSTEM.PUT (ADDRESSOF (value) + 4, ReadLInt ());
 				RETURN value;
 			END ReadHInt;
 
@@ -3221,8 +3221,8 @@ BEGIN
 	IF (n >= -80H) & (n < 100H) THEN
 		w.Int (SYSTEM.VAL (SHORTINT, n), 0);
 	ELSE
-		SYSTEM.GET (SYSTEM.ADR (n), low);
-		SYSTEM.GET (SYSTEM.ADR (n) + 4, high);
+		SYSTEM.GET (ADDRESSOF (n), low);
+		SYSTEM.GET (ADDRESSOF (n) + 4, high);
 		IF high # 0 THEN w.Hex (high, 0) END;
 		w.Hex (low, 0); w.Char ('H');
 	END;

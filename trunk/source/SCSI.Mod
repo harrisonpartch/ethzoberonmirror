@@ -143,7 +143,7 @@ TYPE
 		status*, result*: SHORTINT;
 		target*, chan*, lun*: SHORTINT;	(**destination*)
 		cmd*: ARRAY 12 OF CHAR;  clen*: SHORTINT;	(**command*)
-		dataAddr*: SYSTEM.ADDRESS; dlen*: LONGINT;	(**data*)
+		dataAddr*: ADDRESS; dlen*: LONGINT;	(**data*)
 		tag*: CHAR;	(*SCSI-II queued command tag*)
 	END;
 
@@ -182,7 +182,7 @@ TYPE
 					MakeCmd10(requ.cmd, Write10, 0, start, num, 0);
 					str := "transfer/write"
 				END;
-				NewCmd(requ, target, 0, 10, SYSTEM.ADR(data[ofs]), num*blockSize);
+				NewCmd(requ, target, 0, 10, ADDRESSOF(data[ofs]), num*blockSize);
 				SubmitAndSense(bus, requ, 1, str, res);
 				IF res = Good THEN
 					res := Disks.Ok
@@ -285,24 +285,24 @@ BEGIN
 	ASSERT((0 <= lba) & (lba < 200000H), 101);
 	ASSERT((0 <= len) & (len < 100H), 102);
 	c[0] := op;
-	c[1] := CHR(SYSTEM.LSH(lun, 5) + SYSTEM.LSH(lba, -16));
-	c[2] := CHR(SYSTEM.LSH(lba, -8));
+	c[1] := CHR(LSH(lun, 5) + LSH(lba, -16));
+	c[2] := CHR(LSH(lba, -8));
 	c[3] := CHR(lba);
 	c[4] := CHR(len);
 	c[5] := CHR(ctrl)
 END MakeCmd6;
 
-PROCEDURE MakeCmd10(VAR c: ARRAY OF CHAR;  op: CHAR;  lun: LONGINT; lba: SYSTEM.ADDRESS; len, ctrl: LONGINT);
+PROCEDURE MakeCmd10(VAR c: ARRAY OF CHAR;  op: CHAR;  lun: LONGINT; lba: ADDRESS; len, ctrl: LONGINT);
 BEGIN
 	ASSERT((0 <= len) & (len < 10000H), 100);
 	c[0] := op;
-	c[1] := CHR(SYSTEM.LSH(lun, 5));
-	c[2] := CHR(SYSTEM.LSH(lba, -24));
-	c[3] := CHR(SYSTEM.LSH(lba, -16));
-	c[4] := CHR(SYSTEM.LSH(lba, -8));
+	c[1] := CHR(LSH(lun, 5));
+	c[2] := CHR(LSH(lba, -24));
+	c[3] := CHR(LSH(lba, -16));
+	c[4] := CHR(LSH(lba, -8));
 	c[5] := CHR(lba);
 	c[6] := 0X;	(*reserved*)
-	c[7] := CHR(SYSTEM.LSH(len, -8));
+	c[7] := CHR(LSH(len, -8));
 	c[8] := CHR(len);
 	c[9] := CHR(ctrl)
 END MakeCmd10;
@@ -311,21 +311,21 @@ END MakeCmd10;
 PROCEDURE MakeCmd12(VAR c: ARRAY OF CHAR;  op: CHAR;  lun, lba, len, ctrl: LONGINT);
 BEGIN
 	c[0] := op;
-	c[1] := CHR(SYSTEM.LSH(lun, 5));
-	c[2] := CHR(SYSTEM.LSH(lba, -24));
-	c[3] := CHR(SYSTEM.LSH(lba, -16));
-	c[4] := CHR(SYSTEM.LSH(lba, -8));
+	c[1] := CHR(LSH(lun, 5));
+	c[2] := CHR(LSH(lba, -24));
+	c[3] := CHR(LSH(lba, -16));
+	c[4] := CHR(LSH(lba, -8));
 	c[5] := CHR(lba);
-	c[6] := CHR(SYSTEM.LSH(len, -24));
-	c[7] := CHR(SYSTEM.LSH(len, -16));
-	c[8] := CHR(SYSTEM.LSH(len, -8));
+	c[6] := CHR(LSH(len, -24));
+	c[7] := CHR(LSH(len, -16));
+	c[8] := CHR(LSH(len, -8));
 	c[9] := CHR(len);
 	c[10] := 0X;	(*reserved*)
 	c[11] := CHR(ctrl)
 END MakeCmd12;
 *)
 
-PROCEDURE NewCmd(VAR c: Command; t, l: SHORTINT; cl: LONGINT; da: SYSTEM.ADDRESS; dl: LONGINT);
+PROCEDURE NewCmd(VAR c: Command; t, l: SHORTINT; cl: LONGINT; da: ADDRESS; dl: LONGINT);
 BEGIN
 	c.clen := SHORT(SHORT(cl));  c.dataAddr := da;  c.dlen := dl;
 	c.target := t;  c.lun := l;  c.chan := 0;
@@ -335,13 +335,13 @@ PROCEDURE DoSense*(b: Bus;  target,  lun: SHORTINT;  VAR key, code, res: LONGINT
 VAR requ: Command; data: ARRAY 36 OF CHAR;
 BEGIN
 	MakeCmd6(requ.cmd, RequestSense, lun, 0, 36, 0);
-	NewCmd(requ, target, lun, 6, SYSTEM.ADR(data), 36);
+	NewCmd(requ, target, lun, 6, ADDRESSOF(data), 36);
 	b.Submit(requ);
 	key := ORD(data[2]) MOD 16;
 	code := 100H*ORD(data[12]) + ORD(data[13]);
 	IF TraceSense IN trace THEN
 		WriteBus(b);  KernelLog.String(" RequestSense"); KernelLog.Ln;
-		KernelLog.Memory(SYSTEM.ADR(data[0]), 36); KernelLog.Ln
+		KernelLog.Memory(ADDRESSOF(data[0]), 36); KernelLog.Ln
 	END;
 	res := requ.status
 END DoSense;
@@ -398,29 +398,29 @@ PROCEDURE DoInquiry*(b: Bus;  target, lun: SHORTINT; VAR inq: InquiryData; VAR r
 VAR requ: Command; data: ARRAY 36 OF CHAR; i: LONGINT;
 BEGIN
 	MakeCmd6(requ.cmd, Inquiry, lun, 0, 36, 0);
-	NewCmd(requ, target, 0, 6, SYSTEM.ADR(data), 36);
+	NewCmd(requ, target, 0, 6, ADDRESSOF(data), 36);
 	b.Submit(requ);
 	res := requ.status;
 	IF res = Good THEN
 		IF TraceDetection IN trace THEN
 			WriteBus(b);  KernelLog.String("Inquiry"); KernelLog.Ln;
-			KernelLog.Memory(SYSTEM.ADR(data[0]), 36); KernelLog.Ln
+			KernelLog.Memory(ADDRESSOF(data[0]), 36); KernelLog.Ln
 		END;
 		inq.deviceClass := SHORT(ORD(data[0]) MOD 32);
 		inq.rmb := 7 IN SYSTEM.VAL(SET, data[1]);
 		inq.ANSI := SHORT(ORD(data[2]) MOD 8);
-		inq.ECMA := SHORT(SYSTEM.LSH(ORD(data[2]), -3) MOD 8);
-		inq.ISO  := SHORT(SYSTEM.LSH(ORD(data[2]), -6) MOD 4);
+		inq.ECMA := SHORT(LSH(ORD(data[2]), -3) MOD 8);
+		inq.ISO  := SHORT(LSH(ORD(data[2]), -6) MOD 4);
 		inq.w32 := 6 IN SYSTEM.VAL(SET, data[7]);
 		inq.w16 := 5 IN SYSTEM.VAL(SET, data[7]);
 		inq.sync := 4 IN SYSTEM.VAL(SET, data[7]);
 		inq.link := 3 IN SYSTEM.VAL(SET, data[7]);
 		inq.que := 1 IN SYSTEM.VAL(SET, data[7]);
-		SYSTEM.MOVE(SYSTEM.ADR(data[8]), SYSTEM.ADR(inq.manufacturer), 8);
+		SYSTEM.MOVE(ADDRESSOF(data[8]), ADDRESSOF(inq.manufacturer), 8);
 		i := 7;  WHILE (i >= 0) & (inq.manufacturer[i] = 20X) DO  DEC(i)  END; inq.manufacturer[i+1]:= 0X;
-		SYSTEM.MOVE(SYSTEM.ADR(data[16]), SYSTEM.ADR(inq.product), 16);
+		SYSTEM.MOVE(ADDRESSOF(data[16]), ADDRESSOF(inq.product), 16);
 		i := 15;  WHILE (i >= 0) & (inq.product[i] = 20X) DO  DEC(i)  END; inq.product[i+1]:= 0X;
-		SYSTEM.MOVE(SYSTEM.ADR(data[32]), SYSTEM.ADR(inq.rev), 4);
+		SYSTEM.MOVE(ADDRESSOF(data[32]), ADDRESSOF(inq.rev), 4);
 		i := 3;  WHILE (i >= 0) & (inq.rev[i] = 20X) DO  DEC(i)  END; inq.rev[i+1]:= 0X;
 	ELSIF TraceDetection IN trace THEN
 		WriteDisk2(b, target);  KernelLog.String("Inquiry failed with "); DumpCmdStatus(requ.status, requ.result)
@@ -456,7 +456,7 @@ BEGIN
 	capacity := 0;  blockSize := 0;
 	IF (b # NIL) THEN
 		MakeCmd10(requ.cmd, ReadCapacity, 0, 0, 0, 0);
-		NewCmd(requ, target, lun, 10, SYSTEM.ADR(data), 16);
+		NewCmd(requ, target, lun, 10, ADDRESSOF(data), 16);
 		SubmitAndSense(b, requ, 1, "ReadCapacity", res);
 		IF res # Good THEN  RETURN   END;
 		FOR i := 0 TO 3 DO
@@ -471,19 +471,19 @@ PROCEDURE InitDisk(d: Disk);
 VAR  requ: Command;  data: ARRAY 128 OF CHAR; res: LONGINT;
 BEGIN
 	MakeCmd6(requ.cmd, ModeSense, 0, 0, 128, 0);
-	NewCmd(requ, d.target, 0, 6, SYSTEM.ADR(data), 128);
+	NewCmd(requ, d.target, 0, 6, ADDRESSOF(data), 128);
 	SubmitAndSense(d.bus, requ, 1, "SenseDevice", res);
 	IF TraceDetection IN trace THEN
 		WriteBus(d.bus);  KernelLog.String(": ModeSense"); KernelLog.Ln;
-		KernelLog.Memory(SYSTEM.ADR(data[0]), 64); KernelLog.Ln
+		KernelLog.Memory(ADDRESSOF(data[0]), 64); KernelLog.Ln
 	END;
 	IF (res = Good) & (ORD(data[3]) = 8) THEN
 		d.blockSize := ORD(data[4+7]);
-		d.blockSize := d.blockSize + SYSTEM.LSH(ORD(data[4+5]), 16);
-		d.blockSize := d.blockSize + SYSTEM.LSH(ORD(data[4+6]), 8);
+		d.blockSize := d.blockSize + LSH(ORD(data[4+5]), 16);
+		d.blockSize := d.blockSize + LSH(ORD(data[4+6]), 8);
 	ELSE
 		KernelLog.String("Sense failed"); KernelLog.Int(res, 3); KernelLog.Ln;
-		KernelLog.Memory(SYSTEM.ADR(data[0]), 128); KernelLog.Ln;
+		KernelLog.Memory(ADDRESSOF(data[0]), 128); KernelLog.Ln;
 		d.blockSize := 0
 	END;
 END InitDisk;

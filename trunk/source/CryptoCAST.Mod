@@ -180,7 +180,7 @@ TYPE
 	PROCEDURE CAST1( VAR k: Key;  VAR L, R: SET );   (* +, xor, - *)
 	VAR a, b: SET;  t, c, d: LONGINT;
 	BEGIN
-		t := S.ROT( k.val + S.VAL( LI, R ), k.rot );
+		t := ROT( k.val + S.VAL( LI, R ), k.rot );
 		b := T[1, t MOD 256];  t := t DIV 256;
 		a := T[0, t MOD 256];  t := t DIV 256;
 		d := S.VAL( LI, T[3, t MOD 256] );  t := t DIV 256;
@@ -191,7 +191,7 @@ TYPE
 	PROCEDURE CAST2( VAR k: Key;  VAR L, R: SET );   (* xor, -, + *)
 	VAR d: SET;  t, a, b, c: LONGINT;
 	BEGIN
-		t := S.ROT( S.VAL( LI, S.VAL( SET, k.val )/R ), k.rot );
+		t := ROT( S.VAL( LI, S.VAL( SET, k.val )/R ), k.rot );
 		b := S.VAL( LI, T[1, t MOD 256] );  t := t DIV 256;
 		a := S.VAL( LI, T[0, t MOD 256] );  t := t DIV 256;
 		d := T[3, t MOD 256];  t := t DIV 256;
@@ -201,7 +201,7 @@ TYPE
 	PROCEDURE CAST3( VAR k: Key;  VAR L, R: SET );   (* -, +, xor *)
 	VAR c: SET;  t, a, b, d: LONGINT;
 	BEGIN
-		t := S.ROT( k.val - S.VAL( LI, R ), k.rot );
+		t := ROT( k.val - S.VAL( LI, R ), k.rot );
 		b := S.VAL( LI, T[1, t MOD 256] );  t := t DIV 256;
 		a := S.VAL( LI, T[0, t MOD 256] );  t := t DIV 256;
 		d := S.VAL( LI, T[3, t MOD 256] );  t := t DIV 256;

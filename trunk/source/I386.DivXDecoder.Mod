@@ -300,7 +300,7 @@ TYPE MacroBlock *= OBJECT
  				log.Int( iincr, 0 ); log.Ln()
 		 	END;
 
-			TransferIDCTCopy( SYSTEM.ADR(texture.dstBlock[4]), mp4State.frameRef, offset, iincr );
+			TransferIDCTCopy( ADDRESSOF(texture.dstBlock[4]), mp4State.frameRef, offset, iincr );
 		END AddBlockIntra;
 
 		(* Add an interblock to the current picture *)
@@ -333,13 +333,13 @@ TYPE MacroBlock *= OBJECT
 		 		log.String( "TransferIDCTAdd: "); log.Int( offset - mp4State.frameRefBaseOffset[cc], 0 ); log.Char( ' ' );
 		 		log.Int( iincr, 0 ); log.Ln()
 		 	END;
- 			TransferIDCTAdd( SYSTEM.ADR(texture.dstBlock[4]), mp4State.frameRef, offset, iincr );
+ 			TransferIDCTAdd( ADDRESSOF(texture.dstBlock[4]), mp4State.frameRef, offset, iincr );
 		END AddBlockInter;
 
 		PROCEDURE TransferIDCTAdd( source: LONGINT; dest: DT.PointerToArrayOfCHAR; destOffset, stride: LONGINT );
 		BEGIN
 			IF DT.EnableMMX THEN
-				TransferIDCTAddMMX( source, SYSTEM.ADR( dest[destOffset] ), stride );
+				TransferIDCTAddMMX( source, ADDRESSOF( dest[destOffset] ), stride );
 			ELSE
 				TransferIDCTAddGeneric( source, dest, destOffset, stride );
 			END;
@@ -349,7 +349,7 @@ TYPE MacroBlock *= OBJECT
 			destOffset, stride: LONGINT );
 		BEGIN
 			IF DT.EnableMMX THEN
-				TransferIDCTCopyMMX( source, SYSTEM.ADR( dest[destOffset] ), stride );
+				TransferIDCTCopyMMX( source, ADDRESSOF( dest[destOffset] ), stride );
 			ELSE
 				TransferIDCTCopyGeneric( source, dest, destOffset, stride );
 			END;
@@ -363,7 +363,7 @@ TYPE MacroBlock *= OBJECT
 		BEGIN
 			stride := stride -  8;
 			s := source;
-			d := SYSTEM.ADR( dest[destOffset] );
+			d := ADDRESSOF( dest[destOffset] );
 
 			IF DT.Debug THEN
 				log.String( "TransferIDCTAdd: " )
@@ -380,8 +380,8 @@ TYPE MacroBlock *= OBJECT
 					ELSE
 						SYSTEM.PUT8( d, sum )
 					END;
-					s := s + SYSTEM.SIZEOF( INTEGER);
-					d := d + SYSTEM.SIZEOF( CHAR );
+					s := s + SIZEOF( INTEGER);
+					d := d + SIZEOF( CHAR );
 
 					IF DT.Debug THEN
 						log.Int( ORD( SYSTEM.VAL(CHAR, SYSTEM.GET8( d-1 ) ) ), 0 ); log.Char( ' ' )
@@ -431,7 +431,7 @@ TYPE MacroBlock *= OBJECT
 		BEGIN
 			stride := stride - 8;
 			s := source;
-			d := SYSTEM.ADR( dest[destOffset] );
+			d := ADDRESSOF( dest[destOffset] );
 
 			IF DT.Debug THEN
 				log.String( "Transferp: " )
@@ -444,8 +444,8 @@ TYPE MacroBlock *= OBJECT
 					ELSIF val <  0 THEN SYSTEM.PUT8( d, 0 )
 					ELSE SYSTEM.PUT8( d, val )
 					END;
-					s := s + SYSTEM.SIZEOF(INTEGER);
-					d := d + SYSTEM.SIZEOF( CHAR );
+					s := s + SIZEOF(INTEGER);
+					d := d + SIZEOF( CHAR );
 
 					IF DT.Debug THEN
 						log.Int( ORD( SYSTEM.VAL(CHAR, SYSTEM.GET8( d -1) ) ), 0 ); log.Char( ' ' )
@@ -1034,8 +1034,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy,d,s : LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 7 DO
 				SYSTEM.MOVE( s, d, 8 );
@@ -1048,8 +1048,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dx, dy, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 7 DO
 				FOR dx := 0 TO 7 DO
@@ -1068,8 +1068,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 7 DO
 				FOR dx := 0 TO 7 DO
@@ -1087,8 +1087,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 7 DO
 				FOR dx := 0 TO 7 DO
@@ -1108,8 +1108,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 7 DO
 				FOR dx := 0 TO 7 DO
@@ -1127,8 +1127,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 7 DO
 				FOR dx := 0 TO 7 DO
@@ -1146,8 +1146,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 7 DO
 				FOR dx := 0 TO 7 DO
@@ -1166,8 +1166,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, s, d: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 15 DO
 				SYSTEM.MOVE( s, d, 16 );
@@ -1180,8 +1180,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, s, d, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 15 DO
 				FOR dx := 0 TO 15 DO
@@ -1199,8 +1199,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, s, d, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 15 DO
 				FOR dx := 0 TO 15 DO
@@ -1218,8 +1218,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, s, d, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 				FOR dy := 0 TO 15 DO
 				FOR dx := 0 TO 15 DO
 				(* Dst[dx] = (Src[dx] + Src[dx+1] + Src[dx+Stride] + Src[dx+Stride+1] +2) >> 2; // horver interpolation with rounding *)
@@ -1237,8 +1237,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 15 DO
 				FOR dx := 0 TO 15 DO
@@ -1256,8 +1256,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[sIndex] );
-			d := SYSTEM.ADR( dst[dIndex] );
+			s := ADDRESSOF( src[sIndex] );
+			d := ADDRESSOF( dst[dIndex] );
 
 			FOR dy := 0 TO 15 DO
 				FOR dx := 0 TO 15 DO
@@ -1275,8 +1275,8 @@ TYPE MotionCompensation = OBJECT
 		VAR
 			dy, dx, d, s, temp: LONGINT;
 		BEGIN
-			s := SYSTEM.ADR( src[0] ) + sIndex;
-			d := SYSTEM.ADR( dst[0] ) + dIndex;
+			s := ADDRESSOF( src[0] ) + sIndex;
+			d := ADDRESSOF( dst[0] ) + dIndex;
 
 			FOR dy := 0 TO 15 DO
 				FOR dx := 0 TO 15 DO
@@ -1369,15 +1369,15 @@ TYPE ColorSpace = OBJECT
 			END;
 
 			pusOut := pucOut.adr;
-			pucYBaseOffset := SYSTEM.ADR( puc[0] )+ pucYBaseOffset;
-			pucUBaseOffset := SYSTEM.ADR ( puc[0] ) + pucUBaseOffset;
-			pucVBaseOffset := SYSTEM.ADR( puc[0] ) + pucVBaseOffset;
+			pucYBaseOffset := ADDRESSOF( puc[0] )+ pucYBaseOffset;
+			pucUBaseOffset := ADDRESSOF ( puc[0] ) + pucUBaseOffset;
+			pucVBaseOffset := ADDRESSOF( puc[0] ) + pucVBaseOffset;
 
 			horizCount := -(widthY DIV 8);
 
 			FOR y := 0 TO heightY-1 DO
 				ScanLine565MMX(horizCount, pucVBaseOffset, pucUBaseOffset, pucYBaseOffset, pusOut,
-					SYSTEM.ADR( mmxConsts.mmwMultY ) );
+					ADDRESSOF( mmxConsts.mmwMultY ) );
 
 					pucYBaseOffset := pucYBaseOffset + strideY;
 					IF ( y MOD 2 ) > 0 THEN
@@ -1520,7 +1520,7 @@ TYPE ColorSpace = OBJECT
 			r, g, b: LONGINT;
 			y, u, v: LONGINT;
 		BEGIN
-			strideDiff := (strideOut - widthY)*SYSTEM.SIZEOF(INTEGER); (* expressed in bytes *)
+			strideDiff := (strideOut - widthY)*SIZEOF(INTEGER); (* expressed in bytes *)
 
 			IF heightY < 0 THEN
 				(* we are flipping our output upside-down *)
@@ -1533,9 +1533,9 @@ TYPE ColorSpace = OBJECT
 			END;
 
 			pusOut := pucOut.adr;
-			pucYBaseOffset := SYSTEM.ADR( puc[0] )+ pucYBaseOffset;
-			pucUBaseOffset := SYSTEM.ADR ( puc[0] ) + pucUBaseOffset;
-			pucVBaseOffset := SYSTEM.ADR( puc[0] ) + pucVBaseOffset;
+			pucYBaseOffset := ADDRESSOF( puc[0] )+ pucYBaseOffset;
+			pucUBaseOffset := ADDRESSOF ( puc[0] ) + pucUBaseOffset;
+			pucVBaseOffset := ADDRESSOF( puc[0] ) + pucVBaseOffset;
 
 
 			FOR yCount := 0 TO heightY - 1 DO
@@ -1554,15 +1554,15 @@ TYPE ColorSpace = OBJECT
 					IF b > 255 THEN b := 255; ELSIF b < 0 THEN b := 0 END;
 
 (*					SYSTEM.PUT16( pusOut, SYSTEM.VAL( INTEGER,
-						( SYSTEM.VAL( SET, SYSTEM.LSH( b, 8 ) ) * SYSTEM.VAL( SET, 0F800H ) ) +
-						( SYSTEM.VAL( SET, SYSTEM.LSH( g, 3 ) ) * SYSTEM.VAL( SET, 07E0H ) ) +
-						( SYSTEM.VAL( SET, SYSTEM.LSH( r, -3 ) ) * SYSTEM.VAL( SET, 001FH ) ) ) );
+						( SYSTEM.VAL( SET, LSH( b, 8 ) ) * SYSTEM.VAL( SET, 0F800H ) ) +
+						( SYSTEM.VAL( SET, LSH( g, 3 ) ) * SYSTEM.VAL( SET, 07E0H ) ) +
+						( SYSTEM.VAL( SET, LSH( r, -3 ) ) * SYSTEM.VAL( SET, 001FH ) ) ) );
 *)
 
 					SYSTEM.PUT16( pusOut,  SYSTEM.VAL( INTEGER, SYSTEM.VAL( SET, r DIV 8 ) + SYSTEM.VAL( SET, ( g DIV 4 ) * 32 ) +
 																SYSTEM.VAL( SET, (b DIV 8 ) * 2048 ) ) );
 
-					pusOut := pusOut + SYSTEM.SIZEOF( INTEGER );
+					pusOut := pusOut + SIZEOF( INTEGER );
 				END;
 
 				pucYBaseOffset := pucYBaseOffset + strideY;
@@ -1597,9 +1597,9 @@ TYPE ColorSpace = OBJECT
 			END;
 
 			pusOut := pucOut.adr;
-			pucYBaseOffset := SYSTEM.ADR( puc[0] )+ pucYBaseOffset;
-			pucUBaseOffset := SYSTEM.ADR ( puc[0] ) + pucUBaseOffset;
-			pucVBaseOffset := SYSTEM.ADR( puc[0] ) + pucVBaseOffset;
+			pucYBaseOffset := ADDRESSOF( puc[0] )+ pucYBaseOffset;
+			pucUBaseOffset := ADDRESSOF ( puc[0] ) + pucUBaseOffset;
+			pucVBaseOffset := ADDRESSOF( puc[0] ) + pucVBaseOffset;
 
 			FOR yCount := 0 TO heightY - 1 DO
 				FOR xCount := 0 TO  widthY - 1 DO
@@ -1905,8 +1905,8 @@ TYPE DivXDecoder* = OBJECT(Codecs.VideoDecoder)
 			pBorderBottom := pBorderBottomRef + edgedWidth;
 
 			FOR j := 1 TO edge DO
-				SYSTEM.MOVE( SYSTEM.ADR( framePic[pBorderTopRef] ), SYSTEM.ADR( framePic[pBorderTop] ), width );
-				SYSTEM.MOVE( SYSTEM.ADR( framePic[pBorderBottomRef] ), SYSTEM.ADR( framePic[pBorderBottom] ), width );
+				SYSTEM.MOVE( ADDRESSOF( framePic[pBorderTopRef] ), ADDRESSOF( framePic[pBorderTop] ), width );
+				SYSTEM.MOVE( ADDRESSOF( framePic[pBorderBottomRef] ), ADDRESSOF( framePic[pBorderBottom] ), width );
 
 				pBorderTop := pBorderTop + edgedWidth;
 				pBorderBottom := pBorderBottom + edgedWidth

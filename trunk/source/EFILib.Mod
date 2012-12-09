@@ -71,7 +71,7 @@ VAR
 	memsize : HUGEINT;
 	tmp : EFI.PhysicalAddress;
 BEGIN
-	MemMapSize := LEN(MemMap)*SYSTEM.SIZEOF(EFI.MemoryDescriptor);
+	MemMapSize := LEN(MemMap)*SIZEOF(EFI.MemoryDescriptor);
 	status := EFI.table.BS.GetMemoryMap(MemMapSize, MemMap, MapKey, DescriptorSize, DescriptorVersion);
 	IF status = EFI.ErrBufferTooSmall THEN
 		(* we cant resize. We are doomed!*)
@@ -90,20 +90,20 @@ BEGIN
 	END;
 	TRACE(status);
 	numcritEntries := 0;
-	MemMapSize := LEN(MemMap)*SYSTEM.SIZEOF(EFI.MemoryDescriptor);
+	MemMapSize := LEN(MemMap)*SIZEOF(EFI.MemoryDescriptor);
 	status := EFI.table.BS.GetMemoryMap(MemMapSize, MemMap, MapKey, DescriptorSize, DescriptorVersion);
 	IF status = EFI.ErrBufferTooSmall THEN
 		(* we cant resize. We are doomed!*)
 		RETURN status;
 	END;
 
-	numEntries := MemMapSize DIV DescriptorSize; (*DIV SYSTEM.SIZEOF(EFI.MemoryDescriptor); *)
+	numEntries := MemMapSize DIV DescriptorSize; (*DIV SIZEOF(EFI.MemoryDescriptor); *)
 
 
 	tmp := 0H;
 	memsize := 0;
 	FOR i := 0 TO numEntries-1 DO
-		MemMapElement := SYSTEM.VAL(EFI.MemoryDescriptorPointer, SYSTEM.ADR(MemMap[0])+i*DescriptorSize);
+		MemMapElement := SYSTEM.VAL(EFI.MemoryDescriptorPointer, ADDRESSOF(MemMap[0])+i*DescriptorSize);
 (*		IF (MemMapElement.Type #  EFI.MTConventionalMemory *)
 		IF ( (MemMapElement.Type = EFI.MTRuntimeServicesCode) OR ( MemMapElement.Type = EFI.MTRuntimeServicesData)
 			OR (MemMapElement.Type = EFI.MTUnusableMemory) OR (MemMapElement.Type = EFI.MTACPIReclaimMemory)
@@ -166,20 +166,20 @@ VAR
 	MemMapElement : EFI.MemoryDescriptorPointer;
 	i, numEntries : EFI.Int;
 BEGIN
-	MemMapSize := LEN(MemMap)*SYSTEM.SIZEOF(EFI.MemoryDescriptor);
+	MemMapSize := LEN(MemMap)*SIZEOF(EFI.MemoryDescriptor);
 	status := EFI.table.BS.GetMemoryMap(MemMapSize, MemMap, MapKey, DescriptorSize, DescriptorVersion);
 	IF status = EFI.ErrBufferTooSmall THEN
 		(* we cant resize. We are doomed!*)
 		RETURN status;
 	END;
 
-	numEntries := MemMapSize DIV DescriptorSize; (*DIV SYSTEM.SIZEOF(EFI.MemoryDescriptor); *)
+	numEntries := MemMapSize DIV DescriptorSize; (*DIV SIZEOF(EFI.MemoryDescriptor); *)
 	memsize := 0;
 
 	Trace.Ln();
 	Trace.Address(MemMapSize);
 	Trace.Ln();
-	Trace.Address(SYSTEM.SIZEOF(EFI.MemoryDescriptor));
+	Trace.Address(SIZEOF(EFI.MemoryDescriptor));
 	Trace.Ln();
 	Trace.Address(36);
 	Trace.Ln();
@@ -189,7 +189,7 @@ BEGIN
 	Trace.Ln();
 	Trace.Ln();
 	FOR i := 0 TO numEntries-1 DO
-		MemMapElement := SYSTEM.VAL(EFI.MemoryDescriptorPointer, SYSTEM.ADR(MemMap[0])+i*DescriptorSize);
+		MemMapElement := SYSTEM.VAL(EFI.MemoryDescriptorPointer, ADDRESSOF(MemMap[0])+i*DescriptorSize);
 	(*
 			MTLoaderCode* = 1;
 	MTLoaderData* = 2;
@@ -218,7 +218,7 @@ BEGIN
 	Trace.Ln();
 	Trace.Hex(memsize,8);
 	Trace.Ln();
-(*	memsize := SYSTEM.GET32(SYSTEM.ADR(memsize)+4); (* BUG! where ? *)*)
+(*	memsize := SYSTEM.GET32(ADDRESSOF(memsize)+4); (* BUG! where ? *)*)
 
 	RETURN EFI.Success;
 END GetMemorySize;
@@ -233,7 +233,7 @@ VAR
 	status : EFI.Status;
 	MemMap : ARRAY approxMemMapSize OF EFI.MemoryDescriptor;
 BEGIN
-	MemMapSize := LEN(MemMap)*SYSTEM.SIZEOF(EFI.MemoryDescriptor);
+	MemMapSize := LEN(MemMap)*SIZEOF(EFI.MemoryDescriptor);
 	REPEAT
 		status := EFI.table.BS.GetMemoryMap(MemMapSize, MemMap, MapKey, DescriptorSize, DescriptorVersion);
 		IF status = EFI.ErrBufferTooSmall THEN
@@ -450,10 +450,10 @@ VAR
 	handleBufSize, i : EFI.Int;
 	status : EFI.Status;
 BEGIN
-	handleBufSize := LEN(handleBuf) * SYSTEM.SIZEOF(EFI.Handle);
+	handleBufSize := LEN(handleBuf) * SIZEOF(EFI.Handle);
 	status := EFI.table.BS.LocateHandle(EFI.ByProtocol, guid, 0, handleBufSize, handleBuf);
 	IF (status = EFI.Success) & (handleBufSize > 0) THEN
-		i := handleBufSize DIV SYSTEM.SIZEOF(EFI.Handle);
+		i := handleBufSize DIV SIZEOF(EFI.Handle);
 		WHILE(i>0) DO
 			DEC(i);
 			handle := handleBuf[i];
@@ -472,7 +472,7 @@ VAR
 	infoBufSize : EFI.Int;
 	fileSize : EFI.Int64;
 BEGIN
-	infoBufSize := SYSTEM.SIZEOF(EFIFileProtocol.FileInfo);
+	infoBufSize := SIZEOF(EFIFileProtocol.FileInfo);
 	status := file.GetInfo(file, EFIFileProtocol.FileInfoGUID, infoBufSize, infoBuf);
 	IF (status = EFI.Success) THEN
 		fileSize := infoBuf.FileSize;
@@ -491,13 +491,13 @@ VAR
 	iter : LONGINT;
 BEGIN
 	(* get all devices (or device drivers, handlers or what ever) that support the EFISimpleFS *)
-	handleBufSize := LEN(handleBuf) * SYSTEM.SIZEOF(EFI.Handle);
+	handleBufSize := LEN(handleBuf) * SIZEOF(EFI.Handle);
 	status := EFI.table.BS.LocateHandle(EFI.ByProtocol, EFISimpleFS.GUID, 0, handleBufSize, handleBuf);
 	IF (status = EFI.Success) & (handleBufSize > 0) THEN
 		done := FALSE;
 		iter := 0;
 		(* look for the file on each device *)
-		WHILE (iter < handleBufSize DIV SYSTEM.SIZEOF(EFI.Handle)) & (~done) DO
+		WHILE (iter < handleBufSize DIV SIZEOF(EFI.Handle)) & (~done) DO
 			file := OpenFileOnDevice(fn, handleBuf[iter]);
 			IF (file # NIL) THEN
 				done := TRUE;
@@ -537,7 +537,7 @@ BEGIN
 END OpenFileOnDevice;
 
 (* allocate memory and copy the content of the file to memory. If loadAddr = -1 an arbitrary memory page will be allocated *)
-PROCEDURE LoadFile*(file : EFIFileProtocol.Protocol; VAR loadAddr : SYSTEM.ADDRESS) : EFI.Status;
+PROCEDURE LoadFile*(file : EFIFileProtocol.Protocol; VAR loadAddr : ADDRESS) : EFI.Status;
 VAR
 	status : EFI.Status;
 	fileSize : EFI.Int64;
@@ -552,7 +552,7 @@ BEGIN
 	status := AllocateMemory(addr, numPages);
 	(* now addr contains the base address of the allocated pages *)
 	IF status = EFI.Success THEN
-		loadAddr := SYSTEM.VAL(SYSTEM.ADDRESS, addr);
+		loadAddr := SYSTEM.VAL(ADDRESS, addr);
 		memSize := SYSTEM.VAL(EFI.Int, fileSize);
 		status := file.Read(file, memSize, loadAddr);
 	END;

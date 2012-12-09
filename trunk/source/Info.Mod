@@ -6,7 +6,7 @@ IMPORT
 	SYSTEM, Machine, Heaps, Objects, Streams, Reflection, Modules, Commands, Options, Strings, D := Debugging;
 
 CONST
-	AddressSize = SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	AddressSize = SIZEOF(ADDRESS);
 
 	RecordBlock = 1;
 	ProtRecBlock = 2;
@@ -25,11 +25,11 @@ CONST
 TYPE
 
 	Type = RECORD
-		ptag : SYSTEM.ADDRESS;
+		ptag : ADDRESS;
 		count : LONGINT;
-		size : SYSTEM.SIZE;
+		size : SIZE;
 		type : SHORTINT;
-		pc: SYSTEM.ADDRESS;
+		pc: ADDRESS;
 	END;
 
 	Analyzer = OBJECT
@@ -39,7 +39,7 @@ TYPE
 
 		(* global statistics *)
 		nofHeapBlocks, nofFreeBlocks, nofSystemBlocks, nofRecordBlocks, nofProtRecBlocks, nofArrayBlocks: LONGINT;
-		sizeHeapBlocks, sizeFreeBlocks, sizeSystemBlocks, sizeRecordBlocks, sizeProtRecBlocks, sizeArrayBlocks: SYSTEM.SIZE;
+		sizeHeapBlocks, sizeFreeBlocks, sizeSystemBlocks, sizeRecordBlocks, sizeProtRecBlocks, sizeArrayBlocks: SIZE;
 
 		PROCEDURE &Init(size : LONGINT);
 		BEGIN
@@ -112,7 +112,7 @@ TYPE
 		VAR type: SHORTINT;
 
 			PROCEDURE AddByPC(type: SHORTINT);
-			VAR pc: SYSTEM.ADDRESS; i: LONGINT;
+			VAR pc: ADDRESS; i: LONGINT;
 			BEGIN
 				SYSTEM.GET(block.dataAdr + Heaps.HeapBlockOffset, pc);
 				SYSTEM.GET(pc + Heaps.HeapBlockOffset, pc);
@@ -133,7 +133,7 @@ TYPE
 			END AddByPC;
 
 			PROCEDURE AddByType(type: SHORTINT);
-			VAR tag: SYSTEM.ADDRESS; i: LONGINT;
+			VAR tag: ADDRESS; i: LONGINT;
 			BEGIN
 				SYSTEM.GET(block.dataAdr + Heaps.TypeDescOffset, tag);
 				i := 0; WHILE (i < LEN(types)) & (i < nofElements) & (types[i].ptag # tag) DO INC(i) END;
@@ -184,8 +184,8 @@ TYPE
 		PROCEDURE ShowBlocks(CONST mask : ARRAY OF CHAR; out : Streams.Writer);
 		VAR
 			module : Modules.Module; typedesc : Modules.TypeDesc;
-			size, totalSize: SYSTEM.SIZE;
-			startpc: SYSTEM.ADDRESS;
+			size, totalSize: SIZE;
+			startpc: ADDRESS;
 			i, selected, total : LONGINT;
 			string : ARRAY 256 OF CHAR; copy: ARRAY 256 OF CHAR;
 		BEGIN
@@ -258,7 +258,7 @@ TYPE
 		PROCEDURE Show(out : Streams.Writer; CONST mask : ARRAY OF CHAR; sortMode : LONGINT; byPC: BOOLEAN);
 		VAR nofUsedBlocks, sizeUsedBlocks : LONGINT;
 
-			PROCEDURE ShowBlock(CONST name : ARRAY OF CHAR; nofBlocks: LONGINT; size: SYSTEM.SIZE; totalNofBlocks: LONGINT; totalSize : SYSTEM.SIZE; out : Streams.Writer);
+			PROCEDURE ShowBlock(CONST name : ARRAY OF CHAR; nofBlocks: LONGINT; size: SIZE; totalNofBlocks: LONGINT; totalSize : SIZE; out : Streams.Writer);
 			BEGIN
 				out.Int(nofBlocks, 8); out.Char(" "); ShowPercent(nofBlocks, totalNofBlocks, out); out.Char(" ");
 				out.String(name);
@@ -266,7 +266,7 @@ TYPE
 				out.Ln;
 			END ShowBlock;
 
-			PROCEDURE ShowPercent(cur, max : SYSTEM.SIZE; out : Streams.Writer);
+			PROCEDURE ShowPercent(cur, max : SIZE; out : Streams.Writer);
 			VAR percent : LONGINT;
 			BEGIN
 				IF (max > 0) THEN
@@ -308,9 +308,9 @@ TYPE
 	END Analyzer;
 
 VAR
-	currentMarkValueAddress : SYSTEM.ADDRESS;
+	currentMarkValueAddress : ADDRESS;
 
-PROCEDURE WriteB(b : SYSTEM.SIZE; out : Streams.Writer);
+PROCEDURE WriteB(b : SIZE; out : Streams.Writer);
 VAR shift : LONGINT; suffix : ARRAY 2 OF CHAR;
 BEGIN
 	IF b < 100*1024 THEN suffix := ""; shift := 0
@@ -333,8 +333,8 @@ END WriteB;
 PROCEDURE ModuleDetails*(context : Commands.Context); (** [Options] module ~ *)
 VAR
 	m : Modules.Module; i, j, k: LONGINT;
-	p, procAdr: SYSTEM.ADDRESS;
-	adr : SYSTEM.ADDRESS;
+	p, procAdr: ADDRESS;
+	adr : ADDRESS;
 	modn : ARRAY 33 OF CHAR;
 	options : Options.Options;
 BEGIN
@@ -394,7 +394,7 @@ BEGIN
 				UNTIL k < -40000000H;
 					(* methods *)
 				context.out.Ln; context.out.String("  typedescmths:");
-				p := SYSTEM.VAL(SYSTEM.ADDRESS, m.typeInfo[i].tag) + Modules.Mth0Ofs;
+				p := SYSTEM.VAL(ADDRESS, m.typeInfo[i].tag) + Modules.Mth0Ofs;
 				j := 0;
 				SYSTEM.GET(p, procAdr);
 				WHILE procAdr # Heaps.MethodEndMarker DO
@@ -430,7 +430,7 @@ VAR
 	analyzer : Analyzer;
 	memBlock {UNTRACED}: Machine.MemoryBlock;
 	heapBlock : Heaps.HeapBlock;
-	p : SYSTEM.ADDRESS;
+	p : ADDRESS;
 	mask : ARRAY 128 OF CHAR;
 BEGIN
 	NEW(options);
@@ -489,7 +489,7 @@ END TraceModule;
 PROCEDURE TraceReference*(context : Commands.Context); (** ModuleName.VariableName mask ~ *)
 VAR
 	options : Options.Options; sortMode : LONGINT;
-	analyzer : Analyzer; address : SYSTEM.ADDRESS;
+	analyzer : Analyzer; address : ADDRESS;
 	module : Modules.Module; variable : Reflection.Variable;
 	mask, modVar : ARRAY 256 OF CHAR; array : Strings.StringArray;
 	varName : ARRAY 64 OF CHAR;
@@ -581,7 +581,7 @@ PROCEDURE FindProcessByID(id : LONGINT) : Objects.Process;
 VAR
 	memBlock {UNTRACED}: Machine.MemoryBlock;
 	heapBlock {UNTRACED}: Heaps.HeapBlock;
-	blockAdr, tag : SYSTEM.ADDRESS;
+	blockAdr, tag : ADDRESS;
 	process : Objects.Process;
 	i : LONGINT;
 BEGIN
@@ -614,7 +614,7 @@ VAR
 	memBlock {UNTRACED}: Machine.MemoryBlock;
 	heapBlock : Heaps.HeapBlock;
 	currentMarkValue : LONGINT;
-	blockAdr : SYSTEM.ADDRESS;
+	blockAdr : ADDRESS;
 	mark : LONGINT;
 BEGIN
 	ASSERT(analyzer # NIL);
@@ -686,8 +686,8 @@ BEGIN
 	SetCurrentMarkValue(GetCurrentMarkValue() + 1);
 END IncrementCurrentMarkValue;
 
-PROCEDURE GetCurrentMarkValueAddress() : SYSTEM.ADDRESS;
-VAR address : SYSTEM.ADDRESS; module : Modules.Module; variable : Reflection.Variable;
+PROCEDURE GetCurrentMarkValueAddress() : ADDRESS;
+VAR address : ADDRESS; module : Modules.Module; variable : Reflection.Variable;
 BEGIN
 	address := Heaps.NilVal;
 	module := Modules.ModuleByName("Heaps");

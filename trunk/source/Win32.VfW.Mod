@@ -82,13 +82,13 @@ TYPE
 	HWND* = Kernel32.HANDLE;
 
 	VHdr* = RECORD
-		lpData* : SYSTEM.ADDRESS;
+		lpData* : ADDRESS;
 		dwBufferLength*,
 		dwBytesUsed*,
 		dwTimeCaptured*,
 		dwUser*,
 		dwFlags* : LONGINT;
-		dwReserved* : ARRAY 4 OF SYSTEM.ADDRESS;
+		dwReserved* : ARRAY 4 OF ADDRESS;
 	END;
 
 	Capturerec* = RECORD
@@ -133,7 +133,7 @@ VAR
 	PeekMessage-: PROCEDURE {WINAPI} (VAR lpMsg: User32.Msg; hWnd: HWND; wMsgFilterMin, wMsgFilterMax, wRemoveMsg: LONGINT): LONGINT;
 
 
-PROCEDURE GetProcAddress(hModule: LONGINT; VAR adr: LONGINT; CONST procName: ARRAY OF CHAR);
+PROCEDURE GetProcAddress(hModule: ADDRESS; VAR adr: ADDRESS; CONST procName: ARRAY OF CHAR);
 BEGIN
 	Kernel32.GetProcAddress(hModule, procName, adr);
 END GetProcAddress;
@@ -147,13 +147,13 @@ BEGIN
 	IF mod = 0 THEN
 		KernelLog.String("Failed to load AVICAP32.DLL"); KernelLog.Ln;
 	END;
-	GetProcAddress(mod, SYSTEM.VAL(LONGINT, CapCreateCaptureWindow ), "capCreateCaptureWindowA");
-	GetProcAddress(mod, SYSTEM.VAL(LONGINT, CapGetDriverDescription ), "capGetDriverDescriptionA");
+	GetProcAddress(mod, SYSTEM.VAL(ADDRESS, CapCreateCaptureWindow ), "capCreateCaptureWindowA");
+	GetProcAddress(mod, SYSTEM.VAL(ADDRESS, CapGetDriverDescription ), "capGetDriverDescriptionA");
 
 
 	str := "USER32.DLL";
 	mod := Kernel32.LoadLibrary(str);
-	GetProcAddress(mod, SYSTEM.VAL(LONGINT, PeekMessage ), "PeekMessageA")
+	GetProcAddress(mod, SYSTEM.VAL(ADDRESS, PeekMessage ), "PeekMessageA")
 END Init;
 
 PROCEDURE CapDriverConnect*(hwnd : HWND; index : LONGINT) : BOOLEAN;
@@ -194,28 +194,28 @@ END CapSetCallbackYield;
 PROCEDURE CapGetVideoFormat*(hwnd : HWND; VAR format : GDI32.BitmapInfoHeader) : BOOLEAN;
 VAR result : User32.LResult;
 BEGIN
-	result := User32.SendMessage(hwnd, WM_CAP_GET_VIDEOFORMAT, 40, SYSTEM.ADR(format));
+	result := User32.SendMessage(hwnd, WM_CAP_GET_VIDEOFORMAT, 40, ADDRESSOF(format));
 	RETURN result # 0
 END CapGetVideoFormat;
 
 PROCEDURE CapSetVideoFormat*(hwnd : HWND; VAR format : GDI32.BitmapInfoHeader) : BOOLEAN;
 VAR result : User32.LResult;
 BEGIN
-	result := User32.SendMessage(hwnd, WM_CAP_SET_VIDEOFORMAT, 40, SYSTEM.ADR(format));
+	result := User32.SendMessage(hwnd, WM_CAP_SET_VIDEOFORMAT, 40, ADDRESSOF(format));
 	RETURN result # 0
 END CapSetVideoFormat;
 
 PROCEDURE CapGetSequenceSetup*(hwnd : HWND; VAR format : Capturerec) : BOOLEAN;
 VAR result : User32.LResult;
 BEGIN
-	result := User32.SendMessage(hwnd, WM_CAP_GET_SEQUENCE_SETUP, 96, SYSTEM.ADR(format));
+	result := User32.SendMessage(hwnd, WM_CAP_GET_SEQUENCE_SETUP, 96, ADDRESSOF(format));
 	RETURN result # 0
 END CapGetSequenceSetup;
 
 PROCEDURE CapSetSequenceSetup*(hwnd : HWND; VAR format : Capturerec) : BOOLEAN;
 VAR result : User32.LResult;
 BEGIN
-	result := User32.SendMessage(hwnd, WM_CAP_SET_SEQUENCE_SETUP, 96, SYSTEM.ADR(format));
+	result := User32.SendMessage(hwnd, WM_CAP_SET_SEQUENCE_SETUP, 96, ADDRESSOF(format));
 	RETURN result # 0
 END CapSetSequenceSetup;
 

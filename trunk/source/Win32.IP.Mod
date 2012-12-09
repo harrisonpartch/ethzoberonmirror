@@ -309,7 +309,7 @@ BEGIN
 			RETURN NilAdr;
 		END;
 
-		SYSTEM.MOVE(SYSTEM.ADR(array[ofs]), SYSTEM.ADR(adr.ipv4Adr), 4);
+		SYSTEM.MOVE(ADDRESSOF(array[ofs]), ADDRESSOF(adr.ipv4Adr), 4);
 		IF LSBfirst THEN
 			SwapEndian(adr.ipv4Adr);
 		END;
@@ -320,12 +320,12 @@ BEGIN
 			RETURN NilAdr;
 		END;
 
-		SYSTEM.MOVE(SYSTEM.ADR(array[ofs]), SYSTEM.ADR(adr.ipv6Adr), 16);
+		SYSTEM.MOVE(ADDRESSOF(array[ofs]), ADDRESSOF(adr.ipv6Adr), 16);
 		IF LSBfirst THEN
 			FOR i := 0 TO 3 DO
-				SYSTEM.MOVE(SYSTEM.ADR(adr.ipv6Adr[i*4]), SYSTEM.ADR(swapTemp), 4);
+				SYSTEM.MOVE(ADDRESSOF(adr.ipv6Adr[i*4]), ADDRESSOF(swapTemp), 4);
 				SwapEndian(swapTemp);
-				SYSTEM.MOVE(SYSTEM.ADR(swapTemp), SYSTEM.ADR(adr.ipv6Adr[i*4]), 4);
+				SYSTEM.MOVE(ADDRESSOF(swapTemp), ADDRESSOF(adr.ipv6Adr[i*4]), 4);
 			END;
 		END;
 		adr.usedProtocol := IPv6;
@@ -361,7 +361,7 @@ BEGIN
 			IF LSBfirst THEN
 				SwapEndian(tempAdr.ipv4Adr);
 			END;
-			SYSTEM.MOVE(SYSTEM.ADR(tempAdr.ipv4Adr), SYSTEM.ADR(array[ofs]), 4);
+			SYSTEM.MOVE(ADDRESSOF(tempAdr.ipv4Adr), ADDRESSOF(array[ofs]), 4);
 
 		| IPv6:
 			IF ~(ofs + 16 <= LEN(array)) THEN
@@ -370,12 +370,12 @@ BEGIN
 
 			IF LSBfirst THEN
 				FOR i := 0 TO 3 DO
-					SYSTEM.MOVE(SYSTEM.ADR(tempAdr.ipv6Adr[i*4]), SYSTEM.ADR(swapTemp), 4);
+					SYSTEM.MOVE(ADDRESSOF(tempAdr.ipv6Adr[i*4]), ADDRESSOF(swapTemp), 4);
 					SwapEndian(swapTemp);
-					SYSTEM.MOVE(SYSTEM.ADR(swapTemp), SYSTEM.ADR(tempAdr.ipv6Adr[i*4]), 4);
+					SYSTEM.MOVE(ADDRESSOF(swapTemp), ADDRESSOF(tempAdr.ipv6Adr[i*4]), 4);
 				END;
 			END;
-			SYSTEM.MOVE(SYSTEM.ADR(adr.ipv6Adr), SYSTEM.ADR(array[ofs]), 16);
+			SYSTEM.MOVE(ADDRESSOF(adr.ipv6Adr), ADDRESSOF(array[ofs]), 16);
 	ELSE
 	END;
 END AdrToArray;
@@ -411,7 +411,7 @@ BEGIN
 		res := WSock32.getaddrinfo(name, NIL, hint, ai);
 		IF (res = 0) & (ai # NIL) THEN
 			KernelLog.String("=");
-			IF (ai.aiFamily = WSock32.AFINet) & (ai.aiAddrlen = SYSTEM.SIZEOF(WSock32.sockaddrIn)) & (ai.aiAddr.sinFamily = WSock32.AFINet) THEN
+			IF (ai.aiFamily = WSock32.AFINet) & (ai.aiAddrlen = SIZEOF(WSock32.sockaddrIn)) & (ai.aiAddr.sinFamily = WSock32.AFINet) THEN
 				NEW(default);
 				default.localAdr.usedProtocol := IPv4;
 				default.localAdr.ipv4Adr :=  ai.aiAddr.sinAddr; (* WSock32.ntohl(ai.aiAddr.sinAddr);*)

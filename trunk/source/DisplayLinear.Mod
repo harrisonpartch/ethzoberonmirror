@@ -50,7 +50,7 @@ BEGIN
 END InitPalette;
 
 PROCEDURE Init;
-VAR w, h, f, mem, res: LONGINT; ts : ARRAY 16 OF CHAR; padr, vadr: SYSTEM.ADDRESS;
+VAR w, h, f, mem, res: LONGINT; ts : ARRAY 16 OF CHAR; padr, vadr: ADDRESS;
 BEGIN
 	w := GetVal("DWidth", 1024); h := GetVal("DHeight", 768);
 	CASE GetVal("DDepth", 16) DIV 8 OF

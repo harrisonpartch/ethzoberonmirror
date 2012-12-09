@@ -15,7 +15,7 @@ CONST
 	PTEs = RS DIV PS;	(* number of page table/directory entries *)
 
 VAR
-	kernelPD: SYSTEM.ADDRESS;
+	kernelPD: ADDRESS;
 	msrlow, msrhigh: SET;
 
 PROCEDURE GetCR3(VAR state: Machine.State);
@@ -56,7 +56,7 @@ BEGIN
 	KernelLog.String(" Virtual  Physical Size");  KernelLog.Ln;
 	virt := 0;  virt0 := 0;  phys0 := 0;  size := 0;
 	FOR i := 0 TO PTEs-1 DO
-		SYSTEM.GET(kernelPD + SYSTEM.SIZEOF(SYSTEM.ADDRESS)*i, pt);
+		SYSTEM.GET(kernelPD + SIZEOF(ADDRESS)*i, pt);
 		IF ODD(pt) THEN	(* present *)
 			pt := pt - pt MOD PS;
 			FOR j := 0 TO PTEs-1 DO
@@ -147,7 +147,7 @@ BEGIN
 					ReadMSR(200H+2*i, low, high);  Write64(" base", low, high);
 					ReadMSR(200H+2*i+1, low, high);  Write64(", mask", low, high);
 					IF 11 IN low THEN	(* valid *)
-						mask := SYSTEM.LSH(low, -12);
+						mask := LSH(low, -12);
 						FOR j := 0 TO 3 DO
 							IF j IN high THEN INCL(mask, 20+j) END
 						END;

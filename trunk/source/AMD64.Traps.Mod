@@ -13,7 +13,7 @@ CONST
 
 TYPE
 	Variable* = RECORD	(** variable descriptor *)
-		adr-: SYSTEM.ADDRESS;
+		adr-: ADDRESS;
 		type-, size-, n-, tdadr-: LONGINT
 	END;
 
@@ -92,7 +92,7 @@ VAR
 				w.Ln;
 				(* output values *)
 				Val("CS:", int.CS); Val("CR0", exc.CR[0]);
-				Val("FPU", SYSTEM.VAL(LONGINT, exc.FPU[1] * {0..15} + SYSTEM.LSH(exc.FPU[2], 16))); w.Ln;
+				Val("FPU", SYSTEM.VAL(LONGINT, exc.FPU[1] * {0..15} + LSH(exc.FPU[2], 16))); w.Ln;
 				Val("PC", int.PC); Val("RSI", int.RSI); Val("RDI", int.RDI); Val("SP", exc.SP); Val("CR2", exc.CR[2]);
 				Val("PID", id); w.Ln;
 				Val("RAX", int.RAX); Val("RBX", int.RBX); Val("RCX", int.RCX); Val("RDX", int.RDX); Val("CR3", exc.CR[3]);
@@ -112,8 +112,8 @@ VAR
 			END;
 			w.String("Process:"); Reflection.WriteProcess(w, p); w.Ln;
 			(*IF exc.halt = 1301 THEN	(* lock timeout - see Machine *)
-				KernelLog.Memory(SYSTEM.ADR(Machine.trapState[0]), LEN(Machine.trapState) *
-					(SYSTEM.ADR(Machine.trapState[1]) - SYSTEM.ADR(Machine.trapState[0])));
+				KernelLog.Memory(ADDRESSOF(Machine.trapState[0]), LEN(Machine.trapState) *
+					(ADDRESSOF(Machine.trapState[1]) - ADDRESSOF(Machine.trapState[0])));
 				w.Hex(SYSTEM.VAL(LONGINT, Machine.trapLocksBusy), 8); w.Ln
 			END;
 			IF (int.INT = Machine.PF) & (ABS(int.PC-exc.CR[2]) < 100H) THEN	(* PF close to PC *)
@@ -150,7 +150,7 @@ VAR
 	(**  Handles an exception. Interrupts are on during this procedure. *)
 	PROCEDURE HandleException(VAR int: Machine.State; VAR exc: Machine.ExceptionState; VAR handled: BOOLEAN);
 	VAR
-		bp, sp, pc, handler: SYSTEM.ADDRESS;
+		bp, sp, pc, handler: ADDRESS;
 	BEGIN
 		bp := int.BP; sp := int.SP; pc := int.PC;
 		handler := Modules.GetExceptionHandler(pc);
@@ -175,9 +175,9 @@ VAR
 		END
 	END HandleException;
 
-	PROCEDURE SetTrapVariable(pc, fp: SYSTEM.ADDRESS);
+	PROCEDURE SetTrapVariable(pc, fp: ADDRESS);
 	VAR
-		varadr: SYSTEM.ADDRESS;
+		varadr: ADDRESS;
 	BEGIN
 		varadr := Reflection.GetVariableAdr(pc, fp, "trap");
 		IF varadr # -1 THEN
@@ -188,7 +188,7 @@ VAR
 	(* Unbreakable stack trace back with regard to every FINALLY on the way *)
 	PROCEDURE Unbreakable(p: Objects.Process; VAR int: Machine.State; VAR exc: Machine.ExceptionState; VAR handled: BOOLEAN);
 	VAR
-		bp, bpSave, pc, handler, bpBottom:SYSTEM.ADDRESS;
+		bp, bpSave, pc, handler, bpBottom:ADDRESS;
 		hasFinally : BOOLEAN;
 	BEGIN
 		bp := int.BP;
@@ -215,7 +215,7 @@ VAR
 			END;
 
 			(* Get the return pc *)
-			SYSTEM.GET(bp + SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+			SYSTEM.GET(bp + SIZEOF(ADDRESS), pc);
 
 			handler := Modules.GetExceptionHandler(pc);
 
@@ -231,7 +231,7 @@ VAR
 			IF (handler # -1) & (bp # 0)  THEN (* If Objects.Terminate has a FINALLY this doesn't work !!! *)
 				IF hasFinally THEN
 					(* Connect Finally to Finally *)
-					SYSTEM.PUT(bpSave + SYSTEM.SIZEOF(SYSTEM.ADDRESS), handler); (* Adapt the return pc *)
+					SYSTEM.PUT(bpSave + SIZEOF(ADDRESS), handler); (* Adapt the return pc *)
 					SYSTEM.PUT(bpSave, bp); (* Adapt the dynamic link *)
 					bpSave := bp;
 				ELSE
@@ -246,12 +246,12 @@ VAR
 
 		(* Now bp =  0, bottom of the stack, so link the last known return PC to the Termination *)
 		IF ~hasFinally THEN
-			SYSTEM.GET(bpBottom + SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc); (* PC of the Terminate *)
+			SYSTEM.GET(bpBottom + SIZEOF(ADDRESS), pc); (* PC of the Terminate *)
 			int.PC := pc;
 			int.BP := bpBottom;
 		ELSIF bpSave # bpBottom THEN
-			SYSTEM.GET(bpBottom + SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc); (* PC of the Terminate *)
-			SYSTEM.PUT(bpSave + SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);
+			SYSTEM.GET(bpBottom + SIZEOF(ADDRESS), pc); (* PC of the Terminate *)
+			SYSTEM.PUT(bpSave + SIZEOF(ADDRESS), pc);
 			SetLastExceptionState(exc)
 		END;
 

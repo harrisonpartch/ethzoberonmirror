@@ -9,7 +9,7 @@ MODULE BootLinkerLoader;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 IMPORT S := SYSTEM, Heaps := BootLinkerHeaps, Modules := BootLinkerModules, Streams, Files, Strings;
 
 CONST	
-	AdrSize = S.SIZEOF( S.ADDRESS );
+	AdrSize = SIZEOF( ADDRESS );
 
 	ObjSuffix = ".Obj";
 
@@ -37,7 +37,7 @@ CONST
 
 
 TYPE
-	Address = S.ADDRESS; Size = S.SIZE;
+	Address = ADDRESS; Size = SIZE;
 
 	ObjHeader = RECORD  (* data in object file header *)
 				entries			: LONGINT;
@@ -59,14 +59,14 @@ TYPE
 	LinkRec = RECORD
 				mod	: LONGINT;
 				entry	: LONGINT;
-				link		: S.SIZE;
+				link		: SIZE;
 			END;
 
 	DataLinkRec = RECORD
 				mod	: LONGINT;
 				entry	: LONGINT;
 				fixups	: LONGINT;
-				ofs		: POINTER TO ARRAY OF S.SIZE;
+				ofs		: POINTER TO ARRAY OF SIZE;
 			END;
 
 	TypeRec = RECORD
@@ -218,37 +218,37 @@ VAR
 			S.PUT( a - AdrSize, tag );   (* indirect tag *) 
 			IF a # adr0 THEN  Heaps.Relocate( a - AdrSize )  END;
 			S.PUT( a + LenOfs, elements );   (* dimension *)
-			ptr := S.VAL( ANY, a );  Heaps.Relocate( S.ADR( ptr ) );
+			ptr := S.VAL( ANY, a );  Heaps.Relocate( ADDRESSOF( ptr ) );
 		END SubObjArray;
 
 	BEGIN
 		dataSize := h.dataSize + (-h.dataSize) MOD 8;   (* round up to 8 to align constant block *)
 
 		size :=	ArrSize( h.entries, AdrSize ) +
-				ArrSize( h.commands, S.SIZEOF( Modules.Command ) ) +
+				ArrSize( h.commands, SIZEOF( Modules.Command ) ) +
 				ArrSize( h.pointers, AdrSize ) +
-				ArrSize( h.modules, S.SIZEOF( Modules.Module ) ) +
+				ArrSize( h.modules, SIZEOF( Modules.Module ) ) +
 				ArrSize( dataSize + h.constSize, 1 ) +
 				ArrSize( h.codeSize, 1 ) +
 				ArrSize( h.staticTdSize, 1 ) +
-				ArrSize( h.exTableLen, S.SIZEOF( Modules.ExceptionTableEntry ) ) +
+				ArrSize( h.exTableLen, SIZEOF( Modules.ExceptionTableEntry ) ) +
 				ArrSize( h.refSize, 1 );
 
 		adr := Heaps.NewSys( size );  S.GET( adr - AdrSize, tag );  adr0 := adr;
 
 		SubObjArray( S.VAL( ANY, m.entry ), h.entries, AdrSize );
-		SubObjArray( S.VAL( ANY, m.command ), h.commands, S.SIZEOF( Modules.Command ) );
+		SubObjArray( S.VAL( ANY, m.command ), h.commands, SIZEOF( Modules.Command ) );
 		SubObjArray( S.VAL( ANY, m.ptrAdr ), h.pointers, AdrSize );
-		Heaps.NewArr( S.VAL( ANY, m.typeInfo ), Modules.ptrElemTag, h.types, 1 );  Heaps.Relocate( S.ADR( m.typeInfo ) );
-		SubObjArray( S.VAL( ANY, m.module ), h.modules, S.SIZEOF( Modules.Module ) );
+		Heaps.NewArr( S.VAL( ANY, m.typeInfo ), Modules.ptrElemTag, h.types, 1 );  Heaps.Relocate( ADDRESSOF( m.typeInfo ) );
+		SubObjArray( S.VAL( ANY, m.module ), h.modules, SIZEOF( Modules.Module ) );
 		SubObjArray( S.VAL( ANY, m.data ), dataSize + h.constSize, 1 );
 		SubObjArray( S.VAL( ANY, m.code ), h.codeSize, 1 );
 		SubObjArray( S.VAL( ANY, m.staticTypeDescs ), h.staticTdSize, 1 );
-		SubObjArray( S.VAL( ANY, m.exTable ), h.exTableLen, S.SIZEOF( Modules.ExceptionTableEntry ) );
+		SubObjArray( S.VAL( ANY, m.exTable ), h.exTableLen, SIZEOF( Modules.ExceptionTableEntry ) );
 		SubObjArray( S.VAL( ANY, m.refs ), h.refSize, 1 );
 
-		m.sb := S.ADR( m.data[0] ) + dataSize;   (* constants positive, data negative *)
-		Heaps.Relocate( S.ADR( m.sb ) );
+		m.sb := ADDRESSOF( m.data[0] ) + dataSize;   (* constants positive, data negative *)
+		Heaps.Relocate( ADDRESSOF( m.sb ) );
 	END AllocateModule;
 
 
@@ -261,10 +261,10 @@ VAR
 		IF tag = 82X THEN	(* entry tag *)
 			FOR i := 0 TO h.entries-1 DO
 				r.RawNum(num);
-				m.entry[i] := num + S.ADR( m.code[0] );
-				Heaps.Relocate( S.ADR( m.entry[i] ) );
+				m.entry[i] := num + ADDRESSOF( m.code[0] );
+				Heaps.Relocate( ADDRESSOF( m.entry[i] ) );
 			END;
-			(*ASSERT((m.entries > 0) & (m.entry[0] = S.ADR(m.code[0])));*)	(* entry[0] is beginning of code (cf. OPL.Init) *)
+			(*ASSERT((m.entries > 0) & (m.entry[0] = ADDRESSOF(m.code[0])));*)	(* entry[0] is beginning of code (cf. OPL.Init) *)
 			RETURN TRUE
 		ELSE
 			RETURN FALSE
@@ -283,7 +283,7 @@ VAR
 				r.RawNum(num);
 				ASSERT(num MOD AdrSize = 0);	(* no deep copy flag *)
 				m.ptrAdr[i] := m.sb + num;
-				Heaps.Relocate( S.ADR( m.ptrAdr[i] ) );
+				Heaps.Relocate( ADDRESSOF( m.ptrAdr[i] ) );
 			END;
 			RETURN TRUE
 		ELSE
@@ -306,7 +306,7 @@ VAR
 				ReadString8( r, name );
 				(* recursively load the imported module *)
 				m.module[i] := Load( name, res, msg );
-				Heaps.Relocate( S.ADR( m.module[i] ) );
+				Heaps.Relocate( ADDRESSOF( m.module[i] ) );
 				INC( i )
 			END
 		ELSE
@@ -406,7 +406,7 @@ VAR
 		r.Char(tag);
 		IF tag = 8BX THEN	(* type tag *)
 			totTdSize := 0;
-			IF h.staticTdSize > 0 THEN  startAddr := S.ADR(m.staticTypeDescs[0])  END;
+			IF h.staticTdSize > 0 THEN  startAddr := ADDRESSOF(m.staticTypeDescs[0])  END;
 			FOR i := 0 TO h.types - 1 DO
 				flags := {};  type[i].init := FALSE;
 				r.RawNum( recSize );
@@ -421,13 +421,13 @@ VAR
 				r.RawString( name );
 				r.RawLInt( tdSize);
 
-				Heaps.NewRec( S.VAL( ANY, m.typeInfo[i] ), Modules.tdTag, S.SIZEOF( Modules.TypeDescRec) );
-				Heaps.Relocate( S.ADR( m.typeInfo[i] ) );
+				Heaps.NewRec( S.VAL( ANY, m.typeInfo[i] ), Modules.tdTag, SIZEOF( Modules.TypeDescRec) );
+				Heaps.Relocate( ADDRESSOF( m.typeInfo[i] ) );
 				Heaps.FillStaticType( tdAdr, startAddr, S.VAL( Address, m.typeInfo[i] ), tdSize, recSize, pointers,
 									 Modules.MaxTags + type[i].methods);
-				m.typeInfo[i].tag := tdAdr;	Heaps.Relocate( S.ADR( m.typeInfo[i].tag ) );
+				m.typeInfo[i].tag := tdAdr;	Heaps.Relocate( ADDRESSOF( m.typeInfo[i].tag ) );
 				m.typeInfo[i].flags := flags;
-				m.typeInfo[i].mod := m;		Heaps.Relocate( S.ADR( m.typeInfo[i].mod ) );
+				m.typeInfo[i].mod := m;		Heaps.Relocate( ADDRESSOF( m.typeInfo[i].mod ) );
 				m.typeInfo[i].name := name;
 
 				base := m.typeInfo[i].tag + Modules.Mth0Ofs;   (* read new methods *)
@@ -444,12 +444,12 @@ VAR
 					r.RawNum( num );  ofs := num;
 					ASSERT( ofs MOD 4 = 0 );   (* no deep copy flag *)
 					sTB.pointerOffsets[j] := ofs;
-					ASSERT( S.ADR( sTB.pointerOffsets[j] ) < startAddr + tdSize )
+					ASSERT( ADDRESSOF( sTB.pointerOffsets[j] ) < startAddr + tdSize )
 				END;
 				
 				ASSERT( m.typeInfo[i].tag # 0 );
-				ASSERT( S.ADR( m.data[0] ) <=  m.sb + type[i].entry, 1001 );
-				ASSERT( m.sb + type[i].entry+4  <= S.ADR( m.data[LEN(m.data)-1])+1, 1002 );
+				ASSERT( ADDRESSOF( m.data[0] ) <=  m.sb + type[i].entry, 1001 );
+				ASSERT( m.sb + type[i].entry+4  <= ADDRESSOF( m.data[LEN(m.data)-1])+1, 1002 );
 				
 				S.PUT( m.sb + type[i].entry, m.typeInfo[i].tag );    (* patch in constant area *)
 				Heaps.Relocate( m.sb + type[i].entry );
@@ -558,16 +558,16 @@ VAR
 				r.RawNum( endOffset );
 				r.RawLInt( nofptrs );   (* fixed size *)
 
-				procTable[i].pcFrom := codeoffset + S.ADR( m.code[0] );
-				procTable[i].pcStatementBegin := beginOffset + S.ADR( m.code[0] );
-				procTable[i].pcStatementEnd := endOffset + S.ADR( m.code[0] );
+				procTable[i].pcFrom := codeoffset + ADDRESSOF( m.code[0] );
+				procTable[i].pcStatementBegin := beginOffset + ADDRESSOF( m.code[0] );
+				procTable[i].pcStatementEnd := endOffset + ADDRESSOF( m.code[0] );
 				procTable[i].noPtr := nofptrs;
 				FOR j := 0 TO nofptrs - 1 DO  r.RawNum( p );  ptrTable[i*m.maxPtrs + j] := p;   END  ;
 			END;
 			SortProcTable();
-			m.firstProc := procTable[0].pcFrom;  Heaps.Relocate( S.ADR( m.firstProc ) );
+			m.firstProc := procTable[0].pcFrom;  Heaps.Relocate( ADDRESSOF( m.firstProc ) );
 			FOR i := 0 TO m.noProcs - 2 DO  procTable[i].pcLimit := procTable[i + 1].pcFrom  END;
-			procTable[m.noProcs - 1].pcLimit := S.ADR( m.code[0] ) + LEN( m.code ) + 1;
+			procTable[m.noProcs - 1].pcLimit := ADDRESSOF( m.code[0] ) + LEN( m.code ) + 1;
 					(* last element ùerved for end of code segment, allow 1 byte extra, cf. Modules.ThisModuleByAdr *)
 			Modules.InsertProcOffsets(procTable, ptrTable, m.maxPtrs);
 			procTable := NIL;  ptrTable := NIL;
@@ -602,12 +602,12 @@ VAR
 					r.RawNum( pcFrom );
 					r.RawNum( pcTo );
 					r.RawNum( pcHandler );
-					m.exTable[i].pcFrom := pcFrom + S.ADR( m.code[0] );
-					Heaps.Relocate( S.ADR( m.exTable[i].pcFrom ) );
-					m.exTable[i].pcTo := pcTo + S.ADR( m.code[0] );
-					Heaps.Relocate( S.ADR( m.exTable[i].pcTo ) );
-					m.exTable[i].pcHandler := pcHandler + S.ADR( m.code[0] );
-					Heaps.Relocate( S.ADR( m.exTable[i].pcHandler ) )
+					m.exTable[i].pcFrom := pcFrom + ADDRESSOF( m.code[0] );
+					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcFrom ) );
+					m.exTable[i].pcTo := pcTo + ADDRESSOF( m.code[0] );
+					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcTo ) );
+					m.exTable[i].pcHandler := pcHandler + ADDRESSOF( m.code[0] );
+					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcHandler ) )
 				ELSE
 					RETURN FALSE
 				END;
@@ -634,11 +634,11 @@ VAR
 
 			IF scope.exports # 0 THEN
 				Heaps.NewArr( S.VAL( ANY, scope.dsc ), Modules.expTag, scope.exports, 1 );
-				Heaps.Relocate( S.ADR( scope.dsc ) );
+				Heaps.Relocate( ADDRESSOF( scope.dsc ) );
 				scope.dsc[0].adr := adr
 			END;
 			IF level = EUrecScope THEN
-				INC( structs );  struct[structs] := S.VAL( Address, S.ADR( scope ) )
+				INC( structs );  struct[structs] := S.VAL( Address, ADDRESSOF( scope ) )
 			END;
 			r.RawNum( fp );
 			WHILE fp # EUEnd DO
@@ -648,7 +648,7 @@ VAR
 						p := S.VAL( Modules.ExportPtr, struct[-off] );
 						scope.dsc[no2].exports := p.exports;
 						scope.dsc[no2].dsc := p.dsc;   (* old type *)
-						Heaps.Relocate( S.ADR( scope.dsc[no2].dsc ) )
+						Heaps.Relocate( ADDRESSOF( scope.dsc[no2].dsc ) )
 					ELSE
 						LoadScope( scope.dsc[no2], EUrecScope, off )
 					END
@@ -747,11 +747,11 @@ VAR
 							END;
 						ELSIF (level = EUobjScope) & (link # 0) THEN
 							IF ~(EUProcFlagBit IN S.VAL( SET, link )) THEN
-								FixupVar( S.ADR( m.code[0] ), link, mod.sb + scope.dsc[i].adr )
+								FixupVar( ADDRESSOF( m.code[0] ), link, mod.sb + scope.dsc[i].adr )
 							ELSE
-								FixupCall( S.ADR( m.code[0] ),
-										    S.VAL( S.SIZE, S.VAL( SET, link ) - {EUProcFlagBit} ),
-										    scope.dsc[i].adr + S.ADR( mod.code[0] ) )
+								FixupCall( ADDRESSOF( m.code[0] ),
+										    S.VAL( SIZE, S.VAL( SET, link ) - {EUProcFlagBit} ),
+										    scope.dsc[i].adr + ADDRESSOF( mod.code[0] ) )
 							END
 						END
 					END
@@ -778,11 +778,11 @@ VAR
 
 	(* FixupGlobals - Fix up references to global variables. *)
 	PROCEDURE FixupGlobals( m: Modules.Module;  CONST dataLink: ARRAY OF DataLinkRec );
-	VAR i: LONGINT; t: S.SIZE;  adr: Address;
+	VAR i: LONGINT; t: SIZE;  adr: Address;
 	BEGIN
 		IF dataLink[0].mod = 0 THEN  (* local module has globals *)
 			FOR i := 0 TO dataLink[0].fixups - 1 DO
-				adr := S.ADR( m.code[0] ) + dataLink[0].ofs[i];
+				adr := ADDRESSOF( m.code[0] ) + dataLink[0].ofs[i];
 				S.GET( adr, t );  S.PUT( adr, t + m.sb );  Heaps.Relocate( adr )
 			END
 		END
@@ -794,15 +794,15 @@ VAR
 	VAR i: LONGINT;
 	BEGIN
 		FOR i := 0 TO h.commands - 1 DO
-			m.command[i].entryAdr := m.command[i].entryAdr + S.ADR( m.code[0] );
-			Heaps.Relocate( S.ADR( m.command[i].entryAdr ) );
+			m.command[i].entryAdr := m.command[i].entryAdr + ADDRESSOF( m.code[0] );
+			Heaps.Relocate( ADDRESSOF( m.command[i].entryAdr ) );
 			IF m.command[i].argTdAdr > 1 THEN
 				S.GET( m.sb + m.command[i].argTdAdr, m.command[i].argTdAdr );
-				Heaps.Relocate( S.ADR( m.command[i].argTdAdr ) )
+				Heaps.Relocate( ADDRESSOF( m.command[i].argTdAdr ) )
 			END;
 			IF m.command[i].retTdAdr > 1 THEN
 				S.GET( m.sb + m.command[i].retTdAdr, m.command[i].retTdAdr );
-				Heaps.Relocate( S.ADR( m.command[i].retTdAdr ) )
+				Heaps.Relocate( ADDRESSOF( m.command[i].retTdAdr ) )
 			END;
 		END;
 	END FixupCommands;
@@ -903,7 +903,7 @@ VAR
 		END FixCase;
 
 	BEGIN
-		codeadr := S.ADR( m.code[0] );
+		codeadr := ADDRESSOF( m.code[0] );
 		FOR i := 0 TO LEN( link ) - 1 DO
 			ASSERT( link[i].mod = 0 );   (* only fix local things *)
 			CASE link[i].entry OF
@@ -940,7 +940,7 @@ VAR
 				Heaps.NewProtRec( S.VAL( ANY, m ), Modules.modTag );  
 
 				imp := lastMod;
-				IF imp # NIL THEN  imp.next := m;  Heaps.Relocate( S.ADR( imp.next ) )   END;
+				IF imp # NIL THEN  imp.next := m;  Heaps.Relocate( ADDRESSOF( imp.next ) )   END;
 				lastMod := m;
 				IF Modules.root = NIL THEN  Modules.root := lastMod  END;
 				m.init := FALSE;  m.refcnt := 0;  m.next := NIL;  m.export.dsc := NIL;  m.term := NIL;
@@ -968,7 +968,7 @@ VAR
 					ELSIF m.name = "Heaps" THEN  GetHeapRoutines( m )
 					ELSIF m.name = "Modules" THEN  TreatModules( m ); 
 					ELSIF m.name = "Objects" THEN  GetObjectRoutines( m )
-					ELSIF m.name = "BootConsole" THEN  entrypoint := S.ADR( m.code[0] )
+					ELSIF m.name = "BootConsole" THEN  entrypoint := ADDRESSOF( m.code[0] )
 					END;
 					IF h.dataLinks # 0 THEN  FixupGlobals( m, dataLink^ )  END;
 					IF h.links # 0 THEN  FixupLinks( m, links^, fixupCounts^, caseTableSize, res )  END;

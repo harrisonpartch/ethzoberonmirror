@@ -135,7 +135,7 @@ TYPE
 		END GetOriginator;
 
 		PROCEDURE Grow;
-		VAR new: POINTER TO ARRAY (* MsgQSize*)  OF Message; i: LONGINT; name: ARRAY 128 OF CHAR; VAR pc: SYSTEM.ADDRESS;
+		VAR new: POINTER TO ARRAY (* MsgQSize*)  OF Message; i: LONGINT; name: ARRAY 128 OF CHAR; VAR pc: ADDRESS;
 			type: Modules.TypeDesc; msg: Message;
 		BEGIN
 			NEW(new, LEN(msgQ) * 3 DIV 2);
@@ -159,7 +159,7 @@ TYPE
 					END;
 				END;
 				IF msg.msgType = MsgInvokeEvent THEN
-					Reflection.GetProcedureName(SYSTEM.VAL(SYSTEM.ADDRESS, msg.event), name, pc );
+					Reflection.GetProcedureName(SYSTEM.VAL(ADDRESS, msg.event), name, pc );
 					TRACE("Event procedure ", name);
 				END;
 				IF msg.ext # NIL THEN
@@ -179,7 +179,7 @@ TYPE
 
 		(** Add a message to a queue. Discards the message if the queue is full *)
 		PROCEDURE Add*(VAR msg : Message): BOOLEAN;
-		VAR i, pos: LONGINT; name: ARRAY 256 OF CHAR; pc: SYSTEM.ADDRESS;
+		VAR i, pos: LONGINT; name: ARRAY 256 OF CHAR; pc: ADDRESS;
 		module: Modules.Module; type: Modules.TypeDesc;
 		CONST
 			MergePointers = TRUE;
@@ -202,7 +202,7 @@ TYPE
 					END;
 				END;
 				IF msg.msgType = MsgInvokeEvent THEN
-					Reflection.GetProcedureName(SYSTEM.VAL(SYSTEM.ADDRESS, msg.event), name, pc );
+					Reflection.GetProcedureName(SYSTEM.VAL(ADDRESS, msg.event), name, pc );
 					TRACE("Event procedure ", name);
 				END;
 				IF msg.ext # NIL THEN
@@ -380,7 +380,7 @@ TYPE
 		(* Remove a message from the queue. Block if no message is available but awake if queue is terminated by call to Stop *)
 		(* return if alive *)
 		PROCEDURE Get(VAR msg : Message) : BOOLEAN;
-		VAR i, pos: LONGINT; name: ARRAY 256 OF CHAR; pc: SYSTEM.ADDRESS;
+		VAR i, pos: LONGINT; name: ARRAY 256 OF CHAR; pc: ADDRESS;
 			module: Modules.Module; type: Modules.TypeDesc;
 		BEGIN {EXCLUSIVE}
 			IF hadOverflow THEN KernelLog.String(" - Recovered"); hadOverflow := FALSE END;
@@ -414,7 +414,7 @@ TYPE
 					END;
 				END;
 				IF msg.msgType = MsgInvokeEvent THEN
-					Reflection.GetProcedureName(SYSTEM.VAL(SYSTEM.ADDRESS, msg.event), name, pc );
+					Reflection.GetProcedureName(SYSTEM.VAL(ADDRESS, msg.event), name, pc );
 					TRACE("Event procedure ", name);
 				END;
 				IF msg.ext # NIL THEN

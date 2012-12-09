@@ -66,12 +66,12 @@ TYPE Char8* = SHORTINT;
 TYPE Char16* = INTEGER;
 TYPE Boolean* = BOOLEAN;
 
-TYPE Int* = SYSTEM.SIZE; (* size of Int architecture dependant (e.g. 32bit on i386, 64bit on ia64) *)
+TYPE Int* = SIZE; (* size of Int architecture dependant (e.g. 32bit on i386, 64bit on ia64) *)
 TYPE Int8* = SHORTINT; (* Int8, Int16, Int32, Int64 NOT architecture dependant *)
 TYPE Int16* = INTEGER;
 TYPE Int32* = LONGINT;
 TYPE Int64* = HUGEINT;
-TYPE Address*= SYSTEM.ADDRESS;
+TYPE Address*= ADDRESS;
 
 TYPE Status* = Int;
 TYPE TPL* = Int;
@@ -241,7 +241,7 @@ END;
 
 TYPE ConfigurationTableEntry* = RECORD
 	VendorGuid-: GUID;
-	VendorTable-: SYSTEM.ADDRESS; (* virtual OR physical address - see EFI spec. Chapter 4.6 *)
+	VendorTable-: ADDRESS; (* virtual OR physical address - see EFI spec. Chapter 4.6 *)
 END;
 
 (* basic EFI protocols ( = function tables to communicate with EFI services ) *)

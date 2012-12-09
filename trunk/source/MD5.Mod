@@ -39,12 +39,12 @@ under a public-key cryptosystem such as RSA. *)
 
 	PROCEDURE ByteReverse(VAR in: ARRAY OF SYSTEM.BYTE; VAR out: ARRAY OF LONGINT; longs: LONGINT);
 		VAR
-			adr: SYSTEM.ADDRESS; t, i: LONGINT;
+			adr: ADDRESS; t, i: LONGINT;
 			bytes: ARRAY 4 OF CHAR;
 	BEGIN
-		adr := SYSTEM.ADR(in[0]); i := 0;
+		adr := ADDRESSOF(in[0]); i := 0;
 		WHILE i < longs DO
-			SYSTEM.MOVE(adr, SYSTEM.ADR(bytes[0]), 4);
+			SYSTEM.MOVE(adr, ADDRESSOF(bytes[0]), 4);
 			t := ORD(bytes[3]);
 			t := 256*t + ORD(bytes[2]);
 			t := 256*t + ORD(bytes[1]);
@@ -77,28 +77,28 @@ under a public-key cryptosystem such as RSA. *)
 	PROCEDURE STEP1(VAR w: LONGINT; x, y, z, data: LONGINT; add: HUGEINT;  s: LONGINT);
 	BEGIN
 		w := w+F1(x, y, z)+data+SHORT(add);
-		w := SYSTEM.ROT(w, s);
+		w := ROT(w, s);
 		INC(w, x)
 	END STEP1;
 
 	PROCEDURE STEP2(VAR w: LONGINT; x, y, z, data: LONGINT; add: HUGEINT; s: LONGINT);
 	BEGIN
 		w := w+F2(x, y, z)+data+SHORT(add);
-		w := SYSTEM.ROT(w, s);
+		w := ROT(w, s);
 		INC(w, x)
 	END STEP2;
 
 	PROCEDURE STEP3(VAR w: LONGINT; x, y, z, data: LONGINT; add: HUGEINT; s: LONGINT);
 	BEGIN
 		w := w+F3(x, y, z)+data+SHORT(add);
-		w := SYSTEM.ROT(w, s);
+		w := ROT(w, s);
 		INC(w, x)
 	END STEP3;
 
 	PROCEDURE STEP4(VAR w: LONGINT; x, y, z, data: LONGINT; add: HUGEINT; s: LONGINT);
 	BEGIN
 		w := w+F4(x, y, z)+data+SHORT(add);
-		w := SYSTEM.ROT(w, s);
+		w := ROT(w, s);
 		INC(w, x)
 	END STEP4;
 
@@ -219,22 +219,22 @@ under a public-key cryptosystem such as RSA. *)
 		IF t > 0 THEN
 			t := 64-t;
 			IF len < t THEN
-				SYSTEM.MOVE(SYSTEM.ADR(buf[beg]), SYSTEM.ADR(context.in[64-t]), len);
+				SYSTEM.MOVE(ADDRESSOF(buf[beg]), ADDRESSOF(context.in[64-t]), len);
 				RETURN
 			END;
-			SYSTEM.MOVE(SYSTEM.ADR(buf[beg]), SYSTEM.ADR(context.in[64-t]), t);
+			SYSTEM.MOVE(ADDRESSOF(buf[beg]), ADDRESSOF(context.in[64-t]), t);
 			ByteReverse(context.in, in, 16);
 			Transform(context.buf, in);
 			INC(beg, t); DEC(len, t)
 		END;
 		WHILE len >= 64 DO
-			SYSTEM.MOVE(SYSTEM.ADR(buf[beg]), SYSTEM.ADR(context.in[0]), 64);
+			SYSTEM.MOVE(ADDRESSOF(buf[beg]), ADDRESSOF(context.in[0]), 64);
 			ByteReverse(context.in, in, 16);
 			Transform(context.buf, in);
 			INC(beg, 64); DEC(len, 64)
 		END;
 		IF len > 0 THEN
-			SYSTEM.MOVE(SYSTEM.ADR(buf[beg]), SYSTEM.ADR(context.in[0]), len)
+			SYSTEM.MOVE(ADDRESSOF(buf[beg]), ADDRESSOF(context.in[0]), len)
 		END
 	END WriteBytes;
 
@@ -269,7 +269,7 @@ under a public-key cryptosystem such as RSA. *)
 		in[14] := context.bits; in[15] := 0;
 		Transform(context.buf, in);
 		ByteReverse(context.buf, in, 4);
-		SYSTEM.MOVE(SYSTEM.ADR(in[0]), SYSTEM.ADR(digest[0]), 16)
+		SYSTEM.MOVE(ADDRESSOF(in[0]), ADDRESSOF(digest[0]), 16)
 	END Close;
 
 	PROCEDURE HexDigit(i: LONGINT): CHAR;

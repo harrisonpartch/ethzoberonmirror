@@ -520,9 +520,9 @@ TYPE
 		PROCEDURE PutQWord* (q: HUGEINT);
 		VAR d: LONGINT;
 		BEGIN
-			SYSTEM.GET (SYSTEM.ADR (q), d);
+			SYSTEM.GET (ADDRESSOF (q), d);
 			PutDWord (d);
-			SYSTEM.GET (SYSTEM.ADR (q) + 4, d);
+			SYSTEM.GET (ADDRESSOF (q) + 4, d);
 			PutDWord (d);
 		END PutQWord;
 

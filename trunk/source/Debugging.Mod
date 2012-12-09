@@ -23,7 +23,7 @@ VAR
 
 	PROCEDURE ViewStack( ebp, esp: LONGINT; CONST s: ARRAY OF CHAR);
 	VAR i, val, prevBP: LONGINT;
-	CONST adrSize= SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	CONST adrSize= SIZEOF(ADDRESS);
 	BEGIN
 		Log.String( ">>>>> " );  Log.String(s); Log.String (" >>>>>> "); Log.Ln;
 		SYSTEM.GET(ebp,prevBP);
@@ -48,10 +48,10 @@ VAR
 	BEGIN
 		bp := Machine.CurrentBP();
 		SYSTEM.GET(bp,oldbp);
-		ViewStack(oldbp,bp+4*SYSTEM.SIZEOF(SYSTEM.ADDRESS),s);
+		ViewStack(oldbp,bp+4*SIZEOF(ADDRESS),s);
 	END Stack;
 
-	PROCEDURE TraceBackThis( eip, ebp: SYSTEM.ADDRESS; stackhigh:LONGINT );   (* do a stack trace back w.r.t. given instruction and frame pointers *)
+	PROCEDURE TraceBackThis( eip, ebp: ADDRESS; stackhigh:LONGINT );   (* do a stack trace back w.r.t. given instruction and frame pointers *)
 	BEGIN
 		Log.Ln;  Log.String( "#######################" );
 		Log.Ln;  Log.String( "# Debugging.TraceBack #" );

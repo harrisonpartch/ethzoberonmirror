@@ -454,24 +454,24 @@ END Min;
 
 PROCEDURE AllocConnect*(hdbc: HDBC; VAR res: INTEGER);
 BEGIN
-	res:= SQLAllocConnect(env.henv, S.ADR(hdbc.hdbc));
+	res:= SQLAllocConnect(env.henv, ADDRESSOF(hdbc.hdbc));
 END AllocConnect;
 
 (* don't export AllocEnv as it's called in module initialization *)
 PROCEDURE AllocEnv(henv: HENV; VAR res: INTEGER);
 BEGIN
-	res:= SQLAllocEnv(S.ADR(henv.henv));
+	res:= SQLAllocEnv(ADDRESSOF(henv.henv));
 END AllocEnv;
 
 PROCEDURE AllocStmt*(hdbc: HDBC; hstmt: HSTMT; VAR res: INTEGER);
 BEGIN
-	res:= SQLAllocStmt(hdbc.hdbc, S.ADR(hstmt.hstmt));
+	res:= SQLAllocStmt(hdbc.hdbc, ADDRESSOF(hstmt.hstmt));
 END AllocStmt;
 
 PROCEDURE BindCol*(hstmt: HSTMT; col, retType: INTEGER; VAR buf: ARRAY OF S.BYTE; VAR resSize: LONGINT;
 VAR res: INTEGER);
 BEGIN
-	res:= SQLBindCol(hstmt.hstmt, col, retType, S.ADR(buf), LEN(buf), S.ADR(resSize));
+	res:= SQLBindCol(hstmt.hstmt, col, retType, ADDRESSOF(buf), LEN(buf), ADDRESSOF(resSize));
 END BindCol;
 
 PROCEDURE Cancel*(hstmt: HSTMT; VAR res: INTEGER);
@@ -483,21 +483,21 @@ PROCEDURE ColAttributes*(hstmt: HSTMT; col, fDescType: INTEGER; VAR rgbDesc: ARR
 VAR res: INTEGER);
 	VAR DescLen: INTEGER;
 BEGIN
-	res:= SQLColAttributes(hstmt.hstmt, col, fDescType, S.ADR(rgbDesc), SHORT(LEN(rgbDesc)),
-		S.ADR(DescLen), S.ADR(pfDesc));
+	res:= SQLColAttributes(hstmt.hstmt, col, fDescType, ADDRESSOF(rgbDesc), SHORT(LEN(rgbDesc)),
+		ADDRESSOF(DescLen), ADDRESSOF(pfDesc));
 END ColAttributes;
 
 PROCEDURE Connect*(hdbc: HDBC; DSN, UID, PW: ARRAY OF CHAR; VAR res: INTEGER);
 BEGIN
-	res:= SQLConnect(hdbc.hdbc, S.ADR(DSN), NTS, S.ADR(UID), NTS, S.ADR(PW), NTS);
+	res:= SQLConnect(hdbc.hdbc, ADDRESSOF(DSN), NTS, ADDRESSOF(UID), NTS, ADDRESSOF(PW), NTS);
 END Connect;
 
 PROCEDURE DescribeCol*(hstmt: HSTMT; icol: INTEGER; VAR ColName: ARRAY OF CHAR;VAR SqlType: INTEGER;
 VAR ColDef: LONGINT; VAR Scale: INTEGER; VAR Nullable: BOOLEAN; VAR res: INTEGER);
 	VAR colLen, null: INTEGER;
 BEGIN
-	res:= SQLDescribeCol(hstmt.hstmt, icol, S.ADR(ColName), SHORT(LEN(ColName)), S.ADR(colLen),
-				S.ADR(SqlType), S.ADR(ColDef), S.ADR(Scale), S.ADR(null));
+	res:= SQLDescribeCol(hstmt.hstmt, icol, ADDRESSOF(ColName), SHORT(LEN(ColName)), ADDRESSOF(colLen),
+				ADDRESSOF(SqlType), ADDRESSOF(ColDef), ADDRESSOF(Scale), ADDRESSOF(null));
 	Nullable:= (null # 0);
 END DescribeCol;
 
@@ -511,8 +511,8 @@ VAR ErrorMsg: ARRAY OF CHAR; VAR res: INTEGER);
 	VAR state: ARRAY 6 OF CHAR; len, msgSize: INTEGER;
 BEGIN
 	len:= SHORT(Min(MAXMESSAGELENGTH-1, LEN(ErrorMsg)));
-	res:= SQLError(0, 0, hstmt.hstmt, S.ADR(state), S.ADR(NativeError), S.ADR(ErrorMsg), len,
-		S.ADR(msgSize));
+	res:= SQLError(0, 0, hstmt.hstmt, ADDRESSOF(state), ADDRESSOF(NativeError), ADDRESSOF(ErrorMsg), len,
+		ADDRESSOF(msgSize));
 	COPY (state, SqlState);
 END StatementError;
 
@@ -522,16 +522,16 @@ ErrorMsg: ARRAY OF CHAR; VAR res: INTEGER);
 BEGIN
 	len:= SHORT(Min(MAXMESSAGELENGTH-1, LEN(ErrorMsg)));
 	IF hdbc # NIL THEN
-		res:= SQLError(0, hdbc.hdbc, 0, S.ADR(state), S.ADR(NativeError), S.ADR(ErrorMsg), len, S.ADR(msgSize))
+		res:= SQLError(0, hdbc.hdbc, 0, ADDRESSOF(state), ADDRESSOF(NativeError), ADDRESSOF(ErrorMsg), len, ADDRESSOF(msgSize))
 	ELSE
-		res:= SQLError(env.henv, 0, 0, S.ADR(state), S.ADR(NativeError), S.ADR(ErrorMsg), len, S.ADR(msgSize))
+		res:= SQLError(env.henv, 0, 0, ADDRESSOF(state), ADDRESSOF(NativeError), ADDRESSOF(ErrorMsg), len, ADDRESSOF(msgSize))
 	END;
 	COPY (state, SqlState)
 END ConnectionError;
 
 PROCEDURE ExecDirect*(hstmt: HSTMT; SqlStr: ARRAY OF CHAR; VAR res: INTEGER);
 BEGIN
-	res:= SQLExecDirect(hstmt.hstmt, S.ADR(SqlStr), NTS)
+	res:= SQLExecDirect(hstmt.hstmt, ADDRESSOF(SqlStr), NTS)
 END ExecDirect;
 
 PROCEDURE Execute*(hstmt: HSTMT; VAR res: INTEGER);
@@ -563,27 +563,27 @@ END FreeStmt;
 PROCEDURE GetCursorName*(hstmt: HSTMT; VAR Cursor: ARRAY OF CHAR; VAR res: INTEGER);
 	VAR size: INTEGER;
 BEGIN
-	res:= SQLGetCursorName(hstmt.hstmt, S.ADR(Cursor), SHORT(LEN(Cursor)), S.ADR(size))
+	res:= SQLGetCursorName(hstmt.hstmt, ADDRESSOF(Cursor), SHORT(LEN(Cursor)), ADDRESSOF(size))
 END GetCursorName;
 
 PROCEDURE NumResultCols*(hstmt: HSTMT; VAR cols: INTEGER; VAR res: INTEGER);
 BEGIN
-	res:= SQLNumResultCols(hstmt.hstmt, S.ADR(cols))
+	res:= SQLNumResultCols(hstmt.hstmt, ADDRESSOF(cols))
 END NumResultCols;
 
 PROCEDURE Prepare*(hstmt: HSTMT; SqlStr: ARRAY OF CHAR; VAR res: INTEGER);
 BEGIN
-	res:= SQLPrepare(hstmt.hstmt, S.ADR(SqlStr), NTS)
+	res:= SQLPrepare(hstmt.hstmt, ADDRESSOF(SqlStr), NTS)
 END Prepare;
 
 PROCEDURE RowCount*(hstmt: HSTMT; VAR rows: LONGINT; VAR res: INTEGER);
 BEGIN
-	res:= SQLRowCount(hstmt.hstmt, S.ADR(rows))
+	res:= SQLRowCount(hstmt.hstmt, ADDRESSOF(rows))
 END RowCount;
 
 PROCEDURE SetCursorName*(hstmt: HSTMT; Cursor: ARRAY OF CHAR; VAR res: INTEGER);
 BEGIN
-	res:= SQLSetCursorName(hstmt.hstmt, S.ADR(Cursor), NTS)
+	res:= SQLSetCursorName(hstmt.hstmt, ADDRESSOF(Cursor), NTS)
 END SetCursorName;
 
 PROCEDURE Commit*(hdbc: HDBC; VAR res: INTEGER);
@@ -603,13 +603,13 @@ PROCEDURE Columns*(hstmt: HSTMT; tabQualifier, tabOwner, tabName, colName: ARRAY
 BEGIN
 	(* should be possible to pass NIL for the 4 arrays *)
 	IF (LEN(tabQualifier) = 1) & (tabQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(tabQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(tabQualifier); qualLen:= NTS END;
 	IF (LEN(tabOwner) = 1) & (tabOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(tabOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(tabOwner); ownLen:= NTS END;
 	IF (LEN(tabName) = 1) & (tabName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(tabName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(tabName); nameLen:= NTS END;
 	IF (LEN(colName) = 1) & (colName[0] = 1X) THEN colAdr:= 0; colLen:= 0
-	ELSE colAdr:= S.ADR(colName); colLen:= NTS END;
+	ELSE colAdr:= ADDRESSOF(colName); colLen:= NTS END;
 
 	res:= SQLColumns(hstmt.hstmt, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen, colAdr, colLen)
 END Columns;
@@ -617,38 +617,38 @@ END Columns;
 PROCEDURE DriverConnect*(hdbc: HDBC; VAR connStrIn, connStrOut: ARRAY OF CHAR; VAR res: INTEGER);
 	VAR connOutSize: INTEGER;
 BEGIN
-	res:= SQLDriverConnect(hdbc.hdbc, 0, S.ADR(connStrIn), NTS, S.ADR(connStrOut), SHORT(LEN(connStrOut)),
-		S.ADR(connOutSize), 0)	(* don't show a dialog box *)
+	res:= SQLDriverConnect(hdbc.hdbc, 0, ADDRESSOF(connStrIn), NTS, ADDRESSOF(connStrOut), SHORT(LEN(connStrOut)),
+		ADDRESSOF(connOutSize), 0)	(* don't show a dialog box *)
 END DriverConnect;
 
 PROCEDURE GetConnectOption*(hdbc: HDBC; whichOption: INTEGER; VAR optValue: ARRAY OF S.BYTE; VAR res: INTEGER);
 BEGIN
-	res:= SQLGetConnectOption(hdbc.hdbc, whichOption, S.ADR(optValue))
+	res:= SQLGetConnectOption(hdbc.hdbc, whichOption, ADDRESSOF(optValue))
 END GetConnectOption;
 
 PROCEDURE GetData*(hstmt: HSTMT; col, resType: INTEGER; VAR resValue: ARRAY OF S.BYTE; VAR resSize: LONGINT;
 VAR res: INTEGER);
 BEGIN
-	res:= SQLGetData(hstmt.hstmt, col, resType, S.ADR(resValue), LEN(resValue), S.ADR(resSize))
+	res:= SQLGetData(hstmt.hstmt, col, resType, ADDRESSOF(resValue), LEN(resValue), ADDRESSOF(resSize))
 END GetData;
 
 PROCEDURE GetFunctions*(hdbc: HDBC; whichFunct: INTEGER; VAR exists: BOOLEAN; VAR res: INTEGER);
 	VAR ex: INTEGER;
 BEGIN
-	res:= SQLGetFunctions(hdbc.hdbc, whichFunct, S.ADR(ex)); exists:= ex # 0
+	res:= SQLGetFunctions(hdbc.hdbc, whichFunct, ADDRESSOF(ex)); exists:= ex # 0
 END GetFunctions;
 
 PROCEDURE GetInfo*(hdbc: HDBC; infoType: INTEGER; VAR info: ARRAY OF S.BYTE; VAR res: INTEGER);
 	VAR actSize: INTEGER;
 BEGIN
 	(* should check that the size of info is at least 4 bytes if infoType not of character type *)
-	res:= SQLGetInfo(hdbc.hdbc, infoType, S.ADR(info), SHORT(LEN(info)), S.ADR(actSize))
+	res:= SQLGetInfo(hdbc.hdbc, infoType, ADDRESSOF(info), SHORT(LEN(info)), ADDRESSOF(actSize))
 END GetInfo;
 
 PROCEDURE GetStmtOption*(hstmt: HSTMT; whichOption: INTEGER; VAR optValue: ARRAY OF S.BYTE; VAR res: INTEGER);
 BEGIN
 	(* size of optValue should be at least 4 bytes *)
-	res:= SQLGetStmtOption(hstmt.hstmt, whichOption, S.ADR(optValue))
+	res:= SQLGetStmtOption(hstmt.hstmt, whichOption, ADDRESSOF(optValue))
 END GetStmtOption;
 
 PROCEDURE GetTypeInfo*(hstmt: HSTMT; whichSQLType: INTEGER; VAR res: INTEGER);
@@ -658,22 +658,22 @@ END GetTypeInfo;
 
 PROCEDURE ParamData*(hstmt: HSTMT; VAR data:ARRAY OF S.BYTE; VAR res: INTEGER);
 BEGIN
-	res:= SQLParamData(hstmt.hstmt, S.ADR(data))
+	res:= SQLParamData(hstmt.hstmt, ADDRESSOF(data))
 END ParamData;
 
 PROCEDURE PutData*(hstmt: HSTMT; VAR data: ARRAY OF S.BYTE; len: LONGINT; VAR res: INTEGER);
 BEGIN
-	res:= SQLPutData(hstmt.hstmt, S.ADR(data), len)
+	res:= SQLPutData(hstmt.hstmt, ADDRESSOF(data), len)
 END PutData;
 
 PROCEDURE SetConnectOption*(hdbc: HDBC; whichOpt: INTEGER; VAR option: ARRAY OF S.BYTE; VAR res: INTEGER);
 BEGIN
-	res:= SQLSetConnectOption(hdbc.hdbc, whichOpt, S.ADR(option))
+	res:= SQLSetConnectOption(hdbc.hdbc, whichOpt, ADDRESSOF(option))
 END SetConnectOption;
 
 PROCEDURE SetStmtOption*(hstmt: HSTMT; whichOpt: INTEGER; VAR option: ARRAY OF S.BYTE; VAR res: INTEGER);
 BEGIN
-	res:= SQLSetStmtOption(hstmt.hstmt, whichOpt, S.ADR(option))
+	res:= SQLSetStmtOption(hstmt.hstmt, whichOpt, ADDRESSOF(option))
 END SetStmtOption;
 
 PROCEDURE SpecialColumns*(hstmt: HSTMT; colType: INTEGER; tabQualifier, tabOwner, tabName: ARRAY OF CHAR;
@@ -683,11 +683,11 @@ BEGIN
 	IF nullables THEN nulls:= 1 ELSE nulls:= 0 END;
 	(* should be possible to pass NIL for the 3 arrays *)
 	IF (LEN(tabQualifier) = 1) & (tabQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(tabQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(tabQualifier); qualLen:= NTS END;
 	IF (LEN(tabOwner) = 1) & (tabOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(tabOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(tabOwner); ownLen:= NTS END;
 	IF (LEN(tabName) = 1) & (tabName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(tabName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(tabName); nameLen:= NTS END;
 
 	res:= SQLSpecialColumns(hstmt.hstmt, colType, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen, scope, nulls)
 END SpecialColumns;
@@ -700,11 +700,11 @@ BEGIN
 	IF accurate THEN accuracy:= 1 ELSE accuracy:= 0 END;
 	(* should be possible to pass NIL for the 3 arrays *)
 	IF (LEN(tabQualifier) = 1) & (tabQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(tabQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(tabQualifier); qualLen:= NTS END;
 	IF (LEN(tabOwner) = 1) & (tabOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(tabOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(tabOwner); ownLen:= NTS END;
 	IF (LEN(tabName) = 1) & (tabName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(tabName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(tabName); nameLen:= NTS END;
 
 	res:= SQLStatistics(hstmt.hstmt, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen, indexType, accuracy)
 END Statistics;
@@ -714,13 +714,13 @@ PROCEDURE Tables*(hstmt: HSTMT; tabQualifier, tabOwner, tabName, tabType: ARRAY 
 BEGIN
 	(* should be possible to pass NIL for the 4 tab... arrays *)
 	IF (LEN(tabQualifier) = 1) & (tabQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(tabQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(tabQualifier); qualLen:= NTS END;
 	IF (LEN(tabOwner) = 1) & (tabOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(tabOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(tabOwner); ownLen:= NTS END;
 	IF (LEN(tabName) = 1) & (tabName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(tabName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(tabName); nameLen:= NTS END;
 	IF (LEN(tabType) = 1) & (tabType[0] = 1X) THEN typeAdr:= 0; typeLen:= 0
-	ELSE typeAdr:= S.ADR(tabType); typeLen:= NTS END;
+	ELSE typeAdr:= ADDRESSOF(tabType); typeLen:= NTS END;
 	res:= SQLTables(hstmt.hstmt, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen, typeAdr, typeLen)
 END Tables;
 
@@ -729,8 +729,8 @@ END Tables;
 PROCEDURE BrowseConnect*(hdbc: HDBC; connStrIn: ARRAY OF CHAR; VAR connStrOut: ARRAY OF CHAR; VAR res: INTEGER);
 	VAR outLen: INTEGER;
 BEGIN
-	res:= SQLBrowseConnect(hdbc.hdbc, S.ADR(connStrIn), NTS, S.ADR(connStrOut), SHORT(LEN(connStrOut)),
-		S.ADR(outLen))
+	res:= SQLBrowseConnect(hdbc.hdbc, ADDRESSOF(connStrIn), NTS, ADDRESSOF(connStrOut), SHORT(LEN(connStrOut)),
+		ADDRESSOF(outLen))
 END BrowseConnect;
 
 PROCEDURE ColumnPrivileges*(hstmt: HSTMT; tabQualifier, tabOwner, tabName, colName: ARRAY OF CHAR; VAR res: INTEGER);
@@ -738,13 +738,13 @@ PROCEDURE ColumnPrivileges*(hstmt: HSTMT; tabQualifier, tabOwner, tabName, colNa
 BEGIN
 	(* should be possible to pass NIL for the 4 arrays *)
 	IF (LEN(tabQualifier) = 1) & (tabQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(tabQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(tabQualifier); qualLen:= NTS END;
 	IF (LEN(tabOwner) = 1) & (tabOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(tabOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(tabOwner); ownLen:= NTS END;
 	IF (LEN(tabName) = 1) & (tabName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(tabName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(tabName); nameLen:= NTS END;
 	IF (LEN(colName) = 1) & (colName[0] = 1X) THEN colAdr:= 0; colLen:= 0
-	ELSE colAdr:= S.ADR(colName); colLen:= NTS END;
+	ELSE colAdr:= ADDRESSOF(colName); colLen:= NTS END;
 
 	res:= SQLColumnPrivileges(hstmt.hstmt, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen, colAdr, colLen)
 END ColumnPrivileges;
@@ -753,21 +753,21 @@ PROCEDURE DataSources*(direction: INTEGER; VAR dataSourceName, dataSourceDesc: A
 	VAR nameLen, descLen: INTEGER;
 BEGIN
 	(* could implement it with enumerate procedure *)
-	res:= SQLDataSources(env.henv, direction, S.ADR(dataSourceName), SHORT(LEN(dataSourceName)),
-		S.ADR(nameLen), S.ADR(dataSourceDesc), SHORT(LEN(dataSourceDesc)), S.ADR(descLen))
+	res:= SQLDataSources(env.henv, direction, ADDRESSOF(dataSourceName), SHORT(LEN(dataSourceName)),
+		ADDRESSOF(nameLen), ADDRESSOF(dataSourceDesc), SHORT(LEN(dataSourceDesc)), ADDRESSOF(descLen))
 END DataSources;
 
 PROCEDURE DescribeParam*(hstmt: HSTMT; par: INTEGER; VAR sqlType: INTEGER; VAR prec: LONGINT; VAR scale,
 nullable: INTEGER; VAR res: INTEGER);
 BEGIN
-	res:= SQLDescribeParam(hstmt.hstmt, par, S.ADR(sqlType), S.ADR(prec), S.ADR(scale),
-		S.ADR(nullable))
+	res:= SQLDescribeParam(hstmt.hstmt, par, ADDRESSOF(sqlType), ADDRESSOF(prec), ADDRESSOF(scale),
+		ADDRESSOF(nullable))
 END DescribeParam;
 
 PROCEDURE ExtendedFetch*(hstmt: HSTMT; fetchType: INTEGER; rowToFetch: LONGINT; VAR numFetchedRows: LONGINT;
 VAR rowStatus: INTEGER; VAR res: INTEGER);
 BEGIN
-	res:= SQLExtendedFetch(hstmt.hstmt, fetchType, rowToFetch, S.ADR(numFetchedRows), S.ADR(rowStatus))
+	res:= SQLExtendedFetch(hstmt.hstmt, fetchType, rowToFetch, ADDRESSOF(numFetchedRows), ADDRESSOF(rowStatus))
 END ExtendedFetch;
 
 PROCEDURE SetStmtAttr*(hstmt: HSTMT; attribute: LONGINT; valuePtr: LONGINT; stringLength: LONGINT; VAR res: INTEGER);
@@ -784,18 +784,18 @@ forKeyTabOwner, forKeyTabName: ARRAY OF CHAR; VAR res: INTEGER);
 BEGIN
 	(* should be possible to pass NIL for the 6 arrays *)
 	IF (LEN(primKeyTabQualifier) = 1) & (primKeyTabQualifier[0] = 1X) THEN pQualAdr:= 0; pQualLen:= 0
-	ELSE pQualAdr:= S.ADR(primKeyTabQualifier); pQualLen:= NTS END;
+	ELSE pQualAdr:= ADDRESSOF(primKeyTabQualifier); pQualLen:= NTS END;
 	IF (LEN(primKeyTabOwner) = 1) & (primKeyTabOwner[0] = 1X) THEN pOwnAdr:= 0; pOwnLen:= 0
-	ELSE pOwnAdr:= S.ADR(primKeyTabOwner); pOwnLen:= NTS END;
+	ELSE pOwnAdr:= ADDRESSOF(primKeyTabOwner); pOwnLen:= NTS END;
 	IF (LEN(primKeyTabName) = 1) & (primKeyTabName[0] = 1X) THEN pNameAdr:= 0; pNameLen:= 0
-	ELSE pNameAdr:= S.ADR(primKeyTabName); pNameLen:= NTS END;
+	ELSE pNameAdr:= ADDRESSOF(primKeyTabName); pNameLen:= NTS END;
 
 	IF (LEN(forKeyTabQualifier) = 1) & (forKeyTabQualifier[0] = 1X) THEN fQualAdr:= 0; fQualLen:= 0
-	ELSE fQualAdr:= S.ADR(forKeyTabQualifier); fQualLen:= NTS END;
+	ELSE fQualAdr:= ADDRESSOF(forKeyTabQualifier); fQualLen:= NTS END;
 	IF (LEN(forKeyTabOwner) = 1) & (forKeyTabOwner[0] = 1X) THEN fOwnAdr:= 0; fOwnLen:= 0
-	ELSE fOwnAdr:= S.ADR(forKeyTabOwner); fOwnLen:= NTS END;
+	ELSE fOwnAdr:= ADDRESSOF(forKeyTabOwner); fOwnLen:= NTS END;
 	IF (LEN(forKeyTabName) = 1) & (forKeyTabName[0] = 1X) THEN fNameAdr:= 0; fNameLen:= 0
-	ELSE fNameAdr:= S.ADR(forKeyTabName); fNameLen:= NTS END;
+	ELSE fNameAdr:= ADDRESSOF(forKeyTabName); fNameLen:= NTS END;
 
 	res:= SQLForeignKeys(hstmt.hstmt, pQualAdr, pQualLen, pOwnAdr, pOwnLen, pNameAdr, pNameLen, fQualAdr,
 		fQualLen, fOwnAdr, fOwnLen, fNameAdr, fNameLen)
@@ -811,19 +811,19 @@ END MoreResults;
 PROCEDURE NativeSql*(hdbc: HDBC; origSql: ARRAY OF CHAR; VAR nativeSql: ARRAY OF CHAR; VAR res: INTEGER);
 	VAR len: LONGINT;
 BEGIN
-	res:= SQLNativeSql(hdbc.hdbc, S.ADR(origSql), NTS, S.ADR(nativeSql), LEN(nativeSql), S.ADR(len))
+	res:= SQLNativeSql(hdbc.hdbc, ADDRESSOF(origSql), NTS, ADDRESSOF(nativeSql), LEN(nativeSql), ADDRESSOF(len))
 END NativeSql;
 
 PROCEDURE NumParams*(hstmt: HSTMT; VAR res: INTEGER): INTEGER;
 	VAR num: INTEGER;
 BEGIN
-	res:= SQLNumParams(hstmt.hstmt, S.ADR(num));
+	res:= SQLNumParams(hstmt.hstmt, ADDRESSOF(num));
 	RETURN num
 END NumParams;
 
 PROCEDURE ParamOptions*(hstmt: HSTMT; numRows: LONGINT; VAR curRow: LONGINT; VAR res: INTEGER);
 BEGIN
-	res:= SQLParamOptions(hstmt.hstmt, numRows, S.ADR(curRow))
+	res:= SQLParamOptions(hstmt.hstmt, numRows, ADDRESSOF(curRow))
 END ParamOptions;
 
 PROCEDURE PrimaryKeys*(hstmt: HSTMT; tabQualifier, tabOwner, tabName: ARRAY OF CHAR; VAR res: INTEGER);
@@ -831,11 +831,11 @@ PROCEDURE PrimaryKeys*(hstmt: HSTMT; tabQualifier, tabOwner, tabName: ARRAY OF C
 BEGIN
 	(* should be possible to pass NIL for the 3 arrays *)
 	IF (LEN(tabQualifier) = 1) & (tabQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(tabQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(tabQualifier); qualLen:= NTS END;
 	IF (LEN(tabOwner) = 1) & (tabOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(tabOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(tabOwner); ownLen:= NTS END;
 	IF (LEN(tabName) = 1) & (tabName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(tabName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(tabName); nameLen:= NTS END;
 
 	res:= SQLPrimaryKeys(hstmt.hstmt, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen)
 END PrimaryKeys;
@@ -845,13 +845,13 @@ PROCEDURE ProcedureColumns*(hstmt: HSTMT; procQualifier, procOwner, procName, co
 BEGIN
 	(* should be possible to pass NIL for the 4 arrays *)
 	IF (LEN(procQualifier) = 1) & (procQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(procQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(procQualifier); qualLen:= NTS END;
 	IF (LEN(procOwner) = 1) & (procOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(procOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(procOwner); ownLen:= NTS END;
 	IF (LEN(procName) = 1) & (procName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(procName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(procName); nameLen:= NTS END;
 	IF (LEN(colName) = 1) & (colName[0] = 1X) THEN colAdr:= 0; colLen:= 0
-	ELSE colAdr:= S.ADR(colName); colLen:= NTS END;
+	ELSE colAdr:= ADDRESSOF(colName); colLen:= NTS END;
 
 	res:= SQLProcedureColumns(hstmt.hstmt, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen, colAdr, colLen)
 END ProcedureColumns;
@@ -861,11 +861,11 @@ PROCEDURE Procedures*(hstmt: HSTMT; procQualifier, procOwner, procName: ARRAY OF
 BEGIN
 	(* should be possible to pass NIL for the 3 arrays *)
 	IF (LEN(procQualifier) = 1) & (procQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(procQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(procQualifier); qualLen:= NTS END;
 	IF (LEN(procOwner) = 1) & (procOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(procOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(procOwner); ownLen:= NTS END;
 	IF (LEN(procName) = 1) & (procName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(procName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(procName); nameLen:= NTS END;
 
 	res:= SQLProcedures(hstmt.hstmt, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen)
 END Procedures;
@@ -880,11 +880,11 @@ PROCEDURE TablePrivileges*(hstmt: HSTMT; tabQualifier, tabOwner, tabName: ARRAY 
 BEGIN
 	(* should be possible to pass NIL for the 3 arrays *)
 	IF (LEN(tabQualifier) = 1) & (tabQualifier[0] = 1X) THEN qualAdr:= 0; qualLen:= 0
-	ELSE qualAdr:= S.ADR(tabQualifier); qualLen:= NTS END;
+	ELSE qualAdr:= ADDRESSOF(tabQualifier); qualLen:= NTS END;
 	IF (LEN(tabOwner) = 1) & (tabOwner[0] = 1X) THEN ownAdr:= 0; ownLen:= 0
-	ELSE ownAdr:= S.ADR(tabOwner); ownLen:= NTS END;
+	ELSE ownAdr:= ADDRESSOF(tabOwner); ownLen:= NTS END;
 	IF (LEN(tabName) = 1) & (tabName[0] = 1X) THEN nameAdr:= 0; nameLen:= 0
-	ELSE nameAdr:= S.ADR(tabName); nameLen:= NTS END;
+	ELSE nameAdr:= ADDRESSOF(tabName); nameLen:= NTS END;
 
 	res:= SQLTablePrivileges(hstmt.hstmt, qualAdr, qualLen, ownAdr, ownLen, nameAdr, nameLen)
 END TablePrivileges;
@@ -892,15 +892,15 @@ END TablePrivileges;
 PROCEDURE Drivers*(dir: INTEGER; VAR driverDesc, driverAttr: ARRAY OF CHAR; VAR res: INTEGER);
 	VAR descLen, attrLen: INTEGER;
 BEGIN
-	res:= SQLDrivers(env.henv, dir, S.ADR(driverDesc), SHORT(LEN(driverDesc)), S.ADR(descLen),
-		S.ADR(driverAttr), SHORT(LEN(driverAttr)), S.ADR(attrLen))
+	res:= SQLDrivers(env.henv, dir, ADDRESSOF(driverDesc), SHORT(LEN(driverDesc)), ADDRESSOF(descLen),
+		ADDRESSOF(driverAttr), SHORT(LEN(driverAttr)), ADDRESSOF(attrLen))
 END Drivers;
 
 PROCEDURE BindParameter*(hstmt: HSTMT; par, parType, cType, sqlType: INTEGER; prec: LONGINT; scale: INTEGER;
 VAR parBuff: ARRAY OF S.BYTE; VAR parBuffActLen: LONGINT; VAR res: INTEGER);
 BEGIN
-	res:= SQLBindParameter(hstmt.hstmt, par, parType, cType, sqlType, prec, scale, S.ADR(parBuff), LEN(parBuff),
-		S.ADR(parBuffActLen))
+	res:= SQLBindParameter(hstmt.hstmt, par, parType, cType, sqlType, prec, scale, ADDRESSOF(parBuff), LEN(parBuff),
+		ADDRESSOF(parBuffActLen))
 END BindParameter;
 
 (* Interface to Level 3 fucntions *)
@@ -929,68 +929,68 @@ BEGIN
 	IF lib = 0 THEN HALT(99) END;
 
 	(*	binding core functions	*)
-	Kernel32.GetProcAddress(lib, "SQLAllocConnect", S.VAL(LONGINT, SQLAllocConnect));
-	Kernel32.GetProcAddress(lib, "SQLAllocEnv", S.VAL(LONGINT, SQLAllocEnv));
-	Kernel32.GetProcAddress(lib, "SQLAllocStmt", S.VAL(LONGINT, SQLAllocStmt));
-	Kernel32.GetProcAddress(lib, "SQLBindCol", S.VAL(LONGINT, SQLBindCol));
-	Kernel32.GetProcAddress(lib, "SQLCancel", S.VAL(LONGINT, SQLCancel));
-	Kernel32.GetProcAddress(lib, "SQLColAttributes", S.VAL(LONGINT, SQLColAttributes));
-	Kernel32.GetProcAddress(lib, "SQLConnect", S.VAL(LONGINT, SQLConnect));
-	Kernel32.GetProcAddress(lib, "SQLDescribeCol", S.VAL(LONGINT, SQLDescribeCol));
-	Kernel32.GetProcAddress(lib, "SQLDisconnect", S.VAL(LONGINT, SQLDisconnect));
-	Kernel32.GetProcAddress(lib, "SQLError", S.VAL(LONGINT, SQLError));
-	Kernel32.GetProcAddress(lib, "SQLExecDirect", S.VAL(LONGINT, SQLExecDirect));
-	Kernel32.GetProcAddress(lib, "SQLExecute", S.VAL(LONGINT, SQLExecute));
-	Kernel32.GetProcAddress(lib, "SQLFetch", S.VAL(LONGINT, SQLFetch));
-	Kernel32.GetProcAddress(lib, "SQLFreeConnect", S.VAL(LONGINT, SQLFreeConnect));
-	Kernel32.GetProcAddress(lib, "SQLFreeEnv", S.VAL(LONGINT, SQLFreeEnv));
-	Kernel32.GetProcAddress(lib, "SQLFreeStmt", S.VAL(LONGINT, SQLFreeStmt));
-	Kernel32.GetProcAddress(lib, "SQLGetCursorName", S.VAL(LONGINT, SQLGetCursorName));
-	Kernel32.GetProcAddress(lib, "SQLNumResultCols", S.VAL(LONGINT, SQLNumResultCols));
-	Kernel32.GetProcAddress(lib, "SQLPrepare", S.VAL(LONGINT, SQLPrepare));
-	Kernel32.GetProcAddress(lib, "SQLRowCount", S.VAL(LONGINT, SQLRowCount));
-	Kernel32.GetProcAddress(lib, "SQLSetCursorName", S.VAL(LONGINT, SQLSetCursorName));
-	Kernel32.GetProcAddress(lib, "SQLTransact", S.VAL(LONGINT, SQLTransact));
+	Kernel32.GetProcAddress(lib, "SQLAllocConnect", S.VAL(ADDRESS, SQLAllocConnect));
+	Kernel32.GetProcAddress(lib, "SQLAllocEnv", S.VAL(ADDRESS, SQLAllocEnv));
+	Kernel32.GetProcAddress(lib, "SQLAllocStmt", S.VAL(ADDRESS, SQLAllocStmt));
+	Kernel32.GetProcAddress(lib, "SQLBindCol", S.VAL(ADDRESS, SQLBindCol));
+	Kernel32.GetProcAddress(lib, "SQLCancel", S.VAL(ADDRESS, SQLCancel));
+	Kernel32.GetProcAddress(lib, "SQLColAttributes", S.VAL(ADDRESS, SQLColAttributes));
+	Kernel32.GetProcAddress(lib, "SQLConnect", S.VAL(ADDRESS, SQLConnect));
+	Kernel32.GetProcAddress(lib, "SQLDescribeCol", S.VAL(ADDRESS, SQLDescribeCol));
+	Kernel32.GetProcAddress(lib, "SQLDisconnect", S.VAL(ADDRESS, SQLDisconnect));
+	Kernel32.GetProcAddress(lib, "SQLError", S.VAL(ADDRESS, SQLError));
+	Kernel32.GetProcAddress(lib, "SQLExecDirect", S.VAL(ADDRESS, SQLExecDirect));
+	Kernel32.GetProcAddress(lib, "SQLExecute", S.VAL(ADDRESS, SQLExecute));
+	Kernel32.GetProcAddress(lib, "SQLFetch", S.VAL(ADDRESS, SQLFetch));
+	Kernel32.GetProcAddress(lib, "SQLFreeConnect", S.VAL(ADDRESS, SQLFreeConnect));
+	Kernel32.GetProcAddress(lib, "SQLFreeEnv", S.VAL(ADDRESS, SQLFreeEnv));
+	Kernel32.GetProcAddress(lib, "SQLFreeStmt", S.VAL(ADDRESS, SQLFreeStmt));
+	Kernel32.GetProcAddress(lib, "SQLGetCursorName", S.VAL(ADDRESS, SQLGetCursorName));
+	Kernel32.GetProcAddress(lib, "SQLNumResultCols", S.VAL(ADDRESS, SQLNumResultCols));
+	Kernel32.GetProcAddress(lib, "SQLPrepare", S.VAL(ADDRESS, SQLPrepare));
+	Kernel32.GetProcAddress(lib, "SQLRowCount", S.VAL(ADDRESS, SQLRowCount));
+	Kernel32.GetProcAddress(lib, "SQLSetCursorName", S.VAL(ADDRESS, SQLSetCursorName));
+	Kernel32.GetProcAddress(lib, "SQLTransact", S.VAL(ADDRESS, SQLTransact));
 
 	(*	binding level 1 functions	*)
-	Kernel32.GetProcAddress(lib, "SQLColumns", S.VAL(LONGINT, SQLColumns));
-	Kernel32.GetProcAddress(lib, "SQLDriverConnect", S.VAL(LONGINT, SQLDriverConnect));
-	Kernel32.GetProcAddress(lib, "SQLGetConnectOption", S.VAL(LONGINT, SQLGetConnectOption));
-	Kernel32.GetProcAddress(lib, "SQLGetData", S.VAL(LONGINT, SQLGetData));
-	Kernel32.GetProcAddress(lib, "SQLGetFunctions", S.VAL(LONGINT, SQLGetFunctions));
-	Kernel32.GetProcAddress(lib, "SQLGetInfo", S.VAL(LONGINT, SQLGetInfo));
-	Kernel32.GetProcAddress(lib, "SQLGetStmtOption", S.VAL(LONGINT, SQLGetStmtOption));
-	Kernel32.GetProcAddress(lib, "SQLGetTypeInfo", S.VAL(LONGINT, SQLGetTypeInfo));
-	Kernel32.GetProcAddress(lib, "SQLParamData", S.VAL(LONGINT, SQLParamData));
-	Kernel32.GetProcAddress(lib, "SQLPutData", S.VAL(LONGINT, SQLPutData));
-	Kernel32.GetProcAddress(lib, "SQLSetConnectOption", S.VAL(LONGINT, SQLSetConnectOption));
-	Kernel32.GetProcAddress(lib, "SQLSetStmtOption", S.VAL(LONGINT, SQLSetStmtOption));
-	Kernel32.GetProcAddress(lib, "SQLSpecialColumns", S.VAL(LONGINT, SQLSpecialColumns));
-	Kernel32.GetProcAddress(lib, "SQLStatistics", S.VAL(LONGINT, SQLStatistics));
-	Kernel32.GetProcAddress(lib, "SQLTables", S.VAL(LONGINT, SQLTables));
+	Kernel32.GetProcAddress(lib, "SQLColumns", S.VAL(ADDRESS, SQLColumns));
+	Kernel32.GetProcAddress(lib, "SQLDriverConnect", S.VAL(ADDRESS, SQLDriverConnect));
+	Kernel32.GetProcAddress(lib, "SQLGetConnectOption", S.VAL(ADDRESS, SQLGetConnectOption));
+	Kernel32.GetProcAddress(lib, "SQLGetData", S.VAL(ADDRESS, SQLGetData));
+	Kernel32.GetProcAddress(lib, "SQLGetFunctions", S.VAL(ADDRESS, SQLGetFunctions));
+	Kernel32.GetProcAddress(lib, "SQLGetInfo", S.VAL(ADDRESS, SQLGetInfo));
+	Kernel32.GetProcAddress(lib, "SQLGetStmtOption", S.VAL(ADDRESS, SQLGetStmtOption));
+	Kernel32.GetProcAddress(lib, "SQLGetTypeInfo", S.VAL(ADDRESS, SQLGetTypeInfo));
+	Kernel32.GetProcAddress(lib, "SQLParamData", S.VAL(ADDRESS, SQLParamData));
+	Kernel32.GetProcAddress(lib, "SQLPutData", S.VAL(ADDRESS, SQLPutData));
+	Kernel32.GetProcAddress(lib, "SQLSetConnectOption", S.VAL(ADDRESS, SQLSetConnectOption));
+	Kernel32.GetProcAddress(lib, "SQLSetStmtOption", S.VAL(ADDRESS, SQLSetStmtOption));
+	Kernel32.GetProcAddress(lib, "SQLSpecialColumns", S.VAL(ADDRESS, SQLSpecialColumns));
+	Kernel32.GetProcAddress(lib, "SQLStatistics", S.VAL(ADDRESS, SQLStatistics));
+	Kernel32.GetProcAddress(lib, "SQLTables", S.VAL(ADDRESS, SQLTables));
 
 	(*	binding level 2 functions	*)
-	Kernel32.GetProcAddress(lib, "SQLBrowseConnect", S.VAL(LONGINT, SQLBrowseConnect));
-	Kernel32.GetProcAddress(lib, "SQLColumnPrivileges", S.VAL(LONGINT, SQLColumnPrivileges));
-	Kernel32.GetProcAddress(lib, "SQLDataSources", S.VAL(LONGINT, SQLDataSources));
-	Kernel32.GetProcAddress(lib, "SQLExtendedFetch", S.VAL(LONGINT, SQLExtendedFetch));
-	Kernel32.GetProcAddress(lib, "SQLForeignKeys", S.VAL(LONGINT, SQLForeignKeys));
-	Kernel32.GetProcAddress(lib, "SQLMoreResults", S.VAL(LONGINT, SQLMoreResults));
-	Kernel32.GetProcAddress(lib, "SQLNativeSql", S.VAL(LONGINT, SQLNativeSql));
-	Kernel32.GetProcAddress(lib, "SQLNumParams", S.VAL(LONGINT, SQLNumParams));
-	Kernel32.GetProcAddress(lib, "SQLParamOptions", S.VAL(LONGINT, SQLParamOptions));
-	Kernel32.GetProcAddress(lib, "SQLPrimaryKeys", S.VAL(LONGINT, SQLPrimaryKeys));
-	Kernel32.GetProcAddress(lib, "SQLProcedureColumns", S.VAL(LONGINT, SQLProcedureColumns));
-	Kernel32.GetProcAddress(lib, "SQLProcedures", S.VAL(LONGINT, SQLProcedures));
-	Kernel32.GetProcAddress(lib, "SQLSetPos", S.VAL(LONGINT, SQLSetPos));
-	Kernel32.GetProcAddress(lib, "SQLTablePrivileges", S.VAL(LONGINT, SQLTablePrivileges));
-	Kernel32.GetProcAddress(lib, "SQLDrivers", S.VAL(LONGINT, SQLDrivers));
-	Kernel32.GetProcAddress(lib, "SQLBindParameter", S.VAL(LONGINT, SQLBindParameter));
+	Kernel32.GetProcAddress(lib, "SQLBrowseConnect", S.VAL(ADDRESS, SQLBrowseConnect));
+	Kernel32.GetProcAddress(lib, "SQLColumnPrivileges", S.VAL(ADDRESS, SQLColumnPrivileges));
+	Kernel32.GetProcAddress(lib, "SQLDataSources", S.VAL(ADDRESS, SQLDataSources));
+	Kernel32.GetProcAddress(lib, "SQLExtendedFetch", S.VAL(ADDRESS, SQLExtendedFetch));
+	Kernel32.GetProcAddress(lib, "SQLForeignKeys", S.VAL(ADDRESS, SQLForeignKeys));
+	Kernel32.GetProcAddress(lib, "SQLMoreResults", S.VAL(ADDRESS, SQLMoreResults));
+	Kernel32.GetProcAddress(lib, "SQLNativeSql", S.VAL(ADDRESS, SQLNativeSql));
+	Kernel32.GetProcAddress(lib, "SQLNumParams", S.VAL(ADDRESS, SQLNumParams));
+	Kernel32.GetProcAddress(lib, "SQLParamOptions", S.VAL(ADDRESS, SQLParamOptions));
+	Kernel32.GetProcAddress(lib, "SQLPrimaryKeys", S.VAL(ADDRESS, SQLPrimaryKeys));
+	Kernel32.GetProcAddress(lib, "SQLProcedureColumns", S.VAL(ADDRESS, SQLProcedureColumns));
+	Kernel32.GetProcAddress(lib, "SQLProcedures", S.VAL(ADDRESS, SQLProcedures));
+	Kernel32.GetProcAddress(lib, "SQLSetPos", S.VAL(ADDRESS, SQLSetPos));
+	Kernel32.GetProcAddress(lib, "SQLTablePrivileges", S.VAL(ADDRESS, SQLTablePrivileges));
+	Kernel32.GetProcAddress(lib, "SQLDrivers", S.VAL(ADDRESS, SQLDrivers));
+	Kernel32.GetProcAddress(lib, "SQLBindParameter", S.VAL(ADDRESS, SQLBindParameter));
 
 	(* binding level 3 functions *)
-	Kernel32.GetProcAddress(lib, "SQLFetchScroll", S.VAL(LONGINT, SQLFetchScroll));
-	Kernel32.GetProcAddress(lib, "SQLSetStmtAttr", S.VAL(LONGINT, SQLSetStmtAttr));
-	Kernel32.GetProcAddress(lib, "SQLSetConnectAttr", S.VAL(LONGINT, SQLSetConnectAttr))
+	Kernel32.GetProcAddress(lib, "SQLFetchScroll", S.VAL(ADDRESS, SQLFetchScroll));
+	Kernel32.GetProcAddress(lib, "SQLSetStmtAttr", S.VAL(ADDRESS, SQLSetStmtAttr));
+	Kernel32.GetProcAddress(lib, "SQLSetConnectAttr", S.VAL(ADDRESS, SQLSetConnectAttr))
 END Init;
 
 PROCEDURE Term;

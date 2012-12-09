@@ -48,7 +48,7 @@ CONST
 
 	MinVolumeSize = 5; (* Superblock, Root Directory Block, Free Bitmap (min. 1 Block), 1x I-Node + 1x D-Note *)
 
-	BitsPerSET = SYSTEM.SIZEOF(SET) * 8;
+	BitsPerSET = SIZEOF(SET) * 8;
 
 	Trace = FALSE;
 
@@ -212,8 +212,8 @@ TYPE
 			index := index - (index MOD (BlockSize DIV BitsPerSET));
 			ASSERT((0 <= index) & (index < LEN(bitmap)));
 			WHILE (blockIdx < BlockSize) & (index < LEN(bitmap)) DO
-				SYSTEM.PUT32(SYSTEM.ADR(data[blockIdx]), bitmap[index]);
-				INC(index); INC(blockIdx, SYSTEM.SIZEOF(SET));
+				SYSTEM.PUT32(ADDRESSOF(data[blockIdx]), bitmap[index]);
+				INC(index); INC(blockIdx, SIZEOF(SET));
 			END;
 			ASSERT((blockNumber DIV BlockSize) < fileSystem.superBlock.freeBlockBitmapSize); (* write to free block bitmap!! *)
 			fileSystem.volume.WriteBlock(fileSystem.superBlock.freeBlockBitmapFirst + (blockNumber DIV BlockSize), data, res);
@@ -230,8 +230,8 @@ TYPE
 				IF (res = Ok) THEN
 					blockIdx := 0;
 					WHILE (blockIdx < BlockSize) & (index < LEN(bitmap)) DO
-						bitmap[index] := SYSTEM.VAL(SET, SYSTEM.GET32(SYSTEM.ADR(data[blockIdx])));
-						INC(index); INC(blockIdx, SYSTEM.SIZEOF(SET));
+						bitmap[index] := SYSTEM.VAL(SET, SYSTEM.GET32(ADDRESSOF(data[blockIdx])));
+						INC(index); INC(blockIdx, SIZEOF(SET));
 					END;
 				ELSE
 					RETURN;
@@ -716,7 +716,7 @@ TYPE
 							eof := TRUE;
 						END;
 
-						SYSTEM.MOVE(SYSTEM.ADR(dnode[r.apos]), SYSTEM.ADR(x[ofs]), nofBytes);
+						SYSTEM.MOVE(ADDRESSOF(dnode[r.apos]), ADDRESSOF(x[ofs]), nofBytes);
 
 						len := len - nofBytes;
 						ofs := ofs + len;
@@ -788,7 +788,7 @@ TYPE
 						nofBytes := spaceLeft;
 					END;
 
-					SYSTEM.MOVE(SYSTEM.ADR(x[ofs]), SYSTEM.ADR(dnode[r.apos]), nofBytes);
+					SYSTEM.MOVE(ADDRESSOF(x[ofs]), ADDRESSOF(dnode[r.apos]), nofBytes);
 
 					fileSystem.volume.WriteBlock(blockNumber, dnode, res);
 					IF (res = Ok) THEN

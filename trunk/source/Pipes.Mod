@@ -102,7 +102,7 @@ TYPE
 				IF tail >= head THEN n := LEN(buffer)-tail ELSE n := head-tail END;	(* contiguous free space *)
 				IF n > len THEN n := len END;
 				ASSERT(tail+n <= LEN(buffer));	(* index check *)
-				SYSTEM.MOVE(SYSTEM.ADR(buf[ofs]), SYSTEM.ADR(buffer[tail]), n);
+				SYSTEM.MOVE(ADDRESSOF(buf[ofs]), ADDRESSOF(buffer[tail]), n);
 				tail := (tail+n) MOD LEN(buffer);
 				INC(ofs, n); DEC(len, n)
 			END
@@ -119,7 +119,7 @@ TYPE
 				IF tail >= head THEN n := tail-head ELSE n := LEN(buffer)-head END;	(* contiguous data *)
 				IF n > size THEN n := size END;
 				ASSERT(ofs+n <= LEN(buf));	(* index check *)
-				SYSTEM.MOVE(SYSTEM.ADR(buffer[head]), SYSTEM.ADR(buf[ofs]), n);
+				SYSTEM.MOVE(ADDRESSOF(buffer[head]), ADDRESSOF(buf[ofs]), n);
 				head := (head+n) MOD LEN(buffer);
 				INC(ofs, n); INC(len, n); DEC(size, n);
 				IF len >= min THEN res := Ok; EXIT END

@@ -472,6 +472,11 @@ TYPE
 				identifier := Global.GetIdentifier(x.operator,case);
 				Expression(x.left);
 				Identifier(identifier);
+			ELSIF (x.operator = Scanner.Address) OR (x.operator = Scanner.Size) OR (x.operator = Scanner.Alias) THEN
+				identifier := Global.GetIdentifier(x.operator,case);
+				Identifier(identifier);
+				Keyword(" OF ");
+				Expression(x.left);
 			ELSE
 				identifier := Global.GetIdentifier(x.operator,case);
 				Identifier(identifier);

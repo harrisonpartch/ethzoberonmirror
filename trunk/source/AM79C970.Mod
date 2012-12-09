@@ -144,8 +144,8 @@ TYPE
 			rxAlignDescriptorRing: POINTER TO ARRAY (RxRingSize+1)*16 OF CHAR;
 			txAlignDescriptorRing: POINTER TO ARRAY (TxRingSize+1)*16 OF CHAR;
 			(* actual ring starting address (16 byte aligned!) *)
-			rxRingAdr: SYSTEM.ADDRESS;
-			txRingAdr: SYSTEM.ADDRESS;
+			rxRingAdr: ADDRESS;
+			txRingAdr: ADDRESS;
 			(* buffer rings (parallel to descriptors..) *)
 			txBufRing: ARRAY TxRingSize OF TxBuffer;
 			rxBufRing: ARRAY RxRingSize OF Network.Buffer;
@@ -222,7 +222,7 @@ TYPE
 
 			(* Descriptor Ring Addresses *)
 			NEW(rxAlignDescriptorRing);
-			rxRingAdr := SYSTEM.ADR(rxAlignDescriptorRing[0]);
+			rxRingAdr := ADDRESSOF(rxAlignDescriptorRing[0]);
 			IF rxRingAdr MOD 16 # 0 THEN
 				INC(rxRingAdr, 16 - rxRingAdr MOD 16);
 			END;
@@ -230,7 +230,7 @@ TYPE
 
 
 			NEW(txAlignDescriptorRing);
-			txRingAdr := SYSTEM.ADR(txAlignDescriptorRing[0]);
+			txRingAdr := ADDRESSOF(txAlignDescriptorRing[0]);
 			IF txRingAdr MOD 16 # 0 THEN
 				INC(txRingAdr, 16 - txRingAdr MOD 16);
 			END;
@@ -242,13 +242,13 @@ TYPE
 
 
 			(*write CSR1 (InitBlock Lower Address) *)
-			s := SYSTEM.VAL(SET, SYSTEM.ADR(initBlock));
-			x := SYSTEM.VAL(INTEGER, SYSTEM.ADR(initBlock) MOD 10000H);
+			s := SYSTEM.VAL(SET, ADDRESSOF(initBlock));
+			x := SYSTEM.VAL(INTEGER, ADDRESSOF(initBlock) MOD 10000H);
 			WriteCSR(1, x);
 
 
 			(*write CSR2 (InitBlock Upper Address) *)
-			x:= SYSTEM.VAL(INTEGER, SYSTEM.ADR(initBlock) DIV 10000H);
+			x:= SYSTEM.VAL(INTEGER, ADDRESSOF(initBlock) DIV 10000H);
 			WriteCSR(2, x);
 
 
@@ -316,7 +316,7 @@ TYPE
 		PROCEDURE SetupRxTxRings;
 		VAR
 			i: LONGINT;
-			adr: SYSTEM.ADDRESS;
+			adr: ADDRESS;
 			t: SET;
 			rBuf: Network.Buffer;
 			tBuf: TxBuffer;
@@ -329,7 +329,7 @@ TYPE
 			FOR i:=0 TO RxRingSize-1 DO
 				rBuf:=Network.GetNewBuffer();
 				rxBufRing[i] := rBuf;
-				SYSTEM.PUT32(adr, SYSTEM.ADR(rBuf.data[0])); INC(adr, 4);
+				SYSTEM.PUT32(adr, ADDRESSOF(rBuf.data[0])); INC(adr, 4);
 				SYSTEM.PUT16(adr, -RxBufSize); INC(adr, 2);
 				SYSTEM.PUT16(adr, 8000H); INC(adr, 2);
 				SYSTEM.PUT32(adr, 0); INC(adr, 4);
@@ -341,7 +341,7 @@ TYPE
 			FOR i:=0 TO TxRingSize-1 DO
 				NEW(tBuf);
 				txBufRing[i] := tBuf;
-				SYSTEM.PUT32(adr, SYSTEM.ADR(tBuf[0])); INC(adr, 4);
+				SYSTEM.PUT32(adr, ADDRESSOF(tBuf[0])); INC(adr, 4);
 				SYSTEM.PUT32(adr, t); INC(adr, 4);
 				SYSTEM.PUT32(adr, 0); INC(adr, 4);
 				SYSTEM.PUT32(adr, 0); INC(adr, 4)
@@ -414,7 +414,7 @@ TYPE
 					dev.QueueBuffer(rBuf, type);
 
 					rxBufRing[rxIndex]:=buf;
-					SYSTEM.PUT32(rxRingAdr+ rxIndex * 16, SYSTEM.ADR(buf.data[0]));
+					SYSTEM.PUT32(rxRingAdr+ rxIndex * 16, ADDRESSOF(buf.data[0]));
 					SYSTEM.PUT32(rxRingAdr+ rxIndex * 16+4,SYSTEM.VAL(SET, 0FFFH-RxBufSize+1)+{12..15}+{31});
 					SYSTEM.PUT32(rxRingAdr+ rxIndex * 16+8, 0);
 

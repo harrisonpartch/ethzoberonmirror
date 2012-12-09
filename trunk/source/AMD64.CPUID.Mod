@@ -261,16 +261,16 @@ BEGIN
 	CPUID(1H, eax, ebx, ecx, edx);
 	(* EAX *)
 	cpuInfo.stepping := SYSTEM.VAL(LONGINT, eax * BaseStepping);
-	cpuInfo.model := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * BaseModel, -4));
-	cpuInfo.family := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * BaseFamily, -8));
+	cpuInfo.model := SYSTEM.VAL(LONGINT, LSH(eax * BaseModel, -4));
+	cpuInfo.family := SYSTEM.VAL(LONGINT, LSH(eax * BaseFamily, -8));
 	IF cpuInfo.family < 0FH THEN
-		cpuInfo.family := cpuInfo.family + SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * ExtendedFamily, -20));
-		cpuInfo.model := cpuInfo.model + SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * ExtendedModel, -12));
+		cpuInfo.family := cpuInfo.family + SYSTEM.VAL(LONGINT, LSH(eax * ExtendedFamily, -20));
+		cpuInfo.model := cpuInfo.model + SYSTEM.VAL(LONGINT, LSH(eax * ExtendedModel, -12));
 	END;
 	(* EBX *)
-	cpuInfo.localApicId := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * LocalApicId, -24));
-	cpuInfo.logicalProcessorCount := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * LogicalProcessorCount, - 16));
-	cpuInfo.clflushSize := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * CLFlush, -8)) * 8;
+	cpuInfo.localApicId := SYSTEM.VAL(LONGINT, LSH(ebx * LocalApicId, -24));
+	cpuInfo.logicalProcessorCount := SYSTEM.VAL(LONGINT, LSH(ebx * LogicalProcessorCount, - 16));
+	cpuInfo.clflushSize := SYSTEM.VAL(LONGINT, LSH(ebx * CLFlush, -8)) * 8;
 	cpuInfo.brandId := SYSTEM.VAL(LONGINT, ebx * BrandId);
 	(* ECX *)
 	cpuInfo.features2 := ecx;
@@ -278,7 +278,7 @@ BEGIN
 	cpuInfo.features := edx;
 
 	IF cpuInfo.cputype = Intel THEN
-		cpuInfo.type := SYSTEM.VAL(LONGINT, SYSTEM.LSH(edx * {12..13}, -12));
+		cpuInfo.type := SYSTEM.VAL(LONGINT, LSH(edx * {12..13}, -12));
 	END;
 END StandardFunction1;
 
@@ -316,16 +316,16 @@ BEGIN
 			END;
 			wr.Ln;
 
-			cachelevel := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax *{5..7} , -5));
+			cachelevel := SYSTEM.VAL(LONGINT, LSH(eax *{5..7} , -5));
 			wr.String("Cache Level: "); wr.Int(cachelevel,0); wr.Ln;
 
-			cores := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax *{26..31}, -26)) + 1;
-			threads := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax *{14..25} , -14)) +1;
+			cores := SYSTEM.VAL(LONGINT, LSH(eax *{26..31}, -26)) + 1;
+			threads := SYSTEM.VAL(LONGINT, LSH(eax *{14..25} , -14)) +1;
 
-			fullassoc := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax *{9},-9));
-			selfinit := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax *{8},-8));
-			waysofassoc := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx *{22..31},-22)) +1;
-			physlinepart := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx *{12..21},-12)) +1;
+			fullassoc := SYSTEM.VAL(LONGINT, LSH(eax *{9},-9));
+			selfinit := SYSTEM.VAL(LONGINT, LSH(eax *{8},-8));
+			waysofassoc := SYSTEM.VAL(LONGINT, LSH(ebx *{22..31},-22)) +1;
+			physlinepart := SYSTEM.VAL(LONGINT, LSH(ebx *{12..21},-12)) +1;
 			syscoherline := SYSTEM.VAL(LONGINT, ebx *{0..11}) +1 ;
 			numofsets := SYSTEM.VAL(LONGINT, ecx ) +1;
 			prefetchstride := SYSTEM.VAL(LONGINT, edx*{0..9} );
@@ -367,13 +367,13 @@ CPUID(5H, eax, ebx,ecx, edx);
 smallestMon := SYSTEM.VAL(LONGINT, eax*{0..15});
 largestMon := SYSTEM.VAL(LONGINT, ebx*{0..15} );
 
-supporttreatingInterrup := SYSTEM.VAL(BOOLEAN,SYSTEM.LSH(ecx*{1},-1));
+supporttreatingInterrup := SYSTEM.VAL(BOOLEAN,LSH(ecx*{1},-1));
 supportMonMwait :=  SYSTEM.VAL(BOOLEAN,ecx*{0});
 
-numofC4 := SYSTEM.VAL(LONGINT,SYSTEM.LSH(edx*{16..19},-16));
-numofC3 := SYSTEM.VAL(LONGINT,SYSTEM.LSH(edx*{12..15},-12));
-numofC2 := SYSTEM.VAL(LONGINT,SYSTEM.LSH(edx*{8..11},-8));
-numofC1 := SYSTEM.VAL(LONGINT,SYSTEM.LSH(edx*{4..7},-4));
+numofC4 := SYSTEM.VAL(LONGINT,LSH(edx*{16..19},-16));
+numofC3 := SYSTEM.VAL(LONGINT,LSH(edx*{12..15},-12));
+numofC2 := SYSTEM.VAL(LONGINT,LSH(edx*{8..11},-8));
+numofC1 := SYSTEM.VAL(LONGINT,LSH(edx*{4..7},-4));
 numofC0 := SYSTEM.VAL(LONGINT, edx*{0..3});
 
 w.String("Smallest Monitor size (bytes) = "); w.Int(smallestMon, 0 ); w.Ln;
@@ -453,18 +453,18 @@ VAR
 BEGIN
 CPUID(0AH, eax, ebx,ecx, edx);
 
-lenEBX := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {24..31}, -24));
-bitwidthCounter:=SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {16..23}, -16));
-numberofCountCore:=SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {8..15}, -8));
+lenEBX := SYSTEM.VAL(LONGINT, LSH(eax * {24..31}, -24));
+bitwidthCounter:=SYSTEM.VAL(LONGINT, LSH(eax * {16..23}, -16));
+numberofCountCore:=SYSTEM.VAL(LONGINT, LSH(eax * {8..15}, -8));
 verID := SYSTEM.VAL(LONGINT,eax*{0..7});
-brachMispredict:=SYSTEM.VAL(LONGINT,SYSTEM.LSH(ebx*{6},-6) );
-branchInstruct:=SYSTEM.VAL(LONGINT,SYSTEM.LSH(ebx*{5},-5) );
-cacheMisses:=SYSTEM.VAL(LONGINT,SYSTEM.LSH(ebx*{4},-4) );
-cacheReference := SYSTEM.VAL(LONGINT,SYSTEM.LSH(ebx*{3},-3) );
-referenceCycle := SYSTEM.VAL(LONGINT,SYSTEM.LSH(ebx*{2},-2) );
-instructionRetired := SYSTEM.VAL(LONGINT,SYSTEM.LSH(ebx*{1},-1) );
+brachMispredict:=SYSTEM.VAL(LONGINT,LSH(ebx*{6},-6) );
+branchInstruct:=SYSTEM.VAL(LONGINT,LSH(ebx*{5},-5) );
+cacheMisses:=SYSTEM.VAL(LONGINT,LSH(ebx*{4},-4) );
+cacheReference := SYSTEM.VAL(LONGINT,LSH(ebx*{3},-3) );
+referenceCycle := SYSTEM.VAL(LONGINT,LSH(ebx*{2},-2) );
+instructionRetired := SYSTEM.VAL(LONGINT,LSH(ebx*{1},-1) );
 CoreCycle := SYSTEM.VAL(LONGINT,ebx*{0} );
-bitwidthFunction := SYSTEM.VAL(LONGINT,SYSTEM.LSH(ecx*{5..12},-5) );
+bitwidthFunction := SYSTEM.VAL(LONGINT,LSH(ecx*{5..12},-5) );
 numberofFunction :=SYSTEM.VAL(LONGINT,ecx*{0..4} );
 
 w.String("Length of EBX bit vector  = "); w.Int(lenEBX ,0 ); w.Ln;
@@ -533,24 +533,24 @@ VAR eax, ebx, ecx, edx : SET;
 BEGIN
 	CPUID(SHORT(80000005H), eax, ebx, ecx, edx);
 	(* EAX *)
-	cpuInfo.l1DataTlbAssociativity2M4M := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {24..31}, -24));
-	cpuInfo.l1DataTlbSize2M4M := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {16..23}, -16));
-	cpuInfo.	l1InstrTlbAssociativity2M4M := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {8..15}, -8));
+	cpuInfo.l1DataTlbAssociativity2M4M := SYSTEM.VAL(LONGINT, LSH(eax * {24..31}, -24));
+	cpuInfo.l1DataTlbSize2M4M := SYSTEM.VAL(LONGINT, LSH(eax * {16..23}, -16));
+	cpuInfo.	l1InstrTlbAssociativity2M4M := SYSTEM.VAL(LONGINT, LSH(eax * {8..15}, -8));
 	cpuInfo.	l1InstrTlbSize2M4M := SYSTEM.VAL(LONGINT, eax * {0..7});
 	(* EBX *)
-	cpuInfo.l1DataTlbAssociativity4K := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * {24..31}, -24));
-	cpuInfo.l1DataTlbSize4K := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * {16..23}, -16));
-	cpuInfo.l1InstrTlbAssociativity4K := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * {8..15}, -8));
+	cpuInfo.l1DataTlbAssociativity4K := SYSTEM.VAL(LONGINT, LSH(ebx * {24..31}, -24));
+	cpuInfo.l1DataTlbSize4K := SYSTEM.VAL(LONGINT, LSH(ebx * {16..23}, -16));
+	cpuInfo.l1InstrTlbAssociativity4K := SYSTEM.VAL(LONGINT, LSH(ebx * {8..15}, -8));
 	cpuInfo.l1InstrTlbSize4K := SYSTEM.VAL(LONGINT, ebx * {0..7});
 	(* ECX *)
-	cpuInfo.l1DcSize := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {24..31}, -24));
-	cpuInfo.l1DcAssociativity := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {16..23}, -16));
-	cpuInfo.l1DcLinesPerTag := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {8..15}, -8));
+	cpuInfo.l1DcSize := SYSTEM.VAL(LONGINT, LSH(ecx * {24..31}, -24));
+	cpuInfo.l1DcAssociativity := SYSTEM.VAL(LONGINT, LSH(ecx * {16..23}, -16));
+	cpuInfo.l1DcLinesPerTag := SYSTEM.VAL(LONGINT, LSH(ecx * {8..15}, -8));
 	cpuInfo.l1DcLineSize := SYSTEM.VAL(LONGINT, ecx * {0..7});
 	(* EDX *)
-	cpuInfo.l1IcSize := SYSTEM.VAL(LONGINT, SYSTEM.LSH(edx * {24..31}, -24));
-	cpuInfo.l1IcAssociativity := SYSTEM.VAL(LONGINT, SYSTEM.LSH(edx * {16..23}, -16));
-	cpuInfo.l1IcLinesPerTag := SYSTEM.VAL(LONGINT, SYSTEM.LSH(edx * {8..15}, -8));
+	cpuInfo.l1IcSize := SYSTEM.VAL(LONGINT, LSH(edx * {24..31}, -24));
+	cpuInfo.l1IcAssociativity := SYSTEM.VAL(LONGINT, LSH(edx * {16..23}, -16));
+	cpuInfo.l1IcLinesPerTag := SYSTEM.VAL(LONGINT, LSH(edx * {8..15}, -8));
 	cpuInfo.l1IcLineSize := SYSTEM.VAL(LONGINT, edx * {0..7});
 END AmdExtendedFunction5;
 
@@ -562,20 +562,20 @@ BEGIN
 	cpuInfo.unifiedTlb := (eax * {16..31} = {}) & (ebx * {16..31} = {});
 
 	IF ~cpuInfo.unifiedTlb THEN
-		cpuInfo.l2DataTlbAssociativity2M4M := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {28..31}, -28));
-		cpuInfo.l2DataTlbSize2M4M := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {16..27}, -16));
-		cpuInfo.l2InstrTlbAssociativity2M4M := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {12..15}, -12));
+		cpuInfo.l2DataTlbAssociativity2M4M := SYSTEM.VAL(LONGINT, LSH(eax * {28..31}, -28));
+		cpuInfo.l2DataTlbSize2M4M := SYSTEM.VAL(LONGINT, LSH(eax * {16..27}, -16));
+		cpuInfo.l2InstrTlbAssociativity2M4M := SYSTEM.VAL(LONGINT, LSH(eax * {12..15}, -12));
 		cpuInfo.l2InstrTlbSize2M4M := SYSTEM.VAL(LONGINT, eax * {0..11});
 	END;
 
-	cpuInfo.l2DataTlbAssociativity4K := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * {28..31}, -28));
-	cpuInfo.l2DataTlbSize4K := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * {16..27}, -16));
-	cpuInfo.l2InstrTlbAssociativity4K := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ebx * {12..15}, -12));
+	cpuInfo.l2DataTlbAssociativity4K := SYSTEM.VAL(LONGINT, LSH(ebx * {28..31}, -28));
+	cpuInfo.l2DataTlbSize4K := SYSTEM.VAL(LONGINT, LSH(ebx * {16..27}, -16));
+	cpuInfo.l2InstrTlbAssociativity4K := SYSTEM.VAL(LONGINT, LSH(ebx * {12..15}, -12));
 	cpuInfo.l2InstrTlbSize4K := SYSTEM.VAL(LONGINT, ebx * {0..11});
 
-	cpuInfo.l2CacheSize := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {16..31}, -16));
-	cpuInfo.l2Associativity := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {12..15}, -12));
-	cpuInfo.l2LinesPerTag := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {8..11}, -8));
+	cpuInfo.l2CacheSize := SYSTEM.VAL(LONGINT, LSH(ecx * {16..31}, -16));
+	cpuInfo.l2Associativity := SYSTEM.VAL(LONGINT, LSH(ecx * {12..15}, -12));
+	cpuInfo.l2LinesPerTag := SYSTEM.VAL(LONGINT, LSH(ecx * {8..11}, -8));
 	cpuInfo.l2LineSize := SYSTEM.VAL(LONGINT, ecx * {0..7});
 END AmdExtendedFunction6;
 
@@ -584,8 +584,8 @@ PROCEDURE IntelExtendedFunction6(VAR cpuInfo : CpuInformation);
 VAR eax, ebx, ecx, edx : SET;
 BEGIN
 	CPUID(SHORT(80000006H), eax, ebx, ecx, edx);
-	cpuInfo.l2CacheSize := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {16..31}, -16));
-	cpuInfo.l2Associativity := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {12..15}, -12));
+	cpuInfo.l2CacheSize := SYSTEM.VAL(LONGINT, LSH(ecx * {16..31}, -16));
+	cpuInfo.l2Associativity := SYSTEM.VAL(LONGINT, LSH(ecx * {12..15}, -12));
 	cpuInfo.l2LineSize := SYSTEM.VAL(LONGINT, ecx * {0..7});
 END IntelExtendedFunction6;
 
@@ -602,10 +602,10 @@ PROCEDURE ExtendedFunction8(VAR cpuInfo : CpuInformation);
 VAR eax, ebx, ecx, edx : SET;
 BEGIN
 	CPUID(SHORT(80000008H), eax, ebx, ecx, edx);
-	cpuInfo.linAddrSize := SYSTEM.VAL(LONGINT, SYSTEM.LSH(eax * {8..15}, -8));
+	cpuInfo.linAddrSize := SYSTEM.VAL(LONGINT, LSH(eax * {8..15}, -8));
 	cpuInfo.physAddrSize := SYSTEM.VAL(LONGINT, eax * {0..7});
 	IF cpuInfo.cputype = Amd THEN
-		cpuInfo.apicIdCoreIdSize := SYSTEM.VAL(LONGINT, SYSTEM.LSH(ecx * {12..15}, -12));
+		cpuInfo.apicIdCoreIdSize := SYSTEM.VAL(LONGINT, LSH(ecx * {12..15}, -12));
 		cpuInfo.numberOfCores := SYSTEM.VAL(LONGINT, ecx * {0..7}) + 1;
 	END;
 END ExtendedFunction8;
@@ -622,9 +622,9 @@ END AmdExtendedFunctionA;
 PROCEDURE GetString(VAR string : ARRAY OF CHAR; offset : LONGINT; register : SET);
 BEGIN
 	string[offset] :=CHR(SYSTEM.VAL(LONGINT, register * {0..7}));
-	string[offset+1] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(register * {8..15}, -8)));
-	string[offset+2] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(register * {16..23}, -16)));
-	string[offset+3] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(register * {24..31}, -24)));
+	string[offset+1] := CHR(SYSTEM.VAL(LONGINT, LSH(register * {8..15}, -8)));
+	string[offset+2] := CHR(SYSTEM.VAL(LONGINT, LSH(register * {16..23}, -16)));
+	string[offset+3] := CHR(SYSTEM.VAL(LONGINT, LSH(register * {24..31}, -24)));
 END GetString;
 
 PROCEDURE GetCpuInformation(VAR cpuInfo : CpuInformation);
@@ -847,9 +847,9 @@ VAR eax, ebx, ecx, edx : SET; i : LONGINT;
 			IF ~isEax THEN
 				IF reg * {0..7} # {} THEN GetCacheIntel(w, SYSTEM.VAL(LONGINT, reg * {0..7}), s); w.String(s); w.Ln; END;
 			END;
-			IF reg * {8..15} # {} THEN GetCacheIntel(w, SYSTEM.VAL(LONGINT, SYSTEM.LSH(reg * {8..15},-8)), s); w.String(s); w.Ln; END;
-			IF reg * {16..23} # {} THEN GetCacheIntel(w, SYSTEM.VAL(LONGINT,SYSTEM.LSH( reg * {16..23},-16)), s); w.String(s); w.Ln; END;
-			IF reg * {24..31} # {} THEN GetCacheIntel(w, SYSTEM.VAL(LONGINT, SYSTEM.LSH(reg * {24..31},-24)), s); w.String(s); w.Ln; END;
+			IF reg * {8..15} # {} THEN GetCacheIntel(w, SYSTEM.VAL(LONGINT, LSH(reg * {8..15},-8)), s); w.String(s); w.Ln; END;
+			IF reg * {16..23} # {} THEN GetCacheIntel(w, SYSTEM.VAL(LONGINT,LSH( reg * {16..23},-16)), s); w.String(s); w.Ln; END;
+			IF reg * {24..31} # {} THEN GetCacheIntel(w, SYSTEM.VAL(LONGINT, LSH(reg * {24..31},-24)), s); w.String(s); w.Ln; END;
 		END;
 	END ShowReg;
 

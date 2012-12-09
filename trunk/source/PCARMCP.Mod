@@ -119,7 +119,7 @@ TYPE
 		BEGIN { EXCLUSIVE }
 			IF Trace THEN
 				KernelLog.Enter;
-				KernelLog.String("Adding address "); KernelLog.Hex(SYSTEM.ADR(adr^), 8); KernelLog.String(" @ "); KernelLog.Int(pc, 0);
+				KernelLog.String("Adding address "); KernelLog.Hex(ADDRESSOF(adr^), 8); KernelLog.String(" @ "); KernelLog.Int(pc, 0);
 				KernelLog.Exit
 			END;
 			i := items;
@@ -187,7 +187,7 @@ TYPE
 					INC(cnt);
 					IF Trace THEN
 						IF (i IS Constant) THEN KernelLog.String("  constant (value = "); KernelLog.Int(i(Constant).value, 0)
-						ELSE KernelLog.String("  address (id = "); KernelLog.Hex(SYSTEM.ADR(i(Address).adr^), 8)
+						ELSE KernelLog.String("  address (id = "); KernelLog.Hex(ADDRESSOF(i(Address).adr^), 8)
 						END;
 						KernelLog.String(");  pc = ")
 					END;

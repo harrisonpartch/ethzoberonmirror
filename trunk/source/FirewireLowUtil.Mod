@@ -401,9 +401,9 @@ TYPE
 		IF 29 IN busOpt THEN busOptions.isc:= TRUE ELSE busOptions.isc:= FALSE END;
 		IF 28 IN busOpt THEN busOptions.bmc:= TRUE ELSE busOptions.bmc:= FALSE END;
 		IF 27 IN busOpt THEN busOptions.pmc:= TRUE ELSE busOptions.pmc:= FALSE END;
-		busOptions.cycClkAcc:= SYSTEM.VAL(LONGINT,SYSTEM.LSH(busOpt,-16)*{0..7});
-		busOptions.maxRec:= SYSTEM.LSH(SYSTEM.VAL(LONGINT,SYSTEM.LSH(busOpt,-12)*{0..3})+1,1);
-		busOptions.generation:= SYSTEM.VAL(LONGINT,SYSTEM.LSH(busOpt,-4)*{0..3});
+		busOptions.cycClkAcc:= SYSTEM.VAL(LONGINT,LSH(busOpt,-16)*{0..7});
+		busOptions.maxRec:= LSH(SYSTEM.VAL(LONGINT,LSH(busOpt,-12)*{0..3})+1,1);
+		busOptions.generation:= SYSTEM.VAL(LONGINT,LSH(busOpt,-4)*{0..3});
 		busOptions.linkSpd:= SYSTEM.VAL(LONGINT,busOpt*{0..2});
 	END UpdateBusOpt;
 
@@ -411,7 +411,7 @@ TYPE
 	VAR i: LONGINT;
 	BEGIN
 		SELF.guid:= guid; phyID:= physicalID; SELF.generation:= generation;
-		vendorID:= SYSTEM.VAL(LONGINT,SYSTEM.LSH(guid.high,-8)); probe:= TRUE; UpdateBusOpt(busOptions);
+		vendorID:= SYSTEM.VAL(LONGINT,LSH(guid.high,-8)); probe:= TRUE; UpdateBusOpt(busOptions);
 		FOR i:= 0 TO 9 DO
 			uds[i]:= NIL;
 		END;
@@ -540,19 +540,19 @@ TYPE
 
 		PROCEDURE &Init*(packetZero: SET);
 		BEGIN
-			packetIdentifier:= SYSTEM.LSH(packetZero * {30,31},-30);
-			physicalID:= SYSTEM.LSH(packetZero * {24..29},-24);
+			packetIdentifier:= LSH(packetZero * {30,31},-30);
+			physicalID:= LSH(packetZero * {24..29},-24);
 			IF 23 IN packetZero THEN extended:= TRUE ELSE extended:= FALSE END;
-			linkActive:= SYSTEM.LSH(packetZero * {22},-22);
-			gapCount:= SYSTEM.LSH(packetZero * {16..21},-16);
-			sp:= SYSTEM.LSH(packetZero * {14,15},-14);
-			del:= SYSTEM.LSH(packetZero * {12,13},-12);
-			c:= SYSTEM.LSH(packetZero * {11},-11);
-			pwr:= SYSTEM.LSH(packetZero * {8..10},-8);
-			p0:= SYSTEM.LSH(packetZero * {6,7},-6);
-			p1:= SYSTEM.LSH(packetZero * {4,5},-4);
-			p2:= SYSTEM.LSH(packetZero * {2,3},-2);
-			i:= SYSTEM.LSH(packetZero * {1},-1);
+			linkActive:= LSH(packetZero * {22},-22);
+			gapCount:= LSH(packetZero * {16..21},-16);
+			sp:= LSH(packetZero * {14,15},-14);
+			del:= LSH(packetZero * {12,13},-12);
+			c:= LSH(packetZero * {11},-11);
+			pwr:= LSH(packetZero * {8..10},-8);
+			p0:= LSH(packetZero * {6,7},-6);
+			p1:= LSH(packetZero * {4,5},-4);
+			p2:= LSH(packetZero * {2,3},-2);
+			i:= LSH(packetZero * {1},-1);
 			m:= packetZero * {0};
 		END Init;
 
@@ -573,18 +573,18 @@ TYPE
 
 		PROCEDURE &Init*(packetZero: SET);
 		BEGIN
-			packetIdentifier:= SYSTEM.LSH(packetZero * {30,31},-30);
-			physicalID:= SYSTEM.LSH(packetZero * {24..29},-24);
+			packetIdentifier:= LSH(packetZero * {30,31},-30);
+			physicalID:= LSH(packetZero * {24..29},-24);
 			IF 23 IN packetZero THEN extended:= TRUE ELSE extended:= FALSE END;
-			seq:= SYSTEM.LSH(packetZero * {20..22},-20);
-			pa:= SYSTEM.LSH(packetZero * {16,17},-16);
-			pb:= SYSTEM.LSH(packetZero * {14,15},-14);
-			pa:= SYSTEM.LSH(packetZero * {12,13},-12);
-			pa:= SYSTEM.LSH(packetZero * {10,11},-10);
-			pa:= SYSTEM.LSH(packetZero * {8,9},-8);
-			pa:= SYSTEM.LSH(packetZero * {6,7},-6);
-			pa:= SYSTEM.LSH(packetZero * {4,5},-4);
-			pa:= SYSTEM.LSH(packetZero * {2,3},-2);
+			seq:= LSH(packetZero * {20..22},-20);
+			pa:= LSH(packetZero * {16,17},-16);
+			pb:= LSH(packetZero * {14,15},-14);
+			pa:= LSH(packetZero * {12,13},-12);
+			pa:= LSH(packetZero * {10,11},-10);
+			pa:= LSH(packetZero * {8,9},-8);
+			pa:= LSH(packetZero * {6,7},-6);
+			pa:= LSH(packetZero * {4,5},-4);
+			pa:= LSH(packetZero * {2,3},-2);
 			m:= packetZero * {0};
 		END Init;
 	END ExtSelfID;
@@ -644,7 +644,7 @@ TYPE
 		block*: Block; (* only needed when sending *)
 		size*: LONGINT;
 		name*: ARRAY 5 OF CHAR;
-		blockBufferAddr*: SYSTEM.ADDRESS;
+		blockBufferAddr*: ADDRESS;
 		ptrToBlckBufAddr*: CharBuffer;
 
 		PROCEDURE &Init*(hSize,dSize: LONGINT);
@@ -1069,7 +1069,7 @@ VAR avIRCont, avITCont: LONGINT; base: LONGINT;
 (** Returns the bus id *)
 PROCEDURE GetBusID*():SET;
 BEGIN
-	RETURN  SYSTEM.LSH(ReadReg(NodeID)*{6..15},-6);
+	RETURN  LSH(ReadReg(NodeID)*{6..15},-6);
 END GetBusID;
 
 (** Returns the generation counter *)
@@ -1077,7 +1077,7 @@ PROCEDURE GetGeneration*():LONGINT;
 VAR reg: SET;
 BEGIN
 	reg:= ReadReg(SelfIDCount);
-	reg:= SYSTEM.LSH(reg,-16)*{0..7};
+	reg:= LSH(reg,-16)*{0..7};
 	RETURN SYSTEM.VAL(LONGINT,reg);
 END GetGeneration;
 
@@ -1221,13 +1221,13 @@ BEGIN
 END SetIsochRecvContMatch;
 
 (** Allocates a buffer for the asynchronous transmit context *)
-PROCEDURE AllocATReqBuf*(VAR ptrToBfr: CharBuffer):SYSTEM.ADDRESS;
-VAR buffer: CharBuffer; adr: SYSTEM.ADDRESS;
+PROCEDURE AllocATReqBuf*(VAR ptrToBfr: CharBuffer):ADDRESS;
+VAR buffer: CharBuffer; adr: ADDRESS;
 BEGIN
 	(* Allocating a 128 byte address + 16 byte padding *)
 	NEW(buffer, 144);
 	(* find a 16 byte aligned address *)
-	adr:= SYSTEM.ADR(buffer[0]);
+	adr:= ADDRESSOF(buffer[0]);
 	DEC(adr, adr MOD 16);
 	INC(adr, 16);
 	ptrToBfr:= buffer;
@@ -1235,13 +1235,13 @@ BEGIN
 END AllocATReqBuf;
 
 (** Allocates a buffer for the asynchronous receive context *)
-PROCEDURE AllocATResBuf*(VAR ptrToBfr: CharBuffer):SYSTEM.ADDRESS;
-VAR buffer: CharBuffer; adr: SYSTEM.ADDRESS;
+PROCEDURE AllocATResBuf*(VAR ptrToBfr: CharBuffer):ADDRESS;
+VAR buffer: CharBuffer; adr: ADDRESS;
 BEGIN
 	(* Allocating a 128 byte address + 16 byte padding *)
 	NEW(buffer, 144);
 	(* find a 16 byte aligned address *)
-	adr:= SYSTEM.ADR(buffer[0]);
+	adr:= ADDRESSOF(buffer[0]);
 	DEC(adr, adr MOD 16);
 	INC(adr, 16);
 	ptrToBfr:= buffer;
@@ -1249,13 +1249,13 @@ BEGIN
 END AllocATResBuf;
 
 (** Allocates a buffer for the isochronous transmit context *)
-PROCEDURE AllocITBuf*(VAR ptrToBfr: CharBuffer;descNum: LONGINT):SYSTEM.ADDRESS;
-VAR buffer: CharBuffer; adr: SYSTEM.ADDRESS;
+PROCEDURE AllocITBuf*(VAR ptrToBfr: CharBuffer;descNum: LONGINT):ADDRESS;
+VAR buffer: CharBuffer; adr: ADDRESS;
 BEGIN
 	(* Allocating buffer for the isochronous context *)
 	NEW(buffer, 16*descNum+16);
 	(* Find a 16 byte aligned address *)
-	adr:= SYSTEM.ADR(buffer[0]);
+	adr:= ADDRESSOF(buffer[0]);
 	DEC(adr, adr MOD 16);
 	INC(adr, 16);
 	ptrToBfr:= buffer;
@@ -1263,13 +1263,13 @@ BEGIN
 END AllocITBuf;
 
 (** Allocates a buffer for the isochronous receive context *)
-PROCEDURE AllocIRBuf*(VAR ptrToBfr: CharBuffer;descNum: LONGINT):SYSTEM.ADDRESS;
-VAR buffer: CharBuffer; adr: SYSTEM.ADDRESS;
+PROCEDURE AllocIRBuf*(VAR ptrToBfr: CharBuffer;descNum: LONGINT):ADDRESS;
+VAR buffer: CharBuffer; adr: ADDRESS;
 BEGIN
 	 (* Allocating buffer for the isochronous context *)
 	NEW(buffer, 16*descNum+16);
 	(* Find a 16 byte aligned address *)
-	adr:= SYSTEM.ADR(buffer[0]);
+	adr:= ADDRESSOF(buffer[0]);
 	DEC(adr, adr MOD 16);
 	INC(adr, 16);
 	ptrToBfr:= buffer;
@@ -1277,13 +1277,13 @@ BEGIN
 END AllocIRBuf;
 
 (** Allocates a buffer for the asynchronous receive request context *)
-PROCEDURE AllocARReqBuf*(VAR ptrToBfr: CharBuffer):SYSTEM.ADDRESS;
-VAR buffer: CharBuffer; adr: SYSTEM.ADDRESS;
+PROCEDURE AllocARReqBuf*(VAR ptrToBfr: CharBuffer):ADDRESS;
+VAR buffer: CharBuffer; adr: ADDRESS;
 BEGIN
 	(* Allocating a 80 byte address *)
 	NEW(buffer, 80);
 	(* find a 16 byte aligned address *)
-	adr:= SYSTEM.ADR(buffer[0]);
+	adr:= ADDRESSOF(buffer[0]);
 	DEC(adr, adr MOD 16);
 	INC(adr, 16);
 	ptrToBfr:= buffer;
@@ -1291,13 +1291,13 @@ BEGIN
 END AllocARReqBuf;
 
 (** Allocates a buffer for the asynchronous receive response context *)
-PROCEDURE AllocARResBuf*(VAR ptrToBfr: CharBuffer):SYSTEM.ADDRESS;
-VAR buffer: CharBuffer; adr: SYSTEM.ADDRESS;
+PROCEDURE AllocARResBuf*(VAR ptrToBfr: CharBuffer):ADDRESS;
+VAR buffer: CharBuffer; adr: ADDRESS;
 BEGIN
 	(* Allocating a 80 byte address *)
 	NEW(buffer, 80);
 	(* find a 16 byte aligned address *)
-	adr:= SYSTEM.ADR(buffer[0]);
+	adr:= ADDRESSOF(buffer[0]);
 	DEC(adr, adr MOD 16);
 	INC(adr, 16);
 	ptrToBfr:= buffer;
@@ -1306,13 +1306,13 @@ END AllocARResBuf;
 
 (** Sets the isochronous receive command pointer *)
 PROCEDURE SetIRComPtr*(VAR ptrToBuf: CharBuffer);
-VAR buffer: CharBuffer; adr: SYSTEM.ADDRESS; s: SET; i: LONGINT;
+VAR buffer: CharBuffer; adr: ADDRESS; s: SET; i: LONGINT;
 BEGIN
 	FOR i:= 0 TO avIRCont-1 DO
 		(* Allocating a 80 byte address *)
 		NEW(buffer, 80);
 		(* find a 16 byte aligned address *)
-		adr:= SYSTEM.ADR(buffer[0]);
+		adr:= ADDRESSOF(buffer[0]);
 		DEC(adr, adr MOD 16);
 		INC(adr, 16);
 		s:= SYSTEM.VAL(SET,adr);
@@ -1324,13 +1324,13 @@ END SetIRComPtr;
 
 (** Sets the isochronous transmit command pointer *)
 PROCEDURE SetITComPtr*(VAR ptrToBuf: CharBuffer);
-VAR buffer: CharBuffer; adr: SYSTEM.ADDRESS; s: SET; i: LONGINT;
+VAR buffer: CharBuffer; adr: ADDRESS; s: SET; i: LONGINT;
 BEGIN
 	FOR i:= 0 TO avITCont-1 DO
 		(* Allocating a 80 byte address *)
 		NEW(buffer, 80);
 		(* find a 16 byte aligned address *)
-		adr:= SYSTEM.ADR(buffer[0]);
+		adr:= ADDRESSOF(buffer[0]);
 		DEC(adr, adr MOD 16);
 		INC(adr, 16);
 		s:= SYSTEM.VAL(SET,adr);
@@ -1516,7 +1516,7 @@ BEGIN
 	RETURN SYSTEM.VAL(SET,l)
 END ConvertToSet;
 
-(** Does the same as SYSTEM.LSH but only for sets, better use SYSTEM.LSH *)
+(** Does the same as LSH but only for sets, better use LSH *)
 PROCEDURE DelOffset*(reg:SET;offset:LONGINT):SET;
 VAR i: LONGINT;
 BEGIN
@@ -1546,12 +1546,12 @@ END AllocPacket;
 
 (** Allocates a 4KB buffer for an OHCI packet *)
 PROCEDURE  AllocPcktBuf*(num: LONGINT; VAR bufs: ARRAY OF SET;VAR ptrBufs: ARRAY OF CharBuffer);
-VAR i: LONGINT; buffer: CharBuffer; adr: SYSTEM.ADDRESS; s: SET;
+VAR i: LONGINT; buffer: CharBuffer; adr: ADDRESS; s: SET;
 BEGIN
 	FOR i:= 0 TO num-1 DO
 		(* Allocating a 4096 byte buffer + 4 byte for the alignement *)
 		NEW(buffer, BufSize + 4);
-		adr:= SYSTEM.ADR(buffer[0]);
+		adr:= ADDRESSOF(buffer[0]);
 		(* Find a 4 byte aligned address *)
 		DEC(adr, adr MOD 4);
 		INC(adr, 4);
@@ -1799,11 +1799,11 @@ END PrintSet;
 PROCEDURE BuildHeaderResp*(tc: LONGINT; VAR packet: OHCIPacket; rCode: LONGINT);
 VAR busNumber: SET;
 BEGIN
-	busNumber:= SYSTEM.LSH(ReadReg(NodeID)*{6..15},16);
+	busNumber:= LSH(ReadReg(NodeID)*{6..15},16);
 	packet.tCode:= ConvertToSet(tc);
-	packet.header[0]:= SYSTEM.LSH(packet.nodeID,16) + busNumber + SYSTEM.LSH(packet.tLabel,10) + SYSTEM.LSH({0},8) +
-		ConvertToSet(SYSTEM.LSH(tc,4));
-	packet.header[1]:= ConvertToSet(SYSTEM.LSH(packet.host.nodeID,16)) + SYSTEM.VAL(SET,SYSTEM.LSH(rCode,12));
+	packet.header[0]:= LSH(packet.nodeID,16) + busNumber + LSH(packet.tLabel,10) + LSH({0},8) +
+		ConvertToSet(LSH(tc,4));
+	packet.header[1]:= ConvertToSet(LSH(packet.host.nodeID,16)) + SYSTEM.VAL(SET,LSH(rCode,12));
 	packet.header[2]:= {};
 END BuildHeaderResp;
 
@@ -1833,7 +1833,7 @@ VAR padding: LONGINT;
 BEGIN
 	IF rCode # respComplete THEN length:= 0 END;
 	BuildHeaderResp(BReadARRes,packet,rCode);
-	packet.header[3]:= SYSTEM.VAL(SET,SYSTEM.LSH(length,16));
+	packet.header[3]:= SYSTEM.VAL(SET,LSH(length,16));
 	packet.headerSize:= 16;
 	IF (length MOD 4 > 0) THEN padding:= 4 - (length MOD 4) ELSE padding:= 0 END;
 	packet.dataSize:= length + padding;
@@ -1844,13 +1844,13 @@ END FillAsyncReadBlockResp;
 PROCEDURE BuildHeader(tc: LONGINT; VAR packet: OHCIPacket; addrLow,addrHigh: SET);
 VAR busNumber: SET;
 BEGIN
-	busNumber:= SYSTEM.LSH(ReadReg(NodeID)*{6..15},16);
+	busNumber:= LSH(ReadReg(NodeID)*{6..15},16);
 	packet.tCode:= ConvertToSet(tc);
 	(* KernelLog.String("Setting header[0]"); KernelLog.Ln(); *)
-	packet.header[0]:= SYSTEM.LSH(packet.nodeID,16) + busNumber + SYSTEM.LSH(packet.tLabel,10) + SYSTEM.LSH({0},8) +
-		ConvertToSet(SYSTEM.LSH(tc,4));
+	packet.header[0]:= LSH(packet.nodeID,16) + busNumber + LSH(packet.tLabel,10) + LSH({0},8) +
+		ConvertToSet(LSH(tc,4));
 	(* KernelLog.String("Setting header[1]"); KernelLog.Ln(); *)
-	packet.header[1]:= ConvertToSet(SYSTEM.LSH(packet.host.nodeID,16)) + addrHigh + busNumber;
+	packet.header[1]:= ConvertToSet(LSH(packet.host.nodeID,16)) + addrHigh + busNumber;
 	(* KernelLog.String("Printing the nodeID: "); PrintSet(packet.nodeID); KernelLog.Ln();
 	KernelLog.String("Printing the address: "); PrintSet(addrLow); PrintSet(addrHigh); KernelLog.Ln();	*)
 	(* KernelLog.String("Setting header[2]"); KernelLog.Ln(); *)
@@ -1863,7 +1863,7 @@ PROCEDURE FillLockPacket(packet: OHCIPacket; addrLow,addrHigh: SET; extCode: LON
 BEGIN
 	(* KernelLog.String("Building header::FillLockPacket!"); KernelLog.Ln(); *)
 	BuildHeader(LockATReq, packet, addrLow, addrHigh);
-	packet.header[3]:= SYSTEM.VAL(SET,SYSTEM.LSH(length,16)) + SYSTEM.VAL(SET,extCode);
+	packet.header[3]:= SYSTEM.VAL(SET,LSH(length,16)) + SYSTEM.VAL(SET,extCode);
 	packet.headerSize:= 16;
 	packet.dataSize:= length;
 	packet.respExpected:= TRUE;
@@ -1886,7 +1886,7 @@ VAR padding: LONGINT;
 BEGIN
 	(* KernelLog.String("Building header::FillAsyncWriteBlock!"); KernelLog.Ln(); *)
 	BuildHeader(BWriteATReq, packet,addrLow, addrHigh);
-	packet.header[3]:= SYSTEM.VAL(SET,SYSTEM.LSH(length,16));
+	packet.header[3]:= SYSTEM.VAL(SET,LSH(length,16));
 	packet.headerSize:= 16;
 	packet.respExpected:= TRUE;
 	IF (length MOD 4 > 0) THEN padding:= 4 - (length MOD 4) ELSE padding:= 0 END;
@@ -1910,7 +1910,7 @@ END FillAsyncReadQuadlet;
 PROCEDURE FillAsyncReadBlock*(VAR packet: OHCIPacket; addrLow,addrHigh: SET; length: LONGINT);
 BEGIN
 	BuildHeader(BReadATReq,packet,addrLow,addrHigh);
-	packet.header[3]:= ConvertToSet(SYSTEM.LSH(length,16));
+	packet.header[3]:= ConvertToSet(LSH(length,16));
 	packet.headerSize:= 16;
 	packet.dataSize:= 0;
 	packet.respExpected:= TRUE;
@@ -1925,7 +1925,7 @@ BEGIN
 	CASE SYSTEM.VAL(LONGINT,packet.ack) OF
 	AckPending:
 		(* KernelLog.String("The packet received an ackPending::testIFSuccess"); KernelLog.Ln(); *)
-		CASE SYSTEM.VAL(LONGINT,SYSTEM.LSH(packet.header[1],-12) * {0..3}) OF
+		CASE SYSTEM.VAL(LONGINT,LSH(packet.header[1],-12) * {0..3}) OF
 		respComplete: RETURN TRUE;
 		|respConflictError: KernelLog.String("The packet had a conflict error!"); KernelLog.Ln();
 			RETURN FALSE;
@@ -2028,7 +2028,7 @@ BEGIN
 	ELSE
 		(* KernelLog.String("Filling asynchronous write+ block packet!"); KernelLog.Ln(); *)
 		FillAsyncWriteBlock(packet,addrLow,addrHigh,length);
-		IF buffer # {} THEN (* SYSTEM.MOVE(SYSTEM.VAL(LONGINT,buffer),SYSTEM.ADR(packet.data),length) *)
+		IF buffer # {} THEN (* SYSTEM.MOVE(SYSTEM.VAL(LONGINT,buffer),ADDRESSOF(packet.data),length) *)
 			WHILE i # (length DIV 4) DO
 				packet.data[i]:= SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.VAL(LONGINT,buffer)+i*4));
 				INC(i);

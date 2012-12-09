@@ -91,7 +91,7 @@ TYPE
 	Controller = OBJECT
 		VAR
 			next: Controller; (* next controller in list *)
-			base: SYSTEM.ADDRESS; irq: LONGINT;
+			base: ADDRESS; irq: LONGINT;
 			dev: LinkDevice;
 			rds: ARRAY RxRingSize OF RxTxDescriptor;
 			tds: ARRAY TxRingSize OF RxTxDescriptor;
@@ -112,7 +112,7 @@ TYPE
 
 			linkStatus: LONGINT;
 
-		PROCEDURE &Init*(dev: LinkDevice; base: SYSTEM.ADDRESS; irq: LONGINT);
+		PROCEDURE &Init*(dev: LinkDevice; base: ADDRESS; irq: LONGINT);
 		VAR
 			res, i: LONGINT;
 			s: SET;
@@ -233,7 +233,7 @@ TYPE
 		PROCEDURE SendFrame(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
 		VAR
 			txLen, offset, type4: LONGINT;
-			bufBase: SYSTEM.ADDRESS;
+			bufBase: ADDRESS;
 			chksums: SET;
 		BEGIN {EXCLUSIVE}
 			IF nofFreeTx <= 0 THEN
@@ -243,28 +243,28 @@ TYPE
 			AWAIT(nofFreeTx > 0);
 
 			txLen := 14 + h3len + h4len + dlen;
-			bufBase := SYSTEM.ADR(txBuffer.data);
+			bufBase := ADDRESSOF(txBuffer.data);
 
 			(* generate ethernet frame: setup eth header, move data *)
 			(* set destination mac address (first 6 bytes of eth frame) *)
-			SYSTEM.MOVE(SYSTEM.ADR(dst[0]), bufBase, 6);
+			SYSTEM.MOVE(ADDRESSOF(dst[0]), bufBase, 6);
 			(* set source mac address (6 bytes @ offset 6 of eth frame) *)
-			SYSTEM.MOVE(SYSTEM.ADR(dev.local[0]), bufBase + 6, 6);
+			SYSTEM.MOVE(ADDRESSOF(dev.local[0]), bufBase + 6, 6);
 			(* set upper layer type, bring type from host to network byte order *)
-			SYSTEM.PUT16(bufBase + 12, SYSTEM.ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
+			SYSTEM.PUT16(bufBase + 12, ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
 
 			offset := 14; (* eth header has 14 bytes *)
 			(* move layer 3 and layer 4 headers, data *)
 			IF h3len > 0 THEN
-				SYSTEM.MOVE(SYSTEM.ADR(l3hdr[0]), bufBase + offset, h3len);
+				SYSTEM.MOVE(ADDRESSOF(l3hdr[0]), bufBase + offset, h3len);
 				INC(offset, h3len);
 			END;
 			IF h4len > 0 THEN
-				SYSTEM.MOVE(SYSTEM.ADR(l4hdr[0]), bufBase + offset, h4len);
+				SYSTEM.MOVE(ADDRESSOF(l4hdr[0]), bufBase + offset, h4len);
 				INC(offset, h4len);
 			END;
 			IF offset + dlen < MaxETHFrameSize THEN
-				SYSTEM.MOVE(SYSTEM.ADR(data[0]) + dofs, bufBase + offset, dlen);
+				SYSTEM.MOVE(ADDRESSOF(data[0]) + dofs, bufBase + offset, dlen);
 				INC(offset, dlen);
 			END;
 
@@ -406,7 +406,7 @@ TYPE
 			END;
 			FOR i := 0 TO 5 DO
 				res := Read8(i);
-				SYSTEM.PUT8(SYSTEM.ADR(dev.local[i]), res);
+				SYSTEM.PUT8(ADDRESSOF(dev.local[i]), res);
 				IF DebugMAC IN Debug THEN
 					IF i > 0 THEN
 						KernelLog.String("-");
@@ -543,11 +543,11 @@ TYPE
 		PROCEDURE SetupRxRing(): Machine.Address32;
 		VAR
 			r: LONGINT;
-			adr, physAdr: SYSTEM.ADDRESS;
+			adr, physAdr: ADDRESS;
 			buf, prev: RxBuffer;
 		BEGIN
 			(* make sure the descriptor ring is 256 byte aligned in physical memory *)
-			adr := SYSTEM.ADR(rds[0]);
+			adr := ADDRESSOF(rds[0]);
 			adr := Machine.PhysicalAdr(adr, SizeOfRxTxFDHdr);
 			IF adr MOD 256 = 0 THEN
 				firstRD := 0;
@@ -569,7 +569,7 @@ TYPE
 				buf.buf := Network.GetNewBuffer();
 				ASSERT(buf.buf # NIL);
 
-				adr := SYSTEM.ADR(buf.buf.data[0]);
+				adr := ADDRESSOF(buf.buf.data[0]);
 				physAdr := Machine.PhysicalAdr(adr, Network.MaxPacketSize);
 				ASSERT(physAdr # Machine.NilAdr);
 
@@ -594,7 +594,7 @@ TYPE
 			INCL(rds[RxRingSize - 1].flags, 30);
 
 			curRD := firstRD;
-			adr := SYSTEM.ADR(rds[firstRD]);
+			adr := ADDRESSOF(rds[firstRD]);
 			(* return physical address of first rx descriptor *)
 			RETURN Machine.Ensure32BitAddress (Machine.PhysicalAdr(adr, SizeOfRxTxFDHdr));
 		END SetupRxRing;
@@ -602,11 +602,11 @@ TYPE
 		PROCEDURE SetupTxRing(): Machine.Address32;
 		VAR
 			r: LONGINT;
-			adr, physAdr: SYSTEM.ADDRESS;
+			adr, physAdr: ADDRESS;
 			buf, prev: TxBuffer;
 		BEGIN
 			(* make sure the descriptor ring is 256 byte aligned in physical memory *)
-			adr := SYSTEM.ADR(tds[0]);
+			adr := ADDRESSOF(tds[0]);
 			adr := Machine.PhysicalAdr(adr, SizeOfRxTxFDHdr);
 			IF adr MOD 256 = 0 THEN
 				firstTD := 0;
@@ -632,7 +632,7 @@ TYPE
 				AllocBuffer(buf);
 
 				(* configure TFD *)
-				adr := SYSTEM.ADR(buf.data[0]);
+				adr := ADDRESSOF(buf.data[0]);
 				physAdr := Machine.PhysicalAdr(adr, TxMaxSize);
 				ASSERT(physAdr # Machine.NilAdr);
 
@@ -656,14 +656,14 @@ TYPE
 			INCL(tds[TxRingSize - 1].flags, 30);
 
 			curTD := firstTD;
-			adr := SYSTEM.ADR(tds[firstTD]);
+			adr := ADDRESSOF(tds[firstTD]);
 			(* return physical address of first tx descriptor *)
 			RETURN Machine.Ensure32BitAddress (Machine.PhysicalAdr(adr, SizeOfRxTxFDHdr));
 		END SetupTxRing;
 
 		PROCEDURE ReadFrames;
 		VAR
-			adr: SYSTEM.ADDRESS; type, size: LONGINT;
+			adr: ADDRESS; type, size: LONGINT;
 			dstAdr: Network.LinkAdr;
 			buf: Network.Buffer;
 			s: SET;
@@ -683,7 +683,7 @@ TYPE
 						KernelLog.Ln;
 					END;
 
-					adr := SYSTEM.ADR(rxBuffer.buf.data[0]);
+					adr := ADDRESSOF(rxBuffer.buf.data[0]);
 					(* copy destination and source addresses, type of packet *)
 					dstAdr := SYSTEM.VAL(Network.LinkAdr, rxBuffer.buf.data[0]);
 					rxBuffer.buf.src := SYSTEM.VAL(Network.LinkAdr, rxBuffer.buf.data[6]);
@@ -711,7 +711,7 @@ TYPE
 					buf := rxBuffer.buf;
 					ASSERT(rxBuffer.buf # NIL);
 					IF buf # NIL THEN
-						rds[curRD].bufAdrLo := Machine.Ensure32BitAddress (Machine.PhysicalAdr(SYSTEM.ADR(rxBuffer.buf.data[0]), Network.MaxPacketSize));
+						rds[curRD].bufAdrLo := Machine.Ensure32BitAddress (Machine.PhysicalAdr(ADDRESSOF(rxBuffer.buf.data[0]), Network.MaxPacketSize));
 					END;
 					END;
 				ELSE
@@ -1064,7 +1064,7 @@ TYPE
 
 (* Scan the PCI bus for the specified card. *)
 PROCEDURE ScanPCI(vendor, device: LONGINT);
-VAR index, bus, dev, fct, res, irq, i: LONGINT; base: SYSTEM.ADDRESS; d: LinkDevice; c: Controller; name: Plugins.Name;
+VAR index, bus, dev, fct, res, irq, i: LONGINT; base: ADDRESS; d: LinkDevice; c: Controller; name: Plugins.Name;
 BEGIN
 	index := 0;
 	WHILE (PCI.FindPCIDevice(device, vendor, index, bus, dev, fct) = PCI.Done) & (installed < 16) DO

@@ -178,7 +178,7 @@ END GetSubscription;
 
 PROCEDURE TraceIdString;
 VAR
-	bp, pc, nextbp : SYSTEM.ADDRESS;
+	bp, pc, nextbp : ADDRESS;
 	methadr, i : LONGINT;
 	module : Modules.Module;
 	process : Objects.Process;
@@ -205,7 +205,7 @@ BEGIN
 	(* Find the caller outside of this module *)
 	bp := Machine.CurrentBP ();
 	REPEAT
-		SYSTEM.GET(bp + SYSTEM.SIZEOF (SYSTEM.ADDRESS), pc);
+		SYSTEM.GET(bp + SIZEOF (ADDRESS), pc);
 		module := Modules.ThisModuleByAdr(pc);
 		SYSTEM.GET(bp, bp);
 		SYSTEM.GET(bp, nextbp)
@@ -214,7 +214,7 @@ BEGIN
 	(* IF bp = 0 the previous PC is kept. This is the PC of the last PAF. *)
 
 	(* Compute module pc *)
-	DEC(pc, SYSTEM.ADR(module.code[0]));
+	DEC(pc, ADDRESSOF(module.code[0]));
 	methadr := FindProc(module.refs, pc);
 
 	IF methadr # -1 THEN
@@ -279,8 +279,8 @@ BEGIN
 END TraceDebugBoolean;
 
 (** Write a block of memory in hex. *)
-PROCEDURE Memory*(adr: SYSTEM.ADDRESS; size : SYSTEM.SIZE);
-VAR i, j : SYSTEM.ADDRESS; ch : CHAR; out : Streams.Writer;
+PROCEDURE Memory*(adr: ADDRESS; size : SIZE);
+VAR i, j : ADDRESS; ch : CHAR; out : Streams.Writer;
 BEGIN {EXCLUSIVE}
 	TraceIdString();
 	out := logwindow.tw;
@@ -314,7 +314,7 @@ END Memory;
 (** Write a buffer in hex. *)
 PROCEDURE Buffer*(VAR buf : ARRAY OF CHAR; ofs, len : LONGINT);
 BEGIN
-	Memory(SYSTEM.ADR(buf[ofs]), len)
+	Memory(ADDRESSOF(buf[ofs]), len)
 END Buffer;
 
 (** Write "x" as a hexadecimal number.  "w" is the field width.  Always prints 16 digits. *)
@@ -560,7 +560,7 @@ BEGIN
 END CheckColor;
 
 (* Find a procedure in the reference block.  Return index of name, or -1 if not found. *)
-PROCEDURE FindProc(refs : Modules.Bytes; modpc : SYSTEM.ADDRESS) : LONGINT;
+PROCEDURE FindProc(refs : Modules.Bytes; modpc : ADDRESS) : LONGINT;
 VAR i, m, t, proc : LONGINT; ch : CHAR;
 BEGIN
 	proc := -1; i := 0; m := LEN(refs^);

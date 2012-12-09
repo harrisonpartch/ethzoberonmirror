@@ -80,7 +80,7 @@ TYPE
 		ledBuffer* : Usbdi.BufferPtr;
 
 		keyboardFileTable : POINTER TO ARRAY OF CHAR;
-		keytable* : SYSTEM.ADDRESS; (* used as pointer to keyboardFileTable[0] *)
+		keytable* : ADDRESS; (* used as pointer to keyboardFileTable[0] *)
 
 		keyDeadTime*, keyDeadTimeRepeat* : LONGINT;
 
@@ -134,7 +134,7 @@ TYPE
 			lastFlags := flags;
 		END HandleModifiers;
 
-		PROCEDURE TableFromFile*(CONST name: ARRAY OF CHAR): SYSTEM.ADDRESS;
+		PROCEDURE TableFromFile*(CONST name: ARRAY OF CHAR): ADDRESS;
 		VAR f: Files.File; r: Files.Rider; len: LONGINT;
 		BEGIN
 			KernelLog.String("UsbKeyboard: "); KernelLog.String(" Loading layout "); KernelLog.String(name); KernelLog.Ln;
@@ -146,7 +146,7 @@ TYPE
 					f.Set(r, 0); f.ReadBytes(r, keyboardFileTable^, 0, len);
 					IF r.res = 0 THEN
 						keyboardFileTable[len] := 0FFX;
-						RETURN SYSTEM.ADR(keyboardFileTable[0])
+						RETURN ADDRESSOF(keyboardFileTable[0])
 					ELSIF Debug THEN KernelLog.String("UsbKeyboard: TableFromFile: Error: res="); KernelLog.Int(r.res, 1); KernelLog.Ln;
 					END
 				ELSIF Debug THEN KernelLog.String("UsbKeyboard: TableFromFile: Error: len="); KernelLog.Int(len, 1); KernelLog.Ln;
@@ -157,13 +157,13 @@ TYPE
 		END TableFromFile;
 
 		PROCEDURE SetLayout*(CONST name : ARRAY OF CHAR);
-		VAR adr : SYSTEM.ADDRESS;
+		VAR adr : ADDRESS;
 		BEGIN
 			IF name = "KeyUS.Bin" THEN adr := TableUS();
 			ELSE adr := TableFromFile(name);
 			END;
 			IF adr = -1 THEN (* Leave the current setting *)
-			ELSE SYSTEM.PUT(SYSTEM.ADR(keytable), adr);
+			ELSE SYSTEM.PUT(ADDRESSOF(keytable), adr);
 			END;
 		END SetLayout;
 
@@ -290,7 +290,7 @@ TYPE
 		END EventHandler;
 
 		PROCEDURE Connect*(): BOOLEAN;
-		VAR status : Usbdi.Status; endpoint: LONGINT; i: SYSTEM.ADDRESS; k : ARRAY 32 OF CHAR;
+		VAR status : Usbdi.Status; endpoint: LONGINT; i: ADDRESS; k : ARRAY 32 OF CHAR;
 		BEGIN
 			IF ~SetProtocol(0) THEN
 				IF Debug THEN KernelLog.String("UsbKeyboard: Error: Cannot set keyboard into boot protocol mode."); KernelLog.Ln; END;
@@ -315,7 +315,7 @@ TYPE
 			i := -1;
 			IF k # "" THEN i := base.TableFromFile(k); END;
 			IF i = -1 THEN (* Fallback to default *) i := TableUS(); END;
-			SYSTEM.PUT(SYSTEM.ADR(base.keytable), i);
+			SYSTEM.PUT(ADDRESSOF(base.keytable), i);
 
 			(* Apply Numlock boot up state *)
 			Machine.GetConfig("NumLock", k);
@@ -366,7 +366,7 @@ VAR
  *)
 
 (* TableUS - US keyboard translation table (dead keys: ^=1, '=2, `=3, ~=4, "=5) *)
-PROCEDURE TableUS*(): SYSTEM.ADDRESS;
+PROCEDURE TableUS*(): ADDRESS;
 CODE {SYSTEM.i386}
 	CALL L1
 L1:
@@ -455,7 +455,7 @@ L1:
 END TableUS;
 
 (* maps USB usage ID's to Oberon character code *)
-PROCEDURE UsbScanTab*() : SYSTEM.ADDRESS;
+PROCEDURE UsbScanTab*() : ADDRESS;
 CODE {SYSTEM.i386}
 	CALL L1
 L1:
@@ -573,7 +573,7 @@ BEGIN
 END GetModifierKeysym;
 
 (* Translate - Translate scan code "c" to key. *)
-PROCEDURE Translate(flags, leds: SET;  c: CHAR; keyboardTable : SYSTEM.ADDRESS; VAR keyboardDeadKey, keyboardKeyVal : LONGINT): LONGINT;
+PROCEDURE Translate(flags, leds: SET;  c: CHAR; keyboardTable : ADDRESS; VAR keyboardDeadKey, keyboardKeyVal : LONGINT): LONGINT;
 CONST
 	(* The flags stored in the keytable are not the same as the ones defined in Inputs.
 		The parameter flags and leds use the Inputs constants.
@@ -595,7 +595,7 @@ CONST
 	Shift = {LShift, RShift};
 	DeadKey = 0;
 VAR
-	a: SYSTEM.ADDRESS;
+	a: ADDRESS;
 	s1: CHAR;
 	s : SET;
 	k: INTEGER;
@@ -621,11 +621,11 @@ BEGIN
 			k := 0;
 
 			SYSTEM.GET(a+3, SYSTEM.VAL(CHAR, s)); (* flags from table *)
-			dkn := SHORT(SHORT(SYSTEM.VAL(LONGINT, SYSTEM.LSH(s * {5..7}, -5))));
+			dkn := SHORT(SHORT(SYSTEM.VAL(LONGINT, LSH(s * {5..7}, -5))));
 
 			s := s * {DeadKey, ONumLock, OCapsLock, LAlt, RAlt, LCtrl, RCtrl};
 
-			IF ((s * Alt = SYSTEM.LSH(flags * Inputs.Alt,-2)) OR (ONumLock IN s) OR (s1>03BX))  & (dkn = keyboardDeadKey) THEN	(* Alt & dead keys match exactly *)
+			IF ((s * Alt = LSH(flags * Inputs.Alt,-2)) OR (ONumLock IN s) OR (s1>03BX))  & (dkn = keyboardDeadKey) THEN	(* Alt & dead keys match exactly *)
 
 				(* check if shift pressed *)
 				IF flags * Inputs.Shift # {} THEN INCL(s, LShift) END;

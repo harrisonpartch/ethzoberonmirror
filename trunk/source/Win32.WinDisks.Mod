@@ -221,7 +221,7 @@ VAR
 	PROCEDURE GetDiskGeometry( handle: Kernel32.HANDLE;  VAR pdg: DISK_GEOMETRY ): BOOLEAN;
 	VAR done, returned: LONGINT;
 	BEGIN
-		done := DeviceIoControl( handle, IOCTL_DISK_GET_DRIVE_GEOMETRY, NIL , 0, pdg, SYSTEM.SIZEOF( DISK_GEOMETRY ), returned, NIL );  RETURN done > 0;
+		done := DeviceIoControl( handle, IOCTL_DISK_GET_DRIVE_GEOMETRY, NIL , 0, pdg, SIZEOF( DISK_GEOMETRY ), returned, NIL );  RETURN done > 0;
 	END GetDiskGeometry;
 
 	PROCEDURE AppendInt( VAR name: ARRAY OF CHAR;  i: LONGINT );
@@ -264,7 +264,7 @@ VAR
 	PROCEDURE GetPhysicalDrive( VAR handle: Kernel32.HANDLE; flags: SET;  VAR name: ARRAY OF CHAR; context : Commands.Context );
 	VAR done, returned: LONGINT;  extents: VOLUME_DISK_EXTENTS;  drive: LONGINT;  first, last: LONGREAL;  bps: LONGREAL;  pdg: DISK_GEOMETRY;   (* number of first and last block used *)
 	BEGIN
-		done := DeviceIoControl( handle, VOLUME_GET_VOLUME_DISK_EXTENTS, NIL , 0, extents, SYSTEM.SIZEOF( VOLUME_DISK_EXTENTS ), returned, NIL );
+		done := DeviceIoControl( handle, VOLUME_GET_VOLUME_DISK_EXTENTS, NIL , 0, extents, SIZEOF( VOLUME_DISK_EXTENTS ), returned, NIL );
 		IF done > 0 THEN
 			IF extents.NumberOfDiskExtents = 0 THEN
 				context.error.String( "no disk extents used, probably the drive is physical already " );  context.error.Ln;
@@ -357,8 +357,8 @@ VAR
 	VAR mod: Kernel32.HMODULE;
 		str: ARRAY 64 OF CHAR;
 	BEGIN
-		str := "Kernel32.DLL";  mod := Kernel32.LoadLibrary( str );  str := "DeviceIoControl";  Kernel32.GetProcAddress( mod, str, SYSTEM.VAL( LONGINT, DeviceIoControl ) );  str := "SetFilePointer";
-		Kernel32.GetProcAddress( mod, str, SYSTEM.VAL( LONGINT, SetFilePointer ) );
+		str := "Kernel32.DLL";  mod := Kernel32.LoadLibrary( str );  str := "DeviceIoControl";  Kernel32.GetProcAddress( mod, str, SYSTEM.VAL( ADDRESS, DeviceIoControl ) );  str := "SetFilePointer";
+		Kernel32.GetProcAddress( mod, str, SYSTEM.VAL( ADDRESS, SetFilePointer ) );
 		IF DeviceIoControl = NIL THEN HALT( 100 ) END;
 		IF SetFilePointer = NIL THEN HALT( 100 ) END;
 		Modules.InstallTermHandler( Cleanup );

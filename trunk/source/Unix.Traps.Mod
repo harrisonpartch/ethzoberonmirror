@@ -11,7 +11,7 @@ IMPORT S := SYSTEM, Trace, Glue, Unix, Objects, Machine, Heaps, Streams, Modules
 
 
 TYPE 	
-	Address = S.ADDRESS;
+	Address = ADDRESS;
 	
 	SigHandler = PROCEDURE ( sig: LONGINT; scp, ucp, dum: Address );  
 	

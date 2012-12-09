@@ -1371,7 +1371,7 @@ BEGIN
 	RETURN (string = "CHAR") OR (string = "ANY") OR (string = "BOOLEAN") OR (string = "SET")
 		OR (string = "SHORTINT") OR (string = "INTEGER") OR (string = "LONGINT") OR (string = "HUGEINT")
 		OR (string = "REAL") OR (string = "LONGREAL")
-		OR (string = "SYSTEM.ADDRESS") OR (string = "SYSTEM.SIZE") OR (string = "SYSTEM.BYTE");
+		OR (string = "ADDRESS") OR (string = "SIZE") OR (string = "SYSTEM.BYTE");
 END IsBasicType;
 
 PROCEDURE FindImport(CONST name : ARRAY OF CHAR; module : ModuleParser.Module; VAR importName : ARRAY OF CHAR);

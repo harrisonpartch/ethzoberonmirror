@@ -62,7 +62,7 @@ CONST
 		(* system proper procedures *)
 		systemGet  systemPut  systemMove  systemNew systemRef
 		systemIncr Reshape
-		systemZeroCopy systemTypeCode systemHalt
+		systemTypeCode systemHalt
 		systemPut8 systemPut16 systemPut32 systemPut64 systemTrace
 		(* system functions *)
 		systemAdr  systemBit  systemGet64  systemGet32  systemGet16  systemGet8
@@ -85,7 +85,7 @@ CONST
 	(* system proper procedures *)
 	systemGet*= Im+1; systemPut*= systemGet+1; systemMove*= systemPut+1;
 	systemNew*= systemMove+1; systemRef *= systemNew+1;
-	systemIncr*= systemRef+1; Reshape*= systemIncr+1; systemZeroCopy*= Reshape+1; systemTypeCode*= systemZeroCopy+1; systemHalt*= systemTypeCode+1;
+	systemIncr*= systemRef+1; Reshape*= systemIncr+1; systemTypeCode*= Reshape+1; systemHalt*= systemTypeCode+1;
 	systemPut8*= systemHalt+1; systemPut16*= systemPut8+1; systemPut32*= systemPut16+1; systemPut64*= systemPut32+1;
 	systemTrace*= systemPut64+1;
 
@@ -563,36 +563,37 @@ TYPE
 		system.setType := SyntaxTree.NewSetType(system.addressSize);
 		(* type declarations *)
 		DeclareType(system.byteType,"BYTE",system.systemScope);
-		DeclareType(system.addressType,"ADDRESS",system.systemScope); (* mapped to longint *)
-		DeclareType(system.sizeType,"SIZE",system.systemScope); (* mapped to longint *)
+		DeclareType(system.addressType,"ADDRESS",system.globalScope);
+		DeclareType(system.sizeType,"SIZE",system.globalScope);
 		(*DeclareType(Same,"SAME",system.systemScope);*)
 
 		(* system builtin procedures *)
 		NewBuiltin(systemGet,"GET",system.systemScope,TRUE);
 		NewBuiltin(systemPut,"PUT",system.systemScope,TRUE);
-		NewBuiltin(systemMove,"MOVE",system.systemScope,TRUE);
-		NewBuiltin(systemNew,"NEW",system.systemScope,FALSE);
-		NewBuiltin(systemRef,"REF",system.systemScope,FALSE);
-		NewBuiltin(Reshape,"RESHAPE",system.globalScope,TRUE);
-		NewBuiltin(systemZeroCopy,"ZEROCOPY",system.globalScope,TRUE);
-		NewBuiltin(systemHalt,"HALT",system.systemScope,TRUE);
 		NewBuiltin(systemPut64,"PUT64",system.systemScope,TRUE);
 		NewBuiltin(systemPut32,"PUT32",system.systemScope,TRUE);
 		NewBuiltin(systemPut16,"PUT16",system.systemScope,TRUE);
 		NewBuiltin(systemPut8,"PUT8",system.systemScope,TRUE);
-		NewBuiltin(systemAdr,"ADR",system.systemScope,TRUE);
-		NewBuiltin(systemBit,"BIT",system.systemScope,TRUE);
 		NewBuiltin(systemGet64,"GET64",system.systemScope,TRUE);
 		NewBuiltin(systemGet32,"GET32",system.systemScope,TRUE);
 		NewBuiltin(systemGet16,"GET16",system.systemScope,TRUE);
 		NewBuiltin(systemGet8,"GET8",system.systemScope,TRUE);
-		NewBuiltin(systemLsh,"LSH",system.systemScope,TRUE);
-		NewBuiltin(systemRot,"ROT",system.systemScope,TRUE);
 		NewBuiltin(systemVal,"VAL",system.systemScope,TRUE);
-		NewBuiltin(systemIncr,"INCR",system.systemScope,TRUE);
+		NewBuiltin(systemMove,"MOVE",system.systemScope,TRUE);
+		NewBuiltin(systemRef,"REF",system.systemScope,FALSE);
+		NewBuiltin(systemNew,"NEW",system.systemScope,FALSE);
 		NewBuiltin(systemTypeCode,"TYPECODE",system.systemScope,TRUE);
-		NewBuiltin(systemSizeOf,"SIZEOF",system.systemScope,TRUE);
+		NewBuiltin(systemHalt,"HALT",system.systemScope,TRUE);
+
+		NewBuiltin(Reshape,"RESHAPE",system.globalScope,TRUE);
+		NewBuiltin(systemAdr,"ADDRESSOF",system.globalScope,TRUE);
+		NewBuiltin(systemLsh,"LSH",system.globalScope,TRUE);
+		NewBuiltin(systemRot,"ROT",system.globalScope,TRUE);
+		NewBuiltin(systemIncr,"INCR",system.globalScope,TRUE);
+		NewBuiltin(systemSizeOf,"SIZEOF",system.globalScope,TRUE);
+
 		NewBuiltin(systemMsk,"MSK",system.systemScope,TRUE);
+		NewBuiltin(systemBit,"BIT",system.systemScope,TRUE);
 
 		(* Set up system types *)
 		DeclareType(system.characterType,"CHAR",system.globalScope);
@@ -690,6 +691,9 @@ TYPE
 		OperatorDefined(system,Short,TRUE);
 		OperatorDefined(system,Sum,TRUE);
 		OperatorDefined(system,Dim,TRUE);
+		OperatorDefined(system,Scanner.Address, TRUE);
+		OperatorDefined(system,Scanner.Size, TRUE);
+		OperatorDefined(system,Scanner.Alias, TRUE);
 	END SetDefaultOperators;
 
 	PROCEDURE DefaultSystem*(): System;

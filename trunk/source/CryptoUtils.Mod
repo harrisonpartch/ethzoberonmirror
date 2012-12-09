@@ -201,9 +201,9 @@ VAR
 
 
 	PROCEDURE XORBlock*( VAR block, iv: ARRAY OF S.BYTE );
-	VAR a1, a2: S.ADDRESS; s1, s2: SET; i: LONGINT;
+	VAR a1, a2: ADDRESS; s1, s2: SET; i: LONGINT;
 	BEGIN
-		a1 := S.ADR( block );  a2 := S.ADR( iv );
+		a1 := ADDRESSOF( block );  a2 := ADDRESSOF( iv );
 		FOR i := 1 TO LEN( block ) DIV 4 DO
 			S.GET( a1, s1 );  S.GET( a2, s2 );  S.PUT( a1, s1 / s2 );
 			INC( a1, 4 ); INC( a2, 4 )
@@ -213,9 +213,9 @@ VAR
 
 	(* copy char buffer to 32-bit words in block. big endian format *)
 	PROCEDURE CharsToBlockBE*( CONST buf: ARRAY OF CHAR; pos: LONGINT; VAR block: ARRAY OF S.BYTE );
-	VAR i: LONGINT; a: S.ADDRESS;
+	VAR i: LONGINT; a: ADDRESS;
 	BEGIN
-		a := S.ADR( block );
+		a := ADDRESSOF( block );
 		FOR i := 1 TO LEN( block ) DIV 4 DO
 			S.PUT( a,
 					ASH( LONG( ORD( buf[pos + 0] ) ), 24 ) +
@@ -227,9 +227,9 @@ VAR
 	END CharsToBlockBE;
 
 	PROCEDURE CharsToBlockLE*( CONST buf: ARRAY OF CHAR;  pos: LONGINT;  VAR block: ARRAY OF S.BYTE );
-	VAR i: LONGINT;  a: S.ADDRESS;
+	VAR i: LONGINT;  a: ADDRESS;
 	BEGIN
-		a := S.ADR( block );
+		a := ADDRESSOF( block );
 		FOR i := 1 TO LEN( block ) DIV 4 DO
 			S.PUT( a,
 					ASH( LONG( ORD( buf[pos + 3] ) ), 24 ) +
@@ -242,9 +242,9 @@ VAR
 
 	(* copy 32bit words in block to char buffer. bigendian format *)
 	PROCEDURE BlockToCharsBE*( CONST block: ARRAY OF S.BYTE;  VAR buf: ARRAY OF CHAR; pos: LONGINT );
-	VAR a: S.ADDRESS; i, w: LONGINT;
+	VAR a: ADDRESS; i, w: LONGINT;
 	BEGIN
-		a := S.ADR( block );
+		a := ADDRESSOF( block );
 		FOR i := 1 TO LEN( block ) DIV 4 DO
 			S.GET( a, w );  INC( a, 4 );
 			buf[pos + 3] := CHR( w MOD 256 );  w := w DIV 256;
@@ -256,9 +256,9 @@ VAR
 	END BlockToCharsBE;
 
 	PROCEDURE BlockToCharsLE*( CONST block: ARRAY OF S.BYTE;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
-	VAR a: S.ADDRESS;  i, w: LONGINT;
+	VAR a: ADDRESS;  i, w: LONGINT;
 	BEGIN
-		a := S.ADR( block );
+		a := ADDRESSOF( block );
 		FOR i := 1 TO LEN( block ) DIV 4 DO
 			S.GET( a, w );  INC( a, 4 );
 			buf[pos + 0] := CHR( w MOD 100H );  w := w DIV 100H;

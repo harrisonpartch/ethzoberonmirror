@@ -177,14 +177,14 @@ TYPE
 	CueSheet = OBJECT
 		VAR
 			nofEntries, cur: LONGINT;
-			adr: SYSTEM.ADDRESS;
+			adr: ADDRESS;
 			buf: POINTER TO ARRAY OF CueSheetEntry;
 
 		PROCEDURE &New*(compilation: Compilation);
 		BEGIN
 			nofEntries := 2*compilation.nofTracks - 2;
 			NEW(buf, nofEntries);
-			adr := SYSTEM.ADR(buf[0]);
+			adr := ADDRESSOF(buf[0]);
 			GenerateSheet(compilation.tracks, compilation.nofTracks);
 		END New;
 
@@ -392,7 +392,7 @@ TYPE
 			capacity: Lib.BufferCapacity;
 			res: LONGINT;
 		BEGIN
-			res := Lib.ReadBufferCapacity(dev, FALSE, SYSTEM.ADR(capacity), SYSTEM.SIZEOF(Lib.BufferCapacity));
+			res := Lib.ReadBufferCapacity(dev, FALSE, ADDRESSOF(capacity), SIZEOF(Lib.BufferCapacity));
 			IF res = ResOk THEN
 				totalCapacity := Utils.ConvertBE32Int(capacity.BufferLength);
 				unusedCapacity := Utils.ConvertBE32Int(capacity.BlankLength);
@@ -462,7 +462,7 @@ TYPE
 				NEW(cuesheet, compilation);
 				IF Debug THEN cuesheet.Print() END;
 				recStatus.operation := SendingCueSheet; StatusChanged();
-				IF Lib.SendCueSheet(dev, cuesheet.adr, cuesheet.nofEntries*SYSTEM.SIZEOF(CueSheetEntry)) # ResOk THEN
+				IF Lib.SendCueSheet(dev, cuesheet.adr, cuesheet.nofEntries*SIZEOF(CueSheetEntry)) # ResOk THEN
 					res := dev.RequestSense(); Abort(); RETURN ErrSendingCueSheet;
 				END;
 				(* in case of multisession. but most recorder don't support multisession in sao mode anyway *)
@@ -595,7 +595,7 @@ TYPE
 			timestamp := Kernel.GetTicks ();
 			NEW(discBuf, track.bytespt DIV 4);
 			NEW(fileBuf, track.bytespt + 4);
-			ofs := SYSTEM.VAL (LONGINT, 4 - SYSTEM.ADR(fileBuf^) MOD 4);
+			ofs := SYSTEM.VAL (LONGINT, 4 - ADDRESSOF(fileBuf^) MOD 4);
 
 			Files.OpenReader(r, track.file, 0);
 			secs := track.nofsecs; lba := track.startSec;
@@ -604,11 +604,11 @@ TYPE
 				IF secs < track.secspt THEN
 					nofBlocks := secs;
 				END;
-				IF dev.TransferEx(Disks.Read, lba, nofBlocks, SYSTEM.ADR(discBuf^), dma & UseDma) # ResOk THEN RETURN ResErr END;
-				(* IF Lib.ReadCD(dev, lba, nofBlocks, SYSTEM.ADR(discBuf^), nofBlocks*track.secsize, type, Lib.SCNoData, flags, dma & UseDma) # ResOk THEN RETURN ResErr END; *)
+				IF dev.TransferEx(Disks.Read, lba, nofBlocks, ADDRESSOF(discBuf^), dma & UseDma) # ResOk THEN RETURN ResErr END;
+				(* IF Lib.ReadCD(dev, lba, nofBlocks, ADDRESSOF(discBuf^), nofBlocks*track.secsize, type, Lib.SCNoData, flags, dma & UseDma) # ResOk THEN RETURN ResErr END; *)
 
 				r.Bytes(fileBuf^, ofs, nofBlocks*track.secsize, count);
-				IF ~CompareData(SYSTEM.ADR(fileBuf^) + ofs, SYSTEM.ADR(discBuf^), nofBlocks*track.secsize) THEN RETURN ResErr END;
+				IF ~CompareData(ADDRESSOF(fileBuf^) + ofs, ADDRESSOF(discBuf^), nofBlocks*track.secsize) THEN RETURN ResErr END;
 				INC(lba, nofBlocks); DEC(secs, nofBlocks);
 
 				INC(recStatus.secsVerified, nofBlocks);
@@ -620,7 +620,7 @@ TYPE
 			RETURN ResOk;
 		END VerifyTrack;
 
-		PROCEDURE CompareData(adr1, adr2: SYSTEM.ADDRESS; len: LONGINT): BOOLEAN;
+		PROCEDURE CompareData(adr1, adr2: ADDRESS; len: LONGINT): BOOLEAN;
 		VAR
 			i: LONGINT;
 		BEGIN
@@ -645,7 +645,7 @@ TYPE
 			reader := NIL;
 		END Abort;
 
-		PROCEDURE Write(op, startSec, nofBlocks: LONGINT; adr: SYSTEM.ADDRESS): LONGINT;
+		PROCEDURE Write(op, startSec, nofBlocks: LONGINT; adr: ADDRESS): LONGINT;
 		VAR
 			res: LONGINT;
 		BEGIN
@@ -684,7 +684,7 @@ TYPE
 					nofBlocks := secsToPad;
 				END;
 
-				res := Write(op, startSec, nofBlocks, SYSTEM.ADR(buf^));
+				res := Write(op, startSec, nofBlocks, ADDRESSOF(buf^));
 
 				IF res # ResOk THEN RETURN ResErr END;
 				INC(startSec, nofBlocks);
@@ -709,7 +709,7 @@ TYPE
 				count := reader.GetBuffer(buf);
 				nofBlocks := count DIV track.secsize;
 
-				res := Write(op, startSec, nofBlocks, SYSTEM.ADR(buf^));
+				res := Write(op, startSec, nofBlocks, ADDRESSOF(buf^));
 				IF res # ResOk THEN RETURN ResErr END;
 
 				INC(startSec, nofBlocks);
@@ -756,7 +756,7 @@ TYPE
 
 			IF dev.ReadCapacity(secsize, disc.usedBlocks) # ResOk THEN RETURN ResErr END;
 
-			IF  Lib.ReadDiscInformation(dev, Lib.DTDiscInfoBlock, SYSTEM.ADR(info), SYSTEM.SIZEOF(Lib.DiscInfo)) # ResOk THEN RETURN ResErr END;
+			IF  Lib.ReadDiscInformation(dev, Lib.DTDiscInfoBlock, ADDRESSOF(info), SIZEOF(Lib.DiscInfo)) # ResOk THEN RETURN ResErr END;
 
 			disc.erasable := Lib.DIBErasableBit IN SYSTEM.VAL(SET, info.Byte2);
 			disc.status := Lib.GetField(info.Byte2, Lib.DIBDiscStatusMask, Lib.DIBDiscStatusOfs);
@@ -781,7 +781,7 @@ TYPE
 
 		PROCEDURE GetDiscInfoEx*(disc: DiscEx): LONGINT;
 		VAR
-			adr: SYSTEM.ADDRESS;
+			adr: ADDRESS;
 			res, clvLow, clvHigh: LONGINT;
 			descr: Lib.ATIPDescriptorPtr;
 			buf: POINTER TO ARRAY OF CHAR;
@@ -789,13 +789,13 @@ TYPE
 			res := GetDiscInfo(disc);
 			IF res # ResOk THEN RETURN res END;
 
-			NEW(buf, SYSTEM.SIZEOF(Lib.ATIPHeader) + SYSTEM.SIZEOF(Lib.ATIPDescriptor));
+			NEW(buf, SIZEOF(Lib.ATIPHeader) + SIZEOF(Lib.ATIPDescriptor));
 
-			adr := SYSTEM.ADR(buf[0]);
+			adr := ADDRESSOF(buf[0]);
 			IF Lib.ReadToc(dev, FALSE, Lib.TCFormatATIP, 0, adr, LEN(buf^)) # ResOk THEN RETURN ResErr END;
 
-			descr := SYSTEM.VAL(Lib.ATIPDescriptorPtr, adr + SYSTEM.SIZEOF(Lib.ATIPHeader));
-			ASSERT(SYSTEM.ADR(descr^) = SYSTEM.VAL(SYSTEM.ADDRESS, descr));
+			descr := SYSTEM.VAL(Lib.ATIPDescriptorPtr, adr + SIZEOF(Lib.ATIPHeader));
+			ASSERT(ADDRESSOF(descr^) = SYSTEM.VAL(ADDRESS, descr));
 
 			disc.subtype := Lib.GetField(descr.Byte2, Lib.ATSubTypeMask, Lib.ATSubTypeOfs);
 			IF Lib.ATCdRwBit IN SYSTEM.VAL(SET, descr.Byte2) THEN
@@ -826,7 +826,7 @@ TYPE
 			res: LONGINT;
 			page: Lib.WriteParameterPage;
 		BEGIN
-			res := Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPWriteParameters, SYSTEM.ADR(page), SYSTEM.SIZEOF(Lib.WriteParameterPage));
+			res := Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPWriteParameters, ADDRESSOF(page), SIZEOF(Lib.WriteParameterPage));
 			IF res = ResOk THEN
 				params.writeType := Lib.GetField(page.Byte2, Lib.MPWWriteTypeMask, Lib.MPWWriteTypeOfs);
 				params.testWrite := Lib.MPWTestWriteBit IN SYSTEM.VAL(SET, page.Byte2);
@@ -844,7 +844,7 @@ TYPE
 			tmp: LONGINT;
 
 		BEGIN
-			IF Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPWriteParameters, SYSTEM.ADR(page), SYSTEM.SIZEOF(Lib.WriteParameterPage)) # ResOk THEN
+			IF Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPWriteParameters, ADDRESSOF(page), SIZEOF(Lib.WriteParameterPage)) # ResOk THEN
 				tmp :=dev.RequestSense(); RETURN ResErr;
 			 END;
 
@@ -868,7 +868,7 @@ TYPE
 
 			Lib.SetField(page.Byte4, Lib.MPWDataBlockMask, Lib.MPWDataBlockOfs, params.DBType);
 
-			IF Lib.ModeSelect(dev, save, SYSTEM.ADR(page), SYSTEM.SIZEOF(Lib.WriteParameterPage)) # ResOk THEN
+			IF Lib.ModeSelect(dev, save, ADDRESSOF(page), SIZEOF(Lib.WriteParameterPage)) # ResOk THEN
 				tmp := dev.RequestSense(); RETURN ResErr;
 			END;
 			RETURN ResOk;
@@ -879,7 +879,7 @@ TYPE
 			page: Lib.WriteParameterPage;
 			tmp: LONGINT;
 		BEGIN
-			IF Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPWriteParameters, SYSTEM.ADR(page), SYSTEM.SIZEOF(Lib.WriteParameterPage)) # ResOk THEN
+			IF Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPWriteParameters, ADDRESSOF(page), SIZEOF(Lib.WriteParameterPage)) # ResOk THEN
 				tmp := dev.RequestSense(); RETURN ResErr;
 			END;
 			KernelLog.String("Byte 0: "); KernelLog.Bits(SYSTEM.VAL(SET, page.Byte0), 0, 8); KernelLog.Ln;
@@ -1198,7 +1198,7 @@ PROCEDURE GetCapabilities(VAR dev: ATADisks.DeviceATAPI; VAR cap: Capabilities) 
 VAR
 	buf : POINTER TO ARRAY OF CHAR;
 	ofs, size, numSpeeds, i, curSpeed, maxSpeed, speed, tmp: LONGINT;
-	adr: SYSTEM.ADDRESS;
+	adr: ADDRESS;
 	header: Lib.ModeHeader;
 	page: Lib.CapabilityPagePtr;
 	speedDescr: Lib.SpeedDescriptorPtr;
@@ -1208,7 +1208,7 @@ VAR
 BEGIN
 	(* get mode parameter header to determine size of whole page *)
 
-	IF Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPCapabilities, SYSTEM.ADR(header), SYSTEM.SIZEOF(Lib.ModeHeader)) # ResOk THEN RETURN ResErr END;
+	IF Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPCapabilities, ADDRESSOF(header), SIZEOF(Lib.ModeHeader)) # ResOk THEN RETURN ResErr END;
 
 	size := Utils.ConvertBE16Int(header.DataLength)+ 2;  (* size of whole page *)
 	(* we need an array here since Capability mode page has variable length *)
@@ -1216,10 +1216,10 @@ BEGIN
 
 	(* now get whole capabilites page *)
 
-	adr := SYSTEM.ADR(buf[0]);
+	adr := ADDRESSOF(buf[0]);
 	IF Lib.ModeSense(dev, Lib.MPCurrent, Lib.MPCapabilities, adr, size) # ResOk THEN RETURN ResErr END;
 	page := SYSTEM.VAL(Lib.CapabilityPagePtr, adr);
-	ASSERT(SYSTEM.ADR(page^) = SYSTEM.VAL(SYSTEM.ADDRESS, page));
+	ASSERT(ADDRESSOF(page^) = SYSTEM.VAL(ADDRESS, page));
 
 	(* Media Functions *)
 	IF Lib.MPCCdrBit IN SYSTEM.VAL(SET, page.Byte3) THEN INCL(cap.mediaFunc, MFCdr) END;
@@ -1242,9 +1242,9 @@ BEGIN
 	maxSpeed := Utils.ConvertBE16Int(page.MaxWriteSpeed); DEC(maxSpeed, maxSpeed MOD 2*SingleSpeed);
 
 	(* get first descriptor *)
-	INC(adr, SYSTEM.SIZEOF(Lib.CapabilityPage));
+	INC(adr, SIZEOF(Lib.CapabilityPage));
 	speedDescr := SYSTEM.VAL(Lib.SpeedDescriptorPtr, adr);
-	INC(adr, SYSTEM.SIZEOF(Lib.SpeedDescriptor));
+	INC(adr, SIZEOF(Lib.SpeedDescriptor));
 	speed := Utils.ConvertBE16Int(speedDescr.WriteSpeed);
 
 	IF ListCurrentMaxSpeeds THEN
@@ -1266,26 +1266,26 @@ BEGIN
 	FOR i := ofs TO numSpeeds-1 DO
 		speedDescr := SYSTEM.VAL(Lib.SpeedDescriptorPtr, adr);
 		cap.writeSpeeds[i] := Utils.ConvertBE16Int(speedDescr.WriteSpeed);
-		INC(adr, SYSTEM.SIZEOF(Lib.SpeedDescriptor));
+		INC(adr, SIZEOF(Lib.SpeedDescriptor));
 	END;
 
 	(* Get Performance. If we get more speeds here, we use the descriptors provided by this command *)
 	(* first only get header *)
 
-	IF Lib.GetPerformance(dev, Lib.PTypeWriteSpeed, 0H, 0H, 0, SYSTEM.ADR(writeSpeedHeader), SYSTEM.SIZEOF(Lib.WriteSpeedHeader)) # ResOk THEN
+	IF Lib.GetPerformance(dev, Lib.PTypeWriteSpeed, 0H, 0H, 0, ADDRESSOF(writeSpeedHeader), SIZEOF(Lib.WriteSpeedHeader)) # ResOk THEN
 		size := Utils.ConvertBE32Int(writeSpeedHeader.DataLength) + 4;
-		tmp := (size - SYSTEM.SIZEOF(Lib.WriteSpeedHeader)) DIV SYSTEM.SIZEOF(Lib.WriteSpeedDescr);
+		tmp := (size - SIZEOF(Lib.WriteSpeedHeader)) DIV SIZEOF(Lib.WriteSpeedDescr);
 		IF tmp > numSpeeds THEN
 			numSpeeds := tmp;
 			NEW(buf, size);
-			adr := SYSTEM.ADR(buf[0]);
+			adr := ADDRESSOF(buf[0]);
 			IF Lib.GetPerformance(dev, Lib.PTypeWriteSpeed, 0H, 0H, numSpeeds, adr, size) # ResOk THEN RETURN ResErr END;
-			INC(adr, SYSTEM.SIZEOF(Lib.WriteSpeedHeader));
+			INC(adr, SIZEOF(Lib.WriteSpeedHeader));
 			NEW(cap.writeSpeeds, numSpeeds);
 			FOR i:=0 TO numSpeeds-1 DO
 				writeSpeedDescr := SYSTEM.VAL(Lib.WriteSpeedDescrPtr, adr);
 				cap.writeSpeeds[i] := Utils.ConvertBE32Int(writeSpeedDescr.WriteSpeed);
-				INC(adr, SYSTEM.SIZEOF(Lib.WriteSpeedDescr));
+				INC(adr, SIZEOF(Lib.WriteSpeedDescr));
 			END;
 		END;
 	END;
@@ -1294,7 +1294,7 @@ BEGIN
 	InsertionSort(cap.writeSpeeds^, LEN(cap.writeSpeeds));
 
 	(* GetConfiguration provides further information *)
-	IF Lib.GetConfiguration(dev, Lib.FOne, Lib.FMastering, SYSTEM.ADR(feature), SYSTEM.SIZEOF(Lib.MasteringFeature)) # ResOk THEN RETURN ResErr END;
+	IF Lib.GetConfiguration(dev, Lib.FOne, Lib.FMastering, ADDRESSOF(feature), SIZEOF(Lib.MasteringFeature)) # ResOk THEN RETURN ResErr END;
 	IF  Lib.FDMSaoBit IN SYSTEM.VAL(SET, feature.Byte4) THEN INCL(cap.mediaFunc, MFSao) END;
 	RETURN ResOk;
 END GetCapabilities;

@@ -8,7 +8,7 @@ CONST
 (** Copy text of Windows clipboard to text *)
 PROCEDURE GetFromClipboard(text : Texts.Text);
 VAR
-	hMem: Kernel32.HGLOBAL; adr: Kernel32.ADDRESS;
+	hMem: Kernel32.HGLOBAL; adr: ADDRESS;
 	hBool: Kernel32.BOOL;
 	ch : CHAR;
 	chUnicode: ARRAY 2 OF LONGINT;
@@ -37,7 +37,7 @@ END GetFromClipboard;
 (** Copy text to Windows clipboard *)
 PROCEDURE PutToClipboard(text : Texts.Text);
 VAR
-	hMem: Kernel32.HGLOBAL; adr: Kernel32.ADDRESS;
+	hMem: Kernel32.HGLOBAL; adr: ADDRESS;
 	hBool: Kernel32.BOOL;
 	chBuff: POINTER TO ARRAY OF CHAR;
 	size,requiredSize: LONGINT;

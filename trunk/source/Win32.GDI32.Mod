@@ -220,7 +220,7 @@ dwOffset: LONGINT):HBitmap;
 	(** The GdiFlush function flushes the calling thread's current batch. *)
 	GdiFlush-: PROCEDURE {WINAPI} (): Kernel32.BOOL;
 	(** The GetBitmapBits function copies the bitmap bits of a specified bitmap into a buffer. *)
-	GetBitmapBits-: PROCEDURE {WINAPI} (hbmp: HBitmap;  cbBuffer: LONGINT;  lpvBits: Kernel32.ADDRESS): LONGINT;
+	GetBitmapBits-: PROCEDURE {WINAPI} (hbmp: HBitmap;  cbBuffer: LONGINT;  lpvBits: ADDRESS): LONGINT;
 	(** The GetCharABCWidths function retrieves the widths, in logical units, of consecutive characters in a specified range
 			from the current TrueType font. *)
 	GetCharABCWidths-: PROCEDURE {WINAPI} (hdc: User32.HDC;  uFirstChar, uLastChar: LONGINT;  VAR lpabc: ABC): Kernel32.BOOL;
@@ -237,7 +237,7 @@ dwOffset: LONGINT):HBitmap;
 	GetDeviceCaps-: PROCEDURE {WINAPI} (hdc: User32.HDC;  nIndex: LONGINT): LONGINT;
 	(** The GetDIBits function retrieves the bits of the specified bitmap and copies them into a buffer using the specified
 			format. *)
-	GetDIBits-: PROCEDURE {WINAPI} (hdc: User32.HDC;  hbmp: HBitmap;  uStartScanLine, cScanLines: LONGINT;  lpvBits: Kernel32.ADDRESS;  VAR lpbi: BitmapInfo;  uUsage: LONGINT): LONGINT;
+	GetDIBits-: PROCEDURE {WINAPI} (hdc: User32.HDC;  hbmp: HBitmap;  uStartScanLine, cScanLines: LONGINT;  lpvBits: ADDRESS;  VAR lpbi: BitmapInfo;  uUsage: LONGINT): LONGINT;
 	(** The GetGlyphOutline function retrieves the outline or bitmap for a character in the TrueType font that is selected
 			into the specified device context. *)
 	GetGlyphOutline-: PROCEDURE {WINAPI} (hdc: User32.HDC;  uChar, uFormat: LONGINT;  lpgm: GlyphMetrics;  cbBuffer: LONGINT;  VAR lpvBuffer: ARRAY   OF SYSTEM.BYTE;  lpmat2: Mat2): LONGINT;
@@ -299,7 +299,7 @@ dwOffset: LONGINT):HBitmap;
 	(** The SetDIBitsToDevice function sets the pixels in the specified rectangle on the device that is associated with the
 			destination device context using color data from a DIB. *)
 	SetDIBitsToDevice-: PROCEDURE {WINAPI} (hdc: User32.HDC;  XDest, YDest, dwWidth, dwHeight, XSrc, YSrc, uStartScan, cScanLines: LONGINT;
-	lpvBits: Kernel32.ADDRESS;  VAR lpbmi: BitmapInfo;  fuColorUse: LONGINT): LONGINT;
+	lpvBits: ADDRESS;  VAR lpbmi: BitmapInfo;  fuColorUse: LONGINT): LONGINT;
 	(** The SetMapMode function sets the mapping mode of the specified device context. *)
 	SetMapMode-: PROCEDURE {WINAPI} (hdc: User32.HDC;  fnMapMode: LONGINT): LONGINT;
 	(** The SetROP2 function sets the current foreground mix mode. *)
@@ -324,7 +324,7 @@ dwOffset: LONGINT):HBitmap;
 	StretchBlt-: PROCEDURE {WINAPI} (hdc: User32.HDC;  nXOriginDest, nYOriginDest, nWidthDest, nHeightDest: LONGINT;
 	 hdcSrc: User32.HDC;  nXOriginSrc, nYOriginSrc, nWidthSrc, nHeightSrc, dwRop: LONGINT): Kernel32.BOOL;
 	StretchDIBits-: PROCEDURE {WINAPI} (hdc: User32.HDC;  XDest, YDest, nDestWidth, nDestHeight, XSrc, YSrc, nSrcWidth, nSrcHeight: LONGINT;
-	lpBits: Kernel32.ADDRESS;  VAR lpBitsInfo: BitmapInfo;  iUsage, dwRop: LONGINT): LONGINT;
+	lpBits: ADDRESS;  VAR lpBitsInfo: BitmapInfo;  iUsage, dwRop: LONGINT): LONGINT;
 	(** The TextOut function writes a character string at the specified location, using the currently selected font,
 			background color, and text color. *)
 	TextOut-: PROCEDURE {WINAPI} (hdc: User32.HDC;  nXStart, nYStart: LONGINT;  VAR lpString: ARRAY   OF CHAR;  cbString: LONGINT): Kernel32.BOOL;
@@ -354,7 +354,7 @@ BEGIN
 	RETURN ASH(col, -16) MOD 256
 END Blue;
 
-PROCEDURE GetProcAddress(hModule: LONGINT; VAR adr: LONGINT; procName: ARRAY OF CHAR);
+PROCEDURE GetProcAddress(hModule: ADDRESS; VAR adr: ADDRESS; procName: ARRAY OF CHAR);
 BEGIN
 	Kernel32.GetProcAddress(hModule,procName,adr);
 END GetProcAddress;
@@ -375,77 +375,77 @@ BEGIN
 	str := "GDI32.DLL";
 	mod := Kernel32.LoadLibrary(str);
 
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,AddFontResource ),"AddFontResourceA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,BitBlt ),"BitBlt");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CloseEnhMetaFile ),"CloseEnhMetaFile");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CloseMetaFile ),"CloseMetaFile");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateBitmap ),"CreateBitmap");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateCompatibleBitmap ),"CreateCompatibleBitmap");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateCompatibleDC ),"CreateCompatibleDC");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateDC ),"CreateDCA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateDIBSection ),"CreateDIBSection");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateEnhMetaFile ),"CreateEnhMetaFileA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateFontIndirect ),"CreateFontIndirectA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateHatchBrush ),"CreateHatchBrush");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateMetaFile ),"CreateMetaFileA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreatePatternBrush ),"CreatePatternBrush");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreatePen ),"CreatePen");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateSolidBrush ),"CreateSolidBrush");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateRectRgn ),"CreateRectRgn");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,CreateRectRgnIndirect ),"CreateRectRgnIndirect");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,DeleteDC ),"DeleteDC");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,DeleteObject ),"DeleteObject");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,DPtoLP ),"DPtoLP");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,Ellipse ),"Ellipse");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,EndDoc ),"EndDoc");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,EndPage ),"EndPage");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,EnumFontFamilies ),"EnumFontFamiliesA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,EnumFonts ),"EnumFontsA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,ExtSelectClipRgn ),"ExtSelectClipRgn");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GdiFlush ),"GdiFlush");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetBitmapBits ),"GetBitmapBits");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetCharABCWidths ),"GetCharABCWidthsA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetCharWidth32 ),"GetCharWidth32A");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetClipBox ),"GetClipBox");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetClipRgn ),"GetClipRgn");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetDeviceCaps ),"GetDeviceCaps");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetDIBits ),"GetDIBits");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetGlyphOutline ),"GetGlyphOutlineA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetMapMode ),"GetMapMode");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetNearestColor ),"GetNearestColor");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetRegionData ),"GetRegionData");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetStockObject ),"GetStockObject");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetSystemPaletteEntries ),"GetSystemPaletteEntries");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetTextExtentPoint ),"GetTextExtentPointA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,GetTextMetrics ),"GetTextMetricsA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,IntersectClipRect ),"IntersectClipRect");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,LineTo ),"LineTo");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,LPtoDP ),"LPtoDP");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,MoveToEx ),"MoveToEx");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,PatBlt ),"PatBlt");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,PlayEnhMetaFile ),"PlayEnhMetaFile");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,PlayMetaFile ),"PlayMetaFile");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,Rectangle ),"Rectangle");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RemoveFontResource ),"RemoveFontResourceA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,RestoreDC ),"RestoreDC");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SaveDC ),"SaveDC");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SelectClipRgn ),"SelectClipRgn");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SelectObject ),"SelectObject");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetBkColor ),"SetBkColor");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetBkMode ),"SetBkMode");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetBrushOrgEx ),"SetBrushOrgEx");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetDIBitsToDevice ),"SetDIBitsToDevice");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetMapMode ),"SetMapMode");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetROP2 ),"SetROP2");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetTextAlign ),"SetTextAlign");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetTextColor ),"SetTextColor");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetWindowExtEx ),"SetWindowExtEx");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,SetWindowOrgEx ),"SetWindowOrgEx");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,StartDoc ),"StartDocA");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,StartPage ),"StartPage");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,StretchBlt ),"StretchBlt");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,StretchDIBits ),"StretchDIBits");
-GetProcAddress(mod,SYSTEM.VAL(LONGINT,TextOut ),"TextOutA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,AddFontResource ),"AddFontResourceA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,BitBlt ),"BitBlt");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CloseEnhMetaFile ),"CloseEnhMetaFile");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CloseMetaFile ),"CloseMetaFile");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateBitmap ),"CreateBitmap");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateCompatibleBitmap ),"CreateCompatibleBitmap");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateCompatibleDC ),"CreateCompatibleDC");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateDC ),"CreateDCA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateDIBSection ),"CreateDIBSection");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateEnhMetaFile ),"CreateEnhMetaFileA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateFontIndirect ),"CreateFontIndirectA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateHatchBrush ),"CreateHatchBrush");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateMetaFile ),"CreateMetaFileA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreatePatternBrush ),"CreatePatternBrush");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreatePen ),"CreatePen");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateSolidBrush ),"CreateSolidBrush");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateRectRgn ),"CreateRectRgn");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,CreateRectRgnIndirect ),"CreateRectRgnIndirect");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,DeleteDC ),"DeleteDC");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,DeleteObject ),"DeleteObject");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,DPtoLP ),"DPtoLP");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,Ellipse ),"Ellipse");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,EndDoc ),"EndDoc");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,EndPage ),"EndPage");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,EnumFontFamilies ),"EnumFontFamiliesA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,EnumFonts ),"EnumFontsA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,ExtSelectClipRgn ),"ExtSelectClipRgn");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GdiFlush ),"GdiFlush");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetBitmapBits ),"GetBitmapBits");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetCharABCWidths ),"GetCharABCWidthsA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetCharWidth32 ),"GetCharWidth32A");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetClipBox ),"GetClipBox");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetClipRgn ),"GetClipRgn");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetDeviceCaps ),"GetDeviceCaps");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetDIBits ),"GetDIBits");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetGlyphOutline ),"GetGlyphOutlineA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetMapMode ),"GetMapMode");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetNearestColor ),"GetNearestColor");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetRegionData ),"GetRegionData");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetStockObject ),"GetStockObject");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetSystemPaletteEntries ),"GetSystemPaletteEntries");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetTextExtentPoint ),"GetTextExtentPointA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,GetTextMetrics ),"GetTextMetricsA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,IntersectClipRect ),"IntersectClipRect");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,LineTo ),"LineTo");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,LPtoDP ),"LPtoDP");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,MoveToEx ),"MoveToEx");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,PatBlt ),"PatBlt");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,PlayEnhMetaFile ),"PlayEnhMetaFile");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,PlayMetaFile ),"PlayMetaFile");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,Rectangle ),"Rectangle");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RemoveFontResource ),"RemoveFontResourceA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,RestoreDC ),"RestoreDC");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SaveDC ),"SaveDC");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SelectClipRgn ),"SelectClipRgn");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SelectObject ),"SelectObject");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetBkColor ),"SetBkColor");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetBkMode ),"SetBkMode");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetBrushOrgEx ),"SetBrushOrgEx");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetDIBitsToDevice ),"SetDIBitsToDevice");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetMapMode ),"SetMapMode");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetROP2 ),"SetROP2");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetTextAlign ),"SetTextAlign");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetTextColor ),"SetTextColor");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetWindowExtEx ),"SetWindowExtEx");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,SetWindowOrgEx ),"SetWindowOrgEx");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,StartDoc ),"StartDocA");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,StartPage ),"StartPage");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,StretchBlt ),"StretchBlt");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,StretchDIBits ),"StretchDIBits");
+GetProcAddress(mod,SYSTEM.VAL(ADDRESS,TextOut ),"TextOutA");
 
 END Init;
 BEGIN

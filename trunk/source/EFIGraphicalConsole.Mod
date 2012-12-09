@@ -11,7 +11,7 @@ CONST
 	PFMax= 4;
 
 TYPE
-	Buffer = SYSTEM.ADDRESS;
+	Buffer = ADDRESS;
 
 	Char = RECORD
 		dx*,x*,y*,w*,h*: INTEGER;
@@ -40,12 +40,12 @@ TYPE
 		buffer: ARRAY 1342 OF CHAR;
 
 		(* frame buffer parameters *)
-		adr: SYSTEM.ADDRESS; VAR x,y: SYSTEM.SIZE; w,h,depth: SYSTEM.SIZE;
+		adr: ADDRESS; VAR x,y: SIZE; w,h,depth: SIZE;
 		info: GraphicsModeInfo;
 
 	PROCEDURE MakeFont*(VAR font: Font);
 	VAR buf: Buffer; pos: LONGINT;
-		PROCEDURE SetBuf(VAR p: Buffer); BEGIN p := SYSTEM.ADR(buffer[pos]) END SetBuf;
+		PROCEDURE SetBuf(VAR p: Buffer); BEGIN p := ADDRESSOF(buffer[pos]) END SetBuf;
 		PROCEDURE Put1(ch: CHAR); BEGIN buffer[pos] := ch; INC(pos) END Put1;
 		PROCEDURE Dimensions(VAR char: Char; dx,x,y,w,h: INTEGER); BEGIN char.dx := dx; char.x := x; char.y := y; char.w := w; char.h := h END Dimensions;
 	BEGIN
@@ -314,14 +314,14 @@ TYPE
 
 
 
-	PROCEDURE Mask(buf: SYSTEM.ADDRESS; bitof, stride, x, y, w, h, adr, dstride, depth: SYSTEM.SIZE);
+	PROCEDURE Mask(buf: ADDRESS; bitof, stride, x, y, w, h, adr, dstride, depth: SIZE);
 	CONST SetSize = MAX (SET) + 1;
-	VAR p, i, dadr: SYSTEM.ADDRESS; s: SET; space,d: LONGINT; bitofs: SYSTEM.SIZE;
+	VAR p, i, dadr: ADDRESS; s: SET; space,d: LONGINT; bitofs: SIZE;
 	BEGIN
 		IF (w > 0) & (h > 0) THEN
-			i := buf MOD SYSTEM.SIZEOF (SET);
+			i := buf MOD SIZEOF (SET);
 			bitofs := bitof + i * 8;
-			p := buf-i + bitofs DIV SetSize * SYSTEM.SIZEOF (SET);	(* p always aligned to 32-bit boundary *)
+			p := buf-i + bitofs DIV SetSize * SIZEOF (SET);	(* p always aligned to 32-bit boundary *)
 			bitofs := bitofs MOD SetSize; stride := stride*8;
 			LOOP
 				SYSTEM.GET(p, s); i := bitofs;
@@ -340,18 +340,18 @@ TYPE
 				IF h = 0 THEN EXIT END;
 				INC(y); INC(bitofs, stride);
 				IF (bitofs >= SetSize) OR (bitofs < 0) THEN	(* moved outside s *)
-					INC(p, bitofs DIV SetSize * SYSTEM.SIZEOF (SET)); bitofs := bitofs MOD SetSize
+					INC(p, bitofs DIV SetSize * SIZEOF (SET)); bitofs := bitofs MOD SetSize
 				END
 			END
 		END
 	END Mask;
 
 
-	PROCEDURE RenderChar0(c: CHAR; adr: SYSTEM.ADDRESS; VAR x,y: SYSTEM.SIZE; w,h,depth: SYSTEM.SIZE );
+	PROCEDURE RenderChar0(c: CHAR; adr: ADDRESS; VAR x,y: SIZE; w,h,depth: SIZE );
 	VAR char: Char; stride,pw,ph: LONGINT;
 
 		PROCEDURE Scroll;
-		VAR x0,y0: SYSTEM.ADDRESS; val: CHAR; sadr,dadr: SYSTEM.ADDRESS;
+		VAR x0,y0: ADDRESS; val: CHAR; sadr,dadr: ADDRESS;
 		BEGIN
 			FOR y0 := font.height TO y+font.height-1 DO
 				sadr := adr + y0*w*depth DIV 8;
@@ -405,15 +405,15 @@ TYPE
 			| PFBitMask :
 				mask := info.PixelBitmask.RedMask + info.PixelBitmask.GreenMask + info.PixelBitmask.BlueMask;
 				depth := 0;
-				WHILE mask # 0 DO mask := SYSTEM.LSH(mask,-1); INC(depth); END;
+				WHILE mask # 0 DO mask := LSH(mask,-1); INC(depth); END;
 			| PFBltOnly :
 				depth := 0;
 		END;
 		RETURN depth
 	END GetDepth;
 
-	PROCEDURE SetupConsole*(graphicsModeInfo: SYSTEM.ADDRESS; frameBufferAdr: SYSTEM.ADDRESS);
-	VAR i: SYSTEM.ADDRESS;
+	PROCEDURE SetupConsole*(graphicsModeInfo: ADDRESS; frameBufferAdr: ADDRESS);
+	VAR i: ADDRESS;
 	VAR tmp: HUGEINT;
 	BEGIN
 		Trace.String("Graphical Console, info = "); Trace.Address(graphicsModeInfo); Trace.Ln;
@@ -482,12 +482,12 @@ VAR
 
 	PROCEDURE Mask(VAR buf: ARRAY OF CHAR; bitof, stride, x, y, w, h: LONGINT);
 	CONST SetSize = MAX (SET) + 1;
-	VAR p, i, bitofs: SYSTEM.ADDRESS; s: SET;
+	VAR p, i, bitofs: ADDRESS; s: SET;
 	BEGIN
 		IF (w > 0) & (h > 0) THEN
-			i := SYSTEM.ADR(buf[0]) MOD SYSTEM.SIZEOF (SET);
+			i := ADDRESSOF(buf[0]) MOD SIZEOF (SET);
 			bitofs := bitof + i * 8;
-			p := SYSTEM.ADR(buf[0])-i + bitofs DIV SetSize * SYSTEM.SIZEOF (SET);	(* p always aligned to 32-bit boundary *)
+			p := ADDRESSOF(buf[0])-i + bitofs DIV SetSize * SIZEOF (SET);	(* p always aligned to 32-bit boundary *)
 			bitofs := bitofs MOD SetSize; stride := stride*8;
 			LOOP
 				SYSTEM.GET(p, s); i := bitofs;
@@ -503,7 +503,7 @@ VAR
 				IF h = 0 THEN EXIT END;
 				INC(y); INC(bitofs, stride);
 				IF (bitofs >= SetSize) OR (bitofs < 0) THEN	(* moved outside s *)
-					INC(p, bitofs DIV SetSize * SYSTEM.SIZEOF (SET)); bitofs := bitofs MOD SetSize
+					INC(p, bitofs DIV SetSize * SIZEOF (SET)); bitofs := bitofs MOD SetSize
 				END
 			END
 		END
@@ -523,7 +523,7 @@ BEGIN
 		(*
 		out.String("PROCEDURE MakeFont(VAR font: Font);"); out.Ln;
 		out.String("VAR buf: Buffer; pos: LONGINT;");out.Ln;
-		out.String("PROCEDURE SetBuf(VAR p: Buffer); BEGIN p := SYSTEM.ADR(buffer[pos]) END SetBuf;"); out.Ln;
+		out.String("PROCEDURE SetBuf(VAR p: Buffer); BEGIN p := ADDRESSOF(buffer[pos]) END SetBuf;"); out.Ln;
 		out.String("PROCEDURE Put1(ch: CHAR); BEGIN buffer[pos] := ch; INC(pos) END Put1;"); out.Ln;
 		out.String("PROCEDURE Dimensions(VAR char: Char; dx,x,y,w,h: INTEGER); BEGIN char.dx := dx; char.x := x; char.y := y; char.w := w; char.h := h END Dimensions;"); out.Ln;
 		out.String("BEGIN");out.Ln;

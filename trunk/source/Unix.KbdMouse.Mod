@@ -174,7 +174,7 @@ VAR
 					REPEAT res := Api.CheckTypedEvent(xd, Api.Expose, event) UNTIL res # X11.True; 
 			| Api.NoExpose:
 			| Api.MappingNotify:
-					X11.RefreshKeyboardMapping( S.ADR( event ) )
+					X11.RefreshKeyboardMapping( ADDRESSOF( event ) )
 			| Api.ClientMessage: 
 					cm := S.VAL( Api.XClientMessageEvent, event );
 					datal := S.VAL( Api.Data40l, cm.data );
@@ -226,7 +226,7 @@ VAR
 
 	PROCEDURE Keysym( CONST str: ARRAY OF CHAR ): LONGINT;
 	BEGIN
-		RETURN X11.StringToKeysym( S.ADR( str ) )
+		RETURN X11.StringToKeysym( ADDRESSOF( str ) )
 	END Keysym;
 
 	PROCEDURE Init*;
@@ -242,7 +242,7 @@ VAR
 			Machine.Acquire( Machine.X11 );
 			oldkeysym := Keysym( keystr );
 			newkeystr[0] := key;  newkeystr[1] := 0X;
-			X11.RebindKeysym( disp.xdisp, oldkeysym, modifiers, nofmod, S.ADR( newkeystr ), 1 );
+			X11.RebindKeysym( disp.xdisp, oldkeysym, modifiers, nofmod, ADDRESSOF( newkeystr ), 1 );
 			Machine.Release( Machine.X11 )
 		END Rebind;
 

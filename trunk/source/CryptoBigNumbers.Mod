@@ -4,7 +4,7 @@ MODULE CryptoBigNumbers;  (* g.f.	2001.10.07 *)
 (* 2002.09.24	g.f.	inceased digit size from 8 bit to 32 bit *)
 (* 2002.10.04	g.f.	faster version of ModExp (uses montgomery multiplications now) *)
 (* 2005.07.07	g.f.	Fabian Nart's enhancements incorporated *)
-(* 2010.01.12	g.f.	interface cleanup, most procedures got functions *)
+(* 2010.01.12	g.f.	interface cleanup, most procedures got funtions *)
 
 (**  Computing big numbers up to 1024 hex digits. *)
 
@@ -99,7 +99,7 @@ VAR
 	PROCEDURE LessThan( x, y: LONGINT ): BOOLEAN;  (* unsigned < *)
 	VAR a, b: LONGINT;
 	BEGIN
-		a := S.LSH( x, -1 );  b := S.LSH( y, -1 );
+		a := LSH( x, -1 );  b := LSH( y, -1 );
 		IF a = b THEN  RETURN (x MOD 2) < (y MOD 2)  ELSE  RETURN a < b  END
 	END LessThan;
 
@@ -108,7 +108,7 @@ VAR
 	BEGIN
 		IF x = y THEN  RETURN TRUE
 		ELSE
-			a := S.LSH( x, -1 );  b := S.LSH( y, -1 );
+			a := LSH( x, -1 );  b := LSH( y, -1 );
 			IF a = b THEN  RETURN (x MOD 2) < (y MOD 2)  ELSE  RETURN a < b  END
 		END
 	END LessOrEqual;
@@ -264,7 +264,7 @@ VAR
 
 	PROCEDURE Copy*( VAR a, b: BigNumber );   (** b := a *)
 	BEGIN
-		ASSERT( (a # NIL) & (S.ADR( a ) # S.ADR( b )) );
+		ASSERT( (a # NIL) & (ADDRESSOF( a ) # ADDRESSOF( b )) );
 		IF (b = NIL) OR (LEN( b.d^ ) < a.len) THEN  NEW( b, a.len*32 )  END;
 		copy( a.d, b.d, a.len );  b.len := a.len
 	END Copy;
@@ -347,14 +347,14 @@ VAR
 	PROCEDURE MulAdd( VAR high, low: LONGINT;  b, c, d: LONGINT );  	(* high | low := b * c + d *)
 	VAR bh, bl, ch, cl, u, t, sum: LONGINT;
 	BEGIN
-		bh := S.LSH( b, -16 );  bl := b MOD 10000H;
-		ch := S.LSH( c, -16 );  cl := c MOD 10000H;
+		bh := LSH( b, -16 );  bl := b MOD 10000H;
+		ch := LSH( c, -16 );  cl := c MOD 10000H;
 		low := bl*cl;  t := ch*bl;  u := cl*bh;  high := bh*ch;
 		INC( t, u );
 		IF LessThan( t, u ) THEN  INC( high, 10000H )  END;
 		u := t*10000H;  INC( low, u );
 		IF LessThan( low, u ) THEN  INC( high )  END;
-		INC( high, S.LSH( t, -16 ) );
+		INC( high, LSH( t, -16 ) );
 
 		sum := low + d;
 		IF LessThan( sum, low ) THEN  INC( high )  END;
@@ -373,7 +373,7 @@ VAR
 		res := M.MulH( S.VAL( HUGEINT, tb ), S.VAL( HUGEINT, tc ) );
 		INC( res, d );
 		low := SHORT( res );
-		high := SHORT( S.LSH( res, -32 ) );
+		high := SHORT( LSH( res, -32 ) );
 	END MulAdd;
 	*)
 
@@ -495,9 +495,9 @@ VAR
 	PROCEDURE Div2*( a, b: BigNumber;  VAR q, r: BigNumber );   (** q := a div b;  r := a mod b *)
 	VAR x: LONGINT;  td, sd, bd, qd: digits;  i, tail, bl, tl, sl, ql, qi: INTEGER;
 		t3: dig3;  t2, d0: dig2;
-		aq, ar: S.ADDRESS;
+		aq, ar: ADDRESS;
 	BEGIN
-		aq := S.ADR( q );   ar := S.ADR( r );
+		aq := ADDRESSOF( q );   ar := ADDRESSOF( r );
 		ASSERT( (a # NIL) & (b # NIL) & ~Zero( b ) & ~b.neg & (aq # ar) );
 		NEW( q, a.len*32 );  qd := q.d;
 
@@ -597,7 +597,7 @@ VAR
 		ELSE  n := (b.len - 1) * 32
 		END;
 		t := b.d[b.len - 1];
-		WHILE t # 0 DO  INC( n );  t := S.LSH( t, -1 )  END;
+		WHILE t # 0 DO  INC( n );  t := LSH( t, -1 )  END;
 		RETURN SHORT( n )
 	END BitSize;
 
@@ -780,7 +780,7 @@ VAR
 			IF bits > 0 THEN  x.d[x.len] := 0;
 				FOR i := x.len TO 0 BY -1 DO  a := x.d[i];
 					IF i > 0 THEN  b := x.d[i - 1]  ELSE  b := 0  END;
-					x.d[i] := S.LSH( a, bits ) + S.LSH( b, -32 + bits )
+					x.d[i] := LSH( a, bits ) + LSH( b, -32 + bits )
 				END;
 				IF x.d[x.len] # 0 THEN  INC( x.len )  END;
 			END
@@ -792,7 +792,7 @@ VAR
 			IF bits > 0 THEN  l := x.len;
 				FOR i := 0 TO  l - 1 DO  a := x.d[i];
 					IF i < l - 1 THEN  b := x.d[i + 1]  ELSE  b := 0  END;
-					x.d[i] := S.LSH( a, -bits ) + S.LSH( b, 32 - bits )
+					x.d[i] := LSH( a, -bits ) + LSH( b, 32 - bits )
 				END;
 				IF x.d[l - 1] = 0 THEN  DEC( x.len )  END;
 			END

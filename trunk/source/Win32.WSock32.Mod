@@ -41,7 +41,7 @@ MODULE WSock32; (** non-portable / source: Win32.WSock32.Mod *)	(* ejz  *)
 			szDescription*: ARRAY WSADescriptionLen+1 OF CHAR;
 			szSystemStatus*: ARRAY WSASysStatusLen+1 OF CHAR;
 			iMaxSockets*, iMaxUdpDg*: INTEGER;
-			lpVendorInfo*: Kernel32.ADDRESS
+			lpVendorInfo*: ADDRESS
 		END;
 
 		inAddr* = LONGINT;
@@ -58,7 +58,7 @@ MODULE WSock32; (** non-portable / source: Win32.WSock32.Mod *)	(* ejz  *)
 			aiFlags*: SET;
 			aiFamily*, aiSocktype*, aiProtocol*: LONGINT;
 			aiAddrlen*: LONGINT;
-			aiCanonname*: Kernel32.ADDRESS;
+			aiCanonname*: ADDRESS;
 			aiAddr*{UNTRACED}: PsockaddrIn;
 			aiNext*{UNTRACED}: Paddrinfo
 		END;
@@ -87,15 +87,15 @@ typedef struct fd_set {
 
 		(** The Windows Sockets hostent structure is used by functions to store information about a given host,
 			such as host name, IP address, and so forth. *)
-		LPHostent* = Kernel32.ADDRESS;
+		LPHostent* = ADDRESS;
 		PHostent*= POINTER TO Hostent;
 		Hostent* = RECORD
 			hName*, (* pointer to array of char *)
 			hAliases*:  (* pointer to array of pointer to array of char *)
-			Kernel32.ADDRESS;
+			ADDRESS;
 			hAddrtype*, hLength*: INTEGER;
 			hAddrList*: (* pointer to array of pointer of address (with len hLength) *)
-			Kernel32.ADDRESS
+			ADDRESS
 		END;
 
 		Error = OBJECT
@@ -231,37 +231,37 @@ typedef struct fd_set {
 		END;
 		str := "wship6.dll";
 		wship6 := Kernel32.LoadLibrary(str);(*ALEX POPESCU 2005.11.25*)
-		Kernel32.GetProcAddress(wsock32, "WSACleanup", SYSTEM.VAL(LONGINT, WSACleanup));
-		Kernel32.GetProcAddress(wsock32, "WSAAsyncGetHostByAddr", SYSTEM.VAL(LONGINT, WSAAsyncGetHostByAddr));
-		Kernel32.GetProcAddress(wsock32, "WSAAsyncGetHostByName", SYSTEM.VAL(LONGINT, WSAAsyncGetHostByName));
-		Kernel32.GetProcAddress(wsock32, "WSAAsyncSelect", SYSTEM.VAL(LONGINT, WSAAsyncSelect));
-		Kernel32.GetProcAddress(wsock32, "WSAGetLastError", SYSTEM.VAL(LONGINT, WSAGetLastError));
-		Kernel32.GetProcAddress(wsock32, "WSASocketA", SYSTEM.VAL(LONGINT, WSASocket));
-		Kernel32.GetProcAddress(wsock32, "WSAStartup", SYSTEM.VAL(LONGINT, WSAStartup));
-		Kernel32.GetProcAddress(wsock32, "accept", SYSTEM.VAL(LONGINT, accept));
-		Kernel32.GetProcAddress(wsock32, "bind", SYSTEM.VAL(LONGINT, bind));
-		Kernel32.GetProcAddress(wsock32, "closesocket", SYSTEM.VAL(LONGINT, closesocket));
-		Kernel32.GetProcAddress(wsock32, "connect", SYSTEM.VAL(LONGINT, connect));
-		Kernel32.GetProcAddress(wsock32, "freeaddrinfo", SYSTEM.VAL(LONGINT, freeaddrinfo));
-		Kernel32.GetProcAddress(wsock32, "getaddrinfo", SYSTEM.VAL(LONGINT, getaddrinfo));
-		Kernel32.GetProcAddress(wsock32, "gethostbyname", SYSTEM.VAL(LONGINT, gethostbyname));
-		Kernel32.GetProcAddress(wsock32, "gethostname", SYSTEM.VAL(LONGINT, gethostname));
-		Kernel32.GetProcAddress(wsock32, "getpeername", SYSTEM.VAL(LONGINT, getpeername));
-		Kernel32.GetProcAddress(wsock32, "getsockname", SYSTEM.VAL(LONGINT, getsockname));
-		Kernel32.GetProcAddress(wsock32, "htonl", SYSTEM.VAL(LONGINT, htonl));
-		Kernel32.GetProcAddress(wsock32, "htons", SYSTEM.VAL(LONGINT, htons));
-		Kernel32.GetProcAddress(wsock32, "ioctlsocket", SYSTEM.VAL(LONGINT, ioctlsocket));
-		Kernel32.GetProcAddress(wsock32, "listen", SYSTEM.VAL(LONGINT, listen));
-		Kernel32.GetProcAddress(wsock32, "ntohl", SYSTEM.VAL(LONGINT, ntohl));
-		Kernel32.GetProcAddress(wsock32, "ntohs", SYSTEM.VAL(LONGINT, ntohs));
-		Kernel32.GetProcAddress(wsock32, "recv", SYSTEM.VAL(LONGINT, recv));
-		Kernel32.GetProcAddress(wsock32, "recvfrom", SYSTEM.VAL(LONGINT, recvfrom));
-		Kernel32.GetProcAddress(wsock32, "select", SYSTEM.VAL(LONGINT, select));
-		Kernel32.GetProcAddress(wsock32, "send", SYSTEM.VAL(LONGINT, send));
-		Kernel32.GetProcAddress(wsock32, "sendto", SYSTEM.VAL(LONGINT, sendto));
-		Kernel32.GetProcAddress(wsock32, "setsockopt", SYSTEM.VAL(LONGINT, setsockopt));
-		Kernel32.GetProcAddress(wsock32, "socket", SYSTEM.VAL(LONGINT, socket));
-		Kernel32.GetProcAddress(wsock32, "shutdown", SYSTEM.VAL(LONGINT, shutdown));
+		Kernel32.GetProcAddress(wsock32, "WSACleanup", SYSTEM.VAL(ADDRESS, WSACleanup));
+		Kernel32.GetProcAddress(wsock32, "WSAAsyncGetHostByAddr", SYSTEM.VAL(ADDRESS, WSAAsyncGetHostByAddr));
+		Kernel32.GetProcAddress(wsock32, "WSAAsyncGetHostByName", SYSTEM.VAL(ADDRESS, WSAAsyncGetHostByName));
+		Kernel32.GetProcAddress(wsock32, "WSAAsyncSelect", SYSTEM.VAL(ADDRESS, WSAAsyncSelect));
+		Kernel32.GetProcAddress(wsock32, "WSAGetLastError", SYSTEM.VAL(ADDRESS, WSAGetLastError));
+		Kernel32.GetProcAddress(wsock32, "WSASocketA", SYSTEM.VAL(ADDRESS, WSASocket));
+		Kernel32.GetProcAddress(wsock32, "WSAStartup", SYSTEM.VAL(ADDRESS, WSAStartup));
+		Kernel32.GetProcAddress(wsock32, "accept", SYSTEM.VAL(ADDRESS, accept));
+		Kernel32.GetProcAddress(wsock32, "bind", SYSTEM.VAL(ADDRESS, bind));
+		Kernel32.GetProcAddress(wsock32, "closesocket", SYSTEM.VAL(ADDRESS, closesocket));
+		Kernel32.GetProcAddress(wsock32, "connect", SYSTEM.VAL(ADDRESS, connect));
+		Kernel32.GetProcAddress(wsock32, "freeaddrinfo", SYSTEM.VAL(ADDRESS, freeaddrinfo));
+		Kernel32.GetProcAddress(wsock32, "getaddrinfo", SYSTEM.VAL(ADDRESS, getaddrinfo));
+		Kernel32.GetProcAddress(wsock32, "gethostbyname", SYSTEM.VAL(ADDRESS, gethostbyname));
+		Kernel32.GetProcAddress(wsock32, "gethostname", SYSTEM.VAL(ADDRESS, gethostname));
+		Kernel32.GetProcAddress(wsock32, "getpeername", SYSTEM.VAL(ADDRESS, getpeername));
+		Kernel32.GetProcAddress(wsock32, "getsockname", SYSTEM.VAL(ADDRESS, getsockname));
+		Kernel32.GetProcAddress(wsock32, "htonl", SYSTEM.VAL(ADDRESS, htonl));
+		Kernel32.GetProcAddress(wsock32, "htons", SYSTEM.VAL(ADDRESS, htons));
+		Kernel32.GetProcAddress(wsock32, "ioctlsocket", SYSTEM.VAL(ADDRESS, ioctlsocket));
+		Kernel32.GetProcAddress(wsock32, "listen", SYSTEM.VAL(ADDRESS, listen));
+		Kernel32.GetProcAddress(wsock32, "ntohl", SYSTEM.VAL(ADDRESS, ntohl));
+		Kernel32.GetProcAddress(wsock32, "ntohs", SYSTEM.VAL(ADDRESS, ntohs));
+		Kernel32.GetProcAddress(wsock32, "recv", SYSTEM.VAL(ADDRESS, recv));
+		Kernel32.GetProcAddress(wsock32, "recvfrom", SYSTEM.VAL(ADDRESS, recvfrom));
+		Kernel32.GetProcAddress(wsock32, "select", SYSTEM.VAL(ADDRESS, select));
+		Kernel32.GetProcAddress(wsock32, "send", SYSTEM.VAL(ADDRESS, send));
+		Kernel32.GetProcAddress(wsock32, "sendto", SYSTEM.VAL(ADDRESS, sendto));
+		Kernel32.GetProcAddress(wsock32, "setsockopt", SYSTEM.VAL(ADDRESS, setsockopt));
+		Kernel32.GetProcAddress(wsock32, "socket", SYSTEM.VAL(ADDRESS, socket));
+		Kernel32.GetProcAddress(wsock32, "shutdown", SYSTEM.VAL(ADDRESS, shutdown));
 
 		(*ALEX POPESCU 2005.11.25*)
 	    IF freeaddrinfo = NIL THEN
@@ -269,8 +269,8 @@ typedef struct fd_set {
 	    	str := "wship6.dll";
 			wship6 := Kernel32.LoadLibrary(str);
 			IF wship6 # Kernel32.NULL THEN
-				Kernel32.GetProcAddress(wship6, "freeaddrinfo", SYSTEM.VAL(LONGINT, freeaddrinfo));
-				Kernel32.GetProcAddress(wship6, "getaddrinfo", SYSTEM.VAL(LONGINT, getaddrinfo))
+				Kernel32.GetProcAddress(wship6, "freeaddrinfo", SYSTEM.VAL(ADDRESS, freeaddrinfo));
+				Kernel32.GetProcAddress(wship6, "getaddrinfo", SYSTEM.VAL(ADDRESS, getaddrinfo))
 			ELSE
 				KernelLog.String("Failed locating getaddrinfo, freeaddrinfo! You must install IPv6!"); KernelLog.Ln;
 			END

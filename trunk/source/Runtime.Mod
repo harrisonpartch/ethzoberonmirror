@@ -2,10 +2,10 @@ MODULE Runtime; (** AUTHOR "fof"; PURPOSE "runtime support for the Active Obero 
 IMPORT SYSTEM;
 
 VAR
-	kernelModule-: ARRAY 32 OF SYSTEM.ADDRESS;
+	kernelModule-: ARRAY 32 OF ADDRESS;
 	modules-: LONGINT;
 
-PROCEDURE InsertModule*(a: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE InsertModule*(a: ADDRESS): BOOLEAN;
 BEGIN
 	kernelModule[modules] := a;
 	INC(modules);
@@ -377,17 +377,17 @@ BEGIN
 	l1 := LEN(dest);
 	l2 := LEN(src);
 	IF l2 < l1 THEN l1 := l2 END;
-	SYSTEM.MOVE(SYSTEM.ADR(src[0]),SYSTEM.ADR(dest[0]),l1);
+	SYSTEM.MOVE(ADDRESSOF(src[0]),ADDRESSOF(dest[0]),l1);
 	dest[l1-1] := 0X; (* this implies that COPY assumes a string *)
 END CopyString;
 
-PROCEDURE EnsureAllocatedStack*(size: SYSTEM.SIZE);
-VAR i: SYSTEM.ADDRESS; temp: SYSTEM.ADDRESS;
+PROCEDURE EnsureAllocatedStack*(size: SIZE);
+VAR i: ADDRESS; temp: ADDRESS;
 BEGIN
 	FOR i := 0 TO size BY 4096 DO
-		SYSTEM.GET(SYSTEM.ADR(i)-i,temp);
+		SYSTEM.GET(ADDRESSOF(i)-i,temp);
 		(*
-		SYSTEM.PUT(SYSTEM.ADR(val)-i,0);
+		SYSTEM.PUT(ADDRESSOF(val)-i,0);
 		*)
 	END;
 (*

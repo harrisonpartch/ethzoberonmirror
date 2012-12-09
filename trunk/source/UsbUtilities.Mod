@@ -71,9 +71,9 @@ BEGIN
 
 		WHILE (ucs > max) DO
 			buf[byte] := CHR(80H + SHORT(ucs MOD 40H)); INC(byte); (* CHR(80H + SHORT(AND(ucs, 3FH))) *)
-			ucs := ucs DIV 64; (* SYSTEM.LSH(ucs, -6) *)
-			mask := mask DIV 2; (* 80H + SYSTEM.LSH(mask, -1). Left-most bit remains set after DIV (mask is negative) *)
-			max := max DIV 2; (* SYSTEM.LSH(max, -1) *)
+			ucs := ucs DIV 64; (* LSH(ucs, -6) *)
+			mask := mask DIV 2; (* 80H + LSH(mask, -1). Left-most bit remains set after DIV (mask is negative) *)
+			max := max DIV 2; (* LSH(max, -1) *)
 		END;
 		buf[byte] := CHR(mask + SHORT(ucs));
 

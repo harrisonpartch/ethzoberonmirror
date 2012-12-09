@@ -24,7 +24,7 @@ CONST
 	VarArray = 1;
 	VarType = 2;
 
-	AddressSize = SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	AddressSize = SIZEOF(ADDRESS);
 
 TYPE
 	Opcode* = OBJECT
@@ -207,7 +207,7 @@ TYPE
 		BEGIN
 			reader.RawInt(i);
 			IF reader.res = Streams.Ok THEN
-				SYSTEM.MOVE(SYSTEM.ADR(i), SYSTEM.ADR(codeBuffer[currentBufferPos]), 2);
+				SYSTEM.MOVE(ADDRESSOF(i), ADDRESSOF(codeBuffer[currentBufferPos]), 2);
 				INC(currentBufferPos, 2)
 			END;
 			RETURN i
@@ -543,7 +543,7 @@ TYPE
 			ofs : LONGINT;
 			decoder : Decoder;
 		BEGIN
-			ofs := SYSTEM.ADR(module.code[proc.codeOffset]);
+			ofs := ADDRESSOF(module.code[proc.codeOffset]);
 			NEW(reader, ofs, proc.codeSize);
 			decoder := GetDecoder(ext, reader);
 			RETURN decoder.Decode(proc)
@@ -1627,7 +1627,7 @@ TYPE
 			COPY(module.name,name);
 			representationMode := RepresentationModeMeta;
 
-			NEW(reader, SYSTEM.ADR(module.refs[0]), header.refSize);
+			NEW(reader, ADDRESSOF(module.refs[0]), header.refSize);
 			SELF.module := module;
 			SELF.header := header;
 
@@ -1640,7 +1640,7 @@ TYPE
 			i, j : LONGINT;
 			type : TypeInfo;
 			typeDesc : Modules.TypeDesc;
-			adr : SYSTEM.ADDRESS;
+			adr : ADDRESS;
 		BEGIN
 			typeCount := header.types;
 			NEW(types, typeCount);
@@ -1648,7 +1648,7 @@ TYPE
 
 (* ug: for old heap DS *)
 (*
-				adr := SYSTEM.VAL(SYSTEM.ADDRESS, module.type[i]);
+				adr := SYSTEM.VAL(ADDRESS, module.type[i]);
 				SYSTEM.GET(adr - AddressSize, typeDesc);
 				NEW(type, typeDesc.name);
 *)

@@ -512,7 +512,7 @@ TYPE
 				a[(bits-1) DIV 4 +1] := 0X;
 				WHILE (bits > 0) DO
 					a[(bits-1) DIV 4] := Hex(val MOD 16);
-					val := SYSTEM.LSH(val,-4);
+					val := LSH(val,-4);
 					DEC(bits,4);
 				END;
 				w.String(a);

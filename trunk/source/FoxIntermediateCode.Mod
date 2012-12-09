@@ -256,7 +256,7 @@ TYPE
 				NEW(instructions, 16);
 			ELSIF pc = LEN(instructions) THEN
 				NEW(new,4*LEN(instructions));
-				SYSTEM.MOVE(SYSTEM.ADR(instructions[0]), SYSTEM.ADR(new[0]), LEN(instructions)*SYSTEM.SIZEOF(Instruction));
+				SYSTEM.MOVE(ADDRESSOF(instructions[0]), ADDRESSOF(new[0]), LEN(instructions)*SIZEOF(Instruction));
 				instructions := new;
 			END;
 			instruction.pc := pc;

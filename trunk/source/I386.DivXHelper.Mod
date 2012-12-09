@@ -55,7 +55,7 @@ IMPORT
 
 	PROCEDURE ClearBlock;
 	BEGIN
-		IF DT.EnableMMX THEN ClearBlockMMX( SYSTEM.ADR( block[0] ) );
+		IF DT.EnableMMX THEN ClearBlockMMX( ADDRESSOF( block[0] ) );
 		ELSE ClearBlockGeneric();
 		END;
 	END ClearBlock;
@@ -66,10 +66,10 @@ IMPORT
 		i: LONGINT;
 		adr: LONGINT;
 	BEGIN
-		adr := SYSTEM.ADR( block[0] );
+		adr := ADDRESSOF( block[0] );
 		FOR i := 0 TO 63 DO
 			SYSTEM.PUT32( adr, 0 );
-			adr := adr + SYSTEM.SIZEOF( LONGINT )
+			adr := adr + SIZEOF( LONGINT )
 		END;
 	END ClearBlockGeneric;
 
@@ -381,7 +381,7 @@ IMPORT
 		code, msb: LONGINT;
 	BEGIN
 		code := AVI.GetBits(dctDCSize, r.data^, r.index );
-		msb := SYSTEM.LSH( code, -(dctDCSize - 1) );
+		msb := LSH( code, -(dctDCSize - 1) );
 
 		IF msb = 0 THEN
 			RETURN  -SYSTEM.VAL( LONGINT, ( SYSTEM.VAL( SET, code ) /
@@ -841,7 +841,7 @@ IMPORT
 		srcBlock[66] := SHORT(block[62]);
 		srcBlock[67] := SHORT(block[63]);
 
-		idct.Transform(SYSTEM.ADR(srcBlock[4]), SYSTEM.ADR(dstBlock[4]));
+		idct.Transform(ADDRESSOF(srcBlock[4]), ADDRESSOF(dstBlock[4]));
 
 (*		block[0] := LONG(dstBlock[4]);
 		block[1] := LONG(dstBlock[5]);
@@ -934,33 +934,33 @@ IMPORT
 		x0, x1, x2, x3, x4, x5, x6, x7, x8: LONGINT;
 		adr, tempAdr: LONGINT;
 	BEGIN
-		adr := SYSTEM.ADR( blk[baseIndex] );
+		adr := ADDRESSOF( blk[baseIndex] );
 
 		(* shortcut *)
-		x1 := SYSTEM.GET32( adr + 4*SYSTEM.SIZEOF(LONGINT) ) * 2048;
-		x2 := SYSTEM.GET32( adr + 6*SYSTEM.SIZEOF(LONGINT) );
-		x3 := SYSTEM.GET32( adr + 2*SYSTEM.SIZEOF(LONGINT) );
-		x4 := SYSTEM.GET32( adr + SYSTEM.SIZEOF(LONGINT) );
-		x5 := SYSTEM.GET32( adr + 7*SYSTEM.SIZEOF(LONGINT) );
-		x6 := SYSTEM.GET32( adr + 5*SYSTEM.SIZEOF(LONGINT) );
-		x7 := SYSTEM.GET32( adr + 3*SYSTEM.SIZEOF(LONGINT) );
+		x1 := SYSTEM.GET32( adr + 4*SIZEOF(LONGINT) ) * 2048;
+		x2 := SYSTEM.GET32( adr + 6*SIZEOF(LONGINT) );
+		x3 := SYSTEM.GET32( adr + 2*SIZEOF(LONGINT) );
+		x4 := SYSTEM.GET32( adr + SIZEOF(LONGINT) );
+		x5 := SYSTEM.GET32( adr + 7*SIZEOF(LONGINT) );
+		x6 := SYSTEM.GET32( adr + 5*SIZEOF(LONGINT) );
+		x7 := SYSTEM.GET32( adr + 3*SIZEOF(LONGINT) );
 
 		IF ( x1 = 0 ) & ( x2 = 0 ) & ( x3 = 0 ) & ( x4 = 0 ) & ( x5 = 0 ) & ( x6 = 0 ) & ( x7 = 0 )  THEN
 			x0 := SYSTEM.GET32( adr ) * 8;
 			SYSTEM.PUT32( adr , x0 );
-			tempAdr := adr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := adr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
 			RETURN
 		END;
@@ -995,19 +995,19 @@ IMPORT
 
 		(* fourth stage *)
 		SYSTEM.PUT32( adr, ( x7 + x1 ) DIV 256 );
-		tempAdr := adr + SYSTEM.SIZEOF( LONGINT );
+		tempAdr := adr + SIZEOF( LONGINT );
 		SYSTEM.PUT32( tempAdr, ( x3 + x2 ) DIV 256 );
-		tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+		tempAdr := tempAdr + SIZEOF( LONGINT );
 		SYSTEM.PUT32( tempAdr, ( x0 + x4 ) DIV 256 );
-		tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+		tempAdr := tempAdr + SIZEOF( LONGINT );
 		SYSTEM.PUT32( tempAdr, ( x8 + x6 ) DIV 256 );
-		tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+		tempAdr := tempAdr + SIZEOF( LONGINT );
 		SYSTEM.PUT32( tempAdr, ( x8 - x6 ) DIV 256 );
-		tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+		tempAdr := tempAdr + SIZEOF( LONGINT );
 		SYSTEM.PUT32( tempAdr, ( x0 - x4 ) DIV 256 );
-		tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+		tempAdr := tempAdr + SIZEOF( LONGINT );
 		SYSTEM.PUT32( tempAdr, ( x3 - x2 ) DIV 256 );
-		tempAdr := tempAdr + SYSTEM.SIZEOF( LONGINT );
+		tempAdr := tempAdr + SIZEOF( LONGINT );
 		SYSTEM.PUT32( tempAdr, ( x7 - x1 ) DIV 256 )
 	END IDCTRow;
 
@@ -1023,33 +1023,33 @@ IMPORT
 		x0, x1, x2, x3, x4, x5, x6, x7, x8: LONGINT;
 		adr, tempAdr, sourceAdr: LONGINT;
 	BEGIN
-		adr := SYSTEM.ADR( blk[baseIndex] );
+		adr := ADDRESSOF( blk[baseIndex] );
 
 		(* shortcut *)
-		x1 := SYSTEM.GET32( adr + 32*SYSTEM.SIZEOF(LONGINT) ) * 256;
-		x2 := SYSTEM.GET32( adr + 48*SYSTEM.SIZEOF(LONGINT) );
-		x3 := SYSTEM.GET32( adr + 16*SYSTEM.SIZEOF(LONGINT) );
-		x4 := SYSTEM.GET32( adr + 8*SYSTEM.SIZEOF(LONGINT) );
-		x5 := SYSTEM.GET32( adr + 56*SYSTEM.SIZEOF(LONGINT) );
-		x6 := SYSTEM.GET32( adr + 40*SYSTEM.SIZEOF(LONGINT) );
-		x7 := SYSTEM.GET32( adr + 24*SYSTEM.SIZEOF(LONGINT) );
+		x1 := SYSTEM.GET32( adr + 32*SIZEOF(LONGINT) ) * 256;
+		x2 := SYSTEM.GET32( adr + 48*SIZEOF(LONGINT) );
+		x3 := SYSTEM.GET32( adr + 16*SIZEOF(LONGINT) );
+		x4 := SYSTEM.GET32( adr + 8*SIZEOF(LONGINT) );
+		x5 := SYSTEM.GET32( adr + 56*SIZEOF(LONGINT) );
+		x6 := SYSTEM.GET32( adr + 40*SIZEOF(LONGINT) );
+		x7 := SYSTEM.GET32( adr + 24*SIZEOF(LONGINT) );
 
 		IF ( x1 = 0 ) & ( x2 = 0 ) & ( x3 = 0 ) & ( x4 = 0 ) & ( x5 = 0 ) & ( x6 = 0 ) & ( x7 = 0 )  THEN
 			x0 := mp4State.clp[( ( SYSTEM.GET32( adr ) + 32 ) DIV 64 ) + 512]; (* +512 is base Offset in Array *)
 			SYSTEM.PUT32( adr , x0 );
-			tempAdr := adr + 8*SYSTEM.SIZEOF( LONGINT );
+			tempAdr := adr + 8*SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
-			tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
+			tempAdr := tempAdr + 8*SIZEOF( LONGINT );
 			SYSTEM.PUT32( tempAdr, x0 );
 			RETURN
 		END;
@@ -1085,22 +1085,22 @@ IMPORT
 
 		(* fourth stage *)
 		tempAdr := adr;
-		sourceAdr := SYSTEM.ADR( mp4State.clp[512] );
-		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x7 + x1 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x3 + x2 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x0 + x4 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x8 + x6 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x8 - x6 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x0 - x4 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x3 - x2 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) );
-		tempAdr := tempAdr + 8*SYSTEM.SIZEOF( LONGINT );
-		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x7 - x1 ) DIV 16384 )*SYSTEM.SIZEOF(LONGINT) ) + sourceAdr ) )
+		sourceAdr := ADDRESSOF( mp4State.clp[512] );
+		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x7 + x1 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+		tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x3 + x2 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+		tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x0 + x4 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+		tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x8 + x6 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+		tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x8 - x6 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+		tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x0 - x4 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+		tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x3 - x2 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) );
+		tempAdr := tempAdr + 8*SIZEOF( LONGINT );
+		SYSTEM.PUT32( tempAdr, SYSTEM.GET32( ( ( ( x7 - x1 ) DIV 16384 )*SIZEOF(LONGINT) ) + sourceAdr ) )
 	END IDCTCol;
 
 	(* iquant type h.263, not optimized *)

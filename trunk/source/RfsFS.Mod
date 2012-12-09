@@ -368,13 +368,13 @@ TYPE
 
 		(** read len bytes from a file. **)
 		PROCEDURE ReadBytes*(VAR r: Files.Rider; VAR x: ARRAY OF CHAR; ofs, len: LONGINT);
-		VAR src, dst: SYSTEM.ADDRESS; m, errorcode: LONGINT; buf: Buffer;
+		VAR src, dst: ADDRESS; m, errorcode: LONGINT; buf: Buffer;
 		BEGIN {EXCLUSIVE}
 			IF LEN(x)-ofs < len THEN
 				SYSTEM.HALT(19);
 			END;
 			IF len > 0 THEN
-				dst := SYSTEM.ADR(x[ofs]);
+				dst := ADDRESSOF(x[ofs]);
 				buf := r.hint(Buffer);
 				IF r.apos # buf.apos THEN
 					buf := GetBuf(SELF, r.apos); r.hint := buf;
@@ -383,7 +383,7 @@ TYPE
 					IF len <= 0 THEN
 						EXIT;
 					END ;
-					src := SYSTEM.ADR(buf.data.B[0]) + r.bpos;
+					src := ADDRESSOF(buf.data.B[0]) + r.bpos;
 					m := r.bpos + len;
 					IF m <= buf.lim THEN
 						SYSTEM.MOVE(src, dst, len);
@@ -488,13 +488,13 @@ TYPE
 
 		(** write len bytes into a file **)
 		PROCEDURE WriteBytes*(VAR r: Files.Rider; CONST x: ARRAY OF CHAR; ofs, len: LONGINT);
-		VAR src, dst: SYSTEM.ADDRESS; m, errorcode: LONGINT; buf: Buffer;
+		VAR src, dst: ADDRESS; m, errorcode: LONGINT; buf: Buffer;
 		BEGIN {EXCLUSIVE}
 			IF LEN(x)-ofs < len THEN
 				SYSTEM.HALT(19);
 			END;
 			IF len > 0 THEN
-				src := SYSTEM.ADR(x[ofs]);
+				src := ADDRESSOF(x[ofs]);
 				buf := r.hint(Buffer);
 				IF r.apos # buf.apos THEN
 					buf := GetBuf(SELF, r.apos);
@@ -505,7 +505,7 @@ TYPE
 						EXIT;
 					END;
 					buf.mod := TRUE;
-					dst := SYSTEM.ADR(buf.data.B[0]) + r.bpos;
+					dst := ADDRESSOF(buf.data.B[0]) + r.bpos;
 					m := r.bpos + len;
 					IF m <= buf.lim THEN
 						SYSTEM.MOVE(src, dst, len);

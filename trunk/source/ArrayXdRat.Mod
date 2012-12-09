@@ -35,12 +35,12 @@ TYPE
 		(** override *)
 		PROCEDURE Allocate( size: LONGINT;  VAR adr: Index;  VAR ptr: ANY );
 		BEGIN
-			NEW( data, size );  adr := SYSTEM.ADR( data[0] );  ptr := data;
+			NEW( data, size );  adr := ADDRESSOF( data[0] );  ptr := data;
 		END Allocate;
 
 		PROCEDURE GetInfo( VAR elementsize: Index );
 		BEGIN
-			elementsize := SYSTEM.SIZEOF( Value );
+			elementsize := SIZEOF( Value );
 		END GetInfo;
 
 		PROCEDURE AlikeX( ): ArrayXdBytes.Array;
@@ -677,7 +677,7 @@ VAR
 	BEGIN
 		IF dest.dim # 1 THEN HALT( 1005 ) END;
 		ArrayXdBytes.CheckLEQ( 0, srcx );  ArrayXdBytes.CheckLE( srcx + len, LEN( src ) );
-		ArrayXdBytes.CopyMemoryToArrayPart( SYSTEM.ADR( src[srcx] ), dest, len, ArrayXdBytes.Index1( destx ),
+		ArrayXdBytes.CopyMemoryToArrayPart( ADDRESSOF( src[srcx] ), dest, len, ArrayXdBytes.Index1( destx ),
 																		 ArrayXdBytes.Index1( len ) );
 	END CopyArrayToVec;
 
@@ -685,7 +685,7 @@ VAR
 	BEGIN
 		IF src.dim # 1 THEN HALT( 1005 ) END;
 		ArrayXdBytes.CheckLEQ( 0, destx );  ArrayXdBytes.CheckLE( destx + len, LEN( dest ) );
-		ArrayXdBytes.CopyArrayPartToMemory( src, SYSTEM.ADR( dest[destx] ), ArrayXdBytes.Index1( srcx ),
+		ArrayXdBytes.CopyArrayPartToMemory( src, ADDRESSOF( dest[destx] ), ArrayXdBytes.Index1( srcx ),
 																		 ArrayXdBytes.Index1( len ), len );
 	END CopyVecToArray;
 
@@ -695,7 +695,7 @@ VAR
 		IF dest.dim # 2 THEN HALT( 1005 ) END;
 		srcmem :=
 			ArrayXdBytes.MakeMemoryStructure( 2, ArrayXdBytes.Index2( 0, 0 ), ArrayXdBytes.Index2( LEN( src, 1 ), LEN( src, 0 ) ),
-																		  SYSTEM.SIZEOF( Value ), SYSTEM.ADR( src[0, 0] ) );
+																		  SIZEOF( Value ), ADDRESSOF( src[0, 0] ) );
 		ArrayXdBytes.CopyArrayPartToArrayPart( srcmem, dest, ArrayXdBytes.Index2( srcx, srcy ),
 																		   ArrayXdBytes.Index2( lenx, leny ), ArrayXdBytes.Index2( destx, desty ),
 																		   ArrayXdBytes.Index2( lenx, leny ) );
@@ -707,7 +707,7 @@ VAR
 		IF src.dim # 2 THEN HALT( 1005 ) END;
 		destmem :=
 			ArrayXdBytes.MakeMemoryStructure( 2, ArrayXdBytes.Index2( 0, 0 ), ArrayXdBytes.Index2( LEN( dest, 1 ), LEN( dest, 0 ) ),
-																		  SYSTEM.SIZEOF( Value ), SYSTEM.ADR( dest[0, 0] ) );
+																		  SIZEOF( Value ), ADDRESSOF( dest[0, 0] ) );
 		ArrayXdBytes.CopyArrayPartToArrayPart( src, destmem, ArrayXdBytes.Index2( srcx, srcy ),
 																		   ArrayXdBytes.Index2( lenx, leny ), ArrayXdBytes.Index2( destx, desty ),
 																		   ArrayXdBytes.Index2( lenx, leny ) );
@@ -720,8 +720,8 @@ VAR
 		IF dest.dim # 3 THEN HALT( 1005 ) END;
 		srcmem :=
 			ArrayXdBytes.MakeMemoryStructure( 3, ArrayXdBytes.Index3( 0, 0, 0 ),
-																		  ArrayXdBytes.Index3( LEN( src, 2 ), LEN( src, 1 ), LEN( src, 0 ) ), SYSTEM.SIZEOF( Value ),
-																		  SYSTEM.ADR( src[0, 0, 0] ) );
+																		  ArrayXdBytes.Index3( LEN( src, 2 ), LEN( src, 1 ), LEN( src, 0 ) ), SIZEOF( Value ),
+																		  ADDRESSOF( src[0, 0, 0] ) );
 		ArrayXdBytes.CopyArrayPartToArrayPart( srcmem, dest, ArrayXdBytes.Index3( srcx, srcy, srcz ),
 																		   ArrayXdBytes.Index3( lenx, leny, lenz ),
 																		   ArrayXdBytes.Index3( destx, desty, destz ),
@@ -735,8 +735,8 @@ VAR
 		IF src.dim # 3 THEN HALT( 1005 ) END;
 		destmem :=
 			ArrayXdBytes.MakeMemoryStructure( 3, ArrayXdBytes.Index3( 0, 0, 0 ),
-																		  ArrayXdBytes.Index3( LEN( dest, 2 ), LEN( dest, 1 ), LEN( dest, 0 ) ), SYSTEM.SIZEOF( Value ),
-																		  SYSTEM.ADR( dest[0, 0, 0] ) );
+																		  ArrayXdBytes.Index3( LEN( dest, 2 ), LEN( dest, 1 ), LEN( dest, 0 ) ), SIZEOF( Value ),
+																		  ADDRESSOF( dest[0, 0, 0] ) );
 		ArrayXdBytes.CopyArrayPartToArrayPart( src, destmem, ArrayXdBytes.Index3( srcx, srcy, srcz ),
 																		   ArrayXdBytes.Index3( lenx, leny, lenz ),
 																		   ArrayXdBytes.Index3( destx, desty, destz ),
@@ -750,8 +750,8 @@ VAR
 		IF dest.dim # 4 THEN HALT( 1005 ) END;
 		srcmem :=
 			ArrayXdBytes.MakeMemoryStructure( 4, ArrayXdBytes.Index4( 0, 0, 0, 0 ),
-																		  ArrayXdBytes.Index4( LEN( src, 3 ), LEN( src, 2 ), LEN( src, 1 ), LEN( src, 0 ) ), SYSTEM.SIZEOF( Value ),
-																		  SYSTEM.ADR( src[0, 0, 0] ) );
+																		  ArrayXdBytes.Index4( LEN( src, 3 ), LEN( src, 2 ), LEN( src, 1 ), LEN( src, 0 ) ), SIZEOF( Value ),
+																		  ADDRESSOF( src[0, 0, 0] ) );
 		ArrayXdBytes.CopyArrayPartToArrayPart( srcmem, dest, ArrayXdBytes.Index4( srcx, srcy, srcz, srct ),
 																		   ArrayXdBytes.Index4( lenx, leny, lenz, lent ),
 																		   ArrayXdBytes.Index4( destx, desty, destz, destt ),
@@ -765,8 +765,8 @@ VAR
 		IF src.dim # 4 THEN HALT( 1005 ) END;
 		destmem :=
 			ArrayXdBytes.MakeMemoryStructure( 4, ArrayXdBytes.Index4( 0, 0, 0, 0 ),
-																		  ArrayXdBytes.Index4( LEN( dest, 3 ), LEN( dest, 2 ), LEN( dest, 1 ), LEN( dest, 0 ) ), SYSTEM.SIZEOF( Value ),
-																		  SYSTEM.ADR( dest[0, 0, 0] ) );
+																		  ArrayXdBytes.Index4( LEN( dest, 3 ), LEN( dest, 2 ), LEN( dest, 1 ), LEN( dest, 0 ) ), SIZEOF( Value ),
+																		  ADDRESSOF( dest[0, 0, 0] ) );
 		ArrayXdBytes.CopyArrayPartToArrayPart( src, destmem, ArrayXdBytes.Index4( srcx, srcy, srcz, srct ),
 																		   ArrayXdBytes.Index4( lenx, leny, lenz, lent ),
 																		   ArrayXdBytes.Index4( destx, desty, destz, destt ),
@@ -856,7 +856,7 @@ VAR
 						FOR i := 0 TO dim - 1 DO spos[i] := borigin[i];  last[i] := spos[i] + blen[i];  dpos[i] := spos[i] + destoffset[i] END;
 						REPEAT
 							v := Get( spos^, dim );
-							SYSTEM.MOVE( SYSTEM.ADR( v ), ArrayXdBytes.AdrX( temp, dpos^, dim ), SYSTEM.SIZEOF( Value ) );   (* optimize adress handling of destination, compute here ! *)
+							SYSTEM.MOVE( ADDRESSOF( v ), ArrayXdBytes.AdrX( temp, dpos^, dim ), SIZEOF( Value ) );   (* optimize adress handling of destination, compute here ! *)
 
 							(*temp.SetX( dpos^, dim, Get( spos^, dim ) );*) i := 0;  INC( spos[i] );  INC( dpos[i] );
 							WHILE (i < dim - 1) & (spos[i] = last[i]) DO
@@ -878,7 +878,7 @@ VAR
 		IF r = NIL THEN l := NIL;  RETURN END;
 		ArrayXdBytes.CheckEQ( 1, r.dim );   (*ArrayXdBytes.CheckEQ( r.origin[0], 0 );  *)
 		IF (l = NIL ) OR (LEN( l ) # r.len[0]) THEN NEW( l, r.len[0] );  END;
-		ArrayXdBytes.CopyArrayToMemory( r, SYSTEM.ADR( l[0] ), LEN( l, 0 ) );
+		ArrayXdBytes.CopyArrayToMemory( r, ADDRESSOF( l[0] ), LEN( l, 0 ) );
 	END ":=";
 
 	PROCEDURE ":="*( VAR l: Array2;  r: Array );
@@ -886,7 +886,7 @@ VAR
 		IF r = NIL THEN l := NIL;  RETURN END;
 		ArrayXdBytes.CheckEQ( 2, r.dim );   (*ArrayXdBytes.CheckEQ( r.origin[0], 0 );  ArrayXdBytes.CheckEQ( r.origin[1], 0 );  *)
 		IF (l = NIL ) OR (LEN( l, 1 ) # r.len[0]) OR (LEN( l, 0 ) # r.len[1]) THEN NEW( l, r.len[1], r.len[0] );  END;
-		ArrayXdBytes.CopyArrayToMemory( r, SYSTEM.ADR( l[0, 0] ), LEN( l, 0 ) * LEN( l, 1 ) );
+		ArrayXdBytes.CopyArrayToMemory( r, ADDRESSOF( l[0, 0] ), LEN( l, 0 ) * LEN( l, 1 ) );
 	END ":=";
 
 	PROCEDURE ":="*( VAR l: Array3;  r: Array );
@@ -894,7 +894,7 @@ VAR
 		IF r = NIL THEN l := NIL;  RETURN END;
 		ArrayXdBytes.CheckEQ( 3, r.dim );   (*ArrayXdBytes.CheckEQ( r.origin[0], 0 );  ArrayXdBytes.CheckEQ( r.origin[1], 0 );  ArrayXdBytes.CheckEQ( r.origin[2], 0 ); *)
 		IF (l = NIL ) OR (LEN( l, 2 ) # r.len[0]) OR (LEN( l, 1 ) # r.len[1]) OR (LEN( l, 0 ) # r.len[2]) THEN NEW( l, r.len[2], r.len[1], r.len[0] );  END;
-		ArrayXdBytes.CopyArrayToMemory( r, SYSTEM.ADR( l[0, 0, 0] ), LEN( l, 0 ) * LEN( l, 1 ) * LEN( l, 2 ) );
+		ArrayXdBytes.CopyArrayToMemory( r, ADDRESSOF( l[0, 0, 0] ), LEN( l, 0 ) * LEN( l, 1 ) * LEN( l, 2 ) );
 	END ":=";
 
 (*
@@ -906,7 +906,7 @@ VAR
 		IF (l = NIL ) OR (LEN( l, 3 ) # r.len[0]) OR (LEN( l, 2 ) # r.len[1]) OR (LEN( l, 1 ) # r.len[2]) OR (LEN( l, 0 ) # r.len[3]) THEN
 			NEW( l, r.len[3], r.len[2], r.len[1], r.len[0] );
 		END;
-		ArrayXdBytes.CopyArrayToMemory( r, SYSTEM.ADR( l[0, 0, 0, 0] ), LEN( l, 0 ) * LEN( l, 1 ) * LEN( l, 2 ) * LEN( l, 3 ) );
+		ArrayXdBytes.CopyArrayToMemory( r, ADDRESSOF( l[0, 0, 0, 0] ), LEN( l, 0 ) * LEN( l, 1 ) * LEN( l, 2 ) * LEN( l, 3 ) );
 	END ":=";
 *)
 

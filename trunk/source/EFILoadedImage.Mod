@@ -20,15 +20,15 @@ TYPE ProtocolDescription* = RECORD(EFI.ProtocolDescription)
 
 	(* source location of the image *)
 	DeviceHandle-: EFI.Handle;
-	FilePath : SYSTEM.ADDRESS; (* not implemented *)
-	Reserved : SYSTEM.ADDRESS;
+	FilePath : ADDRESS; (* not implemented *)
+	Reserved : ADDRESS;
 
 	(* image's load options *)
 	LoadOptionsSize-: EFI.Int32;
 	LoadOptions-{UNTRACED} : PtrToArrayOfByte;
 
 	(* location where image was loaded *)
-	ImageBase-: SYSTEM.ADDRESS;
+	ImageBase-: ADDRESS;
 	ImageSize-: EFI.Int64;
 	ImageCodeType-: EFI.Int; (* memory types: see EFI.MT... *)
 	ImageDataType-: EFI.Int;

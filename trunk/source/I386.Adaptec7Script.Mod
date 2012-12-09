@@ -28,13 +28,13 @@ VAR
 	Patches: ARRAY 77 OF Patch;
 	F: ARRAY 14 OF BOOLEAN;
 
-	Base: SYSTEM.ADDRESS;		(* pointer to the program *)
+	Base: ADDRESS;		(* pointer to the program *)
 	pc, patch: LONGINT;
 
 PROCEDURE CorrectAddr(VAR line: SET);
 VAR i, addr, Max: LONGINT;
 BEGIN
-	addr := SYSTEM.VAL(LONGINT, SYSTEM.LSH(line*{17..26}, -17));
+	addr := SYSTEM.VAL(LONGINT, LSH(line*{17..26}, -17));
 	i := 0; Max := addr;
 	WHILE Patches[i].begin < Max DO
 		IF ~F[Patches[i].f] THEN	(*patch not active*)
@@ -44,7 +44,7 @@ BEGIN
 			INC(i)
 		END
 	END;
-	line := line - {17..26} + SYSTEM.VAL(SET, SYSTEM.LSH(addr, 17));
+	line := line - {17..26} + SYSTEM.VAL(SET, LSH(addr, 17));
 END CorrectAddr;
 
 PROCEDURE LoadPatches;
@@ -81,7 +81,7 @@ BEGIN
 	SetPatch(0, MAX(LONGINT), -1, -1);
 END LoadPatches;
 
-PROCEDURE SeqProgram(): SYSTEM.ADDRESS;
+PROCEDURE SeqProgram(): ADDRESS;
 CODE {SYSTEM.i386}
 	CALL L1
 L1:
@@ -266,7 +266,7 @@ BEGIN
 
 	SYSTEM.GET(Base+pc*4, line);
 	IF line # {} THEN
-		opcode := SYSTEM.VAL(LONGINT, SYSTEM.LSH(line*{27..30}, -27));
+		opcode := SYSTEM.VAL(LONGINT, LSH(line*{27..30}, -27));
 		IF (8<=opcode) & (opcode<=0FH) THEN	(*patch jump addr*)
 			CorrectAddr(line)
 		END;
@@ -282,10 +282,10 @@ BEGIN
 			END;
 			IF parity THEN  INCL(line, 31)  END
 		ELSIF (8<=opcode) & (opcode<=0FH) THEN	(*format3*)
-			line := line*{0..16} + SYSTEM.LSH(line*{17..26}, -17+16) + SYSTEM.LSH(line*{27..30}, -27+25);
+			line := line*{0..16} + LSH(line*{17..26}, -17+16) + LSH(line*{27..30}, -27+25);
 		ELSE	(*format1*)
-			line := line*{0..16} + SYSTEM.LSH(line*{17..25}, -17+16) + SYSTEM.LSH(line*{26}, -26+24) +
-				SYSTEM.LSH(line*{27..30}, -27+25)
+			line := line*{0..16} + LSH(line*{17..25}, -17+16) + LSH(line*{26}, -26+24) +
+				LSH(line*{27..30}, -27+25)
 		END;
 		INC(pc)
 	END;

@@ -873,11 +873,11 @@ END IsOnSameController;
 
 PROCEDURE ClearBuffer*(VAR buf: ARRAY OF CHAR; ofs, len: LONGINT);
 VAR
-	adr: SYSTEM.ADDRESS;
-	rem: SYSTEM.SIZE;
+	adr: ADDRESS;
+	rem: SIZE;
 BEGIN
 	ASSERT((ofs+len) <= LEN(buf));
-	adr := SYSTEM.ADR(buf);
+	adr := ADDRESSOF(buf);
 	INC(adr, ofs);
 	rem := adr MOD 4;
 	WHILE rem > 0 DO

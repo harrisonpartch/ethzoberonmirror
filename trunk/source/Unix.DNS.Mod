@@ -12,7 +12,7 @@ CONST
 	
 
 TYPE
-	Address = S.ADDRESS;
+	Address = ADDRESS;
 	Name* = ARRAY 128 OF CHAR;   (* domain or host name type *)
 	
 	
@@ -51,14 +51,14 @@ VAR
 		hostent: Hostent;  
 		firstaddrPtr: Address;
 	BEGIN {EXCLUSIVE}
-		hostent := gethostbyname( S.ADR( hostname ) );
+		hostent := gethostbyname( ADDRESSOF( hostname ) );
 		IF hostent # NIL THEN		
 			S.GET( hostent.addrlist, firstaddrPtr );
 			IF hostent.length = 4 THEN
-				S.MOVE( firstaddrPtr, S.ADR( addr.ipv4Adr ), 4 );
+				S.MOVE( firstaddrPtr, ADDRESSOF( addr.ipv4Adr ), 4 );
 				addr.usedProtocol := IP.IPv4;
 			ELSE
-				S.MOVE( firstaddrPtr, S.ADR( addr.ipv6Adr ), 16 );
+				S.MOVE( firstaddrPtr, ADDRESSOF( addr.ipv6Adr ), 16 );
 				addr.usedProtocol := IP.IPv6;			
 			END;
 			res := Ok
@@ -79,9 +79,9 @@ VAR
 			hostname[0] := 0X;  res := BadName;  RETURN
 		END;
 		IF addr.usedProtocol = IP.IPv4 THEN
-			hostent := gethostbyaddr( S.ADR( addr.ipv4Adr ), 4, Unix.PFINET ) 
+			hostent := gethostbyaddr( ADDRESSOF( addr.ipv4Adr ), 4, Unix.PFINET ) 
 		ELSE
-			hostent := gethostbyaddr( S.ADR( addr.ipv6Adr ), 16, Unix.PFINET6 )
+			hostent := gethostbyaddr( ADDRESSOF( addr.ipv6Adr ), 16, Unix.PFINET6 )
 		END;		
 		IF hostent # NIL THEN	(* err points to struct hostent *)
 			S.GET( hostent.name, namePtr );
@@ -100,7 +100,7 @@ VAR
 	PROCEDURE GetHostName*( VAR name: ARRAY OF CHAR;  VAR res: LONGINT );
 	VAR len, x: LONGINT;
 	BEGIN
-		x := gethostname( S.ADR( name ), S.ADR( len ) );
+		x := gethostname( ADDRESSOF( name ), ADDRESSOF( len ) );
 		IF x >= 0 THEN  res := Ok  ELSE  res := NotFound  END
 	END GetHostName;
 	

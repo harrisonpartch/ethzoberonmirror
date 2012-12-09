@@ -2241,7 +2241,7 @@ BEGIN
 	INC(PCBT.context.constsize, SHORT(range*4));
 	IF (PCBT.context.constsize > LEN(PCBT.context.const^)) THEN	(* increase const-table *)
 		NEW(const, PCBT.context.constsize);
-		SYSTEM.MOVE(SYSTEM.ADR(PCBT.context.const[0]), SYSTEM.ADR(const[0]), LEN(PCBT.context.const));
+		SYSTEM.MOVE(ADDRESSOF(PCBT.context.const[0]), ADDRESSOF(const[0]), LEN(PCBT.context.const));
 		PCBT.context.const := const
 	END;
 
@@ -2737,7 +2737,7 @@ BEGIN
 								IF TTrace THEN KernelLog.String("with immediate shift") END;
 								CASE d.instr[dp].info(Info).xop OF
 								| PCLIR.ash: val := ASH(val, d.instr[dp].val)
-								| PCLIR.bsh: val := SYSTEM.LSH(val, d.instr[dp].val)
+								| PCLIR.bsh: val := LSH(val, d.instr[dp].val)
 								ELSE ok := FALSE
 								END
 							END;

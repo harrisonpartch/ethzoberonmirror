@@ -1098,7 +1098,7 @@ BEGIN
 END ReadLInt;
 
 PROCEDURE ReadSet*(VAR r: Rider; VAR x: SET);
-CONST Size = SYSTEM.SIZEOF (SET);
+CONST Size = SIZEOF (SET);
 TYPE Bytes = ARRAY Size OF CHAR;
 BEGIN
 	r.file.ReadBytes(r, SYSTEM.VAL(Bytes, x), 0, Size)
@@ -1143,10 +1143,10 @@ BEGIN
 	n := 0; y := 0; f := r.file;
 	f.Read(r, ch);
 	WHILE ch >= 80X DO
-		INC(y, SYSTEM.LSH(LONG(ORD(ch)) - 128, n)); INC(n, 7);
+		INC(y, LSH(LONG(ORD(ch)) - 128, n)); INC(n, 7);
 		f.Read(r, ch)
 	END;
-	x := ASH(SYSTEM.LSH(LONG(ORD(ch)), 25), n-25) + y
+	x := ASH(LSH(LONG(ORD(ch)), 25), n-25) + y
 END ReadNum;
 
 (** Portable routines to write the standard Oberon types. DEPRECATED, used Streams instead. *)
@@ -1167,7 +1167,7 @@ BEGIN
 END WriteLInt;
 
 PROCEDURE WriteSet*(VAR r: Rider; x: SET);
-CONST Size = SYSTEM.SIZEOF (SET);
+CONST Size = SIZEOF (SET);
 TYPE Bytes = ARRAY Size OF CHAR;
 BEGIN
 	r.file.WriteBytes(r, SYSTEM.VAL(Bytes, x), 0, Size)
@@ -1289,7 +1289,7 @@ VAR
 			WITH f: File DO
 				KernelLog.Int(i, 1); KernelLog.Char(" ");
 				(*KernelLog.String(f.fs.prefix); KernelLog.Char(" ");*)
-				KernelLog.Address(SYSTEM.VAL(SYSTEM.ADDRESS, f)); KernelLog.Char(" ");
+				KernelLog.Address(SYSTEM.VAL(ADDRESS, f)); KernelLog.Char(" ");
 				KernelLog.Int(f.key, 1); KernelLog.Char(" ");
 				KernelLog.Int(f.Length(), 1); KernelLog.Char(" ");
 				f.GetName(name);

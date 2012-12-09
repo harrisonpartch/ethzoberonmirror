@@ -46,8 +46,8 @@ MODULE COMDLG32; (** non-portable / source: Win32.COMDLG32.Mod *)	(* ejz  *)
 			rtMinMargin*, rtMargin*: User32.Rect;
 			hInstance*: Kernel32.HINSTANCE;
 			lCustData*: LONGINT;
-			lpfnPageSetupHook*: Kernel32.ADDRESS;
-			lpfnPagePaintHook*: Kernel32.ADDRESS;
+			lpfnPageSetupHook*: ADDRESS;
+			lpfnPagePaintHook*: ADDRESS;
 			lpPageSetupTemplateName*: Kernel32.LPSTR;
 			hPageSetupTemplate*: Kernel32.HANDLE
 		END;
@@ -69,7 +69,7 @@ MODULE COMDLG32; (** non-portable / source: Win32.COMDLG32.Mod *)	(* ejz  *)
 			nFileOffset*, nFileExtension*: INTEGER;
 			lpstrDefExt*: Kernel32.LPSTR;
 			lCustData*: User32.LParam;
-			lpfnHook*: Kernel32.ADDRESS;
+			lpfnHook*: ADDRESS;
 			lpTemplateName*: Kernel32.LPSTR
 		END;
 
@@ -83,7 +83,7 @@ MODULE COMDLG32; (** non-portable / source: Win32.COMDLG32.Mod *)	(* ejz  *)
 			lpstrFindWhat*, lpstrReplaceWith*: Kernel32.LPSTR;
 			wFindWhatLen*, wReplaceWithLen*: INTEGER;
 			lCustData*: User32.LParam;
-			lpfnHook*: Kernel32.ADDRESS;
+			lpfnHook*: ADDRESS;
 			lpTemplateName*: Kernel32.LPSTR
 		END;
 

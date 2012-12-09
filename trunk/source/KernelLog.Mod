@@ -11,14 +11,14 @@ CONST
 
 VAR
 	traceBufDef: ARRAY BufSize OF CHAR;	(* default trace buffer *)
-	traceBufAdr: SYSTEM.ADDRESS; traceBufSize: SYSTEM.SIZE;	(* current trace buffer virtual addresses *)
-	traceHead, traceTail: SYSTEM.ADDRESS;
+	traceBufAdr: ADDRESS; traceBufSize: SIZE;	(* current trace buffer virtual addresses *)
+	traceHead, traceTail: ADDRESS;
 	column*: LONGINT;	(** hint for Traps *)
 
 (** Send the specified characters to the trace output (cf. Streams.Sender). *)
 
 PROCEDURE Send*(CONST buf: ARRAY OF CHAR; ofs, len: LONGINT; propagate: BOOLEAN; VAR res: LONGINT);
-VAR next: SYSTEM.ADDRESS; c: CHAR;
+VAR next: ADDRESS; c: CHAR;
 BEGIN
 	INC(len, ofs);	(* len is now end position *)
 	Machine.Acquire(Machine.TraceOutput);
@@ -133,8 +133,8 @@ END Hex;
 
 (** Write "x" as a hexadecimal address. *)
 
-PROCEDURE Address* (x: SYSTEM.ADDRESS);
-BEGIN Hex (x, SYSTEM.SIZEOF (SYSTEM.ADDRESS) * 2)
+PROCEDURE Address* (x: ADDRESS);
+BEGIN Hex (x, SIZEOF (ADDRESS) * 2)
 END Address;
 
 (** Write "x" as a hexadecimal number.  "w" is the field width.  Always prints 16 digits. *)
@@ -147,8 +147,8 @@ END HIntHex;
 
 (** Write a block of memory in hex. *)
 
-PROCEDURE Memory*(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
-VAR i, j: SYSTEM.ADDRESS; ch: CHAR;
+PROCEDURE Memory*(adr: ADDRESS; size: SIZE);
+VAR i, j: ADDRESS; ch: CHAR;
 BEGIN
 	Char(0EX);	(* "fixed font" *)
 	size := adr+size-1;
@@ -179,7 +179,7 @@ END Memory;
 
 PROCEDURE Buffer*(CONST buf: ARRAY OF CHAR; ofs, len: LONGINT);
 BEGIN
-	Memory(SYSTEM.ADR(buf[ofs]), len)
+	Memory(ADDRESSOF(buf[ofs]), len)
 END Buffer;
 
 (** Write bits (ofs..ofs+n-1) of x in binary. *)
@@ -210,8 +210,8 @@ END Exit;
 
 (* Switch to a new tracing buffer, copying the existing data. *)
 
-PROCEDURE SwitchToBuffer(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
-VAR tail: SYSTEM.ADDRESS; c: CHAR;
+PROCEDURE SwitchToBuffer(adr: ADDRESS; size: SIZE);
+VAR tail: ADDRESS; c: CHAR;
 BEGIN
 	tail := 0; ASSERT(size > 0);
 	WHILE (traceHead # traceTail) & (tail+1 # size) DO	(* source not empty, destination not full *)
@@ -226,11 +226,11 @@ END SwitchToBuffer;
 
 (** Assign a new trace buffer.  Used by a display process. *)
 
-PROCEDURE OpenBuffer*(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE): BOOLEAN;
+PROCEDURE OpenBuffer*(adr: ADDRESS; size: SIZE): BOOLEAN;
 VAR ok: BOOLEAN;
 BEGIN
 	Machine.Acquire(Machine.TraceOutput);
-	IF traceBufAdr = SYSTEM.ADR(traceBufDef[0]) THEN
+	IF traceBufAdr = ADDRESSOF(traceBufDef[0]) THEN
 		SwitchToBuffer(adr, size); ok := TRUE
 	ELSE
 		ok := FALSE
@@ -260,14 +260,14 @@ END GetBuffer;
 PROCEDURE CloseBuffer*;
 BEGIN
 	Machine.Acquire(Machine.TraceOutput);
-	IF traceBufAdr # SYSTEM.ADR(traceBufDef[0]) THEN
-		SwitchToBuffer(SYSTEM.ADR(traceBufDef[0]), LEN(traceBufDef))
+	IF traceBufAdr # ADDRESSOF(traceBufDef[0]) THEN
+		SwitchToBuffer(ADDRESSOF(traceBufDef[0]), LEN(traceBufDef))
 	END;
 	Machine.Release(Machine.TraceOutput)
 END CloseBuffer;
 
 BEGIN
-	traceBufAdr := SYSTEM.ADR(traceBufDef[0]);
+	traceBufAdr := ADDRESSOF(traceBufDef[0]);
 	traceBufSize := LEN(traceBufDef);
 	traceHead := 0; traceTail := 0; column := 0;
 END KernelLog.

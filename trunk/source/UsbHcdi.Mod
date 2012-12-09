@@ -157,7 +157,7 @@ TYPE
 	(** Aligned memory space. Use data[base] as first entry. *)
 	AlignedMemSpace* = POINTER TO RECORD
 		data- : POINTER TO ARRAY OF LONGINT;
-		base- : SYSTEM.ADDRESS;
+		base- : ADDRESS;
 	END;
 
 	(** Emulated hub descriptor for supporting root hub emulation *)
@@ -296,7 +296,7 @@ TYPE
 		(** Debug interface *)
 
 		(** Show the specified queue head / endpoint descriptor *)
-		PROCEDURE ShowQH*(qh, firstTD : SYSTEM.ADDRESS);
+		PROCEDURE ShowQH*(qh, firstTD : ADDRESS);
 		BEGIN
 			IF Debug.Level >= Debug.Warnings THEN KernelLog.String("QH/TD diagnostics not implemented."); KernelLog.Ln; END;
 		END ShowQH;
@@ -440,7 +440,7 @@ TYPE
 		PROCEDURE RemoveCompletionHandler*(pipe : Pipe);
 		VAR temp : Pipe;
 		BEGIN (* only to be called from exclusive regions !! *)
-			IF Debug.Trace & Debug.tracePipes & (SYSTEM.ADR(pipe) > 10H)  THEN
+			IF Debug.Trace & Debug.tracePipes & (ADDRESSOF(pipe) > 10H)  THEN
 				KernelLog.String("UsbHcdi: Removing completion handler for pipe (Adr: "); KernelLog.Int(pipe.address, 0);
 				KernelLog.String(", ep: "); KernelLog.Int(pipe.endpoint, 0); KernelLog.String(")"); KernelLog.Ln;
 			END;
@@ -512,7 +512,7 @@ TYPE
 		(** USB Pipe Handling *)
 
 		PROCEDURE GetPipe*(deviceAddress, endpointNbr : LONGINT; VAR pipe : Pipe);
-		VAR testaddr : SYSTEM.ADDRESS;
+		VAR testaddr : ADDRESS;
 		BEGIN {EXCLUSIVE}
 			IF Debug.StrongChecks THEN
 				ASSERT((deviceAddress > 0) & (deviceAddress < 128));  (* valid USB device address *)
@@ -527,16 +527,16 @@ TYPE
 			pipe.tdBufferLen := (TDsPerPipe+1) * 16;
 			NEW(pipe.tdBuffer, pipe.tdBufferLen);
 			IF Debug.StrongChecks THEN
-				testaddr := Machine.PhysicalAdr(SYSTEM.ADR(pipe.tdBuffer[0]), pipe.tdBufferLen);
+				testaddr := Machine.PhysicalAdr(ADDRESSOF(pipe.tdBuffer[0]), pipe.tdBufferLen);
 				IF testaddr = Machine.NilAdr THEN
 					KernelLog.String("UsbHcdi: GetPipe: Allocated buffer not physically contiguous"); KernelLog.Ln;
 					pipe := NIL; RETURN;
 				END;
 			END;
 			(* TD's must be 32byte aligned for EHCI, 16byte aligned for UHCI & OHCI data structures*)
-			pipe.qh := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ADR(pipe.tdBuffer[0]) + 31) * {5..31});
+			pipe.qh := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ADDRESSOF(pipe.tdBuffer[0]) + 31) * {5..31});
 			pipe.tdBase := pipe.qh + 32;
-			ASSERT((pipe.qh >= SYSTEM.ADR(pipe.tdBuffer[0])) & (pipe.tdBase <= SYSTEM.ADR(pipe.tdBuffer[pipe.tdBufferLen-1])));
+			ASSERT((pipe.qh >= ADDRESSOF(pipe.tdBuffer[0])) & (pipe.tdBase <= ADDRESSOF(pipe.tdBuffer[pipe.tdBufferLen-1])));
 			IF ~InsertQH(pipe) THEN
 				IF Debug.Level >= Debug.Errors THEN KernelLog.String("UsbHcdi: GetPipe: InsertQH failed."); KernelLog.Ln; END;
 				pipe := NIL; RETURN;
@@ -657,11 +657,11 @@ TYPE
 			pipe.tdBufferLen := (TDsDefaultPipe + 2) * 16;
 			NEW(pipe.tdBuffer, pipe.tdBufferLen);
 			(* TD's must be 32byte aligned for EHCI data structures, 16byte for UHCI & OHCI data structures *)
-			pipe.qh := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ADR(pipe.tdBuffer[0]) + 31) * {5..31});
+			pipe.qh := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ADDRESSOF(pipe.tdBuffer[0]) + 31) * {5..31});
 			pipe.tdBase := pipe.qh + 32;
 			IF Debug.StrongChecks THEN
-				ASSERT(pipe.tdBase >= SYSTEM.ADR(pipe.tdBuffer[0]));
-				ASSERT(pipe.tdBase <= SYSTEM.ADR(pipe.tdBuffer[pipe.tdBufferLen-1]));
+				ASSERT(pipe.tdBase >= ADDRESSOF(pipe.tdBuffer[0]));
+				ASSERT(pipe.tdBase <= ADDRESSOF(pipe.tdBuffer[pipe.tdBufferLen-1]));
 			END;
 			pipes[0, 0, 0] := pipe;
 			notifyPipes := pipe; (* Used as list head only (don't call its completion handler) *)
@@ -818,7 +818,7 @@ TYPE
 
 		(* Buffer for S/W scatter/gather support *)
 		sgBuffer : Usbdi.BufferPtr;
-		physBufferAdr- : SYSTEM.ADDRESS;
+		physBufferAdr- : ADDRESS;
 
 		(* Buffer for H/W scatter/gather suport *)
 		sgList- : POINTER TO ARRAY OF Machine.Range;
@@ -866,14 +866,14 @@ TYPE
 		(*		cannot directly be used by the host controller																					*)
 		(*	-	Returns FALSE when the client buffer meets the requirement of the host controller hardware									*)
 		PROCEDURE NeedSWScatterGather(direction, bufferLen, offset : LONGINT; VAR buffer : Usbdi.Buffer; VAR doCopy : BOOLEAN) : BOOLEAN;
-		VAR adr : SYSTEM.ADDRESS;
+		VAR adr : ADDRESS;
 		BEGIN
 			doCopy := FALSE;
 			IF bufferLen = 0 THEN RETURN FALSE; END;
-			adr := Machine.PhysicalAdr(SYSTEM.ADR(buffer[offset]), bufferLen);
+			adr := Machine.PhysicalAdr(ADDRESSOF(buffer[offset]), bufferLen);
 			IF adr = -1 THEN  (* buffer is not physically contiguous *)
 				IF sgBuffer = NIL THEN NEW(sgBuffer, 128*1024); END; (* 128K is stack limit *)
-				physBufferAdr := SYSTEM.ADR(sgBuffer[0]);
+				physBufferAdr := ADDRESSOF(sgBuffer[0]);
 				IF direction = In THEN
 					doCopy := TRUE;
 				ELSE
@@ -978,16 +978,16 @@ TYPE
 
 		(* Data structure consistency check *)
 		PROCEDURE CheckBuffer(length, ofs : LONGINT; VAR buffer : Usbdi.Buffer);
-		VAR i : SYSTEM.ADDRESS;
+		VAR i : ADDRESS;
 		BEGIN
 			IF Debug.StrongChecks THEN
 				ASSERT(tdBuffer # NIL);
 				(* TD buffer MUST be physically contiguous *)
-				i := Machine.PhysicalAdr(SYSTEM.ADR(tdBuffer[0]), tdBufferLen);
+				i := Machine.PhysicalAdr(ADDRESSOF(tdBuffer[0]), tdBufferLen);
 				IF i = Machine.NilAdr THEN HALT(99); END;
 				(* TD list MUST be located in TD buffer *)
-				ASSERT((firstTD >= SYSTEM.ADR(tdBuffer[0])) & (firstTD <= SYSTEM.ADR(tdBuffer[tdBufferLen-1])));
-				ASSERT((lastTD >= SYSTEM.ADR(tdBuffer[0])) & (lastTD <= SYSTEM.ADR(tdBuffer[tdBufferLen-1])));
+				ASSERT((firstTD >= ADDRESSOF(tdBuffer[0])) & (firstTD <= ADDRESSOF(tdBuffer[tdBufferLen-1])));
+				ASSERT((lastTD >= ADDRESSOF(tdBuffer[0])) & (lastTD <= ADDRESSOF(tdBuffer[tdBufferLen-1])));
 			END;
 		END CheckBuffer;
 
@@ -1001,11 +1001,11 @@ TYPE
 			message[0] := CHR(SYSTEM.VAL(LONGINT, bmRequestType));
 			message[1] := CHR(bRequest);
 			message[2] := CHR(wValue);
-			message[3] := CHR(SYSTEM.LSH(wValue, -8));
+			message[3] := CHR(LSH(wValue, -8));
 			message[4] := CHR(wIndex);
-			message[5] := CHR(SYSTEM.LSH(wIndex,-8));
+			message[5] := CHR(LSH(wIndex,-8));
 			message[6] := CHR(wLength);
-			message[7] := CHR(SYSTEM.LSH(wLength, -8));
+			message[7] := CHR(LSH(wLength, -8));
 			IF bmRequestType * Usbdi.ToHost # {} THEN dir := In; ELSE 	dir := Out; END;
 			IF Debug.Trace & Debug.traceControl THEN ShowMessage(wLength, dir, message); END;
 
@@ -1226,7 +1226,7 @@ TYPE
 				KernelLog.String(", Last status: "); ShowStatus(status);
 				KernelLog.String(", Last errors: "); ShowErrors(errors); KernelLog.Ln;
 				IF type # PipeIsochronous THEN
-					KernelLog.String("    TD buffer: "); KernelLog.Int((LEN(tdBuffer) - (tdBase - SYSTEM.ADR(tdBuffer[0]))) DIV 16 , 0); KernelLog.String(" TD's ");
+					KernelLog.String("    TD buffer: "); KernelLog.Int((LEN(tdBuffer) - (tdBase - ADDRESSOF(tdBuffer[0]))) DIV 16 , 0); KernelLog.String(" TD's ");
 					KernelLog.Ln; KernelLog.Ln;
 					controller.ShowPipe(SELF);
 				ELSE
@@ -1283,7 +1283,7 @@ BEGIN
 	IF Debug.Trace & Debug.traceCopying THEN KernelLog.String("UsbHcdi: SG: Copying "); KernelLog.Int(len, 0); KernelLog.String(" Bytes."); KernelLog.Ln; END;
 	IF len > 0 THEN
 		ASSERT((fofs+len <= LEN(from)) & (tofs+len <= LEN(to)));
-		SYSTEM.MOVE(SYSTEM.ADR(from[fofs]), SYSTEM.ADR(to[tofs]), len);
+		SYSTEM.MOVE(ADDRESSOF(from[fofs]), ADDRESSOF(to[tofs]), len);
 	END;
 END Copy;
 
@@ -1304,8 +1304,8 @@ BEGIN
 		IF (temp MOD 2 # 0) OR (temp = 0)  THEN (* ERROR!! *) RETURN NIL END;
 	END;
 	FOR temp := 0 TO i-1 DO INCL(mask, temp);  END;
-	temp := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.ADR(memspace.data[0]) + alignment - 1) - mask);
-	memspace.base := (temp - SYSTEM.ADR(memspace.data[0])) DIV 4; (* -> memspace.data[memspace.base] is <alignment bytes> - aligned *)
+	temp := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ADDRESSOF(memspace.data[0]) + alignment - 1) - mask);
+	memspace.base := (temp - ADDRESSOF(memspace.data[0])) DIV 4; (* -> memspace.data[memspace.base] is <alignment bytes> - aligned *)
 	RETURN memspace;
 END GetAlignedMemSpace;
 

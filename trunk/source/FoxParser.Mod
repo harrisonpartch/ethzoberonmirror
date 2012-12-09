@@ -575,6 +575,10 @@ TYPE
 				designator := SyntaxTree.NewSelfDesignator(position);
 			ELSIF Optional(Scanner.Result) THEN
 				designator := SyntaxTree.NewResultDesignator(position);
+			ELSIF (symbol.token = Scanner.Address) OR (symbol.token = Scanner.Size) OR (symbol.token = Scanner.Alias) THEN
+				identifier := symbol.identifier;
+				designator := SyntaxTree.NewIdentifierDesignator(position,identifier);
+				NextSymbol;
 			ELSE
 				identifier := Identifier(position);
 				designator := SyntaxTree.NewIdentifierDesignator(position,identifier);
@@ -648,9 +652,11 @@ TYPE
 		END MathArray;
 
 		(** Factor = Number | Character | String | 'nil' | 'imag' | 'true' | 'false' | Set
-			 			  | '(' Expression ')' | '~' Factor | Factor '`' | Designator | MathArray.**)
+			 			  | '(' Expression ')' | '~' Factor | Factor '`' | Designator | MathArray.
+			 			  | 'SIZE' 'OF' Designator | 'ADDRESS' 'OF' Designator
+			 			  **)
 		PROCEDURE Factor( ): SyntaxTree.Expression;
-		VAR factor: SyntaxTree.Expression; position: LONGINT;
+		VAR factor: SyntaxTree.Expression; position,operator: LONGINT;
 		BEGIN
 			IF Trace THEN S( "Factor" ) END;
 			position := symbol.start;
@@ -706,6 +712,14 @@ TYPE
 					factor := Factor();
 					factor := SyntaxTree.NewUnaryExpression( position, factor, Scanner.Not );
 					factor.End( symbol.end );
+			| Scanner.Address, Scanner.Size, Scanner.Alias:
+					operator := symbol.token;
+					factor := Designator();
+					IF Optional(Scanner.Of) THEN
+						factor := Designator();
+						factor := SyntaxTree.NewUnaryExpression( position, factor, operator );
+					END;
+					factor.End (symbol.end)
 			| Scanner.Self, Scanner.Result, Scanner.Identifier:
 					factor := Designator();
 					factor.End( symbol.end );
@@ -1449,6 +1463,10 @@ TYPE
 			ELSIF Optional( Scanner.Port) THEN type := PortType( position, parentScope)
 			ELSIF Optional( Scanner.Procedure ) THEN type := ProcedureType( position,parentScope);
 			ELSIF Optional( Scanner.Enum ) THEN type := EnumerationType( position,parentScope);
+			ELSIF (symbol.token = Scanner.Address) OR (symbol.token = Scanner.Size) THEN
+				qualifiedIdentifier := SyntaxTree.NewQualifiedIdentifier(position,SyntaxTree.invalidIdentifier, symbol.identifier);
+				type := SyntaxTree.NewQualifiedType( qualifiedIdentifier.position, parentScope, qualifiedIdentifier );
+				NextSymbol;
 			ELSE qualifiedIdentifier := QualifiedIdentifier();
 				type := SyntaxTree.NewQualifiedType( qualifiedIdentifier.position, parentScope, qualifiedIdentifier );
 			END;

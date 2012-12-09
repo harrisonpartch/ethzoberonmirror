@@ -117,8 +117,8 @@ END ScanBus;
 
 PROCEDURE Extract(classcode : LONGINT; VAR class, subclass, protocol : LONGINT);
 BEGIN
-	class := SYSTEM.LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, classcode) * {16..23}), -16);
-	subclass := SYSTEM.LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, classcode) * {8..15}), -8);
+	class := LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, classcode) * {16..23}), -16);
+	subclass := LSH(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, classcode) * {8..15}), -8);
 	protocol := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, classcode) * {0..7});
 END Extract;
 

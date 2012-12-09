@@ -26,8 +26,8 @@ VAR YUV422*: Raster.Format;
 	END BGRtoYUVInt;
 
 	(*! to do: this is inefficient because two adjacent pixels are handled despite their common u and v parts; However, the design of the Raster module renders this mandatory. A direct conversion may help in some cases. *)
-	PROCEDURE PackYUV422 (VAR fmt: Raster.Format0; adr: SYSTEM.ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
-	VAR y,u,v: CHAR; baseadr:SYSTEM.ADDRESS;
+	PROCEDURE PackYUV422 (VAR fmt: Raster.Format0; adr: ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
+	VAR y,u,v: CHAR; baseadr:ADDRESS;
 	BEGIN
 		IF pix[a]#0X THEN
 			baseadr:= adr-adr MOD 4; (*y0uy1v data are 32 bits for two adjacent pixels*);
@@ -42,8 +42,8 @@ VAR YUV422*: Raster.Format;
 
 	(* YUV422 - 32 bit  pixels with 8 bit Y for two pixel, 8bits U in every second pixel, and 8 bits V in every second pixel *)
 	(*! to do: this is inefficient because raw data are read twice for two adjacent pixels. However, the design of the Raster module renders this mandatory. A direct conversion may help in some cases. *)
-	PROCEDURE UnpackYUV422 (VAR fmt: Raster.Format0; adr: SYSTEM.ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
-		VAR y0,y1,u,v: CHAR; int: LONGINT; baseadr:SYSTEM.ADDRESS;
+	PROCEDURE UnpackYUV422 (VAR fmt: Raster.Format0; adr: ADDRESS; bit: LONGINT; VAR pix: Raster.Pixel);
+		VAR y0,y1,u,v: CHAR; int: LONGINT; baseadr:ADDRESS;
 	BEGIN
 		baseadr:= adr-adr MOD 4; (*y0uy1v data are 32 bits for two adjacent pixels*);
 		SYSTEM.GET(baseadr, y0); SYSTEM.GET(baseadr+1, u); SYSTEM.GET(baseadr+2, y1); SYSTEM.GET(baseadr+3, v);

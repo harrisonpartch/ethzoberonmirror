@@ -38,7 +38,7 @@ TYPE FileDelete* = PROCEDURE{C}(This : Protocol) : EFI.Status;
 (* Read 'BufferSize' bytes. On success, the number bytes read is written to 'BufferSize' and the file position is updated.
 If 'This' is a directory, read the directory entry at the current file position. If this entry does not fit into the buffer BufferTooSmall
 is returned and the file position is not updated and 'BufferSize' is set to the size needed to read the entry. *)
-TYPE FileRead* = PROCEDURE{C}(This : Protocol; VAR BufferSize : EFI.Int; Buffer : SYSTEM.ADDRESS) : EFI.Status;
+TYPE FileRead* = PROCEDURE{C}(This : Protocol; VAR BufferSize : EFI.Int; Buffer : ADDRESS) : EFI.Status;
 (* Write specified number of bytes to the file at the current file position. Current file position is advanced the actual number of
 bytes written, which is returned in 'BufferSize'. Direct writes to open directories are not supported *)
 TYPE FileWrite* = PROCEDURE{C}(This : Protocol; VAR BufferSize : EFI.Int; CONST Buffer : ARRAY OF SYSTEM.BYTE) : EFI.Status;

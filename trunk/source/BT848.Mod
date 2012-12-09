@@ -1012,7 +1012,7 @@ TYPE
 		audio: Audio;
 		i2cBus: I2CBus;
 		id: LONGINT;
-		base: SYSTEM.ADDRESS; irq: LONGINT;
+		base: ADDRESS; irq: LONGINT;
 		bt848Tuner: LONGINT;
 		bt848Card: LONGINT;
 		mspVersionString: ARRAY 9 OF CHAR;	(* MSP version string 34xxx-xx *)
@@ -1066,7 +1066,7 @@ TYPE
 		fps: LONGINT;	(* frames per second *)
 
 	(* Initialize the VideoCaptureDevice object. *)
-	PROCEDURE &Init*(base: SYSTEM.ADDRESS; irq, product, rev: LONGINT);
+	PROCEDURE &Init*(base: ADDRESS; irq, product, rev: LONGINT);
 	BEGIN
 		SELF.base := base;
 		SELF.irq := irq;
@@ -1197,7 +1197,7 @@ TYPE
 					flags := flags + AosWantMask;
 				END;
 			END;
-			SYSTEM.PUT32(base + BktrRISCStrtAdd, Machine.PhysicalAdr(SYSTEM.ADR(dmaProg), 4));
+			SYSTEM.PUT32(base + BktrRISCStrtAdd, Machine.PhysicalAdr(ADDRESSOF(dmaProg), 4));
 			SYSTEM.PUT16(base + BktrGPIODmaCtl, SYSTEM.VAL(LONGINT, FifoEnabled));
 			SYSTEM.PUT16(base + BktrGPIODmaCtl, SYSTEM.VAL(LONGINT, capControl));
 
@@ -1747,7 +1747,7 @@ TYPE
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpWrite + OpSOL + OpEOL + SYSTEM.VAL(SET, vbiSamples));
 			INC(dmaIndex);
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT,
-				Machine.PhysicalAdr(SYSTEM.ADR(vbiData), 4) + (q * VbiLineSize)); INC(dmaIndex);
+				Machine.PhysicalAdr(ADDRESSOF(vbiData), 4) + (q * VbiLineSize)); INC(dmaIndex);
 		END;
 
 		IF (mode = AosOddField) OR (mode = AosInterlaced) THEN
@@ -1778,7 +1778,7 @@ TYPE
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpWrite + OpSOL + OpEOL + SYSTEM.VAL(SET, vbiSamples));
 			INC(dmaIndex);
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT,
-				Machine.PhysicalAdr(SYSTEM.ADR(vbiData), 4) + ((q+VbiMaxLines)*VbiLineSize)); INC(dmaIndex);
+				Machine.PhysicalAdr(ADDRESSOF(vbiData), 4) + ((q+VbiMaxLines)*VbiLineSize)); INC(dmaIndex);
 		END;
 
 		(* store the video image *)
@@ -1808,7 +1808,7 @@ TYPE
 
 		dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpJump); INC(dmaIndex);
 		dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT,
-			Machine.PhysicalAdr(SYSTEM.ADR(dmaProg[loopPoint]), 4)); INC(dmaIndex);
+			Machine.PhysicalAdr(ADDRESSOF(dmaProg[loopPoint]), 4)); INC(dmaIndex);
 		dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, 0); INC(dmaIndex);
 	END DmaRgbVbi;
 
@@ -1887,8 +1887,8 @@ TYPE
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpSync + BktrGenIRQ + BktrVRO); INC(dmaIndex);
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, 0); INC(dmaIndex);
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpJump); INC(dmaIndex);
-			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, Machine.PhysicalAdr(SYSTEM.ADR(dmaProg[0]),
-				LEN(dmaProg) * SYSTEM.SIZEOF(LONGINT)));
+			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, Machine.PhysicalAdr(ADDRESSOF(dmaProg[0]),
+				LEN(dmaProg) * SIZEOF(LONGINT)));
 			dmaProgLength := dmaIndex;
 			RETURN;
 		ELSIF mode = 2 THEN
@@ -1896,8 +1896,8 @@ TYPE
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpSync + BktrGenIRQ + BktrVRE); INC(dmaIndex);
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, 0); INC(dmaIndex);
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpJump); INC(dmaIndex);
-			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, Machine.PhysicalAdr(SYSTEM.ADR(dmaProg[0]),
-				LEN(dmaProg) * SYSTEM.SIZEOF(LONGINT)));
+			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, Machine.PhysicalAdr(ADDRESSOF(dmaProg[0]),
+				LEN(dmaProg) * SIZEOF(LONGINT)));
 			dmaProgLength := dmaIndex;
 			RETURN;
 		ELSIF mode = 3 THEN
@@ -1905,8 +1905,8 @@ TYPE
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpSync + BktrGenIRQ + BktrResync + BktrVRO); INC(dmaIndex);
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, 0); INC(dmaIndex);
 			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpJump); INC(dmaIndex);
-			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, Machine.PhysicalAdr(SYSTEM.ADR(oddDmaProg[0]),
-				LEN(oddDmaProg) * SYSTEM.SIZEOF(LONGINT)));
+			dmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, Machine.PhysicalAdr(ADDRESSOF(oddDmaProg[0]),
+				LEN(oddDmaProg) * SIZEOF(LONGINT)));
 		END;
 		dmaProgLength := dmaIndex;
 
@@ -1935,8 +1935,8 @@ TYPE
 			INC(dmaIndex);
 		oddDmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, 0); INC(dmaIndex);
 		oddDmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, OpJump); INC(dmaIndex);
-		oddDmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, Machine.PhysicalAdr(SYSTEM.ADR(dmaProg[0]),
-			LEN(dmaProg) * SYSTEM.SIZEOF(LONGINT))); INC(dmaIndex);
+		oddDmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, Machine.PhysicalAdr(ADDRESSOF(dmaProg[0]),
+			LEN(dmaProg) * SIZEOF(LONGINT))); INC(dmaIndex);
 		oddDmaProg[dmaIndex] := SYSTEM.VAL(LONGINT, 0);
 		oddDmaProgLength := dmaIndex;
 	END DmaRgb;
@@ -2124,7 +2124,7 @@ TYPE
 					interlace := 2;
 		END;
 
-		SYSTEM.PUT32(base + BktrRISCStrtAdd, Machine.PhysicalAdr(SYSTEM.ADR(dmaProg), 4));
+		SYSTEM.PUT32(base + BktrRISCStrtAdd, Machine.PhysicalAdr(ADDRESSOF(dmaProg), 4));
 
 		vbiFlags := vbiFlags * (-VbiCapture);	(* default - no VBI capture *)
 
@@ -2157,18 +2157,18 @@ TYPE
 	(** Outputs a dump of the RISC program. *)
 	PROCEDURE DumpRisc*;
 	VAR
-		pc, ipc, spc: SYSTEM.ADDRESS; errPC, data: LONGINT;
+		pc, ipc, spc: ADDRESS; errPC, data: LONGINT;
 	BEGIN
 		pc := SYSTEM.GET32(base + BktrRISCStrtAdd);
 		errPC := SYSTEM.GET32(base + BktrRISCCount);
-		Machine.MapPhysical(pc, SYSTEM.SIZEOF(LONGINT) * LEN(dmaProg), ipc);
+		Machine.MapPhysical(pc, SIZEOF(LONGINT) * LEN(dmaProg), ipc);
 		ASSERT(ipc # Machine.NilAdr);
 		spc := ipc;
 		data := SYSTEM.GET32(ipc);
 		KernelLog.String("{BT848} *** RISC DUMP START ***"); KernelLog.Ln;
 		KernelLog.String("{BT848} BktrRISCStrtAddr: "); KernelLog.Hex(pc, 0); KernelLog.Ln;
 		KernelLog.String("{BT848} error address: "); KernelLog.Hex(errPC, 0); KernelLog.Ln;
-		KernelLog.String("{BT848} risc jump addr: "); KernelLog.Hex(Machine.PhysicalAdr(SYSTEM.ADR(dmaProg), 0), 0);
+		KernelLog.String("{BT848} risc jump addr: "); KernelLog.Hex(Machine.PhysicalAdr(ADDRESSOF(dmaProg), 0), 0);
 			KernelLog.Ln;
 		i := 0;
 		REPEAT
@@ -2587,7 +2587,7 @@ TYPE
 	(** Set the video data buffer. *)
 	(** addr:	physical address of target buffer for video data. *)
 	(** width:	line length of video frame buffer *)
-	PROCEDURE SetVideo*(addr: SYSTEM.ADDRESS; width: LONGINT);
+	PROCEDURE SetVideo*(addr: ADDRESS; width: LONGINT);
 	BEGIN
 		ASSERT(flags * AosCapMask = {});
 		videoAddr := Machine.Ensure32BitAddress (addr);
@@ -2634,7 +2634,7 @@ TYPE
 			dmaProgLoaded := TRUE;
 		END;
 
-		SYSTEM.PUT32(base + BktrRISCStrtAdd, Machine.PhysicalAdr(SYSTEM.ADR(dmaProg), 4));
+		SYSTEM.PUT32(base + BktrRISCStrtAdd, Machine.PhysicalAdr(ADDRESSOF(dmaProg), 4));
 
 		(* wait for capture to complete *)
 		singleFrameCaptured := FALSE;
@@ -2816,12 +2816,12 @@ TYPE
 	I2CBus = OBJECT
 	VAR
 		cardID: LONGINT;
-		base: SYSTEM.ADDRESS;
+		base: ADDRESS;
 		dead: BOOLEAN;
 
 	(* Initialize I2CBus object. *)
 	(* base:	base of video capture card *)
-	PROCEDURE &Init*(id: LONGINT; base: SYSTEM.ADDRESS);
+	PROCEDURE &Init*(id: LONGINT; base: ADDRESS);
 	BEGIN
 		SELF.cardID := id;
 		SELF.base := base;
@@ -3360,7 +3360,7 @@ PROCEDURE ScanPCI(vendor, device: LONGINT);
 CONST BtDefaultLatencyValue = 10;
 VAR
 	index, bus, dev, fct, irq, rev: LONGINT;
-	base: SYSTEM.ADDRESS;
+	base: ADDRESS;
 	vcd: VideoCaptureDevice;
 	command, fun, latency: LONGINT;
 BEGIN

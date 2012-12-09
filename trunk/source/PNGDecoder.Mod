@@ -133,33 +133,33 @@ TYPE
 		PROCEDURE Decode;
 		VAR x, y, cp : LONGINT;
 			filter, ls : LONGINT;
-			p : SYSTEM.ADDRESS;
+			p : ADDRESS;
 			c, r, g, b, a, dummy : CHAR;
 			prior, current, temp : POINTER TO ARRAY OF CHAR;
 			currentByte : CHAR;
 			bitPos : LONGINT;
-			lastRowStart : SYSTEM.ADDRESS;
+			lastRowStart : ADDRESS;
 			len : LONGINT;
 
 			PROCEDURE GetNextBit() : LONGINT;
 			BEGIN
 				IF bitPos MOD 8 = 0 THEN currentByte := GetNextFilterByte(); bitPos := 0  END;
 				INC(bitPos);
-				RETURN ORD(SYSTEM.LSH(currentByte, bitPos-8 )) MOD 2
+				RETURN ORD(LSH(currentByte, bitPos-8 )) MOD 2
 			END GetNextBit;
 
 			PROCEDURE GetNext2Bits() : LONGINT;
 			BEGIN
 				IF bitPos MOD 8 = 0 THEN currentByte := GetNextFilterByte(); bitPos := 0 END;
 				INC(bitPos, 2);
-				RETURN ORD(SYSTEM.LSH(currentByte, bitPos-8)) MOD 4
+				RETURN ORD(LSH(currentByte, bitPos-8)) MOD 4
 			END GetNext2Bits;
 
 			PROCEDURE GetNext4Bits() : LONGINT;
 			BEGIN
 				IF bitPos MOD 8 = 0 THEN currentByte := GetNextFilterByte(); bitPos := 0 END;
 				INC(bitPos, 4);
-				RETURN ORD(SYSTEM.LSH(currentByte, bitPos-8)) MOD 16
+				RETURN ORD(LSH(currentByte, bitPos-8)) MOD 16
 			END GetNext4Bits;
 
 			PROCEDURE PaethPredictor(a, b, c : LONGINT) : CHAR;

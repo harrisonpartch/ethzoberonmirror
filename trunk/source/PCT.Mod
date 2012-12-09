@@ -159,7 +159,7 @@ TYPE
 		VAR
 			state-: SHORTINT;
 			flags-: SET;
-			ownerID-: SYSTEM.ADDRESS;	(** process owning this scope*)
+			ownerID-: ADDRESS;	(** process owning this scope*)
 			module-: Module;	(** module owning this scope *)
 			sorted-, last-: Symbol;	(** objects in the scope; last is the last object inserted *)
 			firstValue-, lastValue-: Value;
@@ -1782,9 +1782,9 @@ VAR
 
 		ASSERT( dim <= LEN( len ) );  NEW( c );
 		NEW( c.data, LEN( data ) );
-		SYSTEM.MOVE( SYSTEM.ADR( data[0] ), SYSTEM.ADR( c.data[0] ), LEN( data ) );
+		SYSTEM.MOVE( ADDRESSOF( data[0] ), ADDRESSOF( c.data[0] ), LEN( data ) );
 		NEW( c.len, dim );
-		SYSTEM.MOVE( SYSTEM.ADR( len[0] ),   SYSTEM.ADR( c.len[0] ),  SYSTEM.SIZEOF( LONGINT ) * dim );
+		SYSTEM.MOVE( ADDRESSOF( len[0] ),   ADDRESSOF( c.len[0] ),  SIZEOF( LONGINT ) * dim );
 
 		lencheck := 1;  inc := basesize;
 		FOR i := dim - 1 TO 0 BY -1 DO

@@ -199,13 +199,13 @@ TYPE
 		PROCEDURE IsSet(bit : LONGINT) : BOOLEAN;
 		BEGIN
 			ASSERT(( 0 <= bit) & (bit < size));
-			RETURN (bit MOD SYSTEM.SIZEOF(SET)) IN map[bit DIV SYSTEM.SIZEOF(SET)];
+			RETURN (bit MOD SIZEOF(SET)) IN map[bit DIV SIZEOF(SET)];
 		END IsSet;
 
 		PROCEDURE Set(bit : LONGINT);
 		BEGIN
 			ASSERT((0 <= bit) & (bit  < size));
-			INCL(map[bit DIV SYSTEM.SIZEOF(SET)], bit MOD SYSTEM.SIZEOF(SET));
+			INCL(map[bit DIV SIZEOF(SET)], bit MOD SIZEOF(SET));
 		END Set;
 
 		PROCEDURE NofBitsSet() : LONGINT;
@@ -213,7 +213,7 @@ TYPE
 		BEGIN
 			nofBitsSet := 0;
 			FOR index := 0 TO LEN(map)-1 DO
-				FOR subindex := 0 TO SYSTEM.SIZEOF(SET)-1 DO
+				FOR subindex := 0 TO SIZEOF(SET)-1 DO
 					IF subindex IN map[index] THEN INC(nofBitsSet); END;
 				END;
 			END;
@@ -234,7 +234,7 @@ TYPE
 		BEGIN
 			ASSERT(size > 0);
 			SELF.size := size;
-			NEW(map, (size + SYSTEM.SIZEOF(SET)-1) DIV SYSTEM.SIZEOF(SET));
+			NEW(map, (size + SIZEOF(SET)-1) DIV SIZEOF(SET));
 			FOR i := 0 TO LEN(map)-1 DO map[i] := {}; END;
 		END Init;
 

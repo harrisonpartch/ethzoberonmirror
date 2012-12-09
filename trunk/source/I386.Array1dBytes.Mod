@@ -425,19 +425,19 @@ Array1dBytes.Test ~
 
 	PROCEDURE FillInt2( VAR a: ARRAY OF INTEGER;  i: INTEGER );   (* nearly same speed as FillInt *)
 	BEGIN
-		FillW( SYSTEM.ADR( a ), SYSTEM.VAL( Word, i ), LEN( a ) );
+		FillW( ADDRESSOF( a ), SYSTEM.VAL( Word, i ), LEN( a ) );
 	END FillInt2;
 
 	PROCEDURE Test1( a: QWord );
 	VAR adr: LONGINT;
 	BEGIN
-		adr := SYSTEM.ADR( a );
+		adr := ADDRESSOF( a );
 	END Test1;
 
 	PROCEDURE Test2( a: LONGREAL );
 	VAR adr: LONGINT;
 	BEGIN
-		adr := SYSTEM.ADR( a );
+		adr := ADDRESSOF( a );
 	END Test2;
 
 (* Operator procedures *)
@@ -480,13 +480,13 @@ TYPE
 	PROCEDURE Test3( a: QRec );
 	VAR adr: LONGINT;
 	BEGIN
-		adr := SYSTEM.ADR( a );
+		adr := ADDRESSOF( a );
 	END Test3;
 
 	PROCEDURE Test4( VAR a: ARRAY OF SYSTEM.BYTE );
 	VAR adr: LONGINT;
 	BEGIN
-		adr := SYSTEM.ADR( a );
+		adr := ADDRESSOF( a );
 	END Test4;
 
 	PROCEDURE CallTest*;
@@ -528,9 +528,9 @@ TYPE
 			len := minlen;
 			WHILE (len < maxlen) DO
 				NEW( a, 2 * len );  NEW( b, 2 * len );
-				IF SYSTEM.ADR( a[0] ) < SYSTEM.ADR( b[0] ) THEN
-					low := SYSTEM.ADR( a[0] );  high := SYSTEM.ADR( b[0] );  overlap := SYSTEM.ADR( a[len DIV 2] );
-				ELSE low := SYSTEM.ADR( b[0] );  high := SYSTEM.ADR( a[0] );  overlap := SYSTEM.ADR( b[len DIV 2] );
+				IF ADDRESSOF( a[0] ) < ADDRESSOF( b[0] ) THEN
+					low := ADDRESSOF( a[0] );  high := ADDRESSOF( b[0] );  overlap := ADDRESSOF( a[len DIV 2] );
+				ELSE low := ADDRESSOF( b[0] );  high := ADDRESSOF( a[0] );  overlap := ADDRESSOF( b[len DIV 2] );
 				END;
 				time := Oberon.Time();
 				FOR i := 1 TO maxtries DO MoveB( low, high, len );  END;
@@ -570,7 +570,7 @@ TYPE
 		BEGIN
 			(*
 			NEW( longreals, 256 );  longreal := 1.23456789E-20;
-			FillQWord( SYSTEM.ADR( longreals[0] ), SYSTEM.VAL( QWord, longreal ), LEN( longreals ) );
+			FillQWord( ADDRESSOF( longreals[0] ), SYSTEM.VAL( QWord, longreal ), LEN( longreals ) );
 			FOR i := 0 TO LEN( longreals ) - 1 DO
 				Out.String( "Fillsuccess?:" );  Out.Int( i, 10 );  Out.String( " , " );  Out.LongReal( longreals[i], 20 );  Out.Ln;
 			END;
@@ -579,7 +579,7 @@ TYPE
 			time := Oberon.Time() - time;  Out.String( "Measuring up, len=" );  Out.Int( len, 10 );
 			Out.String( ", time=" );  Out.Int( time, 10 );  Out.Ln;   (**)
 			time := Oberon.Time();
-			FOR i := 1 TO maxtries DO FillQWord( SYSTEM.ADR( ints[0] ), SYSTEM.VAL( QWord, r ), maxlen ) END;
+			FOR i := 1 TO maxtries DO FillQWord( ADDRESSOF( ints[0] ), SYSTEM.VAL( QWord, r ), maxlen ) END;
 			time := Oberon.Time() - time;  Out.String( "Measuring down, len=" );  Out.Int( len, 10 );
 			Out.String( ", time=" );  Out.Int( time, 10 );  Out.Ln;   (**)
 			time := Oberon.Time();
@@ -590,7 +590,7 @@ TYPE
 			Out.String( ", time=" );  Out.Int( time, 10 );  Out.Ln;   (**)
 			time := Oberon.Time();
 
-			FOR i := 1 TO maxtries DO FillQ( SYSTEM.ADR( longreals[0] ), SYSTEM.VAL( QWord, r ), maxlen ) END;
+			FOR i := 1 TO maxtries DO FillQ( ADDRESSOF( longreals[0] ), SYSTEM.VAL( QWord, r ), maxlen ) END;
 			time := Oberon.Time() - time;  Out.String( "Measuring down, len=" );  Out.Int( len, 10 );
 			Out.String( ", time=" );  Out.Int( time, 10 );  Out.Ln;   (**)
 			time := Oberon.Time();
@@ -606,8 +606,8 @@ TYPE
 			Out.String( ", time=" );  Out.Int( time, 10 );  Out.Ln;   (**)
 			time := Oberon.Time();
 			*)
-			NEW( chars, 200 );  FillB( SYSTEM.ADR( chars[0] ), "-", LEN( chars ) );
-			FillBPat( SYSTEM.ADR( chars[0] ), "c", 6, 5, 10 );  Out.String( "chars=" );
+			NEW( chars, 200 );  FillB( ADDRESSOF( chars[0] ), "-", LEN( chars ) );
+			FillBPat( ADDRESSOF( chars[0] ), "c", 6, 5, 10 );  Out.String( "chars=" );
 			FOR i := 0 TO LEN( chars ) - 1 DO Out.Char( chars[i] );  END;
 			Out.Ln;
 
@@ -616,7 +616,7 @@ TYPE
 			time := Oberon.Time() - time;  Out.String( "Measuring up, len=" );  Out.Int( len, 10 );
 			Out.String( ", time=" );  Out.Int( time, 10 );  Out.Ln;   (**)
 			time := Oberon.Time();
-			FOR i := 1 TO maxtries DO FillBPat( SYSTEM.ADR( chars[0] ), "c", 20, 1, maxlen DIV 20 - 1 ) END;
+			FOR i := 1 TO maxtries DO FillBPat( ADDRESSOF( chars[0] ), "c", 20, 1, maxlen DIV 20 - 1 ) END;
 			time := Oberon.Time() - time;  Out.String( "Measuring down, len=" );  Out.Int( len, 10 );
 			Out.String( ", time=" );  Out.Int( time, 10 );  Out.Ln;   (**)
 			time := Oberon.Time();

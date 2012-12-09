@@ -36,7 +36,7 @@ BEGIN
 END Report;
 
 PROCEDURE Max*;
-VAR n, time: LONGINT; total, low, high: SYSTEM.SIZE; root, t: Tester;
+VAR n, time: LONGINT; total, low, high: SIZE; root, t: Tester;
 BEGIN
 	n := Kernel.GetTicks();
 	REPEAT time := Kernel.GetTicks() UNTIL time # n;

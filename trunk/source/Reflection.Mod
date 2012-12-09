@@ -13,7 +13,7 @@ CONST
 
 TYPE
 	Variable* = RECORD
-		adr-: SYSTEM.ADDRESS;
+		adr-: ADDRESS;
 		type-, size-, n-, tdadr-: LONGINT
 	END;
 
@@ -60,7 +60,7 @@ VAR
 		END
 	END WriteVar;
 
-	PROCEDURE CheckHeapAddress(address: SYSTEM.ADDRESS): BOOLEAN;
+	PROCEDURE CheckHeapAddress(address: ADDRESS): BOOLEAN;
 	BEGIN
 		RETURN Machine.ValidHeapAddress(address);
 	END CheckHeapAddress;
@@ -79,7 +79,7 @@ VAR
 	END GetNum;
 
 	(** Step to the next variable in the refs block.  The name parameter returns empty if no more variables are found.  The attributes are returned in v.  Parameter refpos is modified.  *)
-	PROCEDURE NextVar*(refs: Modules.Bytes; VAR refpos: LONGINT; base: SYSTEM.ADDRESS; VAR name: ARRAY OF CHAR; VAR v: Variable);
+	PROCEDURE NextVar*(refs: Modules.Bytes; VAR refpos: LONGINT; base: ADDRESS; VAR name: ARRAY OF CHAR; VAR v: Variable);
 	VAR x: Variable; j: LONGINT; ch, mode: CHAR;
 	BEGIN
 		name[0] := 0X;	(* empty name signals end or error *)
@@ -125,7 +125,7 @@ VAR
 
 	(** Find the specified global variable and return its descriptor.  Returns TRUE iff the variable is found. *)
 	PROCEDURE FindVar*(mod: Modules.Module; CONST name: ARRAY OF CHAR; VAR v: Variable): BOOLEAN;
-	VAR refs: Modules.Bytes; refpos: LONGINT; base: SYSTEM.ADDRESS; n: ARRAY 64 OF CHAR;
+	VAR refs: Modules.Bytes; refpos: LONGINT; base: ADDRESS; n: ARRAY 64 OF CHAR;
 	BEGIN
 		InitVar(mod, refs, refpos, base);
 		IF refpos # -1 THEN
@@ -139,8 +139,8 @@ VAR
 	END FindVar;
 
 	(** Find global variables of mod (which may be NIL) and return it in the refs, refpos and base parameters for use by NextVar.  If not found, refpos returns -1. *)
-	PROCEDURE InitVar*(mod: Modules.Module; VAR refs: Modules.Bytes; VAR refpos: LONGINT; VAR base: SYSTEM.ADDRESS);
-	VAR ch: CHAR; startpc: SYSTEM.ADDRESS;
+	PROCEDURE InitVar*(mod: Modules.Module; VAR refs: Modules.Bytes; VAR refpos: LONGINT; VAR base: ADDRESS);
+	VAR ch: CHAR; startpc: ADDRESS;
 	BEGIN
 		refpos := -1;
 		IF mod # NIL THEN
@@ -161,7 +161,7 @@ VAR
 	END NewObjectFile;
 
 	(* Find a procedure in the reference block.  Return index of name, or -1 if not found. *)
-	PROCEDURE FindProc(refs: Modules.Bytes; modpc: SYSTEM.ADDRESS; VAR startpc: SYSTEM.ADDRESS): LONGINT;
+	PROCEDURE FindProc(refs: Modules.Bytes; modpc: ADDRESS; VAR startpc: ADDRESS): LONGINT;
 	VAR i, m, t, tstart, tend, proc: LONGINT; ch: CHAR; newObjectFile: BOOLEAN;
 	BEGIN
 		IF (refs=NIL) OR (LEN(refs) = 0) THEN RETURN -1 END;
@@ -218,7 +218,7 @@ VAR
 	END FindProc;
 
 	(* Find a procedure in the reference block.  Return index of name, or -1 if not found. *)
-	PROCEDURE FindProcByName*(mod: Modules.Module; CONST name: ARRAY OF CHAR;  VAR from, to: SYSTEM.ADDRESS): BOOLEAN;
+	PROCEDURE FindProcByName*(mod: Modules.Module; CONST name: ARRAY OF CHAR;  VAR from, to: ADDRESS): BOOLEAN;
 	VAR i, namePos, m, t, tstart, tend: LONGINT; ch: CHAR; newObjectFile: BOOLEAN;
 		refs: Modules.Bytes; success: BOOLEAN;
 	BEGIN
@@ -259,8 +259,8 @@ VAR
 			ELSE
 				tend :=LEN(mod.code);
 			END;
-			INC(tstart, SYSTEM.ADR(mod.code[0]));
-			INC(tend, SYSTEM.ADR(mod.code[0]));
+			INC(tstart, ADDRESSOF(mod.code[0]));
+			INC(tend, ADDRESSOF(mod.code[0]));
 		END;
 		from := tstart; to := tend;
 		RETURN success
@@ -268,7 +268,7 @@ VAR
 
 
 	(* Display variables. *)
-	PROCEDURE Variables(w: Streams.Writer; refs: Modules.Bytes; refpos: LONGINT; base: SYSTEM.ADDRESS);
+	PROCEDURE Variables(w: Streams.Writer; refs: Modules.Bytes; refpos: LONGINT; base: ADDRESS);
 	VAR v: Variable; j, col: LONGINT; name: ARRAY 64 OF CHAR; etc: BOOLEAN;
 	CONST dense = FALSE;
 	BEGIN
@@ -306,7 +306,7 @@ VAR
 
 	(** Write the state of the specified module. *)
 	PROCEDURE ModuleState*(w: Streams.Writer; mod: Modules.Module);
-	VAR refpos: LONGINT; base: SYSTEM.ADDRESS; refs: Modules.Bytes;
+	VAR refpos: LONGINT; base: ADDRESS; refs: Modules.Bytes;
 	BEGIN
 		InitVar(mod, refs, refpos, base);
 		IF refpos # -1 THEN
@@ -316,9 +316,9 @@ VAR
 	END ModuleState;
 
 	(* Write the specified procedure name and returns parameters for use with NextVar and Variables. *)
-	PROCEDURE WriteProc0(w: Streams.Writer; mod: Modules.Module; pc, fp: SYSTEM.ADDRESS; VAR refs: Modules.Bytes;
-			VAR refpos: LONGINT; VAR base: SYSTEM.ADDRESS);
-	VAR ch: CHAR; startpc: SYSTEM.ADDRESS;
+	PROCEDURE WriteProc0(w: Streams.Writer; mod: Modules.Module; pc, fp: ADDRESS; VAR refs: Modules.Bytes;
+			VAR refpos: LONGINT; VAR base: ADDRESS);
+	VAR ch: CHAR; startpc: ADDRESS;
 	BEGIN
 		refpos := -1;
 		IF mod = NIL THEN
@@ -332,7 +332,7 @@ VAR
 		ELSE
 			w.String(mod.name);
 			IF ~NewObjectFile(mod.refs) THEN
-				DEC(pc, SYSTEM.ADR(mod.code[0]));
+				DEC(pc, ADDRESSOF(mod.code[0]));
 			END;
 			refs := mod.refs;
 			IF (refs # NIL) & (LEN(refs) # 0) THEN
@@ -352,14 +352,14 @@ VAR
 	END WriteProc0;
 
 	(** Find procedure name and write it. *)
-	PROCEDURE WriteProc*(w: Streams.Writer; pc: SYSTEM.ADDRESS);
-	VAR refs: Modules.Bytes; refpos: LONGINT; base: SYSTEM.ADDRESS;
+	PROCEDURE WriteProc*(w: Streams.Writer; pc: ADDRESS);
+	VAR refs: Modules.Bytes; refpos: LONGINT; base: ADDRESS;
 	BEGIN
 		WriteProc0(w, Modules.ThisModuleByAdr0(pc), pc, -1, refs, refpos, base)
 	END WriteProc;
 
 	(* Returns the name of the procedure the pc is in. Searchs in m.refs *)
-	PROCEDURE GetProcedureName*(pc: SYSTEM.ADDRESS; VAR name: ARRAY OF CHAR; VAR startpc: SYSTEM.ADDRESS);
+	PROCEDURE GetProcedureName*(pc: ADDRESS; VAR name: ARRAY OF CHAR; VAR startpc: ADDRESS);
 	VAR
 		methadr, i: LONGINT;
 		ch: CHAR;
@@ -371,7 +371,7 @@ VAR
 		IF m # NIL THEN
 
 			IF ~NewObjectFile(m.refs) THEN
-				DEC(pc, SYSTEM.ADR(m.code[0]));
+				DEC(pc, ADDRESSOF(m.code[0]));
 			END;
 
 			methadr := FindProc(m.refs, pc, startpc);
@@ -385,7 +385,7 @@ VAR
 					INC(i);
 				END;
 				IF ~NewObjectFile(m.refs) THEN
-					INC(startpc, SYSTEM.ADR(m.code[0]));
+					INC(startpc, ADDRESSOF(m.code[0]));
 				END;
 			END;
 			name[i] := 0X;
@@ -396,21 +396,21 @@ VAR
 
 	(* 	A simple introspection method, must be adapted if there are any changes to the
 		refs section in a module. *)
-	PROCEDURE GetVariableAdr*(pc, fp: SYSTEM.ADDRESS;  CONST varname: ARRAY OF CHAR): SYSTEM.ADDRESS;
+	PROCEDURE GetVariableAdr*(pc, fp: ADDRESS;  CONST varname: ARRAY OF CHAR): ADDRESS;
 	VAR
 		m: Modules.Module;
 		v: Variable;
 		pos: LONGINT;
-		base: SYSTEM.ADDRESS;
+		base: ADDRESS;
 		name: ARRAY 256 OF CHAR;
 		ch: CHAR;
-		startpc: SYSTEM.ADDRESS;
+		startpc: ADDRESS;
 	BEGIN
 		pos := -1;
 		m := Modules.ThisModuleByAdr0(pc);
 		IF m # NIL THEN
 			IF ~NewObjectFile(m.refs) THEN
-				DEC(pc, SYSTEM.ADR(m.code[0]));
+				DEC(pc, ADDRESSOF(m.code[0]));
 			END;
 			pos := FindProc(m.refs, pc, startpc);
 
@@ -444,7 +444,7 @@ VAR
 	END GetVariableAdr;
 
 	(* "lock free" version of Modules.ThisTypeByAdr *)
-	PROCEDURE ThisTypeByAdr(adr: SYSTEM.ADDRESS; VAR m: Modules.Module; VAR t: Modules.TypeDesc);
+	PROCEDURE ThisTypeByAdr(adr: ADDRESS; VAR m: Modules.Module; VAR t: Modules.TypeDesc);
 	BEGIN
 		IF adr # 0 THEN
 			SYSTEM.GET (adr + Heaps.TypeDescOffset, adr);
@@ -459,7 +459,7 @@ VAR
 		END
 	END ThisTypeByAdr;
 
-	PROCEDURE WriteType*(w: Streams.Writer; adr: SYSTEM.ADDRESS);
+	PROCEDURE WriteType*(w: Streams.Writer; adr: ADDRESS);
 	VAR module: Modules.Module; typeDesc: Modules.TypeDesc;
 	BEGIN
 		IF CheckHeapAddress(adr) THEN
@@ -484,9 +484,9 @@ VAR
 		END;
 	END WriteType;
 
-	PROCEDURE WriteSimpleVar( w: Streams.Writer;  adr, type, tdadr: SYSTEM.ADDRESS;  VAR col: LONGINT );
+	PROCEDURE WriteSimpleVar( w: Streams.Writer;  adr, type, tdadr: ADDRESS;  VAR col: LONGINT );
 	VAR ch: CHAR;  sval: SHORTINT;  ival: INTEGER;  lval: LONGINT;  rval: REAL; xval: LONGREAL; hval : HUGEINT;
-		address: SYSTEM.ADDRESS; pos0: LONGINT;
+		address: ADDRESS; pos0: LONGINT;
 	BEGIN
 		pos0 := w.Pos();
 		CASE type OF
@@ -546,8 +546,8 @@ VAR
 	END WriteSimpleVar;
 
 	(* Display call trackback. *)
-	PROCEDURE StackTraceBack*(w: Streams.Writer; pc, bp: SYSTEM.ADDRESS; stackhigh: SYSTEM.ADDRESS; long, overflow: BOOLEAN);
-	VAR count,refpos: LONGINT; stacklow: SYSTEM.ADDRESS; base: SYSTEM.ADDRESS; m: Modules.Module; refs: Modules.Bytes;
+	PROCEDURE StackTraceBack*(w: Streams.Writer; pc, bp: ADDRESS; stackhigh: ADDRESS; long, overflow: BOOLEAN);
+	VAR count,refpos: LONGINT; stacklow: ADDRESS; base: ADDRESS; m: Modules.Module; refs: Modules.Bytes;
 	BEGIN
 		count := 0;	(* frame count *)
 		stacklow := bp;
@@ -563,7 +563,7 @@ VAR
 				ELSE
 					w.String( "Unknown external procedure, pc = " );  w.Address( pc );  w.Ln
 				END;
-				SYSTEM.GET(bp + SYSTEM.SIZEOF(SYSTEM.ADDRESS), pc);	(* return addr from stack *)
+				SYSTEM.GET(bp + SIZEOF(ADDRESS), pc);	(* return addr from stack *)
 				SYSTEM.GET(bp, bp);	(* follow dynamic link *)
 				INC(count)
 			ELSE
@@ -575,7 +575,7 @@ VAR
 
 	(** Write a process's state in one line. *)
 	PROCEDURE WriteProcess*(w: Streams.Writer; p: Objects.Process);
-	VAR adr: SYSTEM.ADDRESS; mode: LONGINT; m: Modules.Module;
+	VAR adr: ADDRESS; mode: LONGINT; m: Modules.Module;
 	BEGIN
 		IF p # NIL THEN
 			w.Int(p.id, 5);
@@ -589,19 +589,19 @@ VAR
 			w.Int(p.procID, 2);
 			w.Int(p.priority, 2);
 			w.Update;
-			w.Address (SYSTEM.VAL(SYSTEM.ADDRESS, p.obj));
+			w.Address (SYSTEM.VAL(ADDRESS, p.obj));
 			IF p.obj # NIL THEN
-				SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, p.obj) - SYSTEM.SIZEOF(SYSTEM.ADDRESS), adr);
+				SYSTEM.GET(SYSTEM.VAL(ADDRESS, p.obj) - SIZEOF(ADDRESS), adr);
 				w.Char(":"); WriteType(w, adr)
 			END;
 			w.Update;
 			w.Char(" "); WriteProc(w, p.state.PC);
 			IF p.mode = Objects.AwaitingLock THEN
-				adr := SYSTEM.VAL(SYSTEM.ADDRESS, p.waitingOn);
+				adr := SYSTEM.VAL(ADDRESS, p.waitingOn);
 				w.Address (adr);
 				w.Update;
 				IF adr # 0 THEN	(* can be 0 when snapshot is taken *)
-					SYSTEM.GET(adr - SYSTEM.SIZEOF(SYSTEM.ADDRESS), adr);
+					SYSTEM.GET(adr - SIZEOF(ADDRESS), adr);
 					IF adr = SYSTEM.TYPECODE(Modules.Module) THEN
 						w.Char("-");
 						m := SYSTEM.VAL(Modules.Module, adr);
@@ -612,7 +612,7 @@ VAR
 					w.Update;
 				END
 			ELSIF p.mode = Objects.AwaitingCond THEN
-				w.Char(" "); WriteProc(w, SYSTEM.VAL(SYSTEM.ADDRESS, p.condition));
+				w.Char(" "); WriteProc(w, SYSTEM.VAL(ADDRESS, p.condition));
 				w.Address (p.condFP)
 			END;
 			w.Char(" "); w.Set(p.flags)

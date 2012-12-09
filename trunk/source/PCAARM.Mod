@@ -884,7 +884,7 @@ TYPE
 		BEGIN
 			IF (scanner.symbol = sIdent) & symbols.Find(scanner.ident, type, value) THEN
 				scanner.Scan;
-				RETURN SYSTEM.LSH(value, shift)
+				RETURN LSH(value, shift)
 			ELSE Error(499);
 				RETURN {} (* error: register expected *)
 			END
@@ -945,7 +945,7 @@ TYPE
 							The load is pc-relative.
 						*)
 						IF ~(symbols.Find("PC", stRegister, var)) THEN HALT(INTERNALERROR) END;
-						var := SYSTEM.LSH(var, 16) + labels.AddUse(scanner.position, pc, scanner.ident, ltAddress, mode)
+						var := LSH(var, 16) + labels.AddUse(scanner.position, pc, scanner.ident, ltAddress, mode)
 					ELSE
 						IF (obj IS PCT.Parameter) & ~inlined THEN
 							IF ~(symbols.Find("FP", stRegister, var)) THEN HALT(INTERNALERROR) END
@@ -960,7 +960,7 @@ TYPE
 							offset := offset - 8;
 						END;
 						IF (ABS(offset) < 1000H) THEN
-							var := SYSTEM.LSH(var, 16) + SYSTEM.VAL(SET, ABS(offset)) + PCOARM.Offset;
+							var := LSH(var, 16) + SYSTEM.VAL(SET, ABS(offset)) + PCOARM.Offset;
 							IF (offset < 0) THEN var := var + PCOARM.IdxSub
 							ELSE var := var + PCOARM.IdxAdd
 							END
@@ -973,7 +973,7 @@ TYPE
 			ELSE
 				(* This loads the "value" of a label, i.e. the first byte/halfword/word following the definition of the label *)
 				IF ~(symbols.Find("PC", stRegister, var)) THEN HALT(INTERNALERROR) END;
-				var := SYSTEM.LSH(var, 16) + labels.AddUse(scanner.position, pc, scanner.ident, ltAddress, mode);
+				var := LSH(var, 16) + labels.AddUse(scanner.position, pc, scanner.ident, ltAddress, mode);
 				scanner.Scan
 			END;
 			RETURN var
@@ -997,7 +997,7 @@ TYPE
 						IF (scanner.symbol = sNumber) THEN
 							shift := shift + PCOARM.A1ShiftImm;
 							IF (-32 < scanner.number) & (scanner.number < 32) THEN
-								shift := shift + SYSTEM.LSH(SYSTEM.VAL(SET, scanner.number)*{0..4}, 7)
+								shift := shift + LSH(SYSTEM.VAL(SET, scanner.number)*{0..4}, 7)
 							ELSE Error(499) (* malformed addressing mode (immediate shift invalid) *)
 							END;
 							scanner.Scan
@@ -1020,10 +1020,10 @@ TYPE
 			ASSERT(scanner.symbol = sNumber);
 			rot := 0; s := SYSTEM.VAL(SET, scanner.number);
 			WHILE (rot < 32) & (ODD(rot) OR (s * { 8..31} # {})) DO
-				s := SYSTEM.ROT(s, 1); INC(rot)
+				s := ROT(s, 1); INC(rot)
 			END;
 			IF (rot < 32) THEN
-				s := s + SYSTEM.VAL(SET, SYSTEM.LSH(rot DIV 2, 8))
+				s := s + SYSTEM.VAL(SET, LSH(rot DIV 2, 8))
 			ELSE Error(499); (* malformed addressing mode (immediate can't be generated) *)
 				s := {}
 			END;
@@ -1133,7 +1133,7 @@ TYPE
 						END
 					ELSE (* form: [address] *)
 						(*IF ~(symbols.Find("PC", stRegister, mode)) THEN HALT(INTERNALERROR) END;
-						mode := SYSTEM.LSH(mode, 16) + labels.AddUse(scanner.position, pc, scanner.ident, ltAddress, lmLoad);
+						mode := LSH(mode, 16) + labels.AddUse(scanner.position, pc, scanner.ident, ltAddress, lmLoad);
 						scanner.Scan;
 						IF ~scanner.Match(sRBrak) THEN
 							Error(499) (* ']' expected *)
@@ -1212,7 +1212,7 @@ TYPE
 						END
 					ELSE (* form: [address] *)
 						(*IF ~(symbols.Find("PC", stRegister, mode)) THEN HALT(INTERNALERROR) END;
-						mode := SYSTEM.LSH(mode, 16) + labels.AddUse(scanner.position, pc, scanner.ident, ltAddress, lmLoadSpecial);
+						mode := LSH(mode, 16) + labels.AddUse(scanner.position, pc, scanner.ident, ltAddress, lmLoadSpecial);
 						scanner.Scan;
 						IF ~scanner.Match(sRBrak) THEN
 							Error(499) (* "]" expected *)
@@ -1434,7 +1434,7 @@ TYPE
 		BEGIN
 			IF (scanner.symbol = sNumber) THEN
 				IF (scanner.number >= 0) & (scanner.number < max) THEN
-					opcode := SYSTEM.LSH(SYSTEM.VAL(SET, scanner.number), shift);
+					opcode := LSH(SYSTEM.VAL(SET, scanner.number), shift);
 					scanner.Scan
 				ELSE Error(499); (* opcode too small/big *)
 					ErrorStr("CPOpcode: opcode too small/big")
@@ -1625,7 +1625,7 @@ TYPE
 				END;
 				IF ~(PCOARM.MakeA1Immediate(offset, imm)) THEN Error(499) (* invalid offset *) END;
 				IF ~(symbols.Find("PC", stRegister, regPC)) THEN HALT(INTERNALERROR) END;
-				adr := adr + SYSTEM.LSH(regPC, 16) + imm + PCOARM.A1Imm;
+				adr := adr + LSH(regPC, 16) + imm + PCOARM.A1Imm;
 				scanner.Scan
 			ELSE Error(499) (* identifier expected *)
 			END;
@@ -1801,7 +1801,7 @@ TYPE
 			ASSERT(code # NIL);
 
 			FOR i := 0 TO 3 DO
-				opcode := opcode + SYSTEM.LSH(SYSTEM.VAL(SET, code.code[pc+i]), 8*i)
+				opcode := opcode + LSH(SYSTEM.VAL(SET, code.code[pc+i]), 8*i)
 			END;
 
 			IF PCM.bigEndian THEN

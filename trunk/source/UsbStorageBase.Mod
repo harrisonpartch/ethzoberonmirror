@@ -176,16 +176,16 @@ TYPE
 				ELSE
 					cmd[0] := CHR(UfiWrite10); direction := DataOut;
 				END;
-				cmd[1] := CHR(SYSTEM.LSH(lun, 5));  (* Logical device number *)
+				cmd[1] := CHR(LSH(lun, 5));  (* Logical device number *)
 
 				offset := ofs; num0 := num;
 				WHILE num > 0 DO
 					IF num > 65000 THEN trans := 65000; ELSE trans := num END;
-					cmd[2] := CHR(SYSTEM.LSH(block, -24));
-					cmd[3] := CHR(SYSTEM.LSH(block, -16));
-					cmd[4] := CHR(SYSTEM.LSH(block, -8));
+					cmd[2] := CHR(LSH(block, -24));
+					cmd[3] := CHR(LSH(block, -16));
+					cmd[4] := CHR(LSH(block, -8));
 					cmd[5] := CHR(block);
-					cmd[7] := CHR(SYSTEM.LSH(trans, -8));
+					cmd[7] := CHR(LSH(trans, -8));
 					cmd[8] := CHR(trans);
 					cmd[9] := 0X;
 					diskres := usbDriver.InvokeTransport(cmd, 12, direction, data, offset, trans * blockSize, tlen, TransferTimeout);
@@ -314,7 +314,7 @@ TYPE
 		VAR cmd : ARRAY 12 OF CHAR; i, ignore : LONGINT;
 		BEGIN
 			cmd[0] := CHR(UfiTestUnitReady);
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5));
+			cmd[1] := CHR(LSH(lun, 5));
 			FOR i := 2 TO 11 DO cmd[i] := 0X; END;
 			RETURN InvokeTransport(cmd, 12, NoData, cmd, 0, 0, ignore, 30000);
 		END TestUnitReady;
@@ -349,7 +349,7 @@ TYPE
 		VAR cmd, data : ARRAY 12 OF CHAR; i, tlen, res : LONGINT;
 		BEGIN
 			cmd[0] := CHR(UfiStartStop);
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5));
+			cmd[1] := CHR(LSH(lun, 5));
 			FOR i := 2 TO 11 DO cmd[i] := 0X; END;
 			cmd[4] := CHR(2); (* Eject *)
 			res := InvokeTransport(cmd, 12, DataOut, data, 0, 0, tlen, CommandTimeout);
@@ -361,7 +361,7 @@ TYPE
 		VAR cmd, data : ARRAY 12 OF CHAR; i, tlen, res : LONGINT;
 		BEGIN
 			cmd[0] := CHR(UfiAllowRemoval);
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5));
+			cmd[1] := CHR(LSH(lun, 5));
 			FOR i := 2 TO 11 DO cmd[i] := 0X; END;
 			IF prevent THEN cmd[4] := CHR(1); END;
 			res := InvokeTransport(cmd, 12, DataOut, data, 0, 0, tlen, CommandTimeout);
@@ -373,7 +373,7 @@ TYPE
 		VAR cmd, data : ARRAY 12 OF CHAR; i, tlen, res : LONGINT;
 		BEGIN
 			cmd[0] := CHR(UfiSendDiag);
-			cmd[1] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(lun, 5)) + {2}));
+			cmd[1] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(lun, 5)) + {2}));
 			FOR i := 2 TO 11 DO cmd[i] := 0X; END;
 			res := InvokeTransport(cmd, 12, DataOut, data, 0, 0, tlen, CommandTimeout);
 			RETURN res;
@@ -385,7 +385,7 @@ TYPE
 		BEGIN
 			IF Debug.Trace & Debug.traceInfo THEN KernelLog.String("UsbStorage: ReadCapacity: "); KernelLog.Ln; END;
 			cmd[0] := CHR(UfiReadCapacity);
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5));
+			cmd[1] := CHR(LSH(lun, 5));
 			FOR i := 2 TO 11 DO cmd[i] := CHR(0); END;
 
 			blocks := 0; blocksize := 0;
@@ -419,7 +419,7 @@ TYPE
 			END;
 			FOR i := 0 TO 11 DO cmd[i] := CHR(0); END;
 			cmd[0] := CHR(UfiInquiry);
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5));
+			cmd[1] := CHR(LSH(lun, 5));
 			cmd[4] := CHR(36); (* maximum allocation length *)
 
 			res := InvokeTransport(cmd, 12, DataIn, data, 0, 36, tlen, 50000);
@@ -467,7 +467,7 @@ TYPE
 				ASSERT((page # NIL) & (LEN(page) - index >= 32));
 				ASSERT(SYSTEM.VAL(LONGINT, (SYSTEM.VAL(SET, page[index]) * {0..5})) = PageFlexibleDisk);
 				NEW(fdp);
-				temp := SYSTEM.LSH(ORD(page[index+2]), 8) + ORD(page[index+3]);
+				temp := LSH(ORD(page[index+2]), 8) + ORD(page[index+3]);
 				IF temp = 00FAH THEN fdp.TransferRate := 250;
 				ELSIF temp = 012CH THEN fdp.TransferRate := 300;
 				ELSIF temp = 01F4H THEN fdp.TransferRate := 500;
@@ -478,12 +478,12 @@ TYPE
 				END;
 				fdp.NumberOfHeads := ORD(page[index+4]);
 				fdp.SectorsPerTrack := ORD(page[index+5]);
-				fdp.BytesPerSector := SYSTEM.LSH(ORD(page[index+6]), 8) + ORD(page[index+7]);
-				fdp.NumberOfCylinders := SYSTEM.LSH(ORD(page[index+8]), 8) + ORD(page[index+9]);
+				fdp.BytesPerSector := LSH(ORD(page[index+6]), 8) + ORD(page[index+7]);
+				fdp.NumberOfCylinders := LSH(ORD(page[index+8]), 8) + ORD(page[index+9]);
 				fdp.MotorOnDelay := ORD(page[index+19]);
 				fdp.MotorOffDelay := ORD(page[index+20]);
 				IF fdp.MotorOffDelay = 0FFH THEN fdp.MotorOffDelay := 0; (* don't turn it off !! *) END;
-				fdp.MediumRotationRate := SYSTEM.LSH(ORD(page[index+28]), 8) + ORD(page[index+29]);
+				fdp.MediumRotationRate := LSH(ORD(page[index+28]), 8) + ORD(page[index+29]);
 				IF Debug.Trace & Debug.traceInfo THEN ShowFlexibleDiskPage(fdp); END;
 				RETURN fdp;
 			END ParseFlexibleDiskPage;
@@ -491,12 +491,12 @@ TYPE
 		BEGIN
 			length := length + 8; (* 8 additional bytes for mode parameter header *)
 			cmd[0] := CHR(UfiModeSense);
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5)); (* logical unit number *)
-			cmd[2] := CHR(SYSTEM.LSH(pagecontrol, 6) + page);
+			cmd[1] := CHR(LSH(lun, 5)); (* logical unit number *)
+			cmd[2] := CHR(LSH(pagecontrol, 6) + page);
 			cmd[3] := CHR(0); (* reserved *)
 			cmd[5] := CHR(0); (* reserved *)
 			cmd[6] := CHR(0); (* reserved *)
-			cmd[7] := CHR(SYSTEM.LSH(length, -8)); (* Parameter List Length (MSB)*)
+			cmd[7] := CHR(LSH(length, -8)); (* Parameter List Length (MSB)*)
 			cmd[8] := CHR(length); (* Parameter List Length (LSB) *)
 			cmd[9] := CHR(0); (* reserved *)
 			cmd[10] := CHR(0); (* reserved *)
@@ -541,7 +541,7 @@ TYPE
 			END;
 			FOR i := 0 TO 11 DO cmd[i] := CHR(0); END;
 			cmd[0] := CHR(UfiRequestSense);
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5));
+			cmd[1] := CHR(LSH(lun, 5));
 			cmd[4] := CHR(18); (* allocation length (max. 18 Bytes) *)
 
 			res := Transport(cmd, cmdlen, DataIn, data, 0, 18, tlen, 2000);
@@ -607,16 +607,16 @@ TYPE
 			ELSE
 				cmd[0] := CHR(UfiWrite10); direction := DataOut;
 			END;
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5));  (* Logical device number *)
+			cmd[1] := CHR(LSH(lun, 5));  (* Logical device number *)
 
 			WHILE num > 0 DO
 				IF num > 65000 THEN trans := 65000; ELSE trans := num END;
 				trans := trans * blockSize;
-				cmd[2] := CHR(SYSTEM.LSH(block, -24));
-				cmd[3] := CHR(SYSTEM.LSH(block, -16));
-				cmd[4] := CHR(SYSTEM.LSH(block, -8));
+				cmd[2] := CHR(LSH(block, -24));
+				cmd[3] := CHR(LSH(block, -16));
+				cmd[4] := CHR(LSH(block, -8));
 				cmd[5] := CHR(block);
-				cmd[7] := CHR(SYSTEM.LSH(num, -8));
+				cmd[7] := CHR(LSH(num, -8));
 				cmd[8] := CHR(num);
 				diskres := InvokeTransport(cmd, 12, direction, data, ofs, trans, tlen, TransferTimeout);
 				IF diskres # Disks.Ok THEN RETURN; END;
@@ -635,14 +635,14 @@ TYPE
 			ELSE
 				cmd[0] := CHR(UfiWrite12); direction := DataOut;
 			END;
-			cmd[1] := CHR(SYSTEM.LSH(lun, 5));  (* Logical device number *)
-			cmd[2] := CHR(SYSTEM.LSH(block, -24));
-			cmd[3] := CHR(SYSTEM.LSH(block, -16));
-			cmd[4] := CHR(SYSTEM.LSH(block, -8));
+			cmd[1] := CHR(LSH(lun, 5));  (* Logical device number *)
+			cmd[2] := CHR(LSH(block, -24));
+			cmd[3] := CHR(LSH(block, -16));
+			cmd[4] := CHR(LSH(block, -8));
 			cmd[5] := CHR(block);
-			cmd[6] := CHR(SYSTEM.LSH(num, -24));
-			cmd[7] := CHR(SYSTEM.LSH(num, -16));
-			cmd[8] := CHR(SYSTEM.LSH(num, -8));
+			cmd[6] := CHR(LSH(num, -24));
+			cmd[7] := CHR(LSH(num, -16));
+			cmd[8] := CHR(LSH(num, -8));
 			cmd[9] := CHR(num);
 			diskres := InvokeTransport(cmd, 12, direction, data, ofs, trans, tlen, TransferTimeout);
 		END ReadWrite12; *)
@@ -689,7 +689,7 @@ TYPE
 					res := Reset(5000); (* ignore res *)
 					IF res # ResOk THEN
 					(*	TODO:
-						lun := SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, ORD(cmd[1])) * {5..7}, -5));
+						lun := SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, ORD(cmd[1])) * {5..7}, -5));
 						res := SendDiagnostic(lun); (* hardware reset; ignore res *) *)
 						RETURN ResFatalError;
 					ELSE
@@ -713,7 +713,7 @@ TYPE
 					IF (ORD(cmd[0]) = UfiInquiry) OR (ORD(cmd[0]) = UfiRequestSense) THEN RETURN res; END;
 				END;
 
-				res := RequestSense(SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, ORD(cmd[1])) * {5..7}, -5)), sensecmdlen);
+				res := RequestSense(SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, ORD(cmd[1])) * {5..7}, -5)), sensecmdlen);
 				IF Debug.Trace & Debug.traceScTransfers THEN KernelLog.String("UsbStorageBase: Sent sense command, res: "); ShowRes(res); KernelLog.Ln; END;
 
 				IF (res = ResWriteProtected) OR (res = ResDeviceInUse) OR (res = ResMediaMissing) OR (res = ResUnsupported) OR (res = ResDisconnected)THEN

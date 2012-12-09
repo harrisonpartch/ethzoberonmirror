@@ -20,7 +20,7 @@ CONST
 	debug* = FALSE;   (** display more debug output during booting *)
 
 CONST
-	AddressSize = SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+	AddressSize = SIZEOF(ADDRESS);
 	StaticBlockSize = 32;		(* static heap block size *)
 	BlockHeaderSize = 2 * AddressSize;
 	RecordDescSize = 4 * AddressSize;  (* needs to be adapted in case Heaps.RecordBlockDesc is changed *)
@@ -66,16 +66,16 @@ TYPE
 	MemoryBlock* = POINTER TO MemoryBlockDesc;
 	MemoryBlockDesc* = RECORD
 		next- {UNTRACED}: MemoryBlock;
-		startAdr-: SYSTEM.ADDRESS; 		(* sort key in linked list of memory blocks *)
-		size-: SYSTEM.SIZE;
-		beginBlockAdr-, endBlockAdr-: SYSTEM.ADDRESS
+		startAdr-: ADDRESS; 		(* sort key in linked list of memory blocks *)
+		size-: SIZE;
+		beginBlockAdr-, endBlockAdr-: ADDRESS
 	END;
 
 	(* dummy definition to make GC work for both I386 and Win32 - copied from I386.Machine.Mod, but not really used *)
 	Stack* = RECORD	(** values are read-only *)
-			low: SYSTEM.ADDRESS;		(* lowest virtual address that may be allocated for stack *)
-		adr*: SYSTEM.ADDRESS;		(* lowest address on allocated stack *)	(* exported for Objects only *)
-		high*: SYSTEM.ADDRESS;	(* next virtual address after stack *)	(* exported for Objects only *)
+			low: ADDRESS;		(* lowest virtual address that may be allocated for stack *)
+		adr*: ADDRESS;		(* lowest address on allocated stack *)	(* exported for Objects only *)
+		high*: ADDRESS;	(* next virtual address after stack *)	(* exported for Objects only *)
 	END;
 
 VAR
@@ -111,9 +111,9 @@ VAR
 	trace: ARRAY 2 OF CHAR;
 	defaultConfigFile, userConfigFile, traceName: ARRAY Kernel32.MaxPath OF CHAR;
 
-	gcThreshold-: SYSTEM.SIZE;
-	bootHeapAdr: SYSTEM.ADDRESS; 	(* initialized by linker, variable name must not be changed, see Win32.Aos.Link *)
-	bootHeapSize: SYSTEM.SIZE; 			(* initialized by linker, variable name must not be changed, see Win32.Aos.Link *)
+	gcThreshold-: SIZE;
+	bootHeapAdr: ADDRESS; 	(* initialized by linker, variable name must not be changed, see Win32.Aos.Link *)
+	bootHeapSize: SIZE; 			(* initialized by linker, variable name must not be changed, see Win32.Aos.Link *)
 	memBlockHead-{UNTRACED}, memBlockTail-{UNTRACED}: MemoryBlock; (* head and tail of sorted list of memory blocks *)
 
 
@@ -166,37 +166,37 @@ VAR
 	END SpinHint;
 
 (* Return current instruction pointer *)
-PROCEDURE CurrentPC* (): SYSTEM.ADDRESS;
+PROCEDURE CurrentPC* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, [EBP+4]
 END CurrentPC;
 
 (* Return current frame pointer *)
-PROCEDURE -CurrentBP* (): SYSTEM.ADDRESS;
+PROCEDURE -CurrentBP* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, EBP
 END CurrentBP;
 
 (* Set current frame pointer *)
-PROCEDURE -SetBP* (bp: SYSTEM.ADDRESS);
+PROCEDURE -SetBP* (bp: ADDRESS);
 CODE {SYSTEM.i386}
 	POP EBP
 END SetBP;
 
 (* Return current stack pointer *)
-PROCEDURE -CurrentSP* (): SYSTEM.ADDRESS;
+PROCEDURE -CurrentSP* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, ESP
 END CurrentSP;
 
 (* Set current stack pointer *)
-PROCEDURE -SetSP* (sp: SYSTEM.ADDRESS);
+PROCEDURE -SetSP* (sp: ADDRESS);
 CODE {SYSTEM.i386}
 	POP ESP
 END SetSP;
 
 (* Compare two unsigned addresses *)
-PROCEDURE -LessThan* (a, b: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE -LessThan* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -204,7 +204,7 @@ CODE {SYSTEM.i386}
 	SETB AL
 END LessThan;
 
-PROCEDURE -LessOrEqual* (a, b: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE -LessOrEqual* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -212,7 +212,7 @@ CODE {SYSTEM.i386}
 	SETBE AL
 END LessOrEqual;
 
-PROCEDURE -GreaterThan* (a, b: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE -GreaterThan* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -220,7 +220,7 @@ CODE {SYSTEM.i386}
 	SETA AL
 END GreaterThan;
 
-PROCEDURE -GreaterOrEqual* (a, b: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE -GreaterOrEqual* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -527,7 +527,7 @@ BEGIN
 END SetupSSE2Ext;
 
 PROCEDURE ReadCommandLine(VAR commandLine: ARRAY OF CHAR);
-VAR adr: SYSTEM.ADDRESS; i: LONGINT; ch: CHAR;
+VAR adr: ADDRESS; i: LONGINT; ch: CHAR;
 BEGIN
 	adr := Kernel32.GetCommandLine();
 	SYSTEM.GET(adr,ch);
@@ -782,12 +782,12 @@ BEGIN
 END SetGCParams;
 
 (* expand heap by allocating a new memory block - called during GC *)
-PROCEDURE InitHeap(VAR memoryBlock: MemoryBlock; VAR beginBlockAdr, endBlockAdr: SYSTEM.ADDRESS);
+PROCEDURE InitHeap(VAR memoryBlock: MemoryBlock; VAR beginBlockAdr, endBlockAdr: ADDRESS);
 CONST MemBlockHeaderSize = BlockHeaderSize + RecordDescSize + BlockHeaderSize;
 	TypeDescOffset = -AddressSize; (* see Heaps.Mod *)
 	HeapBlockOffset = - 2 * AddressSize; (* see Heaps.Mod *)
 	DataAdrOffset = AddressSize; (* offset of dataAdr field in Heaps.HeapBlockDesc *)
-VAR memDescSize, memBlkSize, alignOffset: SYSTEM.SIZE; adr, memHeaderAdr, memBlockAdr, memBlockHeadAdr: SYSTEM.ADDRESS;
+VAR memDescSize, memBlkSize, alignOffset: SIZE; adr, memHeaderAdr, memBlockAdr, memBlockHeadAdr: ADDRESS;
 	memBlock {UNTRACED}: MemoryBlock; i: LONGINT; ch: CHAR; h: HUGEINT; size: LONGINT;
 	initVal: LONGINT;
 BEGIN
@@ -811,7 +811,7 @@ BEGIN
 
 	*)
 	size := 1;
-	memDescSize := MemBlockHeaderSize + SYSTEM.SIZEOF(MemoryBlockDesc);
+	memDescSize := MemBlockHeaderSize + SIZEOF(MemoryBlockDesc);
 	INC(memDescSize, (-memDescSize) MOD StaticBlockSize); 	(* round up to multiple of StaticBlockSize *)
 	INC(size, (-size) MOD StaticBlockSize); (* round up to multiple of StaticBlockSize *)
 	memBlkSize := memDescSize + size + StaticBlockSize; 		(* add StaticBlockSize to account for alignments different from multiples of StaticBlockSize *)
@@ -868,8 +868,8 @@ BEGIN
 END InitHeap;
 
 (** Get first memory block and first free address, the first free address is identical to memBlockHead.endBlockAdr *)
-PROCEDURE GetStaticHeap*(VAR beginBlockAdr, endBlockAdr, freeBlockAdr: SYSTEM.ADDRESS);
-VAR memBlockAdr: SYSTEM.ADDRESS;
+PROCEDURE GetStaticHeap*(VAR beginBlockAdr, endBlockAdr, freeBlockAdr: ADDRESS);
+VAR memBlockAdr: ADDRESS;
 BEGIN
 	InitHeap(memBlockHead,beginBlockAdr, endBlockAdr);
 	memBlockTail := memBlockHead;
@@ -893,7 +893,7 @@ BEGIN
 END GetStaticHeap;
 
 (* returns if an address is a currently allocated heap address *)
-PROCEDURE ValidHeapAddress*(p: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE ValidHeapAddress*(p: ADDRESS): BOOLEAN;
 BEGIN
 	RETURN GreaterOrEqual(p,memBlockHead.beginBlockAdr) & LessOrEqual(p,memBlockTail.endBlockAdr)
 
@@ -902,7 +902,7 @@ BEGIN
 END ValidHeapAddress;
 
 
-PROCEDURE GetFreeK* (VAR total, lowFree, highFree: SYSTEM.SIZE);
+PROCEDURE GetFreeK* (VAR total, lowFree, highFree: SIZE);
 VAR
 	stat: Kernel32.MemoryStatusEx;
 BEGIN
@@ -955,16 +955,16 @@ BEGIN
 END InsertMemoryBlock;
 
 (* expand heap by allocating a new memory block - called during GC *)
-PROCEDURE ExpandHeap*(dummy: LONGINT; size: SYSTEM.SIZE; VAR memoryBlock: MemoryBlock; VAR beginBlockAdr, endBlockAdr: SYSTEM.ADDRESS);
+PROCEDURE ExpandHeap*(dummy: LONGINT; size: SIZE; VAR memoryBlock: MemoryBlock; VAR beginBlockAdr, endBlockAdr: ADDRESS);
 CONST MemBlockHeaderSize = BlockHeaderSize + RecordDescSize + BlockHeaderSize;
 	TypeDescOffset = -AddressSize; (* see Heaps.Mod *)
 	HeapBlockOffset = - 2 * AddressSize; (* see Heaps.Mod *)
 	DataAdrOffset = AddressSize; (* offset of dataAdr field in Heaps.HeapBlockDesc *)
-VAR memDescSize, memBlkSize, alignOffset: SYSTEM.SIZE; adr, memHeaderAdr, memBlockAdr, memBlockHeadAdr: SYSTEM.ADDRESS;
+VAR memDescSize, memBlkSize, alignOffset: SIZE; adr, memHeaderAdr, memBlockAdr, memBlockHeadAdr: ADDRESS;
 	memBlock {UNTRACED}: MemoryBlock; i: LONGINT; ch: CHAR; h: HUGEINT; initVal: LONGINT;
 	continue: BOOLEAN;
 BEGIN
-	memDescSize := MemBlockHeaderSize + SYSTEM.SIZEOF(MemoryBlockDesc);
+	memDescSize := MemBlockHeaderSize + SIZEOF(MemoryBlockDesc);
 	INC(memDescSize, (-memDescSize) MOD StaticBlockSize); 	(* round up to multiple of StaticBlockSize *)
 	INC(size, (-size) MOD StaticBlockSize); (* round up to multiple of StaticBlockSize *)
 	memBlkSize := memDescSize + size + StaticBlockSize; 		(* add StaticBlockSize to account for alignments different from multiples of StaticBlockSize *)
@@ -1015,7 +1015,7 @@ BEGIN
 			     - necessary for real-time GC. Memory block end address is set by caller by using SetMemBlockEndAddress after fitting free block in. *)
 
 			(* copy header of memBlockHead to header of memBlock - byte by byte *)
-			memBlockHeadAdr := SYSTEM.VAL(SYSTEM.ADDRESS, memBlockHead);
+			memBlockHeadAdr := SYSTEM.VAL(ADDRESS, memBlockHead);
 			FOR i := 0 TO MemBlockHeaderSize - 1 DO
 				SYSTEM.GET(memBlockHeadAdr - MemBlockHeaderSize + i, ch);
 				SYSTEM.PUT(memBlockAdr - MemBlockHeaderSize + i, ch)
@@ -1036,7 +1036,7 @@ BEGIN
 END ExpandHeap;
 
 (* Set memory block end address *)
-PROCEDURE SetMemoryBlockEndAddress*(memBlock: MemoryBlock; endBlockAdr: SYSTEM.ADDRESS);
+PROCEDURE SetMemoryBlockEndAddress*(memBlock: MemoryBlock; endBlockAdr: ADDRESS);
 BEGIN
 	ASSERT(GreaterOrEqual(endBlockAdr,memBlock.beginBlockAdr));
 	memBlock.endBlockAdr := endBlockAdr
@@ -1045,7 +1045,7 @@ END SetMemoryBlockEndAddress;
 (* Free unused memory block - called during GC *)
 PROCEDURE FreeMemBlock*(memBlock: MemoryBlock);
 VAR cur {UNTRACED}, prev {UNTRACED}: MemoryBlock;
-	startAdr: SYSTEM.ADDRESS;
+	startAdr: ADDRESS;
 BEGIN
 	cur := memBlockHead;
 	prev := NIL;
@@ -1071,7 +1071,7 @@ BEGIN
 	END;
 END FreeMemBlock;
 
-PROCEDURE PhysicalAdr*(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE): SYSTEM.ADDRESS;
+PROCEDURE PhysicalAdr*(adr: ADDRESS; size: SIZE): ADDRESS;
 END PhysicalAdr;
 
 	(** -- Atomic operations -- *)

@@ -148,7 +148,7 @@ CONST
 TYPE
 
 	UhciFrameList = POINTER TO RECORD
-		index : SYSTEM.SIZE;
+		index : SIZE;
 		framelistbase : Machine.Address32;
 		field : ARRAY 2*1024 OF LONGINT; (* hack: double it, so that we pass a 4K page boundary; field must be 4K aligned *)
 	END;
@@ -396,7 +396,7 @@ TYPE
 			BuildTDLinkPointer(td, TDDepthFirst, td + 16);
 			BuildTDControlStatus(td, tdStatus);
 			BuildTDToken(td, PidSetup, pipe.address, pipe.endpoint  MOD 16, FALSE, 8); (* dataToggle = FALSE *)
-			SYSTEM.PUT32(td + TDBufferPointer, SYSTEM.ADR(msg[0]));
+			SYSTEM.PUT32(td + TDBufferPointer, ADDRESSOF(msg[0]));
 
 			(* setup phase always starts with dataToggle = FALSE, so now it must be TRUE *)
 			pipe.dataToggle := TRUE;
@@ -458,7 +458,7 @@ TYPE
 			IF Debug.StrongChecks THEN DoStrongChecks(pipe, bufferLen, offset, buffer); END;
 
 			(* enough TD's to support transfer of bufferLen bytes? *)
-			IF pipe.firstTD + 16*((pipe.transferLen DIV pipe.maxPacketSize) +1) > SYSTEM.ADR(pipe.tdBuffer[pipe.tdBufferLen-1]) THEN
+			IF pipe.firstTD + 16*((pipe.transferLen DIV pipe.maxPacketSize) +1) > ADDRESSOF(pipe.tdBuffer[pipe.tdBufferLen-1]) THEN
 				KernelLog.String("UsbUhci: TD buffer too small to support requested tranfer size."); KernelLog.Ln;
 				pipe.status := Usbdi.Error; pipe.errors := UsbHcdi.OutOfTDs;
 				RETURN;
@@ -713,17 +713,17 @@ TYPE
 
 			NEW(framelist);
 			(* Calculate the address of the 4K boundary contained in the 8K buffe (framelist base address has to be 4KB aligned) *)
-			framelist.framelistbase := SYSTEM.VAL(Machine.Address32, SYSTEM.VAL(SET, SYSTEM.ADR(framelist.field[0]) + 1024*4 - 1) * {12..31});
+			framelist.framelistbase := SYSTEM.VAL(Machine.Address32, SYSTEM.VAL(SET, ADDRESSOF(framelist.field[0]) + 1024*4 - 1) * {12..31});
 			ASSERT (Machine.Is32BitAddress (framelist.framelistbase));
 			(* Calculate the index which points to the element positioned at the 4K boundary *)
-			framelist.index := ( framelist.framelistbase - SYSTEM.ADR(framelist.field[0]) ) DIV 4;
+			framelist.index := ( framelist.framelistbase - ADDRESSOF(framelist.field[0]) ) DIV 4;
 
 			(* Okay... now allocate the 16byte aligned Queue Heads ... *)
 			NEW(tdlist, 16*TdListSize);
-			tdlistbase := SYSTEM.VAL(Machine.Address32, SYSTEM.VAL(SET, SYSTEM.ADR(tdlist[0])+15) * {4..31});
+			tdlistbase := SYSTEM.VAL(Machine.Address32, SYSTEM.VAL(SET, ADDRESSOF(tdlist[0])+15) * {4..31});
 			ASSERT (Machine.Is32BitAddress (tdlistbase));
 			ASSERT(SYSTEM.VAL(SET, tdlistbase) * {0..3} = {});
-			ASSERT((tdlistbase >= SYSTEM.ADR(tdlist[0])) & (tdlistbase < SYSTEM.ADR(tdlist[16*TdListSize-1])));
+			ASSERT((tdlistbase >= ADDRESSOF(tdlist[0])) & (tdlistbase < ADDRESSOF(tdlist[16*TdListSize-1])));
 
 			(* Set up the frame list pointer skeleton *)
 			controlTD := tdlistbase;
@@ -731,7 +731,7 @@ TYPE
 			isochronousTD := tdlistbase + 32;
 
 			FOR i := 0 TO 10 DO
-				ASSERT(tdlistbase + 48 + i*16 <= SYSTEM.ADR(tdlist[16*TdListSize-1]));
+				ASSERT(tdlistbase + 48 + i*16 <= ADDRESSOF(tdlist[16*TdListSize-1]));
 				interruptTD[i] := tdlistbase + 48 + i*16;
 			END;
 
@@ -828,19 +828,19 @@ TYPE
 		END ShowSchedule;
 
 		PROCEDURE DoStrongChecks(pipe : UsbHcdi.Pipe; len, ofs : LONGINT; VAR buffer : Usbdi.Buffer);
-		VAR i : SYSTEM.ADDRESS;
+		VAR i : ADDRESS;
 		BEGIN
 			IF len > 0 THEN
-				i := Machine.PhysicalAdr(SYSTEM.ADR(buffer[0]), len);
+				i := Machine.PhysicalAdr(ADDRESSOF(buffer[0]), len);
 				IF i = -1 THEN
 					KernelLog.String("UsbUhci: Buffers must be physically contiguoues"); KernelLog.Ln;
 					HALT(99)
 				END;
 			END;
 			IF pipe.type = UsbHcdi.PipeControl THEN
-				ASSERT((pipe.firstTD + 16*((pipe.transferLen DIV pipe.maxPacketSize) +3)) <= SYSTEM.ADR(pipe.tdBuffer[pipe.tdBufferLen-1])); (* enough TDs *)
+				ASSERT((pipe.firstTD + 16*((pipe.transferLen DIV pipe.maxPacketSize) +3)) <= ADDRESSOF(pipe.tdBuffer[pipe.tdBufferLen-1])); (* enough TDs *)
 			ELSE
-				ASSERT((pipe.firstTD + 16*((pipe.transferLen DIV pipe.maxPacketSize) +1)) <= SYSTEM.ADR(pipe.tdBuffer[pipe.tdBufferLen-1])); (* enough TDs *)
+				ASSERT((pipe.firstTD + 16*((pipe.transferLen DIV pipe.maxPacketSize) +1)) <= ADDRESSOF(pipe.tdBuffer[pipe.tdBufferLen-1])); (* enough TDs *)
 			END;
 		END DoStrongChecks;
 
@@ -997,7 +997,7 @@ BEGIN
 		KernelLog.String (" [Actlen: "); val := SYSTEM.VAL(LONGINT, s * {0..10});
 		IF val = 07FFH THEN val := 0; ELSE INC(val); END; KernelLog.Int(val, 0); KernelLog.String(" ]");
 		KernelLog.String(" [MaxLen: "); val := SYSTEM.GET32(addr + 8);
-		val := SYSTEM.LSH(val, -21); IF val = 7FFH THEN val := 0; ELSE INC(val); END;
+		val := LSH(val, -21); IF val = 7FFH THEN val := 0; ELSE INC(val); END;
 		KernelLog.Int(val, 0); KernelLog.String(" ]"); KernelLog.Ln;
 
 		KernelLog.String("   PID: ");
@@ -1014,8 +1014,8 @@ BEGIN
 		s := SYSTEM.VAL(SET,val);
 		IF s * TDDataToggle # {} THEN KernelLog.String("DATA1"); ELSE KernelLog.String("DATA0"); END;
 
-		KernelLog.String(" Device Adr: "); KernelLog.Int(SYSTEM.LSH(SYSTEM.VAL(LONGINT, s * {8..14}), -8),0);
-		KernelLog.String(" Endpoint: "); KernelLog.Int(SYSTEM.LSH(SYSTEM.VAL(LONGINT, s * {15..18}), -15),0);
+		KernelLog.String(" Device Adr: "); KernelLog.Int(LSH(SYSTEM.VAL(LONGINT, s * {8..14}), -8),0);
+		KernelLog.String(" Endpoint: "); KernelLog.Int(LSH(SYSTEM.VAL(LONGINT, s * {15..18}), -15),0);
 		KernelLog.Ln;
 
 		nexttd := SYSTEM.GET32(addr);
@@ -1063,7 +1063,7 @@ BEGIN
 						KernelLog.Enter;
 						KernelLog.String("UsbUhci: Initialised USB UHCI controller at base 0"); KernelLog.Hex(iobase, 8);
 						KernelLog.String("H, Irq: "); KernelLog.Int(irqline, 0);
-						KernelLog.String("  USB version: "); KernelLog.Hex(SYSTEM.LSH(hostController.bcdUSB, -4), -2); KernelLog.Char(".");
+						KernelLog.String("  USB version: "); KernelLog.Hex(LSH(hostController.bcdUSB, -4), -2); KernelLog.Char(".");
 						KernelLog.Hex(hostController.bcdUSB MOD 10H, -2);
 						KernelLog.Exit;
 					END;

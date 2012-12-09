@@ -195,7 +195,7 @@ TYPE
 		PROCEDURE Config;
 		VAR size, diskres,payloadNotCoded: LONGINT;
 		BEGIN
-			payloadNotCoded:= SYSTEM.VAL(LONGINT,SYSTEM.LSH({0},maxPayload+1));
+			payloadNotCoded:= SYSTEM.VAL(LONGINT,LSH({0},maxPayload+1));
 			NEW(dataBufferFIFO,10,payloadNotCoded);
 			NEW(commandOrbFIFO,NumOfOrbs,OrbSize);
 			GetSize(size,diskres);
@@ -208,9 +208,9 @@ BEGIN
 	commandOrb.nextOrbHi:= NullPointerOrbHi;
 	commandOrb.nextOrbLo:= {};
 	(* set the max payload *)
-	commandOrb.misc:= SYSTEM.LSH(SYSTEM.VAL(SET,maxPayload),20);
+	commandOrb.misc:= LSH(SYSTEM.VAL(SET,maxPayload),20);
 	(* set the speed *)
-	commandOrb.misc:= commandOrb.misc + SYSTEM.LSH(SYSTEM.VAL(SET,speedCode),24);
+	commandOrb.misc:= commandOrb.misc + LSH(SYSTEM.VAL(SET,speedCode),24);
 	(* set the notify speed *)
 	commandOrb.misc:= commandOrb.misc + {31};
 	(* set the page size *)
@@ -235,10 +235,10 @@ BEGIN
 		commandOrb.misc:= commandOrb.misc + {27};
 	ELSE
 		(* set the direction *)
-		commandOrb.misc:= commandOrb.misc + SYSTEM.VAL(SET,SYSTEM.LSH(direction,27));
+		commandOrb.misc:= commandOrb.misc + SYSTEM.VAL(SET,LSH(direction,27));
 		(* check how big the buffer has to be *)
 		(* KernelLog.Int(maxPayload,2);KernelLog.Ln(); *)
-		payloadNotCoded:= SYSTEM.VAL(LONGINT,SYSTEM.LSH({0},maxPayload+1));
+		payloadNotCoded:= SYSTEM.VAL(LONGINT,LSH({0},maxPayload+1));
 		(* KernelLog.Int(payloadNotCoded,2); *)
 		numOfOrbs:= command.bufferLen DIV payloadNotCoded;
 
@@ -247,7 +247,7 @@ BEGIN
 		(* set the data size *)
 		commandOrb.misc:= commandOrb.misc + SYSTEM.VAL(SET,command.bufferLen);
 		(* set the buffer address *)
-		commandOrb.dataDescHi:= SYSTEM.LSH(FirewireLowUtil.ReadReg(FirewireLowUtil.NodeID)*{0..15},16);
+		commandOrb.dataDescHi:= LSH(FirewireLowUtil.ReadReg(FirewireLowUtil.NodeID)*{0..15},16);
 		commandOrb.dataDescLo:= SYSTEM.VAL(SET,dataBufAddr);
 		ASSERT(~(31 IN commandOrb.dataDescLo));
 		FOR i:= 0 TO 11 DO
@@ -314,7 +314,7 @@ BEGIN
 		InvertByteOrderWord(buffer[1]);
 
 		IF ~HpsbNodeWrite(nodeEntry,cmdBlckAgntAddrLow+SYSTEM.VAL(SET,SBP2ORBPointerOffset),
-			cmdBlckAgntAddrHigh , SYSTEM.VAL(SET,SYSTEM.ADR(buffer)), 8) THEN diskres:= 1;
+			cmdBlckAgntAddrHigh , SYSTEM.VAL(SET,ADDRESSOF(buffer)), 8) THEN diskres:= 1;
 			Print(debug,"Setting the orb pointer failed");
 		END;
 
@@ -352,7 +352,7 @@ VAR statusHi: SET; length: LONGINT; scsiStatus: LONGINT;
 BEGIN
 	statusHi:= SYSTEM.VAL(SET,SYSTEM.GET32(statusBufAddr));
 	(* Check if target stored any scsi status information, check the length *)
-	length:= SYSTEM.VAL(LONGINT,SYSTEM.LSH(statusHi,-24)*{0..2});
+	length:= SYSTEM.VAL(LONGINT,LSH(statusHi,-24)*{0..2});
 	IF length > 1 THEN (* there is scsi sense data, something went wrong *)
 	ELSE scsiStatus:= good; (* for future use *)
 	END;
@@ -389,8 +389,8 @@ BEGIN
 	FirewireLowUtil.PrintSet(command.bufferAddr); *)
 	retBufferAddr:= SYSTEM.VAL(LONGINT,command.bufferAddr);
 	(* ASSERT(retBufferAddr > 0); *)
-	(* KernelLog.String("Printing commandOrb.cdb: "); KernelLog.Int(SYSTEM.ADR(commandOrb.cdb),2); KernelLog.Ln();
-	ASSERT(SYSTEM.ADR(commandOrb.cdb) > 0); *)
+	(* KernelLog.String("Printing commandOrb.cdb: "); KernelLog.Int(ADDRESSOF(commandOrb.cdb),2); KernelLog.Ln();
+	ASSERT(ADDRESSOF(commandOrb.cdb) > 0); *)
 	(* Print(debug,"Printing the return buffer address");
 	KernelLog.Int(retBufferAddr,2); *)
 	(* fill the command orb *)
@@ -471,7 +471,7 @@ VAR i, payloadNotCoded: LONGINT; command: Command; numOfBlocks,tries: LONGINT;
 BEGIN
 
 	tries:= 0;
-	payloadNotCoded:= SYSTEM.VAL(LONGINT,SYSTEM.LSH({0},maxPayload+1));
+	payloadNotCoded:= SYSTEM.VAL(LONGINT,LSH({0},maxPayload+1));
 	numOfBlocks:= payloadNotCoded DIV blockSize;
 
 	FOR i:= 0 TO 11 DO command.cdb[i]:= CHR(0) END;
@@ -490,14 +490,14 @@ BEGIN
 			IF numOfBlocks < num THEN command.bufferLen:= numOfBlocks*blockSize;
 			ELSE command.bufferLen:= num*blockSize; numOfBlocks:= num;
 			END;
-			command.bufferAddr:= SYSTEM.VAL(SET,SYSTEM.ADR(data[0])+ofs+i*blockSize);
-			command.cdb[2]:= CHR(SYSTEM.LSH(block,-24));
-			command.cdb[3]:= CHR(SYSTEM.LSH(block,-16));
-			command.cdb[4]:= CHR(SYSTEM.LSH(block,-8));
+			command.bufferAddr:= SYSTEM.VAL(SET,ADDRESSOF(data[0])+ofs+i*blockSize);
+			command.cdb[2]:= CHR(LSH(block,-24));
+			command.cdb[3]:= CHR(LSH(block,-16));
+			command.cdb[4]:= CHR(LSH(block,-8));
 			command.cdb[5]:= CHR(block);
-			(* command.cdb[7]:= CHR(SYSTEM.LSH(num,-8));
+			(* command.cdb[7]:= CHR(LSH(num,-8));
 			command.cdb[8]:= CHR(num); *)
-			command.cdb[7]:= CHR(SYSTEM.LSH(numOfBlocks,-8));
+			command.cdb[7]:= CHR(LSH(numOfBlocks,-8));
 			command.cdb[8]:= CHR(numOfBlocks);
 			IF ~SendCommand(command, diskres) THEN
 				IF tries > 10 THEN RETURN ELSE INC(tries); END;
@@ -699,10 +699,10 @@ END SetBusyTimeOut;
 PROCEDURE InvertByteOrderWord(VAR word: SET);
 VAR swapWord: SET;
 BEGIN
-	swapWord:= SYSTEM.LSH(word*{0..7},24);
-	swapWord:= swapWord +SYSTEM.LSH(word*{8..15},8);
-	swapWord:= swapWord +SYSTEM.LSH(word*{16..23},-8);
-	swapWord:= swapWord +SYSTEM.LSH(word*{24..31},-24);
+	swapWord:= LSH(word*{0..7},24);
+	swapWord:= swapWord +LSH(word*{8..15},8);
+	swapWord:= swapWord +LSH(word*{16..23},-8);
+	swapWord:= swapWord +LSH(word*{24..31},-24);
 	word:= swapWord;
 END InvertByteOrderWord;
 
@@ -714,10 +714,10 @@ BEGIN
 	WHILE i # numOfWords DO
 		quadlet:= buffer[i];
 		(* FirewireLowUtil.PrintSet(quadlet); *)
-		quadletSwap:= SYSTEM.LSH(quadlet*{0..7},24);
-		quadletSwap:= quadletSwap+SYSTEM.LSH(quadlet*{8..15},8);
-		quadletSwap:= quadletSwap+SYSTEM.LSH(quadlet*{16..23},-8);
-		quadletSwap:= quadletSwap+SYSTEM.LSH(quadlet*{24..31},-24);
+		quadletSwap:= LSH(quadlet*{0..7},24);
+		quadletSwap:= quadletSwap+LSH(quadlet*{8..15},8);
+		quadletSwap:= quadletSwap+LSH(quadlet*{16..23},-8);
+		quadletSwap:= quadletSwap+LSH(quadlet*{24..31},-24);
 		(* FirewireLowUtil.PrintSet(quadletSwap); *)
 		buffer[i]:= quadletSwap;
 		INC(i);
@@ -732,10 +732,10 @@ BEGIN
 	WHILE i # numOfWords DO
 		quadlet:= SYSTEM.VAL(SET,SYSTEM.GET32(bufAddr+length));
 		(* FirewireLowUtil.PrintSet(quadlet); *)
-		quadletSwap:= SYSTEM.LSH(quadlet*{0..7},24);
-		quadletSwap:= quadletSwap+SYSTEM.LSH(quadlet*{8..15},8);
-		quadletSwap:= quadletSwap+SYSTEM.LSH(quadlet*{16..23},-8);
-		quadletSwap:= quadletSwap+SYSTEM.LSH(quadlet*{24..31},-24);
+		quadletSwap:= LSH(quadlet*{0..7},24);
+		quadletSwap:= quadletSwap+LSH(quadlet*{8..15},8);
+		quadletSwap:= quadletSwap+LSH(quadlet*{16..23},-8);
+		quadletSwap:= quadletSwap+LSH(quadlet*{24..31},-24);
 		(* FirewireLowUtil.PrintSet(quadletSwap); *)
 		SYSTEM.PUT32(bufAddr+length,SYSTEM.VAL(LONGINT,quadletSwap));
 		INC(i); INC(length,4);
@@ -747,7 +747,7 @@ PROCEDURE AllocBuf(size:LONGINT;VAR ptrToBfr: Buffer):SET;
 VAR buffer: Buffer; adr: LONGINT; s: SET;
 BEGIN
 	NEW(buffer, size + 4);
-	adr:= SYSTEM.ADR(buffer[0]);
+	adr:= ADDRESSOF(buffer[0]);
 	ASSERT(adr > 0);
 	(* Find a 4 byte aligned address *)
 	DEC(adr, adr MOD 4);
@@ -831,7 +831,7 @@ BEGIN
 	dev.logoutOrb.reserved4:= 0;
 	(* set the logout function *)
 	dev.logoutOrb.loginIDMisc:= {};
-	dev.logoutOrb.loginIDMisc:= (* SYSTEM.VAL(SET,SYSTEM.LSH(7,16)); *) {16,17,18};
+	dev.logoutOrb.loginIDMisc:= (* SYSTEM.VAL(SET,LSH(7,16)); *) {16,17,18};
 	(* set the login id *)
 	(* Print(debug,"Printing the login id: "); FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.VAL(LONGINT,dev.loginResp.bufAddr)))*{0..15});
 	dev.logoutOrb.loginIDMisc:=
@@ -842,7 +842,7 @@ BEGIN
 	dev.logoutOrb.statusFIFOLo:= dev.statusBlock.bufAddr;
 	(* Print(debug,"Printing the status buffer address");
 	FirewireLowUtil.PrintSet(dev.statusBlock.bufAddr); *)
-	dev.logoutOrb.statusFIFOHi:= SYSTEM.LSH(FirewireLowUtil.ReadReg(FirewireLowUtil.NodeID)*{0..15},16);
+	dev.logoutOrb.statusFIFOHi:= LSH(FirewireLowUtil.ReadReg(FirewireLowUtil.NodeID)*{0..15},16);
 
 	(* now write the structure into the buffers *)
 	(* Print(debug,"Printing the logoutOrb buffer address"); *)
@@ -861,7 +861,7 @@ BEGIN
 	InvertByteOrder(addr,32);
 
 	(* let's write to the target's management agent register *)
-	buffer[0]:= SYSTEM.LSH(FirewireLowUtil.ReadReg(FirewireLowUtil.NodeID)*{0..15},16);
+	buffer[0]:= LSH(FirewireLowUtil.ReadReg(FirewireLowUtil.NodeID)*{0..15},16);
 	buffer[1]:= dev.logoutOrb.bufAddr;
 	(* Print(debug,"Address before byte swapping");
 	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,buffer[0]));
@@ -878,7 +878,7 @@ BEGIN
 	(* Print(debug,"Printing the management agent address!");
 	FirewireLowUtil.PrintSet(dev.mgmtAgntAddrLow);FirewireLowUtil.PrintSet(dev.mgmtAgntAddrHigh); *)
 	IF ~HpsbNodeWrite(dev.nodeEntry, dev.mgmtAgntAddrLow,
-		dev.mgmtAgntAddrHigh, SYSTEM.VAL(SET,SYSTEM.ADR(buffer)), 8) THEN
+		dev.mgmtAgntAddrHigh, SYSTEM.VAL(SET,ADDRESSOF(buffer)), 8) THEN
 		Print(debug,"Writing to the management agent failed");
 	END;
 
@@ -917,12 +917,12 @@ BEGIN
 	(* initialize login orb, no password *)
 	dev.loginOrb.passwordHi:= 0;
 	dev.loginOrb.passwordLo:= 0;
-	dev.loginOrb.loginRespHi:= 0; (* SYSTEM.LSH(SYSTEM.VAL(LONGINT,SYSTEM.LSH(FirewireLowUtil.GetBusID(),6)) + host.nodeID,16); *)
+	dev.loginOrb.loginRespHi:= 0; (* LSH(SYSTEM.VAL(LONGINT,LSH(FirewireLowUtil.GetBusID(),6)) + host.nodeID,16); *)
 	dev.loginOrb.loginRespLo:= SYSTEM.VAL(LONGINT,dev.loginResp.bufAddr);
-	dev.loginOrb.lunMisc:= (* SYSTEM.VAL(SET,SYSTEM.LSH(LoginRequest,16)) + *)
-	SYSTEM.LSH({},20) (* one second reconnect time *) +
-	SYSTEM.LSH({0},28) (* exclusive login *) +
-	SYSTEM.LSH({0},31) (* notify us when the login is complete *);
+	dev.loginOrb.lunMisc:= (* SYSTEM.VAL(SET,LSH(LoginRequest,16)) + *)
+	LSH({},20) (* one second reconnect time *) +
+	LSH({0},28) (* exclusive login *) +
+	LSH({0},31) (* notify us when the login is complete *);
 	(* now set the lun if initialized *)
 	IF SYSTEM.VAL(LONGINT,dev.logicalUnitNumber) # UninitializedLUN THEN
 		dev.loginOrb.lunMisc:= dev.loginOrb.lunMisc + SYSTEM.VAL(SET,dev.logicalUnitNumber);
@@ -933,7 +933,7 @@ BEGIN
 	dev.loginOrb.statusFIFOLo:= dev.statusBlock.bufAddr;
 	(* Print(debug,"Printing the status buffer address");
 	FirewireLowUtil.PrintSet(dev.statusBlock.bufAddr); *)
-	dev.loginOrb.statusFIFOHi:= SYSTEM.LSH(FirewireLowUtil.ReadReg(FirewireLowUtil.NodeID)*{0..15},16);
+	dev.loginOrb.statusFIFOHi:= LSH(FirewireLowUtil.ReadReg(FirewireLowUtil.NodeID)*{0..15},16);
 
 	(* now write the structure into the buffers *)
 	(* Print(debug,"Printing the loginOrb buffer address"); *)
@@ -971,7 +971,7 @@ BEGIN
 	FirewireLowUtil.PrintSet(dev.mgmtAgntAddrLow);FirewireLowUtil.PrintSet(dev.mgmtAgntAddrHigh); *)
 
 	IF ~HpsbNodeWrite(dev.nodeEntry, dev.mgmtAgntAddrLow,
-		dev.mgmtAgntAddrHigh, SYSTEM.VAL(SET,SYSTEM.ADR(buffer)), 8) THEN
+		dev.mgmtAgntAddrHigh, SYSTEM.VAL(SET,ADDRESSOF(buffer)), 8) THEN
 		Print(debug,"Writing to the management agent failed");
 	END;
 
@@ -1123,15 +1123,15 @@ BEGIN
 	(* Print(debug,"Parsing unit directory!"); *)
 	length:= ud.GetLength(); i:= 0;
 	WHILE i < (length) DO
-		key:= SYSTEM.VAL(LONGINT,SYSTEM.LSH(ud.udEntries[i],-24));
+		key:= SYSTEM.VAL(LONGINT,LSH(ud.udEntries[i],-24));
 		value:= SYSTEM.VAL(LONGINT,ud.udEntries[i]*{0..23});
 		CASE key OF
 			SBP2CSROffsetKey: mgmtAgntAddrLow:= FirewireLowUtil.CSRBaseLow;
 				mgmtAgntAddrHigh:= FirewireLowUtil.CSRBaseHigh;
 				(* FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,value)); *)
-				(* FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.LSH(value,2)));
+				(* FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,LSH(value,2)));
 				FirewireLowUtil.PrintSet(mgmtAgntAddrLow); *)
-				mgmtAgntAddrLow:= SYSTEM.VAL(SET,SYSTEM.LSH(value,2)) + mgmtAgntAddrLow;
+				mgmtAgntAddrLow:= SYSTEM.VAL(SET,LSH(value,2)) + mgmtAgntAddrLow;
 				(* Print(debug,"Found management agent address"); *)
 				(* FirewireLowUtil.PrintSet(mgmtAgntAddrLow); *)
 			|SBP2CommandSetSpecIDKey: commandSetSpecID:= value;
@@ -1199,20 +1199,20 @@ BEGIN
 	Print(debug,"Reading from medium");
 	dev.Transfer(Disks.Read,900,2,data,ofs,diskres); tempSet:= {};
 	FOR i:= 0 TO 3 DO
-		tempSet:= tempSet + SYSTEM.LSH(SYSTEM.VAL(SET,data[i]),-(i*8));
+		tempSet:= tempSet + LSH(SYSTEM.VAL(SET,data[i]),-(i*8));
 	END;
 	FirewireLowUtil.PrintSet(tempSet);
-	(* FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(data))));
-	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(data)+512)));
-	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(data)+1024))); *)
+	(* FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(data))));
+	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(data)+512)));
+	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(data)+1024))); *)
 
 
 	FOR i:= 0 TO 3 DO
 		data[i]:= SYSTEM.VAL(CHAR,{0});
 	END;
-	(* SYSTEM.PUT32(SYSTEM.ADR(data),SYSTEM.VAL(LONGINT,{0,3,6,9,12,15,18,21,24,27,30}));
-	SYSTEM.PUT32(SYSTEM.ADR(data)+512,SYSTEM.VAL(LONGINT,{1,11}));
-	SYSTEM.PUT32(SYSTEM.ADR(data)+1024,SYSTEM.VAL(LONGINT,{1,2,3,4,5})); *)
+	(* SYSTEM.PUT32(ADDRESSOF(data),SYSTEM.VAL(LONGINT,{0,3,6,9,12,15,18,21,24,27,30}));
+	SYSTEM.PUT32(ADDRESSOF(data)+512,SYSTEM.VAL(LONGINT,{1,11}));
+	SYSTEM.PUT32(ADDRESSOF(data)+1024,SYSTEM.VAL(LONGINT,{1,2,3,4,5})); *)
 	Print(debug,"Writing to medium");
 	dev.Transfer(Disks.Write,900,2,data,ofs,diskres);
 
@@ -1224,12 +1224,12 @@ BEGIN
 	Print(debug,"Reading from medium");
 	dev.Transfer(Disks.Read,900,2,data,ofs,diskres);
 	FOR i:= 0 TO 3 DO
-		tempSet:= tempSet + SYSTEM.LSH(SYSTEM.VAL(SET,data[i]),-(i*8));
+		tempSet:= tempSet + LSH(SYSTEM.VAL(SET,data[i]),-(i*8));
 	END;
 	FirewireLowUtil.PrintSet(tempSet);
-	(* FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(data))));
-	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(data)+512)));
-	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(data)+1024))); *)
+	(* FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(data))));
+	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(data)+512)));
+	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(data)+1024))); *)
 END TestTransfer;
 
 (* PROCEDURE TestHandle*(par:ANY):ANY;
@@ -1247,7 +1247,7 @@ VAR i,addr: LONGINT; command: Command; dev: Sbp2Dev; grp: SbpDevGrp; statusHi: S
 BEGIN
 	grp:= sbpDevGrps[0];
 	dev:= grp[0];
-	command.bufferAddr:= SYSTEM.VAL(SET,SYSTEM.ADR(data));
+	command.bufferAddr:= SYSTEM.VAL(SET,ADDRESSOF(data));
 	command.bufferLen:= blockSize;
 
 	FOR i:= 0 TO 11 DO command.cdb[i]:= CHR(0) END;
@@ -1262,12 +1262,12 @@ BEGIN
 
 		i:= 0;
 		WHILE num > 0 DO
-			command.bufferAddr:= SYSTEM.VAL(SET,SYSTEM.ADR(data)+i*blockSize);
-			command.cdb[2]:= CHR(SYSTEM.LSH(block,-24));
-			command.cdb[3]:= CHR(SYSTEM.LSH(block,-16));
-			command.cdb[4]:= CHR(SYSTEM.LSH(block,-8));
+			command.bufferAddr:= SYSTEM.VAL(SET,ADDRESSOF(data)+i*blockSize);
+			command.cdb[2]:= CHR(LSH(block,-24));
+			command.cdb[3]:= CHR(LSH(block,-16));
+			command.cdb[4]:= CHR(LSH(block,-8));
 			command.cdb[5]:= CHR(block);
-			command.cdb[7]:= CHR(SYSTEM.LSH(num,-8));
+			command.cdb[7]:= CHR(LSH(num,-8));
 			command.cdb[8]:= CHR(num);
 			IF ~SendCommand(dev, command, diskres) THEN RETURN END;
 			IF diskres # Disks.Ok THEN RETURN END;
@@ -1280,7 +1280,7 @@ BEGIN
 	grp[0]:= dev;
 	sbpDevGrps[0]:= grp;
 
-	(* SYSTEM.PUT32(SYSTEM.ADR(data),SYSTEM.GET32(SYSTEM.VAL(LONGINT,command.bufferAddr)));
+	(* SYSTEM.PUT32(ADDRESSOF(data),SYSTEM.GET32(SYSTEM.VAL(LONGINT,command.bufferAddr)));
 
 		(* check the status *)
 	addr:= SYSTEM.VAL(LONGINT,dev.statusBlock.bufAddr);
@@ -1300,8 +1300,8 @@ BEGIN
 	(*
 	IF op = Disks.Read THEN
 		(* FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.VAL(LONGINT,command.bufferAddr)))); *)
-		SYSTEM.PUT32(SYSTEM.ADR(data),SYSTEM.GET32(SYSTEM.VAL(LONGINT,command.bufferAddr)));
-		InvertByteOrder(SYSTEM.ADR(data),4);
+		SYSTEM.PUT32(ADDRESSOF(data),SYSTEM.GET32(SYSTEM.VAL(LONGINT,command.bufferAddr)));
+		InvertByteOrder(ADDRESSOF(data),4);
 	END; *)
 END Transfer;
 
@@ -1317,7 +1317,7 @@ BEGIN
 	(* FirewireLowUtil.PrintSet(dev.mgmtAgntAddrLow);
 	KernelLog.Int(dev.maxPayload,2); KernelLog.Ln(); *)
 
-	(* command.bufferAddr:= SYSTEM.VAL(SET,SYSTEM.ADR(data)); *)
+	(* command.bufferAddr:= SYSTEM.VAL(SET,ADDRESSOF(data)); *)
 	command.bufferLen:= 1024;
 	command.dataDirection:= DataRead;
 
@@ -1329,7 +1329,7 @@ BEGIN
 	IF (diskres # Disks.Ok) THEN RETURN; END;
 
 	(* data[0]:= CHR(2);
-	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(SYSTEM.ADR(data)))); *)
+	FirewireLowUtil.PrintSet(SYSTEM.VAL(SET,SYSTEM.GET32(ADDRESSOF(data)))); *)
 
 	(* FOR i := 0 TO 3 DO
 		size := size*100H + SYSTEM.GET8(SYSTEM.VAL(LONGINT,command.bufferAddr)+i);
@@ -1369,19 +1369,19 @@ BEGIN
 
 	Print(debug,"Writing to medium");
 	command.bufferLen:= 1024;
-	command.bufferAddr:= SYSTEM.VAL(SET,SYSTEM.ADR(buffer));
+	command.bufferAddr:= SYSTEM.VAL(SET,ADDRESSOF(buffer));
 	SYSTEM.PUT32(SYSTEM.VAL(LONGINT,command.bufferAddr),SYSTEM.VAL(LONGINT,{0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30}));
 	command.dataDirection:= DataWrite;
 	FOR i:= 0 TO 2 DO
-		SYSTEM.PUT32(SYSTEM.ADR(command.cdb)+i*4,0);
+		SYSTEM.PUT32(ADDRESSOF(command.cdb)+i*4,0);
 	END;
 	command.cdb[0]:= 2AX; (* write *)
 	command.cdb[1]:= CHR(SYSTEM.VAL(LONGINT,{5}));
-	command.cdb[2]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,260),-24)));
-	command.cdb[3]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,260),-16)));
-	command.cdb[4]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,260),-8)));
+	command.cdb[2]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,260),-24)));
+	command.cdb[3]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,260),-16)));
+	command.cdb[4]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,260),-8)));
 	command.cdb[5]:= CHR(SYSTEM.VAL(LONGINT,SYSTEM.VAL(SET,260)*{0..7}));
-	command.cdb[7]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH({6},-8)));
+	command.cdb[7]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH({6},-8)));
 	command.cdb[8]:= CHR(SYSTEM.VAL(LONGINT,{6}*{0..7}));
 	IF ~SendCommand(dev, command,diskres) THEN Print(debug,"Send command failed") END;
 
@@ -1404,19 +1404,19 @@ BEGIN
 	Print(debug,"Reading from medium");
 
 	command.bufferLen:= 1024;
-	command.bufferAddr:= SYSTEM.VAL(SET,SYSTEM.ADR(bufferAnsw));
+	command.bufferAddr:= SYSTEM.VAL(SET,ADDRESSOF(bufferAnsw));
 	(* SYSTEM.PUT32(command.bufferAddr,SYSTEM.VAL(LONGINT,{0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30})); *)
 	command.dataDirection:= DataRead;
 	FOR i:= 0 TO 2 DO
-		SYSTEM.PUT32(SYSTEM.ADR(command.cdb)+i*4,0);
+		SYSTEM.PUT32(ADDRESSOF(command.cdb)+i*4,0);
 	END;
 	command.cdb[0]:= 28X; (* read *)
 	command.cdb[1]:= CHR(SYSTEM.VAL(LONGINT,{5}));
-	command.cdb[2]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,245),-24)));
-	command.cdb[3]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,245),-16)));
-	command.cdb[4]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,245),-8)));
+	command.cdb[2]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,245),-24)));
+	command.cdb[3]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,245),-16)));
+	command.cdb[4]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,245),-8)));
 	command.cdb[5]:= CHR(SYSTEM.VAL(LONGINT,SYSTEM.VAL(SET,245)*{0..7}));
-	command.cdb[7]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH({5},-8)));
+	command.cdb[7]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH({5},-8)));
 	command.cdb[8]:= CHR(SYSTEM.VAL(LONGINT,{5}*{0..7}));
 	IF ~SendCommand(dev, command,diskres) THEN Print(debug,"Send command failed") END;
 
@@ -1441,19 +1441,19 @@ BEGIN
 	Print(debug,"Reading from medium");
 
 	command.bufferLen:= 1024;
-	command.bufferAddr:= SYSTEM.VAL(SET,SYSTEM.ADR(bufferAnsw));
+	command.bufferAddr:= SYSTEM.VAL(SET,ADDRESSOF(bufferAnsw));
 	(* SYSTEM.PUT32(command.bufferAddr,SYSTEM.VAL(LONGINT,{0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30})); *)
 	command.dataDirection:= DataRead;
 	FOR i:= 0 TO 2 DO
-		SYSTEM.PUT32(SYSTEM.ADR(command.cdb)+i*4,0);
+		SYSTEM.PUT32(ADDRESSOF(command.cdb)+i*4,0);
 	END;
 	command.cdb[0]:= 28X; (* read *)
 	command.cdb[1]:= CHR(SYSTEM.VAL(LONGINT,{5}));
-	command.cdb[2]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,260),-24)));
-	command.cdb[3]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,260),-16)));
-	command.cdb[4]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH(SYSTEM.VAL(SET,260),-8)));
+	command.cdb[2]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,260),-24)));
+	command.cdb[3]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,260),-16)));
+	command.cdb[4]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH(SYSTEM.VAL(SET,260),-8)));
 	command.cdb[5]:= CHR(SYSTEM.VAL(LONGINT,SYSTEM.VAL(SET,260)*{0..7}));
-	command.cdb[7]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*SYSTEM.LSH({5},-8)));
+	command.cdb[7]:= CHR(SYSTEM.VAL(LONGINT,{0..7}*LSH({5},-8)));
 	command.cdb[8]:= CHR(SYSTEM.VAL(LONGINT,{5}*{0..7}));
 	IF ~SendCommand(dev, command,diskres) THEN Print(debug,"Send command failed") END;
 

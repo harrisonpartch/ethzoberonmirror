@@ -187,7 +187,7 @@ TYPE
 		BEGIN
 			status := device.Request(ReadCommand, ReadPhyRegister, phyId, register, 2, buffer^);
 			IF status = Usbdi.Ok THEN
-				value := SYSTEM.VAL(SET, ORD(buffer[0])) + SYSTEM.LSH(SYSTEM.VAL(SET, ORD(buffer[1])), 8);
+				value := SYSTEM.VAL(SET, ORD(buffer[0])) + LSH(SYSTEM.VAL(SET, ORD(buffer[1])), 8);
 				res := Mii.Ok;
 			ELSE
 				res := Mii.ErrorRead;
@@ -198,7 +198,7 @@ TYPE
 		VAR status : Usbdi.Status;
 		BEGIN
 			buffer[0] := CHR(SYSTEM.VAL(LONGINT, value));
-			buffer[1] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(value, -8)));
+			buffer[1] := CHR(SYSTEM.VAL(LONGINT, LSH(value, -8)));
 			status := device.Request(WriteCommand, WritePhyRegister, phyId, register, 2, buffer^);
 			IF status = Usbdi.Ok THEN
 				res := Mii.Ok;
@@ -221,7 +221,7 @@ TYPE
 	Usb200MDriver = OBJECT (UsbNetwork.UsbNetworkController)
 	VAR
 		txBuffer : Usbdi.BufferPtr;
-		txBufferAdr : SYSTEM.ADDRESS;
+		txBufferAdr : ADDRESS;
 
 		(* Receiving data is somewhat more complicated than sending it. Since the device expects us to always ask
 		for at least bulkInPipe.maxPacketSize data, we can't use a standard ring buffer. Instead, we use a ring buffer with
@@ -260,20 +260,20 @@ TYPE
 			SYSTEM.PUT16(txBufferAdr + 2, SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, packetSize) / {0..15})); (* Checksum *)
 
 			(* 14 Byte Ethernet Frame Header (destination address - source address - Frame type *)
-			SYSTEM.MOVE(SYSTEM.ADR(dst[0]), txBufferAdr + 4, 6);
-			SYSTEM.MOVE(SYSTEM.ADR(linkDevice.local[0]), txBufferAdr + 10, 6);
-			SYSTEM.PUT16(txBufferAdr + 16, SYSTEM.ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
+			SYSTEM.MOVE(ADDRESSOF(dst[0]), txBufferAdr + 4, 6);
+			SYSTEM.MOVE(ADDRESSOF(linkDevice.local[0]), txBufferAdr + 10, 6);
+			SYSTEM.PUT16(txBufferAdr + 16, ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
 
 			i := UsbNetwork.EthernetHeaderSize + UsbHeaderSize;
 			(* Network Layer Header *)
-			IF h3len > 0 THEN SYSTEM.MOVE(SYSTEM.ADR(l3hdr[0]), txBufferAdr+i, h3len); INC(i, h3len) END;
+			IF h3len > 0 THEN SYSTEM.MOVE(ADDRESSOF(l3hdr[0]), txBufferAdr+i, h3len); INC(i, h3len) END;
 
 			(* Transport Layer Header *)
-			IF h4len > 0 THEN SYSTEM.MOVE(SYSTEM.ADR(l4hdr[0]), txBufferAdr+i, h4len); INC(i, h4len) END;
+			IF h4len > 0 THEN SYSTEM.MOVE(ADDRESSOF(l4hdr[0]), txBufferAdr+i, h4len); INC(i, h4len) END;
 
 			(* Payload *)
 			IF i + dlen < UsbNetwork.MaxEthernetFrameSize THEN
-				SYSTEM.MOVE(SYSTEM.ADR(data[0]) + dofs, txBufferAdr + i, dlen); INC(i, dlen);
+				SYSTEM.MOVE(ADDRESSOF(data[0]) + dofs, txBufferAdr + i, dlen); INC(i, dlen);
 			ELSE
 				Show("Warning: Maximum ethernet frame size exceeded. Packet dropped."); KernelLog.Ln;
 			END;
@@ -370,7 +370,7 @@ TYPE
 			NEW(buffer, 2);
 			status := device.Request(ReadCommand, ReadRxControlRegister, 0, 0, 2, buffer^);
 			IF status = Usbdi.Ok THEN
-				rxControl16bit := SYSTEM.VAL(SET, ORD(buffer[0])) + SYSTEM.LSH(SYSTEM.VAL(SET, ORD(buffer[1])), 8);
+				rxControl16bit := SYSTEM.VAL(SET, ORD(buffer[0])) + LSH(SYSTEM.VAL(SET, ORD(buffer[1])), 8);
 			END;
 			RETURN status = Usbdi.Ok;
 		END ReadRxControl;
@@ -390,7 +390,7 @@ TYPE
 			NEW(buffer, 2);
 			status := device.Request(ReadCommand, ReadMediumStatus, 0, 0, 2, buffer^);
 			IF status = Usbdi.Ok THEN
-				mediumMode16bit := SYSTEM.VAL(SET, ORD(buffer[0])) + SYSTEM.LSH(SYSTEM.VAL(SET, ORD(buffer[1])), 8);
+				mediumMode16bit := SYSTEM.VAL(SET, ORD(buffer[0])) + LSH(SYSTEM.VAL(SET, ORD(buffer[1])), 8);
 			END;
 			RETURN status = Usbdi.Ok;
 		END ReadMediumMode;
@@ -632,8 +632,8 @@ TYPE
 				END;
 
 				(* Registers of primary Phy. Offset specified in EEPROM at 0Fh *)
-				register1 := SYSTEM.VAL(SET, ORD(interruptInBuffer[4])) + SYSTEM.LSH(SYSTEM.VAL(SET, ORD(interruptInBuffer[5])), 8);
-				register2 := SYSTEM.VAL(SET, ORD(interruptInBuffer[6])) + SYSTEM.LSH(SYSTEM.VAL(SET, ORD(interruptInBuffer[7])), 8);
+				register1 := SYSTEM.VAL(SET, ORD(interruptInBuffer[4])) + LSH(SYSTEM.VAL(SET, ORD(interruptInBuffer[5])), 8);
+				register2 := SYSTEM.VAL(SET, ORD(interruptInBuffer[6])) + LSH(SYSTEM.VAL(SET, ORD(interruptInBuffer[7])), 8);
 
 				status := interruptInPipe.Transfer(interruptInPipe.maxPacketSize, 0, interruptInBuffer^); (* ignore status *)
 			ELSE
@@ -760,7 +760,7 @@ TYPE
 			ResetRxBuffer;
 
 			NEW(txBuffer, UsbNetwork.MaxEthernetFrameSize + UsbHeaderSize);
-			txBufferAdr := SYSTEM.ADR(txBuffer[0]);
+			txBufferAdr := ADDRESSOF(txBuffer[0]);
 
 			RETURN TRUE;
 		END InitController;
@@ -836,10 +836,10 @@ TYPE
 			IF status = Usbdi.Ok THEN
 				set := SYSTEM.VAL(SET, ORD(buffer[0]));
 				secondaryPhyId := SYSTEM.VAL(LONGINT, set * {0..4});
-				secondaryPhyType := SYSTEM.VAL(LONGINT, SYSTEM.LSH(set * {5..7}, -5));
+				secondaryPhyType := SYSTEM.VAL(LONGINT, LSH(set * {5..7}, -5));
 				set := SYSTEM.VAL(SET, ORD(buffer[1]));
 				primaryPhyId := SYSTEM.VAL(LONGINT, set * {0..4});
-				primaryPhyType := SYSTEM.VAL(LONGINT, SYSTEM.LSH(set * {5..7}, -5));
+				primaryPhyType := SYSTEM.VAL(LONGINT, LSH(set * {5..7}, -5));
 				res := UsbNetwork.Ok;
 			ELSE
 				res := UsbNetwork.Error;
@@ -947,8 +947,8 @@ TYPE
 		VAR a : SET; wValue, wIndex : LONGINT; status : Usbdi.Status;
 		BEGIN (* UNTESTED *)
 			a := SYSTEM.VAL(SET, address);
-			wValue := SYSTEM.VAL(LONGINT, SYSTEM.LSH(a * {0..7}, 8) + SYSTEM.LSH(a * {8..10}, -8));
-			wIndex := SYSTEM.LSH(ram, 8);
+			wValue := SYSTEM.VAL(LONGINT, LSH(a * {0..7}, 8) + LSH(a * {8..10}, -8));
+			wIndex := LSH(ram, 8);
 			status := device.Request(WriteCommand, WriteRxTxRegister, wValue, wIndex, 8, buffer^);
 			RETURN status = Usbdi.Ok;
 		END WriteSRAM;
@@ -957,8 +957,8 @@ TYPE
 		VAR a : SET; wValue, wIndex : LONGINT; status : Usbdi.Status;
 		BEGIN (* UNTESTED *)
 			a := SYSTEM.VAL(SET, address);
-			wValue := SYSTEM.VAL(LONGINT, SYSTEM.LSH(a * {0..7}, 8) + SYSTEM.LSH(a * {8..10}, -8));
-			wIndex := SYSTEM.LSH(ram, 8);
+			wValue := SYSTEM.VAL(LONGINT, LSH(a * {0..7}, 8) + LSH(a * {8..10}, -8));
+			wIndex := LSH(ram, 8);
 			status := device.Request(ReadCommand, ReadRxTxRegister, wValue, wIndex, 8, buffer^);
 			RETURN status = Usbdi.Ok;
 		END ReadSRAM;
@@ -1109,7 +1109,7 @@ BEGIN
 	KernelLog.String("      Unicasts whos DA match multicast address list: "); KernelLog.Boolean(RXCR_AcceptPhysical IN s); KernelLog.Ln;
 	KernelLog.String("   Ethernet MAC start operating: "); KernelLog.Boolean(RXCR_StartOperation IN s); KernelLog.Ln;
 	KernelLog.String("   Maximum frame burst transfer on USB: ");
-	value := SYSTEM.VAL(LONGINT, SYSTEM.LSH(s * RXCR_Msb, -8));
+	value := SYSTEM.VAL(LONGINT, LSH(s * RXCR_Msb, -8));
 	CASE value OF
 		|0: KernelLog.String("2048 Bytes");
 		|1: KernelLog.String("4096 Bytes");

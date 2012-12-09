@@ -23,7 +23,7 @@ MODULE Shell32; (** non-portable / source: Win32.Shell32.Mod *)
 	SWNORMAL* = 1;
 
     TYPE
-    	LPCSTR* = Kernel32.ADDRESS;
+    	LPCSTR* = ADDRESS;
     	HWND* = Kernel32.HANDLE;
 		HINSTANCE* = Kernel32.HINSTANCE;
 		INT* =  LONGINT;
@@ -46,7 +46,7 @@ MODULE Shell32; (** non-portable / source: Win32.Shell32.Mod *)
 	BEGIN
 		str := "shell32.dll";
 		shell32 := Kernel32.LoadLibrary(str);
-		Kernel32.GetProcAddress(shell32, "ShellExecuteA", SYSTEM.VAL(LONGINT, ShellExecute));
+		Kernel32.GetProcAddress(shell32, "ShellExecuteA", SYSTEM.VAL(ADDRESS, ShellExecute));
 
 		Modules.InstallTermHandler(TermMod)
 	END Init;

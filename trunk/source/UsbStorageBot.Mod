@@ -86,18 +86,18 @@ TYPE
 			(* set up dCBWTag - will be echoed by the device *)
 			INC(seqNbr);
 			CBWbuffer[4] := CHR(seqNbr);
-			CBWbuffer[5] := CHR(SYSTEM.LSH(seqNbr, -8));
-			CBWbuffer[6] := CHR(SYSTEM.LSH(seqNbr, -16));
-			CBWbuffer[7] := CHR(SYSTEM.LSH(seqNbr, -24));
+			CBWbuffer[5] := CHR(LSH(seqNbr, -8));
+			CBWbuffer[6] := CHR(LSH(seqNbr, -16));
+			CBWbuffer[7] := CHR(LSH(seqNbr, -24));
 			(* set up dCBWDataTransferLength *)
 			CBWbuffer[8] := CHR(bufferlen);
-			CBWbuffer[9] := CHR(SYSTEM.LSH(bufferlen, -8));
-			CBWbuffer[10] := CHR(SYSTEM.LSH(bufferlen, -16));
-			CBWbuffer[11] := CHR(SYSTEM.LSH(bufferlen, -24));
+			CBWbuffer[9] := CHR(LSH(bufferlen, -8));
+			CBWbuffer[10] := CHR(LSH(bufferlen, -16));
+			CBWbuffer[11] := CHR(LSH(bufferlen, -24));
 			(* set up bmCBWFlags *)
 			IF dir = Base.DataIn THEN CBWbuffer[12] := 80X; ELSE CBWbuffer[12] := 0X; END;
 			(* set bCBWLUN *)
-			CBWbuffer[13] := CHR(SYSTEM.VAL(LONGINT, SYSTEM.LSH(SYSTEM.VAL(SET, ORD(cmd[1])) * {5..7}, -5)));
+			CBWbuffer[13] := CHR(SYSTEM.VAL(LONGINT, LSH(SYSTEM.VAL(SET, ORD(cmd[1])) * {5..7}, -5)));
 			(*set bCBWCBLength *)
 			CBWbuffer[14] := CHR(cmdlen);
 			FOR i := 15 TO 30 DO CBWbuffer[i] := 0X; END;

@@ -12,7 +12,7 @@ VAR
 	memBlock {UNTRACED}: Machine.MemoryBlock;
 	heapBlock {UNTRACED}: Heaps.HeapBlock;
 	process : Objects.Process;
-	blockAdr, tag : SYSTEM.ADDRESS;
+	blockAdr, tag : ADDRESS;
 	length, i : LONGINT;
 BEGIN
 	length := LEN(array); nofProcesses := 0;
@@ -44,7 +44,7 @@ PROCEDURE GetProcess*(id : LONGINT) : Objects.Process;
 VAR
 	memBlock {UNTRACED}: Machine.MemoryBlock;
 	heapBlock {UNTRACED}: Heaps.HeapBlock;
-	blockAdr, tag : SYSTEM.ADDRESS;
+	blockAdr, tag : ADDRESS;
 	process : Objects.Process;
 	i : LONGINT;
 BEGIN

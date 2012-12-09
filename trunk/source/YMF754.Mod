@@ -217,11 +217,11 @@ TYPE
 
 	(* PCI Audio control object *)
 	PCIAudioControl = OBJECT
-		VAR base: SYSTEM.ADDRESS;
+		VAR base: ADDRESS;
 		CntrlInst1E: BOOLEAN; (* What Cntrl code to load: CntrlInst or CntrlInst1E *)
 
 		(* Constructor *)
-		PROCEDURE &Constr*(base: SYSTEM.ADDRESS; CntrlInst1E: BOOLEAN);
+		PROCEDURE &Constr*(base: ADDRESS; CntrlInst1E: BOOLEAN);
 		BEGIN
 			SELF.base := base;
 			SELF.CntrlInst1E := CntrlInst1E;
@@ -294,7 +294,7 @@ TYPE
 			(* Wait until instruction code takes effect *)
 			NEW(t);
 			cnt := 50; (* timeout = 50*2ms *)
-			WHILE (cnt >= 0) & ~((SYSTEM.SIZEOF(PlayBank) DIV 4 = RegRead32(PCCRegPlayCtrlSize)) & (SYSTEM.SIZEOF(RecBank) DIV 4 = RegRead32(PCCRegRecCtrlSize))) DO
+			WHILE (cnt >= 0) & ~((SIZEOF(PlayBank) DIV 4 = RegRead32(PCCRegPlayCtrlSize)) & (SIZEOF(RecBank) DIV 4 = RegRead32(PCCRegRecCtrlSize))) DO
 					t.Sleep(2); (* sleep for 2ms *)
 					DEC(cnt);
 			END;
@@ -360,7 +360,7 @@ TYPE
 			WHILE offset < (PCCRegCtrlInstRAM + SizeCtrlInstRAM) DO
 				r.RawLInt(data);
 				RegWrite32(offset, data);
-				INC(offset, SYSTEM.SIZEOF(LONGINT));
+				INC(offset, SIZEOF(LONGINT));
 				IF offset = PCCRegDSPInstRAM + SizeDSPInstRAM THEN
 					(* Switch to controller instruction code *)
 					offset := PCCRegCtrlInstRAM;
@@ -448,7 +448,7 @@ TYPE
 			tmpVol := drv.ACC.RegRead16(regVol); (* read back volume value *)
 			SELF.volBits := 0;
 			WHILE ODD(tmpVol) DO
-				tmpVol := SYSTEM.LSH(tmpVol, -1);
+				tmpVol := LSH(tmpVol, -1);
 				INC(SELF.volBits);
 			END;
 
@@ -487,8 +487,8 @@ TYPE
 			IF inverted THEN
 				volume := 255 - volume;
 			END;
-			volume := SYSTEM.LSH(volume, volBits - 8); (* adapt volume resolution *)
-			volume := volume + SYSTEM.LSH(volume, 8); (* set L and R (also works for mono) *)
+			volume := LSH(volume, volBits - 8); (* adapt volume resolution *)
+			volume := volume + LSH(volume, 8); (* set L and R (also works for mono) *)
 			IF SELF.mute THEN
 				volume := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, volume) + {15});
 			END;
@@ -581,7 +581,7 @@ TYPE
 			ASSERT(~closed);
 			ASSERT(x # NIL);
 			ASSERT(x.data # NIL);
-			ASSERT(x.len MOD SYSTEM.LSH(1, bytesPerSampleExp) = 0); (* Buffer length must be sample aligned *)
+			ASSERT(x.len MOD LSH(1, bytesPerSampleExp) = 0); (* Buffer length must be sample aligned *)
 			NEW(buffItem);
 			buffItem.buff := x;
 			buffItem.next := NIL;
@@ -718,16 +718,16 @@ TYPE
 			SELF.playSlotPair := playslotpair;
 			INCL(drv.playSlotPairsUsed, playSlotPair); (* occupy this channels play slot pair *)
 			drv.PlayerChannelListAdd(SELF); (* add to list of currently active player channels *)
-			silentData := CHR(SYSTEM.LSH(sRes, 7)); (* calculate silent data byte *)
+			silentData := CHR(LSH(sRes, 7)); (* calculate silent data byte *)
 
 			(* Allocate buffer memory / init buffer *)
 			playRecBuffSize := sRate * nofSubCh * (2-sRes) * BufferSizeMS DIV 1000; (* calculate buffer size *)
 			NEW(playRecBuff, playRecBuffSize);
-			playRecBuffPhys := GetPhysicalAdr(SYSTEM.ADR(playRecBuff^), playRecBuffSize);
+			playRecBuffPhys := GetPhysicalAdr(ADDRESSOF(playRecBuff^), playRecBuffSize);
 			playRecBuffPos := 0;
 
 			(* Calculate pgDelta *)
-			pgDelta := SYSTEM.LSH(SYSTEM.LSH(sRate, 15) DIV 48000, 13); (* sRate * 2^28 / 48000 *)
+			pgDelta := LSH(LSH(sRate, 15) DIV 48000, 13); (* sRate * 2^28 / 48000 *)
 
 			(* Calculate lpfK and lpfQ *)
 			i := 0;
@@ -740,13 +740,13 @@ TYPE
 			(* Allocate control data memory and init banks *)
 			FOR i := 0 TO nofSubCh - 1 DO
 				NEW(playSlot[i]);
-				playSlotPhys[i] := GetPhysicalAdr(SYSTEM.ADR(playSlot[i]^), SYSTEM.SIZEOF(PlaySlotCtrlData));
+				playSlotPhys[i] := GetPhysicalAdr(ADDRESSOF(playSlot[i]^), SIZEOF(PlaySlotCtrlData));
 				FOR j := 0 TO NofBanks - 1 DO
-					playSlot[i][j].format := i + SYSTEM.LSH(nofSubCh-1, 16) + SYSTEM.LSH(sRes, 31);
+					playSlot[i][j].format := i + LSH(nofSubCh-1, 16) + LSH(sRes, 31);
 					playSlot[i][j].loopDefault := 0;
 					playSlot[i][j].pgBase := playRecBuffPhys;
 					playSlot[i][j].pgLoop := 0;
-					playSlot[i][j].pgLoopEnd := SYSTEM.LSH(playRecBuffSize, -bytesPerSampleExp);
+					playSlot[i][j].pgLoopEnd := LSH(playRecBuffSize, -bytesPerSampleExp);
 					playSlot[i][j].pgLoopFrac := 0;
 					playSlot[i][j].pgDeltaEnd := pgDelta;
 					playSlot[i][j].lpfKEnd := lpfK;
@@ -786,7 +786,7 @@ TYPE
 			copySize: LONGINT; (* size of next block to copy in bytes *)
 		BEGIN
 			IF ~running THEN RETURN END;
-			curBuffPos := SYSTEM.LSH(playSlot[0][drv.inactiveBank].pgStart, bytesPerSampleExp);
+			curBuffPos := LSH(playSlot[0][drv.inactiveBank].pgStart, bytesPerSampleExp);
 			WHILE (buffFirst # NIL) & (playRecBuffPos # curBuffPos) DO
 				(* Calculate copy size *)
 				copySize := curBuffPos - playRecBuffPos;
@@ -796,12 +796,12 @@ TYPE
 				copySize := Strings.Min(copySize, buffFirst.buff.len - buffFirstPos);
 				(* Copy *)
 				SYSTEM.MOVE(
-					SYSTEM.ADR(buffFirst.buff.data^) + buffFirstPos,
-					SYSTEM.ADR(playRecBuff^) + playRecBuffPos,
+					ADDRESSOF(buffFirst.buff.data^) + buffFirstPos,
+					ADDRESSOF(playRecBuff^) + playRecBuffPos,
 					copySize);
 				INC(playRecBuffPos, copySize);
 				INC(buffFirstPos, copySize);
-				INC(samplePosition, SYSTEM.LSH(copySize, -bytesPerSampleExp));
+				INC(samplePosition, LSH(copySize, -bytesPerSampleExp));
 				(* Handle special cases *)
 				IF playRecBuffPos = playRecBuffSize THEN
 					playRecBuffPos := 0;
@@ -833,12 +833,12 @@ TYPE
 				copySize := Strings.Min(buffFirst.buff.len, playRecBuffSize - playRecBuffPos);
 				(* Copy *)
 				SYSTEM.MOVE(
-					SYSTEM.ADR(buffFirst.buff.data^),
-					SYSTEM.ADR(playRecBuff^) + playRecBuffPos,
+					ADDRESSOF(buffFirst.buff.data^),
+					ADDRESSOF(playRecBuff^) + playRecBuffPos,
 					copySize);
 				INC(playRecBuffPos, copySize);
 				INC(buffFirstPos, copySize);
-				INC(samplePosition, SYSTEM.LSH(copySize, -bytesPerSampleExp));
+				INC(samplePosition, LSH(copySize, -bytesPerSampleExp));
 				(* Handle special cases *)
 				IF buffFirstPos = buffFirst.buff.len THEN
 					ReturnCurrentBuffer;
@@ -876,7 +876,7 @@ TYPE
 		PROCEDURE SetPlayRecVol(volume: LONGINT);
 		VAR i, j: LONGINT;
 		BEGIN
-			volume := SYSTEM.LSH(volume, 22);
+			volume := LSH(volume, 22);
 			FOR i := 0 TO nofSubCh - 1 DO
 				IF running THEN
 					playSlot[i][drv.inactiveBank].egGainEnd := volume;
@@ -934,19 +934,19 @@ TYPE
 			(* Allocate buffer memory / init buffer *)
 			playRecBuffSize := NativeFreqTab[sRate].hz * nofSubCh * (2-sRes) * BufferSizeMS DIV 1000; (* calculate buffer size *)
 			NEW(playRecBuff, playRecBuffSize);
-			playRecBuffPhys := GetPhysicalAdr(SYSTEM.ADR(playRecBuff^), playRecBuffSize);
+			playRecBuffPhys := GetPhysicalAdr(ADDRESSOF(playRecBuff^), playRecBuffSize);
 			playRecBuffPos := 0;
 
 			(* Allocate control data memory *)
 			NEW(recSlot);
-			recSlotPhys := GetPhysicalAdr(SYSTEM.ADR(recSlot^), SYSTEM.SIZEOF(RecSlotCtrlData));
+			recSlotPhys := GetPhysicalAdr(ADDRESSOF(recSlot^), SIZEOF(RecSlotCtrlData));
 
 			(* Register control data memory *)
 			drv.PCC.RegWrite32(PCCRegRecCtrlBase, recSlotPhys);
 
 			(* Set channel config *)
 			drv.PCC.RegWrite16(PCCRegADCSlotSamplingRate, NativeFreqTab[sRate].valRec);
-			drv.PCC.RegWrite16(PCCRegADCSlotFormat, SYSTEM.LSH(nofSubCh-1, 1) + sRes);
+			drv.PCC.RegWrite16(PCCRegADCSlotFormat, LSH(nofSubCh-1, 1) + sRes);
 
 			(* Init ADC slot *)
 			FOR i := 0 TO NofBanks - 1 DO
@@ -977,12 +977,12 @@ TYPE
 				copySize := Strings.Min(copySize, buffFirst.buff.len - buffFirstPos);
 				(* Copy *)
 				SYSTEM.MOVE(
-					SYSTEM.ADR(playRecBuff^) + playRecBuffPos,
-					SYSTEM.ADR(buffFirst.buff.data^) + buffFirstPos,
+					ADDRESSOF(playRecBuff^) + playRecBuffPos,
+					ADDRESSOF(buffFirst.buff.data^) + buffFirstPos,
 					copySize);
 				INC(playRecBuffPos, copySize);
 				INC(buffFirstPos, copySize);
-				INC(samplePosition, SYSTEM.LSH(copySize, -bytesPerSampleExp));
+				INC(samplePosition, LSH(copySize, -bytesPerSampleExp));
 				(* Handle special cases *)
 				IF playRecBuffPos = playRecBuffSize THEN
 					playRecBuffPos := 0;
@@ -1019,8 +1019,8 @@ TYPE
 		(* Set volume for play or record channel (0-255) *)
 		PROCEDURE SetPlayRecVol(volume: LONGINT);
 		BEGIN
-			volume := SYSTEM.LSH(volume, 6);
-			drv.PCC.RegWrite32(PCCRegVolADCIn, volume + SYSTEM.LSH(volume, 16));
+			volume := LSH(volume, 6);
+			drv.PCC.RegWrite32(PCCRegVolADCIn, volume + LSH(volume, 16));
 		END SetPlayRecVol;
 
 		(** Get kind of channel *)
@@ -1053,7 +1053,7 @@ TYPE
 	(** Driver object *)
 	Driver* = OBJECT (SoundDevices.Driver)
 		VAR
-			base: SYSTEM.ADDRESS; (* virtual PCI Audio register base address *)
+			base: ADDRESS; (* virtual PCI Audio register base address *)
 			irq: LONGINT; (* IRQ number *)
 			ACC: AC97Control; (* AC97 controller object *)
 			PCC: PCIAudioControl; (* PCI Audio controller object *)
@@ -1119,7 +1119,7 @@ TYPE
 
 			(* Allocate DMA memory for PCI Audio control data table *)
 			NEW(PCD);
-			PCDbase := GetPhysicalAdr(SYSTEM.ADR(PCD^), SYSTEM.SIZEOF(PlayCtrlDataTable));
+			PCDbase := GetPhysicalAdr(ADDRESSOF(PCD^), SIZEOF(PlayCtrlDataTable));
 
 			(* Initialize PCI Audio play control data *)
 			PCD.numOfPlay := NofPlaySlots;
@@ -1602,7 +1602,7 @@ BEGIN
 END FillNativeFreqTable;
 
 (*  Get physical address for DMA access *)
-PROCEDURE GetPhysicalAdr(adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE): Machine.Address32;
+PROCEDURE GetPhysicalAdr(adr: ADDRESS; size: SIZE): Machine.Address32;
 VAR physadr: Machine.Address32;
 BEGIN
 	(* All data must be continous in physical memory ! *)

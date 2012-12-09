@@ -11,7 +11,7 @@ TYPE
 	(* Heaps.GetHeapInfo is a slow operation. HeapHelper provides its results to multiple plugins *)
 	HeapHelper = OBJECT(WMPerfMonPlugins.Helper)
 	VAR
-		free, total, largest : SYSTEM.SIZE;
+		free, total, largest : SIZE;
 
 		PROCEDURE Update;
 		BEGIN
@@ -64,7 +64,7 @@ TYPE
 		END Init;
 
 		PROCEDURE UpdateDataset;
-		VAR current, totMem, lowFree, highFree : SYSTEM.SIZE;
+		VAR current, totMem, lowFree, highFree : SIZE;
 		BEGIN
 			Machine.GetFreeK(totMem, lowFree, highFree);
 			current := ((totMem - lowFree - highFree) - (h.total DIV 1024));
@@ -80,7 +80,7 @@ TYPE
 		h : HeapHelper;
 
 		PROCEDURE Init*(p : WMPerfMonPlugins.Parameter);
-		VAR total, lowFree, highFree : SYSTEM.SIZE;
+		VAR total, lowFree, highFree : SIZE;
 		BEGIN
 			p.name := "MemoryUsage"; p.description := "Stack & Heap memory usage"; p.modulename := ModuleName;
 			Machine.GetFreeK(total, lowFree, highFree);
@@ -90,7 +90,7 @@ TYPE
 		END Init;
 
 		PROCEDURE UpdateDataset*;
-		VAR current, totMem, lowFree, highFree : SYSTEM.SIZE;
+		VAR current, totMem, lowFree, highFree : SIZE;
 		BEGIN
 			Machine.GetFreeK(totMem, lowFree, highFree);
 			(* Memory mapped for heap and stack - free memory on heap *)

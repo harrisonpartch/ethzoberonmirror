@@ -127,10 +127,10 @@ VAR
 	END HashValue;
 
 	PROCEDURE GetProcess(): Process;
-	VAR process: ANY; value: LONGINT; key: SYSTEM.ADDRESS;
+	VAR process: ANY; value: LONGINT; key: ADDRESS;
 	BEGIN
 		process := Objects.CurrentProcess();
-		key := SYSTEM.VAL(SYSTEM.ADDRESS,process) DIV SYSTEM.SIZEOF(SYSTEM.ADDRESS);
+		key := SYSTEM.VAL(ADDRESS,process) DIV SIZEOF(ADDRESS);
 		IF Has(key) THEN
 			value := Get(key);
 		ELSE

@@ -81,7 +81,7 @@ END IntSuffix;
 *)
 PROCEDURE Hex*(x: HUGEINT; w: LONGINT );
 VAR i: LONGINT;
-	buf: ARRAY 2*SYSTEM.SIZEOF(HUGEINT)+2 OF CHAR;
+	buf: ARRAY 2*SIZEOF(HUGEINT)+2 OF CHAR;
 	neg: BOOLEAN;
 	c: HUGEINT;
 BEGIN
@@ -94,14 +94,14 @@ BEGIN
 			IF c < 10 THEN buf[i] := CHR(c+ORD("0")) ELSE buf[i] := CHR(c-10+ORD("A")) END;
 			x := x DIV 10H;
 			INC(i);
-		UNTIL (i = 2 * SYSTEM.SIZEOF(HUGEINT)) OR (x=0);
+		UNTIL (i = 2 * SIZEOF(HUGEINT)) OR (x=0);
 		IF c > 9 THEN buf[i] := "0"; INC(i) END;
 		IF neg THEN buf[i] := "-"; INC(i) END;
 		WHILE(w > i) DO Char(" "); DEC(w); END;
 		REPEAT DEC(i); Char(buf[i]); UNTIL i=0;
 	ELSE
 		w := -w;
-		WHILE(w>2*SYSTEM.SIZEOF(HUGEINT)) DO
+		WHILE(w>2*SIZEOF(HUGEINT)) DO
 			Char(" "); DEC(w);
 		END;
 		buf[w] := 0X;
@@ -117,9 +117,9 @@ BEGIN
 END Hex;
 
 (** Write "x" as a hexadecimal address *)
-PROCEDURE Address* (x: SYSTEM.ADDRESS);
+PROCEDURE Address* (x: ADDRESS);
 BEGIN
-	Hex(x,-2*SYSTEM.SIZEOF(SYSTEM.ADDRESS));
+	Hex(x,-2*SIZEOF(ADDRESS));
 END Address;
 
 (** Write "x" as a hexadecimal number. "w" is the field width. Always prints 16 digits. *)
@@ -128,8 +128,8 @@ BEGIN Hex (x, w);
 END HIntHex;
 
 (** Write a block of memory in hex. *)
-PROCEDURE Memory* (adr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
-VAR i, j: SYSTEM.ADDRESS; ch: CHAR;
+PROCEDURE Memory* (adr: ADDRESS; size: SIZE);
+VAR i, j: ADDRESS; ch: CHAR;
 BEGIN
 	size := adr+size-1;
 	FOR i := adr TO size BY 16 DO
@@ -157,7 +157,7 @@ END Memory;
 
 (** Write a buffer in hex. *)
 PROCEDURE Buffer* (CONST buf: ARRAY OF CHAR; ofs, len: LONGINT);
-BEGIN Memory (SYSTEM.ADR (buf[ofs]), len)
+BEGIN Memory (ADDRESSOF (buf[ofs]), len)
 END Buffer;
 
 (** Write bits (ofs..ofs+n-1) of x in binary. *)

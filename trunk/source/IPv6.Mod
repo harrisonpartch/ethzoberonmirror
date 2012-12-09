@@ -1782,7 +1782,7 @@ TYPE
 			WHILE fragmentOffset < h4len + dlen DO
 				IF fragmentOffset + maxDataLen > h4len + dlen THEN
 					(* last fragment *)
-					fragmentHdrSet := SYSTEM.VAL(SET, SYSTEM.LSH((fragmentOffset - dofs + h4len) DIV 8, 3));
+					fragmentHdrSet := SYSTEM.VAL(SET, LSH((fragmentOffset - dofs + h4len) DIV 8, 3));
 					fragmentHdrSet := fragmentHdrSet - {0, 1, 2};
 					Network.PutNet4(l4hdrFragment^, 0, SYSTEM.VAL(LONGINT, fragmentHdrSet));
 					l4hdrFragment^[0] := CHR(oldNextHeader);
@@ -1803,7 +1803,7 @@ TYPE
 
 				ELSE
 					(* fragment in the middle *)
-					fragmentHdrSet := SYSTEM.VAL(SET, SYSTEM.LSH((fragmentOffset - dofs + h4len) DIV 8, 3));
+					fragmentHdrSet := SYSTEM.VAL(SET, LSH((fragmentOffset - dofs + h4len) DIV 8, 3));
 					fragmentHdrSet := fragmentHdrSet + {0} - {1,2};
 					Network.PutNet4(l4hdrFragment^, 0, SYSTEM.VAL(LONGINT, fragmentHdrSet));
 					l4hdrFragment^[0] := CHR(oldNextHeader);
@@ -2954,7 +2954,7 @@ BEGIN
 
 	Machine.AtomicInc(IP.NIPRcvTotal);
 	IF buffer.len >= MinIPHdrLen THEN
-		IF SYSTEM.LSH(ORD(buffer.data[buffer.ofs]), -4) = IP.IPv6 THEN
+		IF LSH(ORD(buffer.data[buffer.ofs]), -4) = IP.IPv6 THEN
 			isValid := TRUE;
 		ELSE
 			Machine.AtomicInc(IP.NIPBadVersion)

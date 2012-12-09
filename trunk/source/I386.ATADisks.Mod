@@ -122,7 +122,7 @@ TYPE
 	Command = POINTER TO CommandDesc;
 	CommandDesc = RECORD
 		dev, cmd, count*, size*, features: LONGINT;
-		bufAdr*: SYSTEM.ADDRESS;
+		bufAdr*: ADDRESS;
 		read*, buffered: BOOLEAN;
 		protocol*: SET;
 		prdtPhysAdr: LONGINT;
@@ -213,7 +213,7 @@ TYPE
 		prdtPhysAdr: LONGINT;
 		prdt: PRDT;
 		buffer: POINTER TO ARRAY OF CHAR;
-		bufferAdr: SYSTEM.ADDRESS;
+		bufferAdr: ADDRESS;
 
 		PROCEDURE ExecuteCommand*(command: Command; ms: LONGINT; VAR status: SET): LONGINT;
 		CONST
@@ -327,7 +327,7 @@ TYPE
 
 		PROCEDURE SetupPRD(command: Command): LONGINT;
 		VAR
-			i, size, left: LONGINT; bufAdr, physAdr, tmp: SYSTEM.ADDRESS;
+			i, size, left: LONGINT; bufAdr, physAdr, tmp: ADDRESS;
 		BEGIN
 			IF TraceVerbose & (trace * TraceBuffer # {}) THEN
 				KernelLog.String("bufAdr = "); KernelLog.Hex(command.bufAdr, 0);
@@ -574,7 +574,7 @@ TYPE
 
 		(*	PIO data-in protocol
 			States: HPIOI0 (INTRQ_wait), HPIOI1 (Check_Status), HPIOI2 (Transfer_Data) *)
-		PROCEDURE ProtPIOIn(bufAdr: SYSTEM.ADDRESS; num: LONGINT; ms: LONGINT; VAR status: SET): LONGINT;
+		PROCEDURE ProtPIOIn(bufAdr: ADDRESS; num: LONGINT; ms: LONGINT; VAR status: SET): LONGINT;
 		VAR state, res: LONGINT; ch: CHAR;
 		BEGIN
 			res := Res_OK;
@@ -624,7 +624,7 @@ TYPE
 
 		(*	PIO data-out Protocol
 			States: HPIOO0 (Check_Status), HPIOO1 (Transfer_Data), HPIOO2 (INTRQ_wait) *)
-		PROCEDURE ProtPIOOut(bufAdr: SYSTEM.ADDRESS; num: LONGINT; ms: LONGINT; VAR status: SET): LONGINT;
+		PROCEDURE ProtPIOOut(bufAdr: ADDRESS; num: LONGINT; ms: LONGINT; VAR status: SET): LONGINT;
 		VAR
 			state, res: LONGINT;
 			ch: CHAR;
@@ -698,7 +698,7 @@ TYPE
 
 		(*	Packet PIO Protocol
 			States: HP0(Check_Status_A), HP1 (Send_Packet), HP2 (Check_Status_B), HP3 (INTRQ_wait), HP4 (Transfer_Data) *)
-		PROCEDURE ProtPacketPIO(command: CommandPacket; read: BOOLEAN; bufAdr: SYSTEM.ADDRESS; size: LONGINT; ms: LONGINT; VAR status: SET): LONGINT;
+		PROCEDURE ProtPacketPIO(command: CommandPacket; read: BOOLEAN; bufAdr: ADDRESS; size: LONGINT; ms: LONGINT; VAR status: SET): LONGINT;
 		VAR
 			res, count: LONGINT;
 			ch: CHAR;
@@ -709,7 +709,7 @@ TYPE
 			res := WaitStatus({Status_BSY, Status_DRQ}, {Status_DRQ}, {Status_ERR}, ms, status);
 			IF res # Res_OK THEN	RETURN res; END;
 			(* HP1 *)
-			RepOutWord(cmdbase, SYSTEM.ADR(command.packet[0]), command.packetLen DIV 2);
+			RepOutWord(cmdbase, ADDRESSOF(command.packet[0]), command.packetLen DIV 2);
 			IF nIEN = 0 THEN
 				(* HP3 *)
 				(*IF ~interrupt.Wait(ms) THEN RETURN Res_Timeout; END;*)
@@ -760,7 +760,7 @@ TYPE
 			res := WaitStatus({Status_BSY, Status_DRQ}, {Status_DRQ}, {Status_ERR}, ms, status);
 			IF res # Res_OK THEN RETURN res; END;
 			(* HPD1 *)
-			RepOutWord(cmdbase, SYSTEM.ADR(command.packet[0]), command.packetLen DIV 2);
+			RepOutWord(cmdbase, ADDRESSOF(command.packet[0]), command.packetLen DIV 2);
 			IF nIEN = 0 THEN
 				(* HPD3 *)
 				Kernel.SetTimer(t, ms+2);
@@ -836,7 +836,7 @@ TYPE
 			NEW(command);
 			command.dev := devNum; command.cmd := 0ECH; (* identify device *)
 			command.protocol := Protocol_PIO; command.read := TRUE;
-			command.bufAdr := SYSTEM.ADR(buf[0]); command.count := 1;
+			command.bufAdr := ADDRESSOF(buf[0]); command.count := 1;
 			res := ExecuteCommand(command, IdentifyTimeout, status);
 
 			IF TraceVerbose & (trace * TraceInit # {}) THEN
@@ -858,7 +858,7 @@ TYPE
 				NEW(command);
 				command.dev := devNum; command.cmd := 0A1H; (* identify packet device *)
 				command.protocol := Protocol_PIO; command.read := TRUE;
-				command.bufAdr := SYSTEM.ADR(buf[0]); command.count := 1;
+				command.bufAdr := ADDRESSOF(buf[0]); command.count := 1;
 				res := ExecuteCommand(command, IdentifyTimeout, status);
 				IF TraceVerbose & (trace * TraceInit # {}) THEN
 					Show("Identify packet device command, res: "); KernelLog.Int(res, 0); KernelLog.String(", status: "); KernelLog.Bits(status, 0, 32);
@@ -921,14 +921,14 @@ TYPE
 
 			(* create buffer *)
 			NEW(buffer, DMABufferSize + 1);
-			bufferAdr := SYSTEM.ADR(buffer[0]);
+			bufferAdr := ADDRESSOF(buffer[0]);
 			INC(bufferAdr, 1-(bufferAdr+1) MOD 2);
 
 			(* create PRDT *)
 			try := 3;
 			REPEAT
 				NEW(prdt);	(* must not cross page boundary, see Intel 290550-002 sec. 2.7.3 *)
-				prdtPhysAdr := Machine.PhysicalAdr(SYSTEM.ADR(prdt.prd[0]), MaxPRD*8);
+				prdtPhysAdr := Machine.PhysicalAdr(ADDRESSOF(prdt.prd[0]), MaxPRD*8);
 				DEC(try);
 			UNTIL (try = 0) OR ((prdtPhysAdr # Machine.NilAdr) &
 				(prdtPhysAdr DIV PageSize = (prdtPhysAdr+MaxPRD*8-1) DIV PageSize));
@@ -970,10 +970,10 @@ TYPE
 
 		PROCEDURE Transfer*(op, block, num: LONGINT; VAR data: ARRAY OF CHAR; ofs: LONGINT; VAR res: LONGINT);
 		VAR
-			num1, try, ignore: LONGINT; bufAdr: SYSTEM.ADDRESS;
+			num1, try, ignore: LONGINT; bufAdr: ADDRESS;
 			dma: BOOLEAN;
 		BEGIN
-			bufAdr := SYSTEM.ADR(data[ofs]);
+			bufAdr := ADDRESSOF(data[ofs]);
 			IF (block >= 0) & (num >= 0) & (block < size) & (block+num <= size) THEN
 				ASSERT(num*blockSize <= LEN(data)-ofs);	(* range check *)
 				WHILE (res = Res_OK) & (num > 0) DO
@@ -1071,7 +1071,7 @@ TYPE
 			RETURN controller.ExecuteCommand(cmd, IOTimeout, status) = Res_OK;
 		END SetWriteCache;
 
-		PROCEDURE TransferEx(op: LONGINT; lba: HUGEINT; num: LONGINT; bufAdr: SYSTEM.ADDRESS; dma: BOOLEAN): LONGINT;
+		PROCEDURE TransferEx(op: LONGINT; lba: HUGEINT; num: LONGINT; bufAdr: ADDRESS; dma: BOOLEAN): LONGINT;
 		VAR command: Command; status: SET;
 		BEGIN {EXCLUSIVE}
 			IF (op # Disks.Read) & (op # Disks.Write) THEN RETURN Disks.Unsupported; END;
@@ -1160,12 +1160,12 @@ TYPE
 		VAR command: Command;
 		BEGIN
 			command := cmdLBA;
-			ResetCommand(command, SYSTEM.SIZEOF(CommandDesc));
+			ResetCommand(command, SIZEOF(CommandDesc));
 			command.dev := dev; command.cmd := cmd; command.protocol := protocol;
 			RETURN command;
 		END NewCommand;
 
-		PROCEDURE NewCommandTransfer(op: LONGINT; lba: HUGEINT; count: LONGINT; bufAdr: SYSTEM.ADDRESS; dma: BOOLEAN): Command;
+		PROCEDURE NewCommandTransfer(op: LONGINT; lba: HUGEINT; count: LONGINT; bufAdr: ADDRESS; dma: BOOLEAN): Command;
 		VAR
 			CMD: ARRAY 8 OF LONGINT;
 			idx: LONGINT;
@@ -1211,7 +1211,7 @@ TYPE
 		VAR x: LONGINT; command: CommandCHS;
 		BEGIN
 			command := cmdCHS;
-			ResetCommand(command, SYSTEM.SIZEOF(CommandCHSDesc));
+			ResetCommand(command, SIZEOF(CommandCHSDesc));
 			command.dev := dev; command.cmd := cmd;
 			command.count := count;
 			command.sector := lba MOD chs.spt + 1; x := lba DIV chs.spt;
@@ -1224,7 +1224,7 @@ TYPE
 		VAR command: CommandLBA;
 		BEGIN
 			command := cmdLBA;
-			ResetCommand(command, SYSTEM.SIZEOF(CommandLBADesc));
+			ResetCommand(command, SIZEOF(CommandLBADesc));
 			command.dev := dev; command.cmd := cmd;
 			command.lba := lba; command.count := count;
 			RETURN command;
@@ -1234,7 +1234,7 @@ TYPE
 		VAR command: CommandLBA48;
 		BEGIN
 			command := cmdLBA48;
-			ResetCommand(command, SYSTEM.SIZEOF(CommandLBA48Desc));
+			ResetCommand(command, SIZEOF(CommandLBA48Desc));
 			command.dev := dev; command.cmd := cmd;
 			command.lbaHigh := SHORT(Machine.ASHH(lba, -32));command.lbaLow := SHORT(lba); command.count := count;
 			RETURN command;
@@ -1477,7 +1477,7 @@ TYPE
 				command.protocol := Protocol_PacketPIO;
 			END;
 			command.read := read;
-			command.bufAdr := SYSTEM.ADR(data[ofs]);
+			command.bufAdr := ADDRESSOF(data[ofs]);
 			command.size := size;
 
 			FOR i:= 0 TO LEN(command.packet)-1 DO
@@ -1507,7 +1507,7 @@ TYPE
 			END;
 		END ProcessSense;
 
-		PROCEDURE TransferEx*(op: LONGINT; lba: HUGEINT; num: LONGINT; bufAdr: SYSTEM.ADDRESS; dma: BOOLEAN): LONGINT;
+		PROCEDURE TransferEx*(op: LONGINT; lba: HUGEINT; num: LONGINT; bufAdr: ADDRESS; dma: BOOLEAN): LONGINT;
 		VAR
 			command: Command;
 			res, timeout: LONGINT;
@@ -1592,7 +1592,7 @@ TYPE
 			command := NewCommandPacket(03H);
 			command.protocol := Protocol_PacketPIO;
 			command.read := TRUE;
-			command.bufAdr := SYSTEM.ADR(buf[0]);
+			command.bufAdr := ADDRESSOF(buf[0]);
 			command.size := LEN(buf);
 			command.packet[4] := CHR(LEN(buf));
 			res := controller.ExecuteCommand(command, ATAPITimeout, status);
@@ -1713,7 +1713,7 @@ TYPE
 			command := NewCommandPacket(25H);
 			command.protocol := Protocol_PacketPIO;
 			command.read := TRUE;
-			command.bufAdr := SYSTEM.ADR(buf[0]);
+			command.bufAdr := ADDRESSOF(buf[0]);
 			command.size := 8;
 			res := controller.ExecuteCommand(command, ATAPITimeout, status);
 			sense := -1;
@@ -1732,13 +1732,13 @@ TYPE
 			RETURN res
 		END ReadCapacity;
 
-		PROCEDURE NewCommandPacketTransfer(op: LONGINT; lba: HUGEINT; count: LONGINT; bufAdr: SYSTEM.ADDRESS; size: LONGINT; dma: BOOLEAN): CommandPacket;
+		PROCEDURE NewCommandPacketTransfer(op: LONGINT; lba: HUGEINT; count: LONGINT; bufAdr: ADDRESS; size: LONGINT; dma: BOOLEAN): CommandPacket;
 		VAR
 			command: CommandPacket;
 			i, lbaLow, lbaHigh: LONGINT;
 		BEGIN
 			command := cmdPacket;
-			ResetCommand(command, SYSTEM.SIZEOF(CommandPacketDesc));
+			ResetCommand(command, SIZEOF(CommandPacketDesc));
 			FOR i:= 0 TO LEN(command.packet)-1 DO
 				command.packet[i] := 0X;
 			END;
@@ -1789,7 +1789,7 @@ TYPE
 			i: LONGINT;
 		BEGIN
 			command := cmdPacket;
-			ResetCommand(command, SYSTEM.SIZEOF(CommandPacketDesc));
+			ResetCommand(command, SIZEOF(CommandPacketDesc));
 			FOR i:= 0 TO LEN(command.packet)-1 DO
 				command.packet[i] := 0X;
 			END;
@@ -1912,7 +1912,7 @@ VAR
 
 (* Block port input instruction. *)
 
-PROCEDURE -RepInWord(port, bufAdr: SYSTEM.ADDRESS; len: SYSTEM.SIZE);
+PROCEDURE -RepInWord(port, bufAdr: ADDRESS; len: SIZE);
 CODE {SYSTEM.i386}
 	POP ECX
 	POP EDI
@@ -1923,7 +1923,7 @@ END RepInWord;
 
 (* Block port out instruction. *)
 
-PROCEDURE -RepOutWord(port, bufAdr: SYSTEM.ADDRESS; len: SYSTEM.SIZE);
+PROCEDURE -RepOutWord(port, bufAdr: ADDRESS; len: SIZE);
 CODE {SYSTEM.i386}
 	POP ECX
 	POP ESI
@@ -1932,14 +1932,14 @@ CODE {SYSTEM.i386}
 	REP OUTSW
 END RepOutWord;
 
-PROCEDURE ResetCommand(cmd: Command; size: SYSTEM.SIZE);
+PROCEDURE ResetCommand(cmd: Command; size: SIZE);
 BEGIN
 	ASSERT(cmd # NIL);
 	ASSERT(size MOD 4 = 0);
-	Machine.Fill32(SYSTEM.VAL(SYSTEM.ADDRESS, cmd), size, 0);
+	Machine.Fill32(SYSTEM.VAL(ADDRESS, cmd), size, 0);
 END ResetCommand;
 
-PROCEDURE GetPhysAdr(bufAdr: SYSTEM.ADDRESS; size: LONGINT; VAR physAdr: SYSTEM.ADDRESS): BOOLEAN;
+PROCEDURE GetPhysAdr(bufAdr: ADDRESS; size: LONGINT; VAR physAdr: ADDRESS): BOOLEAN;
 BEGIN
 	physAdr := Machine.PhysicalAdr(bufAdr, size);
 	RETURN physAdr # Machine.NilAdr
@@ -1949,7 +1949,7 @@ END GetPhysAdr;
 VAR p: LONGINT;
 BEGIN
 	NEW(c.prdt);	(* must not cross page boundary, see Intel 290550-002 sec. 2.7.3 *)
-	p := Machine.PhysicalAdr(SYSTEM.ADR(c.prdt.prd[0]), MaxPRD*8);
+	p := Machine.PhysicalAdr(ADDRESSOF(c.prdt.prd[0]), MaxPRD*8);
 	c.prdtPhysAdr := p;
 	RETURN (p # Machine.NilAdr) & (p DIV PageSize = (p+MaxPRD*8-1) DIV PageSize)
 END GetPRDAdr;*)

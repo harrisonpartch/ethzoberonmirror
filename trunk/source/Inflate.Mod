@@ -48,10 +48,10 @@ MODULE Inflate; (** AUTHOR "ejz"; PURPOSE "Aos inflate stream"; *)
 						AWAIT((buffer.size > 0) OR eof OR (SELF.res # Streams.Ok));
 						IF buffer.size > 0 THEN
 							n := buffer.size; IF n > size THEN n := size END;
-							SYSTEM.MOVE(SYSTEM.ADR(buffer.data[0]), SYSTEM.ADR(data[ofs]), n);
+							SYSTEM.MOVE(ADDRESSOF(buffer.data[0]), ADDRESSOF(data[ofs]), n);
 							INC(len, n); DEC(buffer.size, n);
 							IF buffer.size > 0 THEN
-								SYSTEM.MOVE(SYSTEM.ADR(buffer.data[n]), SYSTEM.ADR(buffer.data[0]), buffer.size)
+								SYSTEM.MOVE(ADDRESSOF(buffer.data[n]), ADDRESSOF(buffer.data[0]), buffer.size)
 							END
 						ELSE
 							IF SELF.res # Streams.Ok THEN
@@ -249,14 +249,14 @@ MODULE Inflate; (** AUTHOR "ejz"; PURPOSE "Aos inflate stream"; *)
 				AWAIT(buffer.size = 0);
 				n := win.size; IF n > DefaultReaderSize THEN n := DefaultReaderSize END;
 				IF win.out < win.in THEN
-					SYSTEM.MOVE(SYSTEM.ADR(win.data[win.out]), SYSTEM.ADR(buffer.data[0]), n)
+					SYSTEM.MOVE(ADDRESSOF(win.data[win.out]), ADDRESSOF(buffer.data[0]), n)
 				ELSE
 					m := WindowSize-win.out;
 					IF m >= n THEN
-						SYSTEM.MOVE(SYSTEM.ADR(win.data[win.out]), SYSTEM.ADR(buffer.data[0]), n)
+						SYSTEM.MOVE(ADDRESSOF(win.data[win.out]), ADDRESSOF(buffer.data[0]), n)
 					ELSE
-						SYSTEM.MOVE(SYSTEM.ADR(win.data[win.out]), SYSTEM.ADR(buffer.data[0]), m);
-						SYSTEM.MOVE(SYSTEM.ADR(win.data[0]), SYSTEM.ADR(buffer.data[m]), n-m)
+						SYSTEM.MOVE(ADDRESSOF(win.data[win.out]), ADDRESSOF(buffer.data[0]), m);
+						SYSTEM.MOVE(ADDRESSOF(win.data[0]), ADDRESSOF(buffer.data[m]), n-m)
 					END
 				END;
 				win.out := (win.out+n) MOD WindowSize; DEC(win.size, n); buffer.size := n

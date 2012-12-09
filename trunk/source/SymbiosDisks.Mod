@@ -28,7 +28,7 @@ MODULE SymbiosDisks;	(** non-portable *)
 				srb: ASPI.ExecIOCmdSRB; size, n, i, copyAdr, orgadr, orgsize: LONGINT; phys: ARRAY MaxRanges OF Machine.Range;
 			BEGIN
 				orgsize := num*BS;
-				orgadr := Machine.Ensure32BitAddress (SYSTEM.ADR(data[ofs]));
+				orgadr := Machine.Ensure32BitAddress (ADDRESSOF(data[ofs]));
 				IF TraceVerbose THEN
 					KernelLog.Enter;
 					KernelLog.String("NCR: Transfer "); KernelLog.Int(op, 1); KernelLog.Char(" ");
@@ -50,18 +50,18 @@ MODULE SymbiosDisks;	(** non-portable *)
 								size := MaxTransfer; ASSERT(MaxTransfer MOD BS = 0)
 							END;
 							IF size > 256*256*BS THEN size := 256*256*BS END;	(* max 64K * 512B blocks *)
-							Machine.TranslateVirtual(SYSTEM.ADR(data[ofs]), size, n, phys);
+							Machine.TranslateVirtual(ADDRESSOF(data[ofs]), size, n, phys);
 							i := 0; size := 0;
 							WHILE (i < n) & (phys[0].adr + size = phys[i].adr) DO	(* find contiguous memory range *)
 								INC(size, Machine.Ensure32BitAddress (phys[i].size)); INC(i)
 							END;
 							IF size MOD BS = 0 THEN
-								srb.BufPointer := Machine.Ensure32BitAddress (SYSTEM.ADR(data[ofs]))	(* the virtual address *)
+								srb.BufPointer := Machine.Ensure32BitAddress (ADDRESSOF(data[ofs]))	(* the virtual address *)
 							ELSE
 								AcquireBuffer(copyAdr);
 								size := BS; srb.BufPointer := copyAdr;
 								IF op = Disks.Write THEN
-									SYSTEM.MOVE(SYSTEM.ADR(data[ofs]), copyAdr, size)
+									SYSTEM.MOVE(ADDRESSOF(data[ofs]), copyAdr, size)
 								END
 							END;
 							srb.BufLen := size;
@@ -74,7 +74,7 @@ MODULE SymbiosDisks;	(** non-portable *)
 								Disks.Read: srb.CDB[0] := 28X
 								|Disks.Write: srb.CDB[0] := 2AX
 							END;
-							srb.CDB[1] := SYSTEM.LSH(lun, 5);
+							srb.CDB[1] := LSH(lun, 5);
 							srb.CDB[2] := CHR(block DIV 1000000H); srb.CDB[3] := CHR((block DIV 10000H) MOD 100H);
 							srb.CDB[4] := CHR((block DIV 100H) MOD 100H); srb.CDB[5] := CHR(block MOD 100H);
 							srb.CDB[6] := 0X;
@@ -93,7 +93,7 @@ MODULE SymbiosDisks;	(** non-portable *)
 							ASSERT(srb.Status = ASPI.SSComp);
 							IF copyAdr # 0 THEN
 								IF op = Disks.Read THEN
-									SYSTEM.MOVE(copyAdr, SYSTEM.ADR(data[ofs]), size);
+									SYSTEM.MOVE(copyAdr, ADDRESSOF(data[ofs]), size);
 									i := 0; WHILE (i < size) & (SYSTEM.GET32(copyAdr+i) # 0DEADDEADH) DO INC(i, 4) END;
 									IF i < size THEN
 										KernelLog.Enter; KernelLog.String("DEAD"); KernelLog.Ln;
@@ -175,10 +175,10 @@ VAR
 		NEW(srb);
 		srb.HaId := ha; srb.Flags := {ASPI.FlagsDirIn}; srb.Target := target; srb.Lun := lun;
 		srb.BufLen := 8;
-		srb.BufPointer := Machine.Ensure32BitAddress (SYSTEM.ADR(buf[0]));
+		srb.BufPointer := Machine.Ensure32BitAddress (ADDRESSOF(buf[0]));
 		srb.SenseLen := 0X;
 		srb.CDBLen := 0AX;
-		srb.CDB[0] := 25X; srb.CDB[1] := SYSTEM.LSH(lun, 5); srb.CDB[2] := 0X; srb.CDB[3] := 0X;
+		srb.CDB[0] := 25X; srb.CDB[1] := LSH(lun, 5); srb.CDB[2] := 0X; srb.CDB[3] := 0X;
 		srb.CDB[4] := 0X; srb.CDB[5] := 0X; srb.CDB[6] := 0X; srb.CDB[7] := 0X; srb.CDB[8] := 0X; srb.CDB[9] := 0X;
 		srb.meas := NIL;
 		srb.Status := 55X;
@@ -196,12 +196,12 @@ VAR
 	BEGIN
 		freeSRB := NIL;
 		NEW(fallbackBuf, 2*BS);
-		fallbackBufAdr := Machine.Ensure32BitAddress (SYSTEM.ADR(fallbackBuf[0]));
+		fallbackBufAdr := Machine.Ensure32BitAddress (ADDRESSOF(fallbackBuf[0]));
 		res := PageSize - fallbackBufAdr MOD PageSize;
 		IF res < BS THEN INC(fallbackBufAdr, res) END;
 		num := 0;
 		res := ASPI.GetASPISupportInfo();
-		IF CHR(SYSTEM.LSH(res, -8)) = ASPI.SSComp THEN
+		IF CHR(LSH(res, -8)) = ASPI.SSComp THEN
 			res := res MOD 100H;
 			NEW(srb); ha := 0;
 			WHILE ha < res DO

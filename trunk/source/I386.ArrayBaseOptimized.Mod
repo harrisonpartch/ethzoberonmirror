@@ -10,15 +10,15 @@ CONST
 	L1BlockN = 5;   (* L1 block size -> nr of columns in a block that can be processed using L1 chache *)
 	L2BARatio = 1;
 	L0BlockKR = 4;   (* L0 block size -> nr of elements that can be processed at once for type REAL *)
-	L1MaxBlockKR = 336;   (* L1CacheSize/SYSTEM.SIZEOF(REAL)/2/6*)
+	L1MaxBlockKR = 336;   (* L1CacheSize/SIZEOF(REAL)/2/6*)
 	L2BlockSize = 81920;
 	L0BlockKX = 2;   (* L0 block size -> nr of elements that can be processed at once for type LONGREAL *)
-	L1MaxBlockKX = 256;   (* > L1CacheSize/SYSTEM.SIZEOF(LONGREAL)/2/6*)
+	L1MaxBlockKX = 256;   (* > L1CacheSize/SIZEOF(LONGREAL)/2/6*)
 
 
 	(*
 	DefaultL2CacheSize = 81920;
-	L2SizeR = L2CacheSize DIV 8;  MaxBlockKR = 336; (* ca L1CacheSize/SYSTEM.SIZEOF(REAL)/2/6*)   (* nr of elements that can be processed using L2 cache *)
+	L2SizeR = L2CacheSize DIV 8;  MaxBlockKR = 336; (* ca L1CacheSize/SIZEOF(REAL)/2/6*)   (* nr of elements that can be processed using L2 cache *)
 	L2SizeX = L2CacheSize DIV 8;  MaxBlockKX = 256;  (* bit more than L1CacheSize/SIZEL(LONGREAL)/2/6*) (* nr of elements that can be processed using L2 cache *)
 *)
 
@@ -3838,14 +3838,14 @@ VAR
 		L2BlockK := L2BlockK + (-L2BlockK) MOD 16;
 
 		L2BlockN :=
-			L2BlockSize DIV SYSTEM.SIZEOF( REAL ) DIV
+			L2BlockSize DIV SIZEOF( REAL ) DIV
 			(L2BlockK * (L2BARatio + 1));
 		IF L2BlockN > N THEN L2BlockN := N
 		ELSIF L2BlockN < 1 THEN L2BlockN := 1;
 		END;
 
 		L2BlockM :=
-			(L2BlockSize DIV SYSTEM.SIZEOF( REAL ) - L2BlockN * L2BlockK) DIV
+			(L2BlockSize DIV SIZEOF( REAL ) - L2BlockN * L2BlockK) DIV
 						    L2BlockK;
 		(* Round up to next multiple of 5 *)
 		IF L2BlockM > M THEN L2BlockM := M
@@ -3870,12 +3870,12 @@ VAR
 		L2BlockK := L2BlockK + (-L2BlockK) MOD 16;
 
 		L2BlockN :=
-			L2BlockSize DIV SYSTEM.SIZEOF( LONGREAL ) DIV
+			L2BlockSize DIV SIZEOF( LONGREAL ) DIV
 			(L2BlockK * (L2BARatio + 1));
 		IF L2BlockN > N THEN L2BlockN := N END;
 
 		L2BlockM :=
-			(L2BlockSize DIV SYSTEM.SIZEOF( LONGREAL ) - L2BlockN * L2BlockK) DIV
+			(L2BlockSize DIV SIZEOF( LONGREAL ) - L2BlockN * L2BlockK) DIV
 						    L2BlockK;
 		(* Round up to next multiple of 5 *)
 		IF L2BlockM > M THEN L2BlockM := M
@@ -4170,7 +4170,7 @@ VAR
 	*)
 	VAR m, n, k, a1, b1, adrA, adrB, adrC: LONGINT;
 		KAligned: LONGINT;
-	CONST Size = SYSTEM.SIZEOF( LONGREAL );
+	CONST Size = SIZEOF( LONGREAL );
 
 		PROCEDURE L2Block( matrixA, matrixB, matrixC, M, N, K: LONGINT );
 		(* M,N and K arbitrary ! *)
@@ -4330,7 +4330,7 @@ VAR
 	*)
 	VAR m, n, k, a1, b1, adrA, adrB, adrC: LONGINT;
 		KAligned: LONGINT;
-	CONST Size = SYSTEM.SIZEOF( REAL );
+	CONST Size = SIZEOF( REAL );
 
 		PROCEDURE L2Block( matrixA, matrixB, matrixC, M, N, K: LONGINT );
 		(* M,N and K arbitrary ! *)
@@ -4916,8 +4916,8 @@ VAR
 
 		atime := Input.Time();   (* C := 0;  *)
 		WHILE (iter > 0) DO
-			MultiplyX( SYSTEM.ADR( A[0, 0] ), SYSTEM.ADR( B[0, 0] ),
-							  SYSTEM.ADR( C[0, 0] ), M, N, K, L2BlockM, L2BlockN, L2BlockK,
+			MultiplyX( ADDRESSOF( A[0, 0] ), ADDRESSOF( B[0, 0] ),
+							  ADDRESSOF( C[0, 0] ), M, N, K, L2BlockM, L2BlockN, L2BlockK,
 			(*
 						    8,
 						    LEN( A, 1 ) * 8, 8, LEN( B, 1 ) * 8, 8, LEN( C, 1 ) * 8
@@ -4939,8 +4939,8 @@ VAR
 		IF check THEN
 			(*
 			NEW(D,M,N);
-			MatMulAXAXNaiive(SYSTEM.ADR( A[0, 0] ), SYSTEM.ADR( B[0, 0] ),
-							  SYSTEM.ADR( D[0, 0] ), M, N, K, SYSTEM.INCR( A, 1 ), SYSTEM.INCR( A, 0 ), SYSTEM.INCR( B, 1 ),
+			MatMulAXAXNaiive(ADDRESSOF( A[0, 0] ), ADDRESSOF( B[0, 0] ),
+							  ADDRESSOF( D[0, 0] ), M, N, K, SYSTEM.INCR( A, 1 ), SYSTEM.INCR( A, 0 ), SYSTEM.INCR( B, 1 ),
 							  SYSTEM.INCR( B, 0 ), SYSTEM.INCR( D, 1 ), SYSTEM.INCR( D, 0 ));
 				*)
 
@@ -4967,8 +4967,8 @@ VAR
 
 		atime := Input.Time();   (* C := 0;  *)
 		FOR i := 1 TO iter DO
-			MultiplyR( SYSTEM.ADR( A[0, 0] ), SYSTEM.ADR( B[0, 0] ),
-							  SYSTEM.ADR( C[0, 0] ), M, N, K, L2BlockM, L2BlockN, L2BlockK,
+			MultiplyR( ADDRESSOF( A[0, 0] ), ADDRESSOF( B[0, 0] ),
+							  ADDRESSOF( C[0, 0] ), M, N, K, L2BlockM, L2BlockN, L2BlockK,
 			(* 4,
 						    LEN( A, 1 ) * 4, 4, LEN( B, 1 ) * 4, 4, LEN( C, 1 ) * 4 *)
 
@@ -4988,8 +4988,8 @@ VAR
 		IF check THEN
 			(*
 			NEW(D,M,N);
-			MatMulARARNaiive(SYSTEM.ADR( A[0, 0] ), SYSTEM.ADR( B[0, 0] ),
-							  SYSTEM.ADR( D[0, 0] ), M, N, K, SYSTEM.INCR( A, 1 ), SYSTEM.INCR( A, 0 ), SYSTEM.INCR( B, 1 ),
+			MatMulARARNaiive(ADDRESSOF( A[0, 0] ), ADDRESSOF( B[0, 0] ),
+							  ADDRESSOF( D[0, 0] ), M, N, K, SYSTEM.INCR( A, 1 ), SYSTEM.INCR( A, 0 ), SYSTEM.INCR( B, 1 ),
 							  SYSTEM.INCR( B, 0 ), SYSTEM.INCR( D, 1 ), SYSTEM.INCR( D, 0 ));
 			*)
 			D := A * B;
@@ -5282,22 +5282,22 @@ VAR
 		ASSERT( ColsA = RowsB );
 
 		(* allocate 128 bit = 16 byte aligned matrix *)
-		stride := Align( ColsA * SYSTEM.SIZEOF( REAL ), 16 );
+		stride := Align( ColsA * SIZEOF( REAL ), 16 );
 
-		IF (IncA # SYSTEM.SIZEOF( REAL )) OR (StrideA # stride) OR
+		IF (IncA # SIZEOF( REAL )) OR (StrideA # stride) OR
 			(matrixA MOD 16 # 0) THEN
 			cacheA := cachePool.Acquire( stride * RowsA );
 			CopyDataR( matrixA, cacheA.adr, IncA, StrideA,
-							   SYSTEM.SIZEOF( REAL ), stride, RowsA, ColsA );   (* copy to array *)
+							   SIZEOF( REAL ), stride, RowsA, ColsA );   (* copy to array *)
 			matrixA := cacheA.adr;
 		ELSE cacheA := NIL;
 		END;
 
-		IF (StrideB # SYSTEM.SIZEOF( REAL )) OR (IncB # stride) OR
+		IF (StrideB # SIZEOF( REAL )) OR (IncB # stride) OR
 			(matrixB MOD 16 # 0) THEN
 			cacheB := cachePool.Acquire( stride * ColsB );
 			CopyDataR( matrixB, cacheB.adr, StrideB, IncB,
-							   SYSTEM.SIZEOF( REAL ), stride, ColsB, RowsB );   (* copy to transposed array *)
+							   SIZEOF( REAL ), stride, ColsB, RowsB );   (* copy to transposed array *)
 			matrixB := cacheB.adr;
 		ELSE cacheB := NIL;
 		END;
@@ -5336,22 +5336,22 @@ VAR
 		NEW(proc,nrProcesses);
 		ASSERT( ColsA = RowsB );
 
-		stride := Align( ColsA * SYSTEM.SIZEOF( LONGREAL ), 16 );
+		stride := Align( ColsA * SIZEOF( LONGREAL ), 16 );
 
-		IF (IncA # SYSTEM.SIZEOF( LONGREAL )) OR (StrideA # stride) OR
+		IF (IncA # SIZEOF( LONGREAL )) OR (StrideA # stride) OR
 			(matrixA MOD 16 # 0) THEN
 			cacheA := cachePool.Acquire( stride * RowsA );
 			CopyDataX( matrixA, cacheA.adr, IncA, StrideA,
-							  SYSTEM.SIZEOF( LONGREAL ), stride, RowsA, ColsA );   (* copy to array *)
+							  SIZEOF( LONGREAL ), stride, RowsA, ColsA );   (* copy to array *)
 			matrixA := cacheA.adr;
 		ELSE cacheA := NIL;
 		END;
 
-		IF (StrideB # SYSTEM.SIZEOF( LONGREAL )) OR (IncB # stride) OR
+		IF (StrideB # SIZEOF( LONGREAL )) OR (IncB # stride) OR
 			(matrixB MOD 16 # 0) THEN
 			cacheB := cachePool.Acquire( stride * ColsB );
 			CopyDataX( matrixB, cacheB.adr, StrideB, IncB,
-							  SYSTEM.SIZEOF( LONGREAL ), stride, ColsB, RowsB );   (* copy to transposed array *)
+							  SIZEOF( LONGREAL ), stride, ColsB, RowsB );   (* copy to transposed array *)
 			matrixB := cacheB.adr;
 		ELSE cacheB := NIL;
 		END;
@@ -5391,33 +5391,33 @@ VAR
 		matrixCO, StrideCO, IncCO: LONGINT;  t: HUGEINT;
 		(*VAR fromA, toA: LONGINT;  *)
 	BEGIN
-		IF (IncA # SYSTEM.SIZEOF( REAL )) THEN
+		IF (IncA # SIZEOF( REAL )) THEN
 			cacheA :=
-				cachePool.Acquire( RowsA * ColsA * SYSTEM.SIZEOF( REAL ) );
+				cachePool.Acquire( RowsA * ColsA * SIZEOF( REAL ) );
 			CopyDataR( matrixA, cacheA.adr, IncA, StrideA,
-							   SYSTEM.SIZEOF( REAL ), SYSTEM.SIZEOF( REAL ) * ColsA, RowsA,
+							   SIZEOF( REAL ), SIZEOF( REAL ) * ColsA, RowsA,
 							   ColsA );
-			matrixA := cacheA.adr;  IncA := SYSTEM.SIZEOF( REAL );
-			StrideA := SYSTEM.SIZEOF( REAL ) * ColsA;
+			matrixA := cacheA.adr;  IncA := SIZEOF( REAL );
+			StrideA := SIZEOF( REAL ) * ColsA;
 		END;
-		IF (IncB # SYSTEM.SIZEOF( REAL )) THEN
+		IF (IncB # SIZEOF( REAL )) THEN
 			cacheB :=
-				cachePool.Acquire( RowsB * ColsB * SYSTEM.SIZEOF( REAL ) );
+				cachePool.Acquire( RowsB * ColsB * SIZEOF( REAL ) );
 			CopyDataR( matrixB, cacheB.adr, IncB, StrideB,
-							   SYSTEM.SIZEOF( REAL ), SYSTEM.SIZEOF( REAL ) * ColsB, RowsB,
+							   SIZEOF( REAL ), SIZEOF( REAL ) * ColsB, RowsB,
 							   ColsB );
-			matrixB := cacheB.adr;  IncB := SYSTEM.SIZEOF( REAL );
-			StrideB := SYSTEM.SIZEOF( REAL ) * ColsB;
+			matrixB := cacheB.adr;  IncB := SIZEOF( REAL );
+			StrideB := SIZEOF( REAL ) * ColsB;
 		END;
-		IF (IncC # SYSTEM.SIZEOF( REAL )) THEN
+		IF (IncC # SIZEOF( REAL )) THEN
 			cacheC :=
-				cachePool.Acquire( RowsA * ColsB * SYSTEM.SIZEOF( REAL ) );
+				cachePool.Acquire( RowsA * ColsB * SIZEOF( REAL ) );
 			CopyDataR( matrixC, cacheC.adr, IncC, StrideC,
-							   SYSTEM.SIZEOF( REAL ), SYSTEM.SIZEOF( REAL ) * ColsB, RowsA,
+							   SIZEOF( REAL ), SIZEOF( REAL ) * ColsB, RowsA,
 							   ColsB );
 			matrixCO := matrixC;  StrideCO := StrideC;
 			IncCO := IncC;  matrixC := cacheC.adr;
-			IncC := SYSTEM.SIZEOF( REAL );  StrideC := SYSTEM.SIZEOF( REAL ) * ColsB;
+			IncC := SIZEOF( REAL );  StrideC := SIZEOF( REAL ) * ColsB;
 		END;
 
 		Tic( t );
@@ -5487,35 +5487,35 @@ VAR
 		cacheA, cacheB, cacheC: Cache;
 		matrixCO, StrideCO, IncCO: LONGINT;  t: HUGEINT;
 	BEGIN
-		IF (IncA # SYSTEM.SIZEOF( LONGREAL )) THEN
+		IF (IncA # SIZEOF( LONGREAL )) THEN
 			cacheA :=
-				cachePool.Acquire( RowsA * ColsA * SYSTEM.SIZEOF( LONGREAL ) );
+				cachePool.Acquire( RowsA * ColsA * SIZEOF( LONGREAL ) );
 			CopyDataX( matrixA, cacheA.adr, IncA, StrideA,
-							  SYSTEM.SIZEOF( LONGREAL ),
-							  SYSTEM.SIZEOF( LONGREAL ) * ColsA, RowsA, ColsA );
+							  SIZEOF( LONGREAL ),
+							  SIZEOF( LONGREAL ) * ColsA, RowsA, ColsA );
 			matrixA := cacheA.adr;
-			StrideA := SYSTEM.SIZEOF( LONGREAL ) * ColsA;
-			IncA := SYSTEM.SIZEOF( LONGREAL );
+			StrideA := SIZEOF( LONGREAL ) * ColsA;
+			IncA := SIZEOF( LONGREAL );
 		END;
-		IF (IncB # SYSTEM.SIZEOF( LONGREAL )) THEN
+		IF (IncB # SIZEOF( LONGREAL )) THEN
 			cacheB :=
-				cachePool.Acquire( RowsB * ColsB * SYSTEM.SIZEOF( LONGREAL ) );
+				cachePool.Acquire( RowsB * ColsB * SIZEOF( LONGREAL ) );
 			CopyDataX( matrixB, cacheB.adr, IncB, StrideB,
-							  SYSTEM.SIZEOF( LONGREAL ),
-							  SYSTEM.SIZEOF( LONGREAL ) * ColsB, RowsB, ColsB );
+							  SIZEOF( LONGREAL ),
+							  SIZEOF( LONGREAL ) * ColsB, RowsB, ColsB );
 			matrixB := cacheB.adr;
-			StrideB := SYSTEM.SIZEOF( LONGREAL ) * ColsB;
-			IncB := SYSTEM.SIZEOF( LONGREAL );
+			StrideB := SIZEOF( LONGREAL ) * ColsB;
+			IncB := SIZEOF( LONGREAL );
 		END;
-		IF (IncC # SYSTEM.SIZEOF( LONGREAL )) THEN
+		IF (IncC # SIZEOF( LONGREAL )) THEN
 			cacheC :=
-				cachePool.Acquire( RowsA * ColsB * SYSTEM.SIZEOF( LONGREAL ) );
+				cachePool.Acquire( RowsA * ColsB * SIZEOF( LONGREAL ) );
 			CopyDataX( matrixC, cacheC.adr, IncC, StrideC,
-							  SYSTEM.SIZEOF( LONGREAL ),
-							  SYSTEM.SIZEOF( LONGREAL ) * ColsB, RowsA, ColsB );
+							  SIZEOF( LONGREAL ),
+							  SIZEOF( LONGREAL ) * ColsB, RowsA, ColsB );
 			matrixCO := matrixC;  StrideCO := StrideC;
-			IncCO := IncC;  StrideC := SYSTEM.SIZEOF( LONGREAL ) * ColsB;
-			IncC := SYSTEM.SIZEOF( LONGREAL );  matrixC := cacheC.adr;
+			IncCO := IncC;  StrideC := SIZEOF( LONGREAL ) * ColsB;
+			IncC := SIZEOF( LONGREAL );  matrixC := cacheC.adr;
 		END;
 
 		Tic( t );

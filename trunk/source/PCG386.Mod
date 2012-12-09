@@ -354,8 +354,8 @@ TYPE
 
 PROCEDURE Dump(VAR instr: PCLIR.Instruction;  info: Address);
 BEGIN
-	KernelLog.String("instr ="); KernelLog.Ln; KernelLog.Memory(SYSTEM.ADR(instr.op), 64);
-	KernelLog.String("info ="); KernelLog.Ln; KernelLog.Memory(SYSTEM.ADR(info.mode), 64+32);
+	KernelLog.String("instr ="); KernelLog.Ln; KernelLog.Memory(ADDRESSOF(instr.op), 64);
+	KernelLog.String("info ="); KernelLog.Ln; KernelLog.Memory(ADDRESSOF(info.mode), 64+32);
 END Dump;
 
 PROCEDURE RegisterOverlaps(reg1, reg2: Register): BOOLEAN;
@@ -2725,7 +2725,7 @@ BEGIN
 	INC(PCBT.context.constsize, SHORT(range*4));
 	IF PCBT.context.constsize > LEN(PCBT.context.const^) THEN
 		NEW(const, PCBT.context.constsize);
-		SYSTEM.MOVE(SYSTEM.ADR(PCBT.context.const[0]), SYSTEM.ADR(const[0]), LEN(PCBT.context.const));
+		SYSTEM.MOVE(ADDRESSOF(PCBT.context.const[0]), ADDRESSOF(const[0]), LEN(PCBT.context.const));
 		PCBT.context.const := const
 	END;
 	PCBT.context.casetablesize := PCBT.context.casetablesize + SHORT(range);
@@ -3184,7 +3184,7 @@ END PCG386.
 	03.07.03	prk	setcc with float operands did spill destination register and store in wrong register when result used in return (return of float comparison is wrong)
 	02.07.03	prk	bug in setcc with 64bit operands fixed (did trash module body)
 	29.06.03	prk	bug in restoreregs fixed (pop 16bit instead of pop 32bit) (found by Vasile Rotaru)
-	11.06.02	prk	SYSTEM.BIT implemented
+	11.06.02	prk	BIT implemented
 	12.04.02	prk	FullStackInit disabling compiler option
 	04.04.02	prk	DIV code pattern improved (proposed by pjm)
 	02.04.02	prk	Fix in LoadAdr (copy hw-register when load addr of 0[reg])

@@ -2,7 +2,7 @@ MODULE EFIMachine; (** AUTHOR ""; PURPOSE ""; *)
 
 IMPORT SYSTEM, EFI;
 
-VAR p0, p1: SYSTEM.ADDRESS;
+VAR p0, p1: ADDRESS;
 
 (*  I386.Machine.Mod uses following registers as arguments:
 	eax	: bootFlag (= address of boot table)
@@ -20,7 +20,7 @@ VAR p0, p1: SYSTEM.ADDRESS;
 	INT 3
 
 *)
-PROCEDURE JumpTo*(adr : SYSTEM.ADDRESS; btAddr, kernelSize, fbAddr, memmapAddr : HUGEINT);
+PROCEDURE JumpTo*(adr : ADDRESS; btAddr, kernelSize, fbAddr, memmapAddr : HUGEINT);
 CODE {SYSTEM.AMD64, SYSTEM.Privileged}
 	MOV R15, [RBP+fbAddr];  fbAddr
 	MOV R14, [RBP+kernelSize]; kernelSize

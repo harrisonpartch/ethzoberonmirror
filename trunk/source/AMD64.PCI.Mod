@@ -45,7 +45,7 @@ MODULE PCI;	(** non-portable *)
 
 		RouteBuffer = RECORD
 			BufferSize, SegSelector: INTEGER;
-			DataBufferAdr: SYSTEM.ADDRESS
+			DataBufferAdr: ADDRESS
 		END;
 
 	VAR
@@ -59,9 +59,9 @@ MODULE PCI;	(** non-portable *)
 		bios32: BOOLEAN;
 
 		pci: BOOLEAN;
-		pciEntry: SYSTEM.ADDRESS;
+		pciEntry: ADDRESS;
 
-	PROCEDURE BiosServiceDirectory(sadr: SYSTEM.ADDRESS; sid, fsel: LONGINT; VAR badr: SYSTEM.ADDRESS; VAR len, entry: LONGINT): CHAR;
+	PROCEDURE BiosServiceDirectory(sadr: ADDRESS; sid, fsel: LONGINT; VAR badr: ADDRESS; VAR len, entry: LONGINT): CHAR;
 	CODE {SYSTEM.AMD64}
 		MOV EAX, [RBP + sid]
 		MOV EBX, [RBP + fsel]
@@ -78,7 +78,7 @@ MODULE PCI;	(** non-portable *)
 		MOV [R8], EDX
 	END BiosServiceDirectory;
 
-	PROCEDURE FindBios32Service*(serviceId, serviceFkt: LONGINT; VAR serviceAdr: SYSTEM.ADDRESS; VAR serviceLen, entryOffset: LONGINT): LONGINT;
+	PROCEDURE FindBios32Service*(serviceId, serviceFkt: LONGINT; VAR serviceAdr: ADDRESS; VAR serviceLen, entryOffset: LONGINT): LONGINT;
 	VAR ch: CHAR; res: LONGINT; state: SET;
 	BEGIN {EXCLUSIVE}
 		IF bios32 THEN
@@ -98,7 +98,7 @@ MODULE PCI;	(** non-portable *)
 	BEGIN
 		adr := 0E0000H; chksum := 0FFH;
 		REPEAT
-			SYSTEM.MOVE(adr, SYSTEM.ADR(s[0]), 16);
+			SYSTEM.MOVE(adr, ADDRESSOF(s[0]), 16);
 			IF (s[0] = "_") & (s[1] = "3") & (s[2] = "2") & (s[3] = "_") THEN
 				chksum := 0; i := 0;
 				WHILE i < 16 DO
@@ -112,7 +112,7 @@ MODULE PCI;	(** non-portable *)
 		UNTIL (chksum = 0) OR (adr = 0100000H);
 		bios32 := chksum = 0;
 		IF bios32 THEN
-			SYSTEM.MOVE(SYSTEM.ADR(s[0]), SYSTEM.ADR(Bios32Def), 16);
+			SYSTEM.MOVE(ADDRESSOF(s[0]), ADDRESSOF(Bios32Def), 16);
 			IF Trace THEN
 				KernelLog.String("PCI Bios32 detected at: "); KernelLog.Hex(adr-16, 8); KernelLog.Ln;
 				KernelLog.String("  Sig: ");
@@ -127,7 +127,7 @@ MODULE PCI;	(** non-portable *)
 		END
 	END DetectBios32;
 
-		PROCEDURE pcicall(entry:SYSTEM.ADDRESS; VAR peax,pebx,pecx,pedx,pesi,pedi:LONGINT; VAR eflags: SET);
+		PROCEDURE pcicall(entry:ADDRESS; VAR peax,pebx,pecx,pedx,pesi,pedi:LONGINT; VAR eflags: SET);
 		CODE {SYSTEM.AMD64}
 			MOV R8, [RBP + peax]
 			MOV EAX, [R8]
@@ -281,8 +281,8 @@ MODULE PCI;	(** non-portable *)
 	BEGIN {EXCLUSIVE}
 		IF pci THEN
 			eax := PCIFunctionId + getIrqRoutingOptions;
-			rb.BufferSize := dbN; rb.SegSelector := 0; rb.DataBufferAdr := SYSTEM.ADR(db[0]);
-			ebx := 0H; edi := Machine.Ensure32BitAddress(SYSTEM.VAL (SYSTEM.ADDRESS, rb));
+			rb.BufferSize := dbN; rb.SegSelector := 0; rb.DataBufferAdr := ADDRESSOF(db[0]);
+			ebx := 0H; edi := Machine.Ensure32BitAddress(SYSTEM.VAL (ADDRESS, rb));
 			state := Machine.DisableInterrupts();
 			pcicall(pciEntry, eax, ebx, ecx, edx, esi, edi, eflags);
 			Machine.RestoreInterrupts(state);
@@ -438,7 +438,7 @@ MODULE PCI;	(** non-portable *)
 	END WriteConfigDword;
 
 	PROCEDURE DetectPCI;
-	VAR res, len, entry: LONGINT; adr: SYSTEM.ADDRESS;
+	VAR res, len, entry: LONGINT; adr: ADDRESS;
 	BEGIN
 		res := FindBios32Service(PCIServiceId, 0, adr, len, entry);
 		pci := res = Done;

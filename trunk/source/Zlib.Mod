@@ -79,7 +79,7 @@ BEGIN
 		RETURN 1
 	ELSE
 		s1 := adler MOD 10000H;
-		s2 := SYSTEM.LSH(adler, -16) MOD 10000H;
+		s2 := LSH(adler, -16) MOD 10000H;
 		WHILE len > 0 DO
 			IF len < nmax THEN k := len ELSE k := nmax END;
 			DEC(len, k);
@@ -92,7 +92,7 @@ BEGIN
 			s1 := s1 MOD base;
 			s2 := s2 MOD base
 		END;
-		RETURN SYSTEM.LSH(s2, 16) + s1
+		RETURN LSH(s2, 16) + s1
 	END
 END Adler32;
 
@@ -129,8 +129,8 @@ BEGIN
 	FOR n := 0 TO 255 DO
 		c := n;
 		FOR k := 0 TO 7 DO
-			IF ODD(c) THEN c := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, poly)/SYSTEM.VAL(SET, SYSTEM.LSH(c, -1)))
-			ELSE c := SYSTEM.LSH(c, -1)
+			IF ODD(c) THEN c := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, poly)/SYSTEM.VAL(SET, LSH(c, -1)))
+			ELSE c := LSH(c, -1)
 			END
 		END;
 		CRCTable[n] := c
@@ -147,7 +147,7 @@ BEGIN
 		crc := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, crc)/{0..31});
 		WHILE len > 0 DO
 			idx := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, crc)/SYSTEM.VAL(SET, LONG(ORD(buf[offset])))) MOD 100H;
-			crc := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, CRCTable[idx])/SYSTEM.VAL(SET, SYSTEM.LSH(crc, -8)));
+			crc := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, CRCTable[idx])/SYSTEM.VAL(SET, LSH(crc, -8)));
 			DEC(len); INC(offset)
 		END;
 		crc := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, crc)/{0..31})

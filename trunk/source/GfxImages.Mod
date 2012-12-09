@@ -21,8 +21,8 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 	TYPE
 		Image* = Raster.Image;
 
-		ShiftProc* = PROCEDURE (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, len: LONGINT; t: REAL);
-		ScaleProc* = PROCEDURE (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, len: LONGINT; xy, dxy: REAL);
+		ShiftProc* = PROCEDURE (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, len: LONGINT; t: REAL);
+		ScaleProc* = PROCEDURE (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, len: LONGINT; xy, dxy: REAL);
 
 		(** transformation filter **)
 		Filter* = RECORD (Raster.Mode)
@@ -39,7 +39,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 
 	(** predefined filter procedures using box filter (i.e. no filtering): fast and ugly **)
 
-	PROCEDURE HShift* (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, len: LONGINT; tx: REAL);
+	PROCEDURE HShift* (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, len: LONGINT; tx: REAL);
 	BEGIN
 		IF tx >= 0.5 THEN
 			dbit := dbit + dst.fmt.bpp; INC(dadr, dbit DIV 8); dbit := dbit MOD 8;
@@ -49,7 +49,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 		filter.transfer(filter, sadr, sbit, dadr, dbit, len)
 	END HShift;
 
-	PROCEDURE VShift* (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, len: LONGINT; ty: REAL);
+	PROCEDURE VShift* (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, len: LONGINT; ty: REAL);
 	BEGIN
 		IF ty >= 0.5 THEN
 			INC(dadr, dst.bpr);
@@ -63,7 +63,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 		END
 	END VShift;
 
-	PROCEDURE HScale* (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, dlen: LONGINT; x, dx: REAL);
+	PROCEDURE HScale* (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, dlen: LONGINT; x, dx: REAL);
 		VAR i0, i1: LONGINT;
 	BEGIN
 		Raster.Bind(filter, src.fmt, dst.fmt);
@@ -81,7 +81,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 		END
 	END HScale;
 
-	PROCEDURE VScale* (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, dlen: LONGINT; y, dy: REAL);
+	PROCEDURE VScale* (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, dlen: LONGINT; y, dy: REAL);
 		VAR j0, j1: LONGINT;
 	BEGIN
 		Raster.Bind(filter, src.fmt, dst.fmt);
@@ -101,9 +101,9 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 
 	(** predefined filter procedures for linearly filtered transformations: slow and less ugly **)
 
-	PROCEDURE LinearHShift* (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, len: LONGINT; tx: REAL);
+	PROCEDURE LinearHShift* (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, len: LONGINT; tx: REAL);
 		CONST r = Raster.r; g = Raster.g; b = Raster.b; a = Raster.a;
-		VAR w0, w1, sinc, dinc, i, red, green, blue, alpha: LONGINT; da: SYSTEM.ADDRESS; spix, dpix: Raster.Pixel;
+		VAR w0, w1, sinc, dinc, i, red, green, blue, alpha: LONGINT; da: ADDRESS; spix, dpix: Raster.Pixel;
 	BEGIN
 		w0 := ENTIER(1000H*tx + 0.5); w1 := 1000H-w0;
 		IF (w0 < 10H) OR (w1 < 10H) THEN
@@ -113,7 +113,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 			sinc := src.fmt.bpp; dinc := dst.fmt.bpp; da := dadr;
 			src.fmt.unpack(src.fmt, sadr, sbit, spix);
 			FOR i := 0 TO 3 DO dpix[i] := CHR(w1 * ORD(spix[i]) DIV 1000H) END;
-			filter.transfer(filter, SYSTEM.ADR(dpix[0]), 0, dadr, dbit, 1);
+			filter.transfer(filter, ADDRESSOF(dpix[0]), 0, dadr, dbit, 1);
 			INC(dbit, dinc); INC(dadr, dbit DIV 8); dbit := dbit MOD 8;
 			DEC(len);
 			WHILE len > 0 DO
@@ -124,18 +124,18 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 				dpix[g] := CHR((green + w1 * ORD(spix[g])) DIV 1000H);
 				dpix[b] := CHR((blue + w1 * ORD(spix[b])) DIV 1000H);
 				dpix[a] := CHR((alpha + w1 * ORD(spix[a])) DIV 1000H);
-				filter.transfer(filter, SYSTEM.ADR(dpix[0]), 0, dadr, dbit, 1);
+				filter.transfer(filter, ADDRESSOF(dpix[0]), 0, dadr, dbit, 1);
 				INC(dbit, dinc); INC(dadr, dbit DIV 8); dbit := dbit MOD 8;
 				DEC(len)
 			END;
 			IF (da - dst.adr) DIV dst.bpr = (dadr - dst.adr) DIV dst.bpr THEN
 				FOR i := 0 TO 3 DO dpix[i] := CHR(w0 * ORD(spix[i]) DIV 1000H) END;
-				filter.transfer(filter, SYSTEM.ADR(dpix[0]), 0, dadr, dbit, 1)
+				filter.transfer(filter, ADDRESSOF(dpix[0]), 0, dadr, dbit, 1)
 			END
 		END
 	END LinearHShift;
 
-	PROCEDURE LinearVShift* (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, len: LONGINT; ty: REAL);
+	PROCEDURE LinearVShift* (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, len: LONGINT; ty: REAL);
 		CONST r = Raster.r; g = Raster.g; b = Raster.b; a = Raster.a;
 		VAR w0, w1, i, red, green, blue, alpha: LONGINT; spix, dpix: Raster.Pixel;
 	BEGIN
@@ -146,7 +146,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 			Raster.Bind(filter, Raster.PixelFormat, dst.fmt);
 			src.fmt.unpack(src.fmt, sadr, sbit, spix);
 			FOR i := 0 TO 3 DO dpix[i] := CHR(w1 * ORD(spix[i]) DIV 1000H) END;
-			filter.transfer(filter, SYSTEM.ADR(dpix[0]), 0, dadr, dbit, 1);
+			filter.transfer(filter, ADDRESSOF(dpix[0]), 0, dadr, dbit, 1);
 			INC(dadr, dst.bpr);
 			DEC(len);
 			WHILE len > 0 DO
@@ -157,18 +157,18 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 				dpix[g] := CHR((green + w1 * ORD(spix[g])) DIV 1000H);
 				dpix[b] := CHR((blue + w1 * ORD(spix[b])) DIV 1000H);
 				dpix[a] := CHR((alpha + w1 * ORD(spix[a])) DIV 1000H);
-				filter.transfer(filter, SYSTEM.ADR(dpix[0]), 0, dadr, dbit, 1);
+				filter.transfer(filter, ADDRESSOF(dpix[0]), 0, dadr, dbit, 1);
 				INC(dadr, dst.bpr);
 				DEC(len)
 			END;
 			IF (dst.adr < dadr) & (dadr < dst.adr + dst.height * dst.bpr) THEN
 				FOR i := 0 TO 3 DO dpix[i] := CHR(w0 * ORD(spix[i]) DIV 1000H) END;
-				filter.transfer(filter, SYSTEM.ADR(dpix[0]), 0, dadr, dbit, 1)
+				filter.transfer(filter, ADDRESSOF(dpix[0]), 0, dadr, dbit, 1)
 			END
 		END
 	END LinearVShift;
 
-	PROCEDURE LinearHScale* (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, dlen: LONGINT; x, dx: REAL);
+	PROCEDURE LinearHScale* (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, dlen: LONGINT; x, dx: REAL);
 		VAR i0, i1,  w1, w0, j: LONGINT; spix: ARRAY 2 OF Raster.Pixel; dpix: Raster.Pixel;
 	BEGIN
 		Raster.Bind(filter, Raster.PixelFormat, dst.fmt);
@@ -200,13 +200,13 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 			FOR j := 0 TO 3 DO
 				dpix[j] := Raster.Clamp[200H + (ORD(spix[0, j]) * w0 + ORD(spix[1, j]) * w1) DIV 1000H]
 			END;
-			filter.transfer(filter, SYSTEM.ADR(dpix[0]), 0, dadr, dbit, 1);
+			filter.transfer(filter, ADDRESSOF(dpix[0]), 0, dadr, dbit, 1);
 			dbit := dbit + dst.fmt.bpp; INC(dadr, dbit DIV 8); dbit := dbit MOD 8;
 			x := x + dx; DEC(dlen)
 		END
 	END LinearHScale;
 
-	PROCEDURE LinearVScale* (VAR filter: Raster.Mode; src, dst: Image; sadr: SYSTEM.ADDRESS; sbit: LONGINT; dadr: SYSTEM.ADDRESS; dbit, dlen: LONGINT; y, dy: REAL);
+	PROCEDURE LinearVScale* (VAR filter: Raster.Mode; src, dst: Image; sadr: ADDRESS; sbit: LONGINT; dadr: ADDRESS; dbit, dlen: LONGINT; y, dy: REAL);
 		VAR j0, j1, w1, w0, j: LONGINT; spix: ARRAY 2 OF Raster.Pixel; dpix: Raster.Pixel;
 	BEGIN
 		Raster.Bind(filter, Raster.PixelFormat, dst.fmt);
@@ -238,7 +238,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 			FOR j := 0 TO 3 DO
 				dpix[j] := Raster.Clamp[200H + (ORD(spix[0, j]) * w0 + ORD(spix[1, j]) * w1) DIV 1000H]
 			END;
-			filter.transfer(filter, SYSTEM.ADR(dpix[0]), 0, dadr, dbit, 1);
+			filter.transfer(filter, ADDRESSOF(dpix[0]), 0, dadr, dbit, 1);
 			INC(dadr, dst.bpr);
 			y := y + dy; DEC(dlen)
 		END
@@ -278,7 +278,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 			r = Raster.r; g = Raster.g; b = Raster.b;
 		VAR
 			dst: Raster.Image; mode: Raster.Mode; dinc, sinc, h, w, sbit: LONGINT;
-			dadr, sadr, sa, da: SYSTEM.ADDRESS;
+			dadr, sadr, sa, da: ADDRESS;
 			mat: GfxMatrix.Matrix; t: REAL;
 	BEGIN
 		IF ABS(m[0, 0] * m[1, 1]) >= ABS(m[0, 1] * m[1, 0]) THEN	(* no need to swap rows and columns *)
@@ -350,7 +350,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 
 	(* shift source row by fractional amount *)
 	PROCEDURE SkewRow (src, dst: Image; si, sj, w, di, dj: LONGINT; tx: REAL; VAR filter: Filter);
-		VAR sbit, dbit: LONGINT; sadr, dadr: SYSTEM.ADDRESS;
+		VAR sbit, dbit: LONGINT; sadr, dadr: ADDRESS;
 	BEGIN
 		ASSERT((0.0 <= tx) & (tx <= 1.0), 100);	(* rounding problem if using tx < 1.0 *)
 		IF si < 0 THEN INC(w, si); DEC(di, si); si := 0 END;
@@ -460,7 +460,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 
 	(* shift source column by fractional amount *)
 	PROCEDURE SkewCol (src, dst: Image; si, sj, h, di, dj: LONGINT; ty: REAL; VAR filter: Filter);
-		VAR sbit, dbit: LONGINT; sadr, dadr: SYSTEM.ADDRESS;
+		VAR sbit, dbit: LONGINT; sadr, dadr: ADDRESS;
 	BEGIN
 		ASSERT((0.0 <= ty) & (ty <= 1.0), 100);	(* rounding problem with ty < 1.0 *)
 		IF sj < 0 THEN INC(h, sj); DEC(dj, sj); sj := 0 END;
@@ -593,7 +593,7 @@ MODULE GfxImages; (** non-portable *)	(* eos  **)
 
 	(** render scaled image on destination **)
 	PROCEDURE Scale* (src, dst: Image; sx, sy, tx, ty: REAL; VAR filter: Filter);
-		VAR xl, xr, yb, yt, w, h, sbit, dbit, i: LONGINT; sadr, dadr: SYSTEM.ADDRESS; dy, y, dx, x: REAL; tmp: Image;
+		VAR xl, xr, yb, yt, w, h, sbit, dbit, i: LONGINT; sadr, dadr: ADDRESS; dy, y, dx, x: REAL; tmp: Image;
 	BEGIN
 		ASSERT((sx > 0) & (sy > 0), 100);
 		xl := ENTIER(tx); xr := -ENTIER(-(tx + sx * src.width));

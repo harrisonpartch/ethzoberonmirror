@@ -160,11 +160,11 @@ BEGIN
 	f := Files.Old(filename);
 	IF f # NIL THEN
 		Files.OpenReader(r, f, 0);
-		SearchPatternRaw(r,NIL, p.searchString); 
-		IF r.res=0 THEN 
+		SearchPatternRaw(r,NIL, p.searchString);
+		IF r.res=0 THEN
 			context.out.String(filename); context.out.Ln; context.out.Update;
 			RETURN;
-		END;		
+		END;
 	ELSE
 		context.error.String("Could not open file "); context.error.String(filename); context.error.Ln;
 		context.error.Update;
@@ -175,9 +175,9 @@ END FindStringRaw;
 (* 	Boyer-Moore match for streams. This procedure opens a file as character stream and does not take special care of formatting information.
 	It also doesn't do statistics but just outputs the filename if a match occurs and returns after the first match.
 	If a Streams.Writer is provided, it is fed with the data in the interval before each <pattern> location.
-	Postcondition: 
+	Postcondition:
 	- If pattern is found, r.res=0 and Reader is positioned after <pattern> ; otherwise r.res#0  *)
-	
+
 PROCEDURE SearchPatternRaw*(r : Streams.Reader; w: Streams.Writer; CONST pattern: ARRAY OF CHAR);
 VAR
 	d : ARRAY 256 OF LONGINT;
@@ -207,7 +207,7 @@ BEGIN
 				cb[pos] := r.Get();
 				INC(cpos);
 			END;
-			IF r.res#0 THEN EXIT END; 
+			IF r.res#0 THEN EXIT END;
 		END;
 		IF w#NIL THEN w.Update END;
 	END;
@@ -316,19 +316,25 @@ BEGIN
 		context.arg.SkipWhitespace; context.arg.String(searchString);
 		context.arg.SkipWhitespace; context.arg.String(replaceString);
 		IF (searchString # "") THEN
-			NEW(stats);
-			stats.verbose := options.GetFlag("verbose");
-			NEW(param);
-			param.repeat := options.GetFlag("repeat");
-			Unescape(searchString, param.searchString);
-			Unescape(replaceString, param.replaceString);
-			IF stats.verbose THEN
-				context.out.String("Replacing '"); context.out.String(searchString); context.out.String("' by '"); context.out.String(replaceString);
-				context.out.String("' in "); context.out.String(filePattern); context.out.String("... "); context.out.Ln;
-			END;
-			Enumerate(filePattern, param, ReplaceString, stats, context);
-			IF stats.verbose THEN
-				stats.Show(context.out);
+			WHILE (searchString # "") DO
+				context.out.String("Replacing '"); context.out.String(searchString); context.out.String("' by '"); context.out.String(replaceString); context.out.Ln;
+				NEW(stats);
+				stats.verbose := options.GetFlag("verbose");
+				NEW(param);
+				param.repeat := options.GetFlag("repeat");
+				Unescape(searchString, param.searchString);
+				Unescape(replaceString, param.replaceString);
+				IF stats.verbose THEN
+					context.out.String("Replacing '"); context.out.String(searchString); context.out.String("' by '"); context.out.String(replaceString);
+					context.out.String("' in "); context.out.String(filePattern); context.out.String("... "); context.out.Ln;
+				END;
+				Enumerate(filePattern, param, ReplaceString, stats, context);
+				IF stats.verbose THEN
+					stats.Show(context.out);
+				END;
+				context.out.String("done."); context.out.Ln;
+				context.arg.SkipWhitespace; context.arg.String(searchString);
+				context.arg.SkipWhitespace; context.arg.String(replaceString);
 			END;
 		ELSE
 			context.error.String("No valid search string parameter"); context.error.Ln;

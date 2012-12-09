@@ -91,9 +91,9 @@ MODULE DivXTypes;
 		(* Set Mem To given value *)
 		PROCEDURE MemSet*( d: PointerToArrayOfCHAR; offset: LONGINT; val: CHAR; len: LONGINT );
 		VAR
-			begin, end: SYSTEM.ADDRESS;
+			begin, end: ADDRESS;
 		BEGIN
-			begin := SYSTEM.ADR( d[offset]  );
+			begin := ADDRESSOF( d[offset]  );
 
 			IF len + offset <= LEN( d ) THEN
 				end := len + begin;

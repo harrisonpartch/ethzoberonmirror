@@ -128,9 +128,9 @@ IMPORT
 
 (** ---------- low level functions --------------------- *)
 
-	PROCEDURE GetProcessID*(): SYSTEM.ADDRESS;
+	PROCEDURE GetProcessID*(): ADDRESS;
 	BEGIN
-		RETURN SYSTEM.VAL(SYSTEM.ADDRESS, Objects.ActiveObject())
+		RETURN SYSTEM.VAL(ADDRESS, Objects.ActiveObject())
 	END GetProcessID;
 
 
@@ -330,7 +330,7 @@ IMPORT
 		END;
 	END GetMessage;
 
-	PROCEDURE TraceBackThis( eip, ebp: SYSTEM.ADDRESS );   (* do a stack trace back w.r.t. given instruction and frame pointers *)
+	PROCEDURE TraceBackThis( eip, ebp: ADDRESS );   (* do a stack trace back w.r.t. given instruction and frame pointers *)
 	BEGIN
 		log.Ln;  log.String( "##################" );
 		log.Ln;  log.String( "# Debugging.TraceBack #" );

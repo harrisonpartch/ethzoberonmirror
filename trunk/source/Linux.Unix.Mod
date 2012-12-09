@@ -10,8 +10,8 @@ MODULE Unix;   (* Josef Templ, 5.3.90	SVR4 system calls *)  (** Linux x86 versio
 IMPORT S := SYSTEM, Glue, Trace;
 
 TYPE
-	Address = S.ADDRESS;
-	Size = S.SIZE;
+	Address = ADDRESS;
+	Size = SIZE;
 
 CONST
 	version* = "Linux";
@@ -87,9 +87,9 @@ CONST
 	(*--------------------------- Threads -------------------------------*)
 
 TYPE
-	Thread_t* = S.ADDRESS;
-	Mutex_t* = S.ADDRESS;
-	Condition_t* = S.ADDRESS;
+	Thread_t* = ADDRESS;
+	Mutex_t* = ADDRESS;
+	Condition_t* = ADDRESS;
 	
 CONST
 	(* Thread priorities *)
@@ -325,13 +325,13 @@ VAR
 
 	PROCEDURE Perror*( CONST msg: ARRAY OF CHAR );
 	BEGIN
-		perror( S.ADR( msg ) )
+		perror( ADDRESSOF( msg ) )
 	END Perror;
 
 
 	PROCEDURE Dlsym*( lib: LONGINT;  CONST sym: ARRAY OF CHAR;  VAR var: Address );
 	BEGIN
-		var := 0;  Glue.dlsym( lib, S.ADR( sym ), S.ADR( var ) );
+		var := 0;  Glue.dlsym( lib, ADDRESSOF( sym ), ADDRESSOF( var ) );
 		IF var = 0 THEN
 			Trace.String( "Unix.Dlsym:  entry '" );  Trace.String( sym );  Trace.String( "' not found" );
 			Trace.Ln
@@ -342,7 +342,7 @@ VAR
 	VAR h: LONGINT;  i, j, k: INTEGER;
 		p: ARRAY 256 OF CHAR;
 	BEGIN
-		IF libname[0] = '/' THEN  h := Glue.dlopen( S.ADR( libname ), mode );
+		IF libname[0] = '/' THEN  h := Glue.dlopen( ADDRESSOF( libname ), mode );
 		ELSE
 			i := 0;  h := 0;
 			WHILE (h = 0) & (i <= 7) DO
@@ -350,7 +350,7 @@ VAR
 				WHILE p[j] # 0X DO  INC( j )  END;
 				p[j] := '/';  k := 0;
 				REPEAT  INC( j );  p[j] := libname[k];  INC( k )  UNTIL p[j] = 0X;
-				h := Glue.dlopen( S.ADR( p ), mode );  INC( i )
+				h := Glue.dlopen( ADDRESSOF( p ), mode );  INC( i )
 			END
 		END;
 		IF h = 0 THEN
@@ -404,7 +404,7 @@ VAR
 
 	BEGIN
 		FOR p := 0 TO 4096 - 1 DO  buf[p] := 0X  END;
-		res := uname( S.ADR( buf ) );
+		res := uname( ADDRESSOF( buf ) );
 		p := 0;
 		copy( p, sysinfo.sysname );
 		copy( p, sysinfo.nodename );

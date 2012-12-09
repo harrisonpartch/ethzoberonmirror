@@ -196,9 +196,9 @@ TYPE
 				VAR
 					tmp : LONGINT;
 				BEGIN
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
-					RETURN SYSTEM.LSH(xsiz + tmp, -declevel) - SYSTEM.LSH(xos + tmp, -declevel);
+					RETURN LSH(xsiz + tmp, -declevel) - LSH(xos + tmp, -declevel);
 			END GetImgWidth;
 
 			(**
@@ -208,9 +208,9 @@ TYPE
 				VAR
 					tmp : LONGINT;
 				BEGIN
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
-					RETURN SYSTEM.LSH(ysiz + tmp, -declevel) - SYSTEM.LSH(yos + tmp, -declevel);
+					RETURN LSH(ysiz + tmp, -declevel) - LSH(yos + tmp, -declevel);
 			END GetImgHeight;
 
 			(**
@@ -220,9 +220,9 @@ TYPE
 				VAR
 					tmp : LONGINT;
 				BEGIN
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
-					RETURN SYSTEM.LSH(xos + tmp, -declevel);
+					RETURN LSH(xos + tmp, -declevel);
 			END GetImgULX;
 
 			(**
@@ -232,9 +232,9 @@ TYPE
 				VAR
 					tmp : LONGINT;
 				BEGIN
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
-					RETURN SYSTEM.LSH(yos + tmp, -declevel);
+					RETURN LSH(yos + tmp, -declevel);
 			END GetImgULY;
 
 			(**
@@ -247,12 +247,12 @@ TYPE
 					(* cx1 - 1: Horizontal coordinate of lower right hand sample of component *)
 				BEGIN
 					subsx := comps[component].subsx;
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
 					cx0 := (xos + subsx - 1) DIV subsx;
 					cx1 := (xsiz + subsx - 1) DIV subsx;
 
-					RETURN SYSTEM.LSH(cx1 + tmp, -declevel) - SYSTEM.LSH(cx0 + tmp, -declevel);
+					RETURN LSH(cx1 + tmp, -declevel) - LSH(cx0 + tmp, -declevel);
 			END GetCompImgWidth;
 
 			(**
@@ -265,12 +265,12 @@ TYPE
 					(* cy1 - 1: Vertical coordinate of lower right hand sample of component *)
 				BEGIN
 					subsy := comps[component].subsy;
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
 					cy0 := (yos + subsy - 1) DIV subsy;
 					cy1 := (ysiz + subsy - 1) DIV subsy;
 
-					RETURN SYSTEM.LSH(cy1 + tmp, -declevel) - SYSTEM.LSH(cy0 + tmp, -declevel);
+					RETURN LSH(cy1 + tmp, -declevel) - LSH(cy0 + tmp, -declevel);
 			END GetCompImgHeight;
 
 
@@ -305,7 +305,7 @@ TYPE
 				VAR
 					tx0, tx1, p, tmp : LONGINT;
 				BEGIN
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
 					(* Compute the horizontal index of the current tile in the reference grid *)
 					p := tile MOD nxt;
@@ -323,7 +323,7 @@ TYPE
 						tx1 := xsiz;
 					END;
 
-					RETURN SYSTEM.LSH(tx1 + tmp, -declevel) - SYSTEM.LSH(tx0 + tmp, -declevel);
+					RETURN LSH(tx1 + tmp, -declevel) - LSH(tx0 + tmp, -declevel);
 			END GetTileWidth;
 
 			(**
@@ -333,7 +333,7 @@ TYPE
 				VAR
 					ty0, ty1, q, tmp : LONGINT;
 				BEGIN
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
 					(* Compute the vertical index of the current tile in the reference grid *)
 					q := tile DIV nxt;
@@ -351,7 +351,7 @@ TYPE
 						ty1 := ysiz;
 					END;
 
-					RETURN SYSTEM.LSH(ty1 + tmp, -declevel) - SYSTEM.LSH(ty0 + tmp, -declevel);
+					RETURN LSH(ty1 + tmp, -declevel) - LSH(ty0 + tmp, -declevel);
 			END GetTileHeight;
 
 			(**
@@ -362,7 +362,7 @@ TYPE
 				VAR
 					tx0, p, tmp : LONGINT;
 				BEGIN
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
 					(* Compute the horizontal index of the current tile in the reference grid *)
 					p := tile MOD nxt;
@@ -374,7 +374,7 @@ TYPE
 						tx0 := xos;
 					END;
 
-					RETURN SYSTEM.LSH(tx0 + tmp, -declevel);
+					RETURN LSH(tx0 + tmp, -declevel);
 			END GetTileULX;
 
 			(**
@@ -385,7 +385,7 @@ TYPE
 				VAR
 					ty0, q, tmp : LONGINT;
 				BEGIN
-					tmp := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
+					tmp := LSH(SYSTEM.VAL(LONGINT, 1), declevel) - 1;
 
 					(* Compute the vertical index of the current tile in the reference grid *)
 					q := tile DIV nxt;
@@ -397,7 +397,7 @@ TYPE
 						ty0 := yos;
 					END;
 
-					RETURN SYSTEM.LSH(ty0 + tmp, -declevel);
+					RETURN LSH(ty0 + tmp, -declevel);
 			END GetTileULY;
 
 			PROCEDURE GetNumComponents* () : LONGINT;
@@ -1102,13 +1102,13 @@ TYPE
 							ppy := decSpec.GetPPY(tile, c, r);
 
 							shift := ndec - r;
-							incStep[tile][c][r][0] := SYSTEM.LSH(SYSTEM.LSH(subsX, shift), ppx);
+							incStep[tile][c][r][0] := LSH(LSH(subsX, shift), ppx);
 
 							IF incStep[tile][c][r][0] < minIncStep[tile][c][0] THEN
 								minIncStep[tile][c][0] := incStep[tile][c][r][0];
 							END;
 
-							incStep[tile][c][r][1] := SYSTEM.LSH(SYSTEM.LSH(subsY, shift), ppy);
+							incStep[tile][c][r][1] := LSH(LSH(subsY, shift), ppy);
 
 							IF incStep[tile][c][r][1] < minIncStep[tile][c][1] THEN
 								minIncStep[tile][c][1] := incStep[tile][c][r][1];
@@ -1207,8 +1207,8 @@ TYPE
 							cblkh := ppy;
 						END;
 
-						precw := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ppx);
-						prech := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ppy);
+						precw := LSH(SYSTEM.VAL(LONGINT, 1), ppx);
+						prech := LSH(SYSTEM.VAL(LONGINT, 1), ppy);
 
 						nband := 1;
 					ELSE
@@ -1227,8 +1227,8 @@ TYPE
 							3 subbands from the same and the LL-band from the next lower
 							resolution level
 						*)
-						precw := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ppx - 1);
-						prech := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ppy - 1);
+						precw := LSH(SYSTEM.VAL(LONGINT, 1), ppx - 1);
+						prech := LSH(SYSTEM.VAL(LONGINT, 1), ppy - 1);
 
 						nband := 3;
 					END;
@@ -1240,16 +1240,16 @@ TYPE
 
 					IF subbInfo.width > 0 THEN
 						(* NOTE: Implicit 'ceil' operation is done in this division (i.e. shift) by adding [divisor - 1] to the dividend *)
-						tmp := SYSTEM.LSH(subbInfo.ulcx + subbInfo.width + SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ppx) - 1, -ppx);
-						nprecx := tmp - SYSTEM.LSH(subbInfo.ulcx, -ppx);
+						tmp := LSH(subbInfo.ulcx + subbInfo.width + LSH(SYSTEM.VAL(LONGINT, 1), ppx) - 1, -ppx);
+						nprecx := tmp - LSH(subbInfo.ulcx, -ppx);
 					ELSE
 						nprecx := 0;
 					END;
 
 					IF subbInfo.height > 0 THEN
 						(* NOTE: Implicit 'ceil' operation is done in this division (i.e. shift) by adding [divisor - 1] to the dividend *)
-						tmp := SYSTEM.LSH(subbInfo.ulcy + subbInfo.height + SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), ppy) - 1, -ppy);
-						nprecy := tmp - SYSTEM.LSH(subbInfo.ulcy, -ppy);
+						tmp := LSH(subbInfo.ulcy + subbInfo.height + LSH(SYSTEM.VAL(LONGINT, 1), ppy) - 1, -ppy);
+						nprecy := tmp - LSH(subbInfo.ulcy, -ppy);
 					ELSE
 						nprecy := 0;
 					END;
@@ -1271,8 +1271,8 @@ TYPE
 					maxEotY := maxSotEot[tile][comp][1][1];
 					sotX := sotEot[tile][comp][reslevel][0][0];
 					sotY := sotEot[tile][comp][reslevel][1][0];
-					cblkwCeil := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblkw) - 1;
-					cblkhCeil := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblkh) - 1;
+					cblkwCeil := LSH(SYSTEM.VAL(LONGINT, 1), cblkw) - 1;
+					cblkhCeil := LSH(SYSTEM.VAL(LONGINT, 1), cblkh) - 1;
 
 					(* Build the information on number of code-blocks per precinct *)
 					curPrec := 0;
@@ -1294,35 +1294,35 @@ TYPE
 
 										(* Compute the horiztontal index in the subband *)
 										IF (xr = maxSotX)
-											& (SYSTEM.LSH(sotX, reslevel - ndec) # maxSotX)
+											& (LSH(sotX, reslevel - ndec) # maxSotX)
 										THEN
 											IF reslevel = 0 THEN
-												px := SYSTEM.LSH(sotX, reslevel - ndec) - subbInfo.ulcx;
+												px := LSH(sotX, reslevel - ndec) - subbInfo.ulcx;
 											ELSE
-												px := SYSTEM.LSH(sotX, reslevel - ndec - 1) - subbInfo.ulcx;
+												px := LSH(sotX, reslevel - ndec - 1) - subbInfo.ulcx;
 											END;
 										ELSE
 											IF reslevel = 0 THEN
-												px := SYSTEM.LSH(xr, reslevel - ndec) - subbInfo.ulcx;
+												px := LSH(xr, reslevel - ndec) - subbInfo.ulcx;
 											ELSE
-												px := SYSTEM.LSH(xr, reslevel - ndec - 1) - subbInfo.ulcx;
+												px := LSH(xr, reslevel - ndec - 1) - subbInfo.ulcx;
 											END;
 										END;
 
 										(* Compute the vertical index in the subband *)
 										IF (yr = maxSotY)
-											& (SYSTEM.LSH(sotY, reslevel - ndec) # maxSotY)
+											& (LSH(sotY, reslevel - ndec) # maxSotY)
 										THEN
 											IF reslevel = 0 THEN
-												py := SYSTEM.LSH(sotY, reslevel - ndec) - subbInfo.ulcy;
+												py := LSH(sotY, reslevel - ndec) - subbInfo.ulcy;
 											ELSE
-												py := SYSTEM.LSH(sotY, reslevel - ndec - 1) - subbInfo.ulcy;
+												py := LSH(sotY, reslevel - ndec - 1) - subbInfo.ulcy;
 											END;
 										ELSE
 											IF reslevel = 0 THEN
-												py := SYSTEM.LSH(yr, reslevel - ndec) - subbInfo.ulcy;
+												py := LSH(yr, reslevel - ndec) - subbInfo.ulcy;
 											ELSE
-												py := SYSTEM.LSH(yr, reslevel - ndec - 1) - subbInfo.ulcy;
+												py := LSH(yr, reslevel - ndec - 1) - subbInfo.ulcy;
 											END;
 										END;
 
@@ -1346,8 +1346,8 @@ TYPE
 											END;
 
 											(* NOTE: Implicit 'ceil' operation is done in the first division (i.e. shift) by adding [divisor - 1] to the dividend *)
-											precInfo.nblocks[subband][curPrec][0] := SYSTEM.LSH(px + subbInfo.ulcx + width + cblkwCeil, -cblkw)
-																					- SYSTEM.LSH(px + subbInfo.ulcx, -cblkw);
+											precInfo.nblocks[subband][curPrec][0] := LSH(px + subbInfo.ulcx + width + cblkwCeil, -cblkw)
+																					- LSH(px + subbInfo.ulcx, -cblkw);
 
 												(* Calculate number of code-blocks in vertical direction *)
 											IF py + prech > subbInfo.height THEN
@@ -1362,8 +1362,8 @@ TYPE
 											END;
 
 											(* NOTE: Implicit 'ceil' operation is done in the first division (i.e. shift) by adding [divisor - 1] to the dividend *)
-											precInfo.nblocks[subband][curPrec][1] := SYSTEM.LSH(py + subbInfo.ulcy + height + cblkhCeil, -cblkh)
-																					- SYSTEM.LSH(py + subbInfo.ulcy , -cblkh);
+											precInfo.nblocks[subband][curPrec][1] := LSH(py + subbInfo.ulcy + height + cblkhCeil, -cblkh)
+																					- LSH(py + subbInfo.ulcy , -cblkh);
 
 										END;
 
@@ -1424,8 +1424,8 @@ TYPE
 						nband := 3;
 					END;
 
-					nomCblkw := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblkw);
-					nomCblkh := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblkh);
+					nomCblkw := LSH(SYSTEM.VAL(LONGINT, 1), cblkw);
+					nomCblkh := LSH(SYSTEM.VAL(LONGINT, 1), cblkh);
 
 					nprecx := precInfo.nprecx;
 					nprecy := precInfo.nprecy;
@@ -1447,8 +1447,8 @@ TYPE
 
 						cblkIdx := 0;
 						precIdx := 0;
-						cblkStartY := SYSTEM.LSH(SYSTEM.LSH(subbInfo.ulcy, -cblkh), cblkh);
-						cblkStartX := SYSTEM.LSH(SYSTEM.LSH(subbInfo.ulcx, -cblkw), cblkw);
+						cblkStartY := LSH(LSH(subbInfo.ulcy, -cblkh), cblkh);
+						cblkStartX := LSH(LSH(subbInfo.ulcx, -cblkw), cblkw);
 
 						FOR precy := 0 TO nprecy - 1 DO
 							(*
@@ -1468,7 +1468,7 @@ TYPE
 								IF nblocks > 0 THEN
 									NEW(lblock[tile][comp][reslevel][subband][precIdx], nblocks);
 									NEW(cblkInfo[tile][comp][reslevel][subband][precIdx], nblocks);
-									Machine.Fill32(SYSTEM.ADR(lblock[tile][comp][reslevel][subband][precIdx][0]), nblocks*SYSTEM.SIZEOF(LONGINT), 3);
+									Machine.Fill32(ADDRESSOF(lblock[tile][comp][reslevel][subband][precIdx][0]), nblocks*SIZEOF(LONGINT), 3);
 								END;
 
 								cblkPrecIdx := 0;
@@ -2101,7 +2101,7 @@ TYPE
 
 					IF (pph # NIL) & ((LEN(pph.data^) - pphPos) >= 2) THEN
 						marker :=	SYSTEM.VAL(LONGINT,
-										SYSTEM.VAL(SET, SYSTEM.LSH(LONG(ORD(pph.data[pphPos])), 8))
+										SYSTEM.VAL(SET, LSH(LONG(ORD(pph.data[pphPos])), 8))
 										+ SYSTEM.VAL(SET, LONG(ORD(pph.data[pphPos + 1])))
 									);
 
@@ -2167,7 +2167,7 @@ TYPE
 
 					DEC(curBytePos);
 
-					RETURN SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, SYSTEM.LSH(curByte, -curBytePos)) * {0}	);
+					RETURN SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, LSH(curByte, -curBytePos)) * {0}	);
 			END NextBit;
 
 
@@ -2183,8 +2183,8 @@ TYPE
 						DEC(curBytePos, n);
 
 						RETURN SYSTEM.VAL(LONGINT,
-										SYSTEM.VAL(SET, SYSTEM.LSH(curByte, -curBytePos))
-										* SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), n) - 1)
+										SYSTEM.VAL(SET, LSH(curByte, -curBytePos))
+										* SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), n) - 1)
 									);
 
 
@@ -2193,10 +2193,10 @@ TYPE
 
 						REPEAT
 							result := SYSTEM.VAL(LONGINT,
-													SYSTEM.VAL(SET, SYSTEM.LSH(result, curBytePos))
+													SYSTEM.VAL(SET, LSH(result, curBytePos))
 													+	(
 															SYSTEM.VAL(SET, curByte)
-															* SYSTEM.VAL(SET, SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), curBytePos) - 1)
+															* SYSTEM.VAL(SET, LSH(SYSTEM.VAL(LONGINT, 1), curBytePos) - 1)
 														)
 												);
 
@@ -2216,8 +2216,8 @@ TYPE
 						DEC(curBytePos, n);
 
 						result := SYSTEM.VAL(LONGINT,
-												SYSTEM.VAL(SET, SYSTEM.LSH(result, n))
-												+ SYSTEM.VAL(SET, SYSTEM.LSH(curByte, -curBytePos))
+												SYSTEM.VAL(SET, LSH(result, n))
+												+ SYSTEM.VAL(SET, LSH(curByte, -curBytePos))
 											);
 						RETURN result;
 					END;
@@ -2375,9 +2375,9 @@ TYPE
 						NEW(nqcc, ncomp);
 						NEW(nrgn, ncomp);
 
-						Machine.Fill32(SYSTEM.ADR(ncoc[0]), imgInfo.ncomp*SYSTEM.SIZEOF(LONGINT), 0);
-						Machine.Fill32(SYSTEM.ADR(nqcc[0]), imgInfo.ncomp*SYSTEM.SIZEOF(LONGINT), 0);
-						Machine.Fill32(SYSTEM.ADR(nrgn[0]), imgInfo.ncomp*SYSTEM.SIZEOF(LONGINT), 0);
+						Machine.Fill32(ADDRESSOF(ncoc[0]), imgInfo.ncomp*SIZEOF(LONGINT), 0);
+						Machine.Fill32(ADDRESSOF(nqcc[0]), imgInfo.ncomp*SIZEOF(LONGINT), 0);
+						Machine.Fill32(ADDRESSOF(nrgn[0]), imgInfo.ncomp*SIZEOF(LONGINT), 0);
 
 						nppmLeft := 0;
 						nppmRead := 0;
@@ -2395,7 +2395,7 @@ TYPE
 						NEW(decSpec.cics, nt);
 						NEW(decSpec.quant, nt, ncomp);
 						NEW(decSpec.roiShift, nt, ncomp);
-						Machine.Fill32(SYSTEM.ADR(decSpec.roiShift[0][0]), nt*ncomp*SYSTEM.SIZEOF(LONGINT), -1);
+						Machine.Fill32(ADDRESSOF(decSpec.roiShift[0][0]), nt*ncomp*SIZEOF(LONGINT), -1);
 
 						curMarker := s.Net16();
 					END;
@@ -2568,8 +2568,8 @@ TYPE
 						NEW(ntilePartsRead, nt);
 						NEW(ntilePartsAvailable, nt);
 
-						Machine.Fill32(SYSTEM.ADR(ntilePartsRead[0]), nt*SYSTEM.SIZEOF(LONGINT), 0);
-						Machine.Fill32(SYSTEM.ADR(ntilePartsAvailable[0]), nt*SYSTEM.SIZEOF(LONGINT), 0);
+						Machine.Fill32(ADDRESSOF(ntilePartsRead[0]), nt*SIZEOF(LONGINT), 0);
+						Machine.Fill32(ADDRESSOF(ntilePartsAvailable[0]), nt*SIZEOF(LONGINT), 0);
 
 						ncblkInBuf := 0;
 						cblkBufPos := 0;
@@ -2645,7 +2645,7 @@ TYPE
 						IF buf8Valid THEN
 							buf8Valid := FALSE;
 							curMarker := SYSTEM.VAL(LONGINT,
-													SYSTEM.VAL(SET, SYSTEM.LSH(buf8, 8))
+													SYSTEM.VAL(SET, LSH(buf8, 8))
 													+ SYSTEM.VAL(SET, LONG(ORD(s.Get())))
 											);
 						ELSE
@@ -2682,7 +2682,7 @@ TYPE
 								FOR c := 0 TO ncomp - 1 DO
 									ndec := decSpec.cstyle[curTile][c].ndec;
 									NEW(lmin[c], ndec + 1);
-									Machine.Fill32(SYSTEM.ADR(lmin[c][0]), (ndec+1)*SYSTEM.SIZEOF(LONGINT), 0);
+									Machine.Fill32(ADDRESSOF(lmin[c][0]), (ndec+1)*SIZEOF(LONGINT), 0);
 								END;
 
 								lmax := -1;
@@ -3419,8 +3419,8 @@ TYPE
 
 
 						(* Values used for implicit 'ceil' operation after division (i.e. shifting) *)
-						tmpW := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblw) - 1;
-						tmpH := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblh) - 1;
+						tmpW := LSH(SYSTEM.VAL(LONGINT, 1), cblw) - 1;
+						tmpH := LSH(SYSTEM.VAL(LONGINT, 1), cblh) - 1;
 
 						(* We have to allocate space for all subbands in each decomposition level *)
 						NEW(subbInfos[curTile][c], 4 * ndec + 1);
@@ -3438,14 +3438,14 @@ TYPE
 							parentBand.nblocksx := 0;
 						ELSE
 							(* NOTE: Implicit 'ceil' operation is applied to first term *)
-							parentBand.nblocksx := SYSTEM.LSH(tcx1 + tmpW, -cblw) - SYSTEM.LSH(tcx0, -cblw);
+							parentBand.nblocksx := LSH(tcx1 + tmpW, -cblw) - LSH(tcx0, -cblw);
 						END;
 
 						IF parentBand.height = 0 THEN
 							parentBand.nblocksy := 0;
 						ELSE
 							(* NOTE: Implicit 'ceil' operation is applied to first term *)
-							parentBand.nblocksy := SYSTEM.LSH(tcy1 + tmpH, -cblh) - SYSTEM.LSH(tcy0, -cblh);
+							parentBand.nblocksy := LSH(tcy1 + tmpH, -cblh) - LSH(tcy0, -cblh);
 						END;
 
 						(* We always start from the origin in the subband decomposition domain *)
@@ -3488,30 +3488,30 @@ TYPE
 							END;
 
 							(* Values used for implicit 'ceil' operation after division (i.e. shifting) *)
-							tmpW := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblw) - 1;
-							tmpH := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblh) - 1;
+							tmpW := LSH(SYSTEM.VAL(LONGINT, 1), cblw) - 1;
+							tmpH := LSH(SYSTEM.VAL(LONGINT, 1), cblh) - 1;
 
 							(* The HL subband *)
 							NEW(hlBand);
 							hlBand.type := J2KU.SUB_HL;
 							hlBand.index := 0;
-							hlBand.ulcx := SYSTEM.LSH(parentBand.ulcx, -1);
-							hlBand.ulcy := SYSTEM.LSH(parentBand.ulcy + 1, -1);
-							hlBand.width := SYSTEM.LSH(parentBand.ulcx + parentBand.width, -1) - hlBand.ulcx;
-							hlBand.height := SYSTEM.LSH(parentBand.ulcy + parentBand.height + 1, -1) - hlBand.ulcy;
+							hlBand.ulcx := LSH(parentBand.ulcx, -1);
+							hlBand.ulcy := LSH(parentBand.ulcy + 1, -1);
+							hlBand.width := LSH(parentBand.ulcx + parentBand.width, -1) - hlBand.ulcx;
+							hlBand.height := LSH(parentBand.ulcy + parentBand.height + 1, -1) - hlBand.ulcy;
 							(* Set number of code-blocks for this subband *)
 							IF hlBand.width = 0 THEN
 								hlBand.nblocksx := 0;
 							ELSE
 								(* NOTE: Implicit 'ceil' operation is applied to first term *)
-								hlBand.nblocksx := SYSTEM.LSH(hlBand.ulcx+hlBand.width + tmpW, -cblw) - SYSTEM.LSH(hlBand.ulcx, -cblw);
+								hlBand.nblocksx := LSH(hlBand.ulcx+hlBand.width + tmpW, -cblw) - LSH(hlBand.ulcx, -cblw);
 							END;
 
 							IF hlBand.height = 0 THEN
 								hlBand.nblocksy := 0;
 							ELSE
 								(* NOTE: Implicit 'ceil' operation is applied to first term *)
-								hlBand.nblocksy := SYSTEM.LSH(hlBand.ulcy+hlBand.height + tmpH, -cblh) - SYSTEM.LSH(hlBand.ulcy, -cblh);
+								hlBand.nblocksy := LSH(hlBand.ulcy+hlBand.height + tmpH, -cblh) - LSH(hlBand.ulcy, -cblh);
 							END;
 
 							hlBand.magbits := GetNumMagBits(curTile, c, reslevel, J2KU.SUB_HL);
@@ -3526,23 +3526,23 @@ TYPE
 							NEW(lhBand);
 							lhBand.type := J2KU.SUB_LH;
 							lhBand.index := 1;
-							lhBand.ulcx := SYSTEM.LSH(parentBand.ulcx + 1, -1);
-							lhBand.ulcy := SYSTEM.LSH(parentBand.ulcy, -1);
-							lhBand.width := SYSTEM.LSH(parentBand.ulcx + parentBand.width + 1, -1) - lhBand.ulcx;
-							lhBand.height := SYSTEM.LSH(parentBand.ulcy + parentBand.height, -1) - lhBand.ulcy;
+							lhBand.ulcx := LSH(parentBand.ulcx + 1, -1);
+							lhBand.ulcy := LSH(parentBand.ulcy, -1);
+							lhBand.width := LSH(parentBand.ulcx + parentBand.width + 1, -1) - lhBand.ulcx;
+							lhBand.height := LSH(parentBand.ulcy + parentBand.height, -1) - lhBand.ulcy;
 							(* Set number of code-blocks for this subband *)
 							IF lhBand.width = 0 THEN
 								lhBand.nblocksx := 0;
 							ELSE
 								(* NOTE: Implicit 'ceil' operation is applied to first term *)
-								lhBand.nblocksx := SYSTEM.LSH(lhBand.ulcx+lhBand.width + tmpW, -cblw) - SYSTEM.LSH(lhBand.ulcx, -cblw);
+								lhBand.nblocksx := LSH(lhBand.ulcx+lhBand.width + tmpW, -cblw) - LSH(lhBand.ulcx, -cblw);
 							END;
 
 							IF lhBand.height = 0 THEN
 								lhBand.nblocksy := 0;
 							ELSE
 								(* NOTE: Implicit 'ceil' operation is applied to first term *)
-								lhBand.nblocksy := SYSTEM.LSH(lhBand.ulcy+lhBand.height + tmpH, -cblh) - SYSTEM.LSH(lhBand.ulcy, -cblh);
+								lhBand.nblocksy := LSH(lhBand.ulcy+lhBand.height + tmpH, -cblh) - LSH(lhBand.ulcy, -cblh);
 							END;
 
 							lhBand.magbits := GetNumMagBits(curTile, c, reslevel, J2KU.SUB_LH);
@@ -3589,8 +3589,8 @@ TYPE
 							END;
 
 							(* Values used for implicit 'ceil' operation after division (i.e. shifting) *)
-							tmpW := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblw) - 1;
-							tmpH := SYSTEM.LSH(SYSTEM.VAL(LONGINT, 1), cblh) - 1;
+							tmpW := LSH(SYSTEM.VAL(LONGINT, 1), cblw) - 1;
+							tmpH := LSH(SYSTEM.VAL(LONGINT, 1), cblh) - 1;
 
 							NEW(llBand);
 							llBand.type := J2KU.SUB_LL;
@@ -3606,14 +3606,14 @@ TYPE
 								llBand.nblocksx := 0;
 							ELSE
 								(* NOTE: Implicit 'ceil' operation is applied to first term *)
-								llBand.nblocksx := SYSTEM.LSH(llBand.ulcx+llBand.width + tmpW, -cblw) - SYSTEM.LSH(llBand.ulcx, -cblw);
+								llBand.nblocksx := LSH(llBand.ulcx+llBand.width + tmpW, -cblw) - LSH(llBand.ulcx, -cblw);
 							END;
 
 							IF llBand.height = 0 THEN
 								llBand.nblocksy := 0;
 							ELSE
 								(* NOTE: Implicit 'ceil' operation is applied to first term *)
-								llBand.nblocksy := SYSTEM.LSH(llBand.ulcy+llBand.height + tmpH, -cblh) - SYSTEM.LSH(llBand.ulcy, -cblh);
+								llBand.nblocksy := LSH(llBand.ulcy+llBand.height + tmpH, -cblh) - LSH(llBand.ulcy, -cblh);
 							END;
 
 							(*
@@ -3696,7 +3696,7 @@ TYPE
 
 						FOR r := 0 TO ndec DO
 							NEW(curPrec[c][r], nl);
-							(*Machine.Fill32(SYSTEM.ADR(curPrec[c][r][0]), nl*SYSTEM.SIZEOF(LONGINT), 0);*)
+							(*Machine.Fill32(ADDRESSOF(curPrec[c][r][0]), nl*SIZEOF(LONGINT), 0);*)
 						END;
 					END;
 
@@ -3734,7 +3734,7 @@ TYPE
 
 					RETURN
 						SYSTEM.VAL(LONGINT,
-							SYSTEM.VAL(SET, SYSTEM.LSH(buf8, 8))
+							SYSTEM.VAL(SET, LSH(buf8, 8))
 							+ SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, s.Peek()))
 						);
 
@@ -3901,9 +3901,9 @@ TYPE
 					NEW(nqcc, ncomp);
 					NEW(nrgn, ncomp);
 
-					Machine.Fill32(SYSTEM.ADR(ncoc[0]), ncomp*SYSTEM.SIZEOF(LONGINT), 0);
-					Machine.Fill32(SYSTEM.ADR(nqcc[0]), ncomp*SYSTEM.SIZEOF(LONGINT), 0);
-					Machine.Fill32(SYSTEM.ADR(nrgn[0]), ncomp*SYSTEM.SIZEOF(LONGINT), 0);
+					Machine.Fill32(ADDRESSOF(ncoc[0]), ncomp*SIZEOF(LONGINT), 0);
+					Machine.Fill32(ADDRESSOF(nqcc[0]), ncomp*SIZEOF(LONGINT), 0);
+					Machine.Fill32(ADDRESSOF(nrgn[0]), ncomp*SIZEOF(LONGINT), 0);
 
 					pptUsed := FALSE;
 					pptFirst := NIL;
@@ -4302,8 +4302,8 @@ TYPE
 
 					scodInt := ORD(scod);
 					tmpCod.maxps := ~ODD(scodInt);
-					tmpCics.sop := ODD(SYSTEM.LSH(scodInt, -1));
-					tmpCics.eph := ODD(SYSTEM.LSH(scodInt, -2));
+					tmpCics.sop := ODD(LSH(scodInt, -1));
+					tmpCics.eph := ODD(LSH(scodInt, -2));
 
 					tmpCod.ndec := ORD(ndec);
 					IF tmpCod.ndec > 32 THEN
@@ -4325,12 +4325,12 @@ TYPE
 
 					cblsInt := ORD(cbls);
 					tmpCod.selcb := ODD(cblsInt);
-					tmpCod.rescp := ODD(SYSTEM.LSH(cblsInt, -1));
-					tmpCod.term := ODD(SYSTEM.LSH(cblsInt, -2));
-					tmpCod.vert := ODD(SYSTEM.LSH(cblsInt, -3));
+					tmpCod.rescp := ODD(LSH(cblsInt, -1));
+					tmpCod.term := ODD(LSH(cblsInt, -2));
+					tmpCod.vert := ODD(LSH(cblsInt, -3));
 
-					tmpCod.pred := ODD(SYSTEM.LSH(cblsInt, -4));
-					tmpCod.segs := ODD(SYSTEM.LSH(cblsInt, -5));
+					tmpCod.pred := ODD(LSH(cblsInt, -4));
+					tmpCod.segs := ODD(LSH(cblsInt, -5));
 
 					tmpCod.trans := ORD(trans);
 
@@ -4341,7 +4341,7 @@ TYPE
 							s.Char(precsiz);
 							precsizInt := ORD(precsiz);
 							tmpCod.precs[i].ppx := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, precsizInt) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 0000000FH)));
-							tmpCod.precs[i].ppy := SYSTEM.LSH(precsizInt, -4);
+							tmpCod.precs[i].ppy := LSH(precsizInt, -4);
 						END;
 					END;
 
@@ -4437,11 +4437,11 @@ TYPE
 
 					cblsInt := ORD(cbls);
 					tmpCoc.selcb := ODD(cblsInt);
-					tmpCoc.rescp := ODD(SYSTEM.LSH(cblsInt, -1));
-					tmpCoc.term := ODD(SYSTEM.LSH(cblsInt, -2));
-					tmpCoc.vert := ODD(SYSTEM.LSH(cblsInt, -3));
-					tmpCoc.pred := ODD(SYSTEM.LSH(cblsInt, -4));
-					tmpCoc.segs := ODD(SYSTEM.LSH(cblsInt, -5));
+					tmpCoc.rescp := ODD(LSH(cblsInt, -1));
+					tmpCoc.term := ODD(LSH(cblsInt, -2));
+					tmpCoc.vert := ODD(LSH(cblsInt, -3));
+					tmpCoc.pred := ODD(LSH(cblsInt, -4));
+					tmpCoc.segs := ODD(LSH(cblsInt, -5));
 
 					tmpCoc.trans := ORD(trans);
 
@@ -4452,7 +4452,7 @@ TYPE
 							s.Char(precsiz);
 							precsizInt := ORD(precsiz);
 							tmpCoc.precs[i].ppx := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, precsizInt) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 0000000FH)));
-							tmpCoc.precs[i].ppy := SYSTEM.LSH(precsizInt, -4);
+							tmpCoc.precs[i].ppy := LSH(precsizInt, -4);
 						END;
 					END;
 
@@ -4553,7 +4553,7 @@ TYPE
 
 					NEW(tmp);
 					tmp.style := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, sqcdInt) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 0000001FH)));
-					tmp.nguardb := SYSTEM.LSH(sqcdInt, -5);
+					tmp.nguardb := LSH(sqcdInt, -5);
 
 					CASE tmp.style OF
 							NOQUANT :
@@ -4564,7 +4564,7 @@ TYPE
 									NEW(tmp.stepsiz[i]);
 									tmp.stepsiz[i].mant := 0;
 									s.Char(ch);
-									tmp.stepsiz[i].exp := SYSTEM.LSH(ORD(ch), -3);
+									tmp.stepsiz[i].exp := LSH(ORD(ch), -3);
 								END;
 						|	 QUANT_DER :
 								(* Only the values for the NL-LL subband are signalled *)
@@ -4573,7 +4573,7 @@ TYPE
 								NEW(tmp.stepsiz[0]);
 								ssize := s.Net16();
 								tmp.stepsiz[0].mant := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ssize) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000007FFH)));
-								tmp.stepsiz[0].exp := SYSTEM.LSH(ssize, -11);
+								tmp.stepsiz[0].exp := LSH(ssize, -11);
 						|	QUANT_EXP :
 								(* There are as many step sizes signalled as there ae subbands *)
 								tmp.nstepsiz := (lqcd-3) DIV 2;
@@ -4582,7 +4582,7 @@ TYPE
 									NEW(tmp.stepsiz[i]);
 									ssize := s.Net16();
 									tmp.stepsiz[i].mant := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ssize) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000007FFH)));
-									tmp.stepsiz[i].exp := SYSTEM.LSH(ssize, -11);
+									tmp.stepsiz[i].exp := LSH(ssize, -11);
 								END;
 						ELSE
 							KernelLog.String("ERROR: Invalid quantization style in QCD segment : 0x");
@@ -4645,7 +4645,7 @@ TYPE
 
 					NEW(tmp);
 					tmp.style := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, sqccInt) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 0000001FH)));
-					tmp.nguardb := SYSTEM.LSH(sqccInt, -5);
+					tmp.nguardb := LSH(sqccInt, -5);
 
 					CASE tmp.style OF
 							NOQUANT :
@@ -4656,7 +4656,7 @@ TYPE
 									NEW(tmp.stepsiz[i]);
 									tmp.stepsiz[i].mant := 0;
 									s.Char(ch);
-									tmp.stepsiz[i].exp := SYSTEM.LSH(ORD(ch), -3);
+									tmp.stepsiz[i].exp := LSH(ORD(ch), -3);
 								END;
 						|	 QUANT_DER :
 								(* Only the values for the NL-LL subband are signalled *)
@@ -4665,7 +4665,7 @@ TYPE
 								NEW(tmp.stepsiz[0]);
 								ssize := s.Net16();
 								tmp.stepsiz[0].mant := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ssize) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000007FFH)));
-								tmp.stepsiz[0].exp := SYSTEM.LSH(ssize, -11);
+								tmp.stepsiz[0].exp := LSH(ssize, -11);
 						|	QUANT_EXP :
 								(* There are as many step sizes signalled as there ae subbands *)
 								tmp.nstepsiz := (lqcc - (3 + cqccLen)) DIV 2;
@@ -4674,7 +4674,7 @@ TYPE
 									NEW(tmp.stepsiz[i]);
 									ssize := s.Net16();
 									tmp.stepsiz[i].mant := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ssize) * SYSTEM.VAL(SET, SYSTEM.VAL(LONGINT, 000007FFH)));
-									tmp.stepsiz[i].exp := SYSTEM.LSH(ssize, -11);
+									tmp.stepsiz[i].exp := LSH(ssize, -11);
 								END;
 						ELSE
 							KernelLog.String("ERROR: Invalid quantization style in QCC segment : 0x");
@@ -5112,7 +5112,7 @@ TYPE
 									IF nblocks > 0 THEN
 										NEW(bufferedBlocks[curTile][c][r][subband], nblocks);
 
-										Machine.Fill32(SYSTEM.ADR(bufferedBlocks[curTile][c][r][subband][0]), nblocks*SYSTEM.SIZEOF(J2KU.CodedCblk), 0);
+										Machine.Fill32(ADDRESSOF(bufferedBlocks[curTile][c][r][subband][0]), nblocks*SIZEOF(J2KU.CodedCblk), 0);
 									END;
 								END;
 							END;
@@ -5272,7 +5272,7 @@ TYPE
 
 							(* If there is anything in between the two segments -> move it *)
 							IF cblock.nseg > 2 THEN
-								SYSTEM.MOVE(SYSTEM.ADR(tmpSegLen[i+1]), SYSTEM.ADR(cblock.segLen[1]), (cblock.nseg-2)*SYSTEM.SIZEOF(LONGINT));
+								SYSTEM.MOVE(ADDRESSOF(tmpSegLen[i+1]), ADDRESSOF(cblock.segLen[1]), (cblock.nseg-2)*SIZEOF(LONGINT));
 							END;
 						ELSE
 							cblock.nseg := 1;
@@ -5330,41 +5330,41 @@ TYPE
 								may vary largely. But that's still better than always having to allocate space for data of a
 								new layer (isn't it?).
 							*)
-							newSize := newDataLen + SYSTEM.LSH(newDataLen * layLeft, -1);
+							newSize := newDataLen + LSH(newDataLen * layLeft, -1);
 							NEW(tmpBlock.data, newSize);
 						(* See wether the data array of the buffered code-block is large enough or not *)
 						ELSIF LEN(tmpBlock.data^) < (newDataLen + tmpBlock.dataLen + tmpBlock.dataOffset) THEN
 							tmpData := tmpBlock.data;
 							(* NOTE: See reasoning above *)
-							newSize := newDataLen + tmpBlock.dataLen + SYSTEM.LSH(newDataLen * layLeft, -1);
+							newSize := newDataLen + tmpBlock.dataLen + LSH(newDataLen * layLeft, -1);
 							NEW(tmpBlock.data, newSize);
 							(* Move the existing data to the new array *)
-							SYSTEM.MOVE(SYSTEM.ADR(tmpData[0]), SYSTEM.ADR(tmpBlock.data[0]), tmpBlock.dataLen);
+							SYSTEM.MOVE(ADDRESSOF(tmpData[0]), ADDRESSOF(tmpBlock.data[0]), tmpBlock.dataLen);
 						END;
 
 						(* If we have entropy bypass coding or termination, we store all segment lenghts *)
 						IF decSpec.cstyle[curTile][comp].selcb OR decSpec.cstyle[curTile][comp].term THEN
 							(* Now do a similar thing for the segment lengths array *)
 							IF tmpBlock.segLen = NIL THEN
-								newSegSize := newSegs + SYSTEM.LSH(newSegs * layLeft, -1);
+								newSegSize := newSegs + LSH(newSegs * layLeft, -1);
 								NEW(tmpBlock.segLen, newSegSize);
 
-								Machine.Fill32(SYSTEM.ADR(tmpBlock.segLen[0]), newSegSize*SYSTEM.SIZEOF(LONGINT), 0);
+								Machine.Fill32(ADDRESSOF(tmpBlock.segLen[0]), newSegSize*SIZEOF(LONGINT), 0);
 							ELSIF LEN(tmpBlock.segLen^) < (newSegs + tmpBlock.nseg) THEN
 								tmpSegLen := tmpBlock.segLen;
 								(* NOTE: See reasoning above *)
-									newSegSize := newSegs + tmpBlock.nseg + SYSTEM.LSH(newSegs * layLeft, -1);
+									newSegSize := newSegs + tmpBlock.nseg + LSH(newSegs * layLeft, -1);
 								NEW(tmpBlock.segLen, newSegSize);
 
 								(* Move the existing segment lengths to the new array *)
-								SYSTEM.MOVE(SYSTEM.ADR(tmpSegLen[0]), SYSTEM.ADR(tmpBlock.segLen[0]), LEN(tmpSegLen^) * SYSTEM.SIZEOF(LONGINT));
+								SYSTEM.MOVE(ADDRESSOF(tmpSegLen[0]), ADDRESSOF(tmpBlock.segLen[0]), LEN(tmpSegLen^) * SIZEOF(LONGINT));
 								(* Init the remaining fields with 0 *)
-								Machine.Fill32(SYSTEM.ADR(tmpBlock.segLen[LEN(tmpSegLen^)]), (newSegSize-LEN(tmpSegLen^))*SYSTEM.SIZEOF(LONGINT), 0);
+								Machine.Fill32(ADDRESSOF(tmpBlock.segLen[LEN(tmpSegLen^)]), (newSegSize-LEN(tmpSegLen^))*SIZEOF(LONGINT), 0);
 							END;
 
 							IF decSpec.cstyle[curTile][comp].term THEN
 								IF newSegs > 1 THEN
-									SYSTEM.MOVE(SYSTEM.ADR(cblk.segLen[0]), SYSTEM.ADR(tmpBlock.segLen[tmpBlock.nseg]), newSegs * SYSTEM.SIZEOF(LONGINT));
+									SYSTEM.MOVE(ADDRESSOF(cblk.segLen[0]), ADDRESSOF(tmpBlock.segLen[tmpBlock.nseg]), newSegs * SIZEOF(LONGINT));
 									INC(tmpBlock.nseg, newSegs);
 								ELSE
 									tmpBlock.segLen[tmpBlock.nseg] := cblk.dataLen;
@@ -5379,7 +5379,7 @@ TYPE
 									INC(tmpSegLen[tmpBlock.nseg], cblk.segLen[0]);
 
 									(* Copy the other segment lenghts *)
-									SYSTEM.MOVE(SYSTEM.ADR(cblk.segLen[1]), SYSTEM.ADR(tmpSegLen[tmpBlock.nseg + 1]), (newSegs-1)*SYSTEM.SIZEOF(LONGINT));
+									SYSTEM.MOVE(ADDRESSOF(cblk.segLen[1]), ADDRESSOF(tmpSegLen[tmpBlock.nseg + 1]), (newSegs-1)*SIZEOF(LONGINT));
 
 									(* If the last segment is terminated we need to increment the number of segments *)
 									(* truncpt MOD ENTROPY_NUM_PASSES =  2-> significance propagation pass *)
@@ -5403,7 +5403,7 @@ TYPE
 							END;
 						END;
 
-						SYSTEM.MOVE(SYSTEM.ADR(cblk.data[cblk.dataOffset]), SYSTEM.ADR(tmpBlock.data[tmpBlock.dataLen]), newDataLen);
+						SYSTEM.MOVE(ADDRESSOF(cblk.data[cblk.dataOffset]), ADDRESSOF(tmpBlock.data[tmpBlock.dataLen]), newDataLen);
 						INC(tmpBlock.dataLen, newDataLen);
 						INC(tmpBlock.cpasses, cblk.cpasses);
 

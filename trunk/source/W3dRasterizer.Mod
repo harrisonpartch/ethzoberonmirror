@@ -52,7 +52,7 @@ TYPE
 		(* Global to avoid stack clearing penalty, TODO: check accesstimes *)
 		x0, x1, x2, x3, dxL, dxR, xL, xR, xStart, xEnd, tr: REAL;
 		y0, y1, y2, dx, zStride, stride, color: LONGINT; (* buffer variables *)
-		adrBase, zBufBase: SYSTEM.ADDRESS;
+		adrBase, zBufBase: ADDRESS;
 
 		tx0, tx1, tx2, tx3, ty0, ty1, ty2, ty3, txStart, tyStart, dtxStart, dtyStart, dtx, dty: REAL; (* parameters for affine texture *)
 
@@ -61,7 +61,7 @@ TYPE
 
 		 invertable : BOOLEAN;
 		 invAdrStride, invIdx : LONGINT;
-		 invAdrBase: SYSTEM.ADDRESS;
+		 invAdrBase: ADDRESS;
 
 		 PROCEDURE CCW(tri : Triangle):BOOLEAN;
 		 BEGIN
@@ -87,7 +87,7 @@ TYPE
 		BEGIN
 			Raster.InitMode(mode, Raster.srcCopy);
 			Raster.Copy(img, saveimg, 0, 0, width, height, 0, 0, mode);
-			SYSTEM.MOVE(SYSTEM.ADR(zBuffer[0]), SYSTEM.ADR(savezBuffer[0]), width * height * SYSTEM.SIZEOF(REAL))
+			SYSTEM.MOVE(ADDRESSOF(zBuffer[0]), ADDRESSOF(savezBuffer[0]), width * height * SIZEOF(REAL))
 		END Keep;
 
 		PROCEDURE Restore*;
@@ -95,7 +95,7 @@ TYPE
 		BEGIN
 			Raster.InitMode(mode, Raster.srcCopy);
 			Raster.Copy(saveimg, img, 0, 0, width, height, 0, 0, mode);
-			SYSTEM.MOVE(SYSTEM.ADR(savezBuffer[0]), SYSTEM.ADR(zBuffer[0]), width * height * SYSTEM.SIZEOF(REAL))
+			SYSTEM.MOVE(ADDRESSOF(savezBuffer[0]), ADDRESSOF(zBuffer[0]), width * height * SIZEOF(REAL))
 		END Restore;
 
 		PROCEDURE SetInvertable*(invertable : BOOLEAN);
@@ -127,7 +127,7 @@ TYPE
 		END Clear;
 
 		PROCEDURE RenderLine;
-		VAR adr, zAdr, invAdr: SYSTEM.ADDRESS; x : LONGINT; z, ttx, tty: REAL;
+		VAR adr, zAdr, invAdr: ADDRESS; x : LONGINT; z, ttx, tty: REAL;
 		BEGIN
 			xL := xStart; xR := xEnd; z := zStart;
 			ttx := txStart; tty := tyStart;
@@ -146,7 +146,7 @@ TYPE
 						KernelLog.String("Assertion failed! (A)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END;
-					IF ~((zAdr >= SYSTEM.ADR(zBuffer[0])) & (zAdr < SYSTEM.ADR(zBuffer[0]) + width * height * 4)) THEN
+					IF ~((zAdr >= ADDRESSOF(zBuffer[0])) & (zAdr < ADDRESSOF(zBuffer[0]) + width * height * 4)) THEN
 						KernelLog.String("Assertion failed! (B)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END
@@ -165,7 +165,7 @@ TYPE
 		END RenderLine;
 
 		PROCEDURE RenderLineTex(tex : Texture);
-		VAR adr, zAdr, invAdr: SYSTEM.ADDRESS; x, txi, tyi, tadr : LONGINT; z, tx, ty: REAL;
+		VAR adr, zAdr, invAdr: ADDRESS; x, txi, tyi, tadr : LONGINT; z, tx, ty: REAL;
 		BEGIN
 			xL := xStart;
 			xR := xEnd;
@@ -190,7 +190,7 @@ TYPE
 						KernelLog.String("Assertion failed! (A)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END;
-					IF ~((zAdr >= SYSTEM.ADR(zBuffer[0])) & (zAdr < SYSTEM.ADR(zBuffer[0]) + width * height * 4)) THEN
+					IF ~((zAdr >= ADDRESSOF(zBuffer[0])) & (zAdr < ADDRESSOF(zBuffer[0]) + width * height * 4)) THEN
 						KernelLog.String("Assertion failed! (B)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END
@@ -281,8 +281,8 @@ TYPE
 					y0 := 0
 				END;
 				adrBase := img.adr + stride * y0;
-				zBufBase := SYSTEM.ADR(zBuffer[0]) + zStride * y0;
-				invAdrBase := SYSTEM.ADR(invBuffer[0]) + invAdrStride * y0;
+				zBufBase := ADDRESSOF(zBuffer[0]) + zStride * y0;
+				invAdrBase := ADDRESSOF(invBuffer[0]) + invAdrStride * y0;
 				IF y1 > height THEN y1 := height END;
 
 				IF tri.tex # NIL THEN FOR y := y0 TO y1 - 1 DO RenderLineTex(tri.tex) END
@@ -310,8 +310,8 @@ TYPE
 
 				IF y2 > height THEN y2 := height END;
 				adrBase := img.adr + stride * y1;
-				zBufBase := SYSTEM.ADR(zBuffer[0]) + zStride * y1;
-				invAdrBase := SYSTEM.ADR(invBuffer[0]) + invAdrStride * y1;
+				zBufBase := ADDRESSOF(zBuffer[0]) + zStride * y1;
+				invAdrBase := ADDRESSOF(invBuffer[0]) + invAdrStride * y1;
 				IF tri.tex # NIL THEN FOR y := y1 TO y2 - 1 DO RenderLineTex(tri.tex) END
 				ELSE FOR y := y1 TO y2 - 1 DO RenderLine END
 				END
@@ -323,7 +323,7 @@ TYPE
 (* Expensive perspective case *)
 
 		PROCEDURE RenderPerspLineTex(tex : Texture);
-		VAR adr, zAdr, invAdr: SYSTEM.ADDRESS; x, txi, tyi, tadr: LONGINT; z, zinv, rzinv, tx, ty, txr, tyr: REAL;
+		VAR adr, zAdr, invAdr: ADDRESS; x, txi, tyi, tadr: LONGINT; z, zinv, rzinv, tx, ty, txr, tyr: REAL;
 		BEGIN
 			xL := xStart;
 			xR := xEnd;
@@ -352,7 +352,7 @@ TYPE
 						KernelLog.String("Assertion failed! (A)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END;
-					IF ~((zAdr >= SYSTEM.ADR(zBuffer[0])) & (zAdr < SYSTEM.ADR(zBuffer[0]) + width * height * 4)) THEN
+					IF ~((zAdr >= ADDRESSOF(zBuffer[0])) & (zAdr < ADDRESSOF(zBuffer[0]) + width * height * 4)) THEN
 						KernelLog.String("Assertion failed! (B)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END
@@ -381,7 +381,7 @@ TYPE
 		END RenderPerspLineTex;
 
 		PROCEDURE RenderPerspLineFlat;
-		VAR adr, zAdr, invAdr: SYSTEM.ADDRESS; x: LONGINT; z, zinv, rzinv: REAL;
+		VAR adr, zAdr, invAdr: ADDRESS; x: LONGINT; z, zinv, rzinv: REAL;
 		BEGIN
 			xL := xStart;
 			xR := xEnd;
@@ -405,7 +405,7 @@ TYPE
 						KernelLog.String("Assertion failed! (A)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END;
-					IF ~((zAdr >= SYSTEM.ADR(zBuffer[0])) & (zAdr < SYSTEM.ADR(zBuffer[0]) + width * height * 4)) THEN
+					IF ~((zAdr >= ADDRESSOF(zBuffer[0])) & (zAdr < ADDRESSOF(zBuffer[0]) + width * height * 4)) THEN
 						KernelLog.String("Assertion failed! (B)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END
@@ -488,8 +488,8 @@ TYPE
 					y0 := 0
 				END;
 				adrBase := img.adr + stride * y0;
-				zBufBase := SYSTEM.ADR(zBuffer[0]) + zStride * y0;
-				invAdrBase := SYSTEM.ADR(invBuffer[0]) + invAdrStride * y0;
+				zBufBase := ADDRESSOF(zBuffer[0]) + zStride * y0;
+				invAdrBase := ADDRESSOF(invBuffer[0]) + invAdrStride * y0;
 				IF y1 > height THEN y1 := height END;
 
 				IF tri.tex # NIL THEN FOR y := y0 TO y1 - 1 DO RenderPerspLineTex(tri.tex) END
@@ -517,8 +517,8 @@ TYPE
 
 				IF y2 > height THEN y2 := height END;
 				adrBase := img.adr + stride * y1;
-				zBufBase := SYSTEM.ADR(zBuffer[0]) + zStride * y1;
-				invAdrBase := SYSTEM.ADR(invBuffer[0]) + invAdrStride * y1;
+				zBufBase := ADDRESSOF(zBuffer[0]) + zStride * y1;
+				invAdrBase := ADDRESSOF(invBuffer[0]) + invAdrStride * y1;
 				IF tri.tex # NIL THEN FOR y := y1 TO y2 - 1 DO RenderPerspLineTex(tri.tex) END
 				ELSE FOR y := y1 TO y2 - 1 DO RenderPerspLineFlat END
 				END
@@ -529,7 +529,7 @@ TYPE
 (* Experimental Subdivision case *)
 
 		PROCEDURE SubDivLineTex(tex : Texture);
-		VAR adr, zAdr, invAdr: SYSTEM.ADDRESS; x, txi, tyi, tadr: LONGINT; zinv, txr, tyr, zr, rzinv, tx, ty, sdtx, sdty, stx, sty, szr, ezr, dzr, subDivInv: REAL;
+		VAR adr, zAdr, invAdr: ADDRESS; x, txi, tyi, tadr: LONGINT; zinv, txr, tyr, zr, rzinv, tx, ty, sdtx, sdty, stx, sty, szr, ezr, dzr, subDivInv: REAL;
 				i : LONGINT;
 		CONST SubDiv = 16;
 		BEGIN
@@ -577,7 +577,7 @@ TYPE
 						KernelLog.String("Assertion failed! (A)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END;
-					IF ~((zAdr >= SYSTEM.ADR(zBuffer[0])) & (zAdr < SYSTEM.ADR(zBuffer[0]) + width * height * 4)) THEN
+					IF ~((zAdr >= ADDRESSOF(zBuffer[0])) & (zAdr < ADDRESSOF(zBuffer[0]) + width * height * 4)) THEN
 						KernelLog.String("Assertion failed! (B)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END
@@ -607,7 +607,7 @@ TYPE
 		END SubDivLineTex;
 
 		PROCEDURE SubDivLineFlat;
-		VAR adr, zAdr, invAdr: SYSTEM.ADDRESS; x: LONGINT; zinv, zr, rzinv, szr, ezr, dzr, subDivInv: REAL;
+		VAR adr, zAdr, invAdr: ADDRESS; x: LONGINT; zinv, zr, rzinv, szr, ezr, dzr, subDivInv: REAL;
 				i : LONGINT;
 		CONST SubDiv = 16;
 		BEGIN
@@ -645,7 +645,7 @@ TYPE
 						KernelLog.String("Assertion failed! (A)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END;
-					IF ~((zAdr >= SYSTEM.ADR(zBuffer[0])) & (zAdr < SYSTEM.ADR(zBuffer[0]) + width * height * 4)) THEN
+					IF ~((zAdr >= ADDRESSOF(zBuffer[0])) & (zAdr < ADDRESSOF(zBuffer[0]) + width * height * 4)) THEN
 						KernelLog.String("Assertion failed! (B)"); KernelLog.Int(x, 5); KernelLog.Ln;
 						RETURN
 					END
@@ -731,8 +731,8 @@ TYPE
 					y0 := 0
 				END;
 				adrBase := img.adr + stride * y0;
-				zBufBase := SYSTEM.ADR(zBuffer[0]) + zStride * y0;
-				invAdrBase := SYSTEM.ADR(invBuffer[0]) + invAdrStride * y0;
+				zBufBase := ADDRESSOF(zBuffer[0]) + zStride * y0;
+				invAdrBase := ADDRESSOF(invBuffer[0]) + invAdrStride * y0;
 				IF y1 > height THEN y1 := height END;
 
 				IF tri.tex # NIL THEN FOR y := y0 TO y1 - 1 DO SubDivLineTex(tri.tex) END
@@ -760,8 +760,8 @@ TYPE
 
 				IF y2 > height THEN y2 := height END;
 				adrBase := img.adr + stride * y1;
-				zBufBase := SYSTEM.ADR(zBuffer[0]) + zStride * y1;
-				invAdrBase := SYSTEM.ADR(invBuffer[0]) + invAdrStride * y1;
+				zBufBase := ADDRESSOF(zBuffer[0]) + zStride * y1;
+				invAdrBase := ADDRESSOF(invBuffer[0]) + invAdrStride * y1;
 				IF tri.tex # NIL THEN FOR y := y1 TO y2 - 1 DO SubDivLineTex(tri.tex) END
 				ELSE FOR y := y1 TO y2 - 1 DO SubDivLineFlat END
 				END

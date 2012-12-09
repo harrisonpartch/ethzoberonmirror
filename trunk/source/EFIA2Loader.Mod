@@ -15,9 +15,9 @@ CONST
 	bootTableAddress = -1;
 
 VAR
-	bootTableBegin : SYSTEM.ADDRESS; (* address at which boot table is really located. Can be equal to bootTableAddress *)
-	bootTableEnd : SYSTEM.ADDRESS; (* bootTableBegin + current size of bootTable - sizeof sentinel (=5) + 1. *)
-	bootTableCfgStrEntry : SYSTEM.ADDRESS; (* address of the config string entry (type 8) of the boot table *)
+	bootTableBegin : ADDRESS; (* address at which boot table is really located. Can be equal to bootTableAddress *)
+	bootTableEnd : ADDRESS; (* bootTableBegin + current size of bootTable - sizeof sentinel (=5) + 1. *)
+	bootTableCfgStrEntry : ADDRESS; (* address of the config string entry (type 8) of the boot table *)
 
 	(* search a mode that with the preferred horizontal and vertical resolution. Returns the corresponding mode
 	number or -1 if no such mode is found or if an error occurs *)
@@ -53,7 +53,7 @@ VAR
 		RETURN -1;
 	END SearchGraphicsMode;
 
-	PROCEDURE GetFrameBuffer(prefWidth, prefHeight, prefDepth, prefFormat : LONGINT; VAR framebufAddr : SYSTEM.ADDRESS; VAR framebufSize : SYSTEM.SIZE): EFI.Status;
+	PROCEDURE GetFrameBuffer(prefWidth, prefHeight, prefDepth, prefFormat : LONGINT; VAR framebufAddr : ADDRESS; VAR framebufSize : SIZE): EFI.Status;
 	VAR
 		handle : EFI.Handle;
 		handleBuf : ARRAY 128 OF EFI.Handle;
@@ -63,10 +63,10 @@ VAR
 		framebufPhysAddr : EFI.PhysicalAddress;
 		status : EFI.Status;
 	BEGIN
-		handleBufSize := LEN(handleBuf)*SYSTEM.SIZEOF(EFI.Handle);
+		handleBufSize := LEN(handleBuf)*SIZEOF(EFI.Handle);
 		status := EFI.table.BS.LocateHandle(EFI.ByProtocol, EFIGraphicsOutput.GUID, 0, handleBufSize, handleBuf);
 		IF status = EFI.Success THEN
-			i := handleBufSize DIV SYSTEM.SIZEOF(EFI.Handle); (* probably either 0 or 1. *)
+			i := handleBufSize DIV SIZEOF(EFI.Handle); (* probably either 0 or 1. *)
 			WHILE i > 0 DO
 				DEC(i);
 				handle := handleBuf[i];
@@ -78,7 +78,7 @@ VAR
 						status := goProt.SetMode(goProt, modeNumber);
 						IF (status = EFI.Success) & (goProt.Mode.Mode = modeNumber) THEN
 							framebufPhysAddr := goProt.Mode.FrameBufferBase;
-							framebufAddr := SYSTEM.VAL(SYSTEM.ADDRESS, framebufPhysAddr);
+							framebufAddr := SYSTEM.VAL(ADDRESS, framebufPhysAddr);
 							framebufSize := goProt.Mode.FrameBufferSize;
 							RETURN EFI.Success;
 						END;
@@ -103,10 +103,10 @@ VAR
 		status : EFI.Status;
 
 	BEGIN
-		handleBufSize := LEN(handleBuf)*SYSTEM.SIZEOF(EFI.Handle);
+		handleBufSize := LEN(handleBuf)*SIZEOF(EFI.Handle);
 		status := EFI.table.BS.LocateHandle(EFI.ByProtocol, EFIGraphicsOutput.GUID, 0, handleBufSize, handleBuf);
 		IF status = EFI.Success THEN
-			i := handleBufSize DIV SYSTEM.SIZEOF(EFI.Handle); (* probably either 0 or 1. *)
+			i := handleBufSize DIV SIZEOF(EFI.Handle); (* probably either 0 or 1. *)
 			IF (i = 0) THEN
 				Trace.String(" - none - "); Trace.Ln;
 			END;
@@ -149,25 +149,25 @@ VAR
 	END PrintGraphicsModes;
 
 	(* Loads the configuration file and creates the corresponding boot-table. *)
-	PROCEDURE LoadBootTable(CONST configFileName : ARRAY OF EFI.Char16; VAR btAddr : SYSTEM.ADDRESS) : EFI.Status;
+	PROCEDURE LoadBootTable(CONST configFileName : ARRAY OF EFI.Char16; VAR btAddr : ADDRESS) : EFI.Status;
 	VAR
 		configFile : EFIFileProtocol.Protocol;
-		cfAddr, cfPos, cfEnd : SYSTEM.ADDRESS;
+		cfAddr, cfPos, cfEnd : ADDRESS;
 		btAddrPhys : EFI.PhysicalAddress;
-		btPos : SYSTEM.ADDRESS;
+		btPos : ADDRESS;
 		status : EFI.Status;
 
 		type : LONGINT;
 		fileSize : LONGINT;
 
-		cfgname, cfgval : SYSTEM.ADDRESS;
+		cfgname, cfgval : ADDRESS;
 		cfgnamelen, cfgvallen : LONGINT;
 
 		parseError : BOOLEAN;
 
 		ramSize : EFI.Int64;
 
-		PROCEDURE ReportError(at : SYSTEM.ADDRESS);
+		PROCEDURE ReportError(at : ADDRESS);
 		VAR status : EFI.Status;
 		BEGIN
 			parseError := TRUE;
@@ -184,7 +184,7 @@ VAR
 		END IsWhitespace;
 
 		(* searches the next configuration entry in the config file and returns the positions and lengths of its name and value *)
-		PROCEDURE ReadConfig (VAR name : SYSTEM.ADDRESS; VAR namelen : LONGINT; VAR val : SYSTEM.ADDRESS; VAR vallen : LONGINT) : BOOLEAN;
+		PROCEDURE ReadConfig (VAR name : ADDRESS; VAR namelen : LONGINT; VAR val : ADDRESS; VAR vallen : LONGINT) : BOOLEAN;
 		VAR ch : CHAR;
 		BEGIN
 			(* skip whitespace *)
@@ -257,7 +257,7 @@ VAR
 		IF status # EFI.Success THEN
 			RETURN status;
 		END;
-		bootTableBegin := SYSTEM.VAL(SYSTEM.ADDRESS,btAddrPhys);
+		bootTableBegin := SYSTEM.VAL(ADDRESS,btAddrPhys);
 		btAddr := bootTableBegin; (* out *)
 		btPos := bootTableBegin;
 
@@ -309,14 +309,14 @@ VAR
 		strlenName:=0; WHILE (name[strlenName] # 0X) & (strlenName < LEN(name)) DO INC(strlenName); END;
 		strlenVal:=0; WHILE (val[strlenVal] # 0X) & (strlenVal < LEN(val)) DO INC(strlenVal); END;
 
-		AddConfigA(SYSTEM.ADR(name[0]), strlenName, SYSTEM.ADR(val[0]), strlenVal);
+		AddConfigA(ADDRESSOF(name[0]), strlenName, ADDRESSOF(val[0]), strlenVal);
 	END AddConfig;
 
 	(* add a config string entry to the boot table. The table always ends with a termination symbol which is overwritten
 	if another entry is added. The lengths must not include a terminating 0. *)
-	PROCEDURE AddConfigA(name : SYSTEM.ADDRESS; namelen : LONGINT; val : SYSTEM.ADDRESS; vallen : LONGINT);
-	VAR btEnd : SYSTEM.ADDRESS;
-	cfgStrSize : SYSTEM.SIZE;
+	PROCEDURE AddConfigA(name : ADDRESS; namelen : LONGINT; val : ADDRESS; vallen : LONGINT);
+	VAR btEnd : ADDRESS;
+	cfgStrSize : SIZE;
 	BEGIN
 		btEnd := bootTableEnd;
 		SYSTEM.MOVE(name,btEnd,namelen);
@@ -338,7 +338,7 @@ VAR
 
 	(* search in the config string entries of the boot table (NOT in the config file) for the configuration with name 'name' *)
 	PROCEDURE GetConfig(CONST name : ARRAY OF CHAR; VAR val : ARRAY OF CHAR);
-	VAR btIdx : SYSTEM.ADDRESS; i : LONGINT; ch : CHAR;
+	VAR btIdx : ADDRESS; i : LONGINT; ch : CHAR;
 	BEGIN
 		btIdx := bootTableCfgStrEntry + 8; (* skip type and size fields *)
 		(* copied from I386.Machine.Mod - GetConfig *)
@@ -395,9 +395,9 @@ VAR
 		Allocates makes sure the memory at kernelRelocAddress is allocated (by us or by someone else) s.t.
 		the boot table will certainly not be allocated there.
 	*)
-	PROCEDURE LoadKernel(CONST kernelFileName : ARRAY OF EFI.Char16; VAR kernelAddr: SYSTEM.ADDRESS; VAR kernelSize : LONGINT) : EFI.Status;
+	PROCEDURE LoadKernel(CONST kernelFileName : ARRAY OF EFI.Char16; VAR kernelAddr: ADDRESS; VAR kernelSize : LONGINT) : EFI.Status;
 	VAR
-		loadAddr : SYSTEM.ADDRESS;
+		loadAddr : ADDRESS;
 		allocAddr : EFI.PhysicalAddress;
 		kernelImageFile : EFIFileProtocol.Protocol;
 		kernelPages : LONGINT;
@@ -483,7 +483,7 @@ VAR
 
 	PROCEDURE LoadA2;
 	VAR
-		kernelAddr, btAddr, fbAddr, highAddr, memmapAddr: SYSTEM.ADDRESS;
+		kernelAddr, btAddr, fbAddr, highAddr, memmapAddr: ADDRESS;
 		fbSize: EFI.Int;
 		adr: EFI.PhysicalAddress;
 		kernelSize: LONGINT;
@@ -562,7 +562,7 @@ VAR
 			*)
 			
 			memmapStat := EFILib.GetMemoryMapping(adr);
-			memmapAddr := SYSTEM.VAL(SYSTEM.ADDRESS,adr);
+			memmapAddr := SYSTEM.VAL(ADDRESS,adr);
 			TRACE(memmapAddr);
 			IF (memmapStat = EFI.Success ) THEN
 				Trace.Ln;

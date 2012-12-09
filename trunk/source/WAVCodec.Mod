@@ -45,7 +45,7 @@ TYPE
 			h.chunkRIFF[0] := "R"; h.chunkRIFF[1] := "I"; h.chunkRIFF[2] := "F"; h.chunkRIFF[3] := "F";
 			out.Bytes(h.chunkRIFF, 0, 4);
 
-			h.fileSize := SYSTEM.SIZEOF(WaveHeader)-8; (* for wave file with zero-length sound - will be updated later *)
+			h.fileSize := SIZEOF(WaveHeader)-8; (* for wave file with zero-length sound - will be updated later *)
 			WriteRawBELongInt(out, h.fileSize);
 
 			h.chunkWAVE[0] := "W"; h.chunkWAVE[1] := "A"; h.chunkWAVE[2] := "V"; h.chunkWAVE[3] := "E";
@@ -223,7 +223,7 @@ TYPE
 		PROCEDURE SetStreamLength*(length : LONGINT);
 		BEGIN
 			h.fileSize := length-8;
-			h.dataSize := length-SYSTEM.SIZEOF(WaveHeader);
+			h.dataSize := length-SIZEOF(WaveHeader);
 		END SetStreamLength;
 
 		PROCEDURE SeekSample*(sample: LONGINT; goKeySample : BOOLEAN; VAR res : LONGINT);
@@ -322,7 +322,7 @@ TYPE
 
 		PROCEDURE SetStreamLength*(length : LONGINT);
 		BEGIN
-			h.fileSize := length+SYSTEM.SIZEOF(WaveHeader)-8;
+			h.fileSize := length+SIZEOF(WaveHeader)-8;
 			h.dataSize := length
 		END SetStreamLength;
 

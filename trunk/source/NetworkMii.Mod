@@ -434,8 +434,8 @@ TYPE
 				IF Debug THEN Show("Could not read PHYIDR2 register."); KernelLog.Ln; END;
 				RETURN;
 			END;
-			identifier.oui := SYSTEM.VAL(LONGINT, SYSTEM.LSH(phyIdr1 * PHYIDR1_OuiMSB, 3) + SYSTEM.LSH(phyIdr2 * PHYIDR2_OuiLSB, 9));
-			identifier.model := SYSTEM.VAL(LONGINT, SYSTEM.LSH(phyIdr2 * PHYIDR2_VendorModel, -4));
+			identifier.oui := SYSTEM.VAL(LONGINT, LSH(phyIdr1 * PHYIDR1_OuiMSB, 3) + LSH(phyIdr2 * PHYIDR2_OuiLSB, 9));
+			identifier.model := SYSTEM.VAL(LONGINT, LSH(phyIdr2 * PHYIDR2_VendorModel, -4));
 			identifier.revision := SYSTEM.VAL(LONGINT, phyIdr2 * PHYIDR2_ModelRevision);
 		END GetIdentifier;
 

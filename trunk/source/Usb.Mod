@@ -1371,7 +1371,7 @@ BEGIN
 	endpoint.type := GetEndpointType(SYSTEM.VAL(SET, endpoint.bEndpointAddress), endpoint.bmAttributes);
 	dword := SYSTEM.VAL(SET, ORD(buffer[idx + 4]) + 256*SYSTEM.VAL(LONGINT, ORD(buffer[idx + 5])));
 	endpoint.wMaxPacketSize := SYSTEM.VAL(LONGINT, dword * {0..10});
-	endpoint.mult := SYSTEM.LSH(SYSTEM.VAL(LONGINT, dword * {11..12}), -11) + 1;
+	endpoint.mult := LSH(SYSTEM.VAL(LONGINT, dword * {11..12}), -11) + 1;
 	endpoint.bInterval := ORD(buffer[idx + 6]);
 	idx := idx + ORD(buffer[idx + 0]);
 	RETURN endpoint;

@@ -678,11 +678,11 @@ VAR
 	END FromMemory;
 
 	PROCEDURE ToMemory( win: Window;  VAR buf: ARRAY OF CHAR;  ofs, stride, x, y, w, h: LONGINT );
-	VAR adr: Kernel32.ADDRESS;  hDC: User32.HDC;  ret: Kernel32.BOOL;
+	VAR adr: ADDRESS;  hDC: User32.HDC;  ret: Kernel32.BOOL;
 	BEGIN
 		hDC := win.bmphdc;   (*  hDC := win.hDC; (* writes to screen*) *)
 		bmi.info.bmiHeader.biWidth := stride DIV format (* w *) ;  bmi.info.bmiHeader.biHeight := -h;   (* top-down *)
-		adr := SYSTEM.ADR( buf[ofs] );
+		adr := ADDRESSOF( buf[ofs] );
 
 		ret :=
 			GDI32.SetDIBitsToDevice( hDC, x, y, w, h, 0, 0, 0, h, adr, SYSTEM.VAL( GDI32.BitmapInfo, bmi.info ),
@@ -713,7 +713,7 @@ VAR
 	VAR mm: User32.MinMaxInfo;
 	BEGIN
 
-		SYSTEM.MOVE( lParam, SYSTEM.ADR( mm ), SYSTEM.SIZEOF( User32.MinMaxInfo ) );  mm.ptMaxSize.x := disp.width;
+		SYSTEM.MOVE( lParam, ADDRESSOF( mm ), SIZEOF( User32.MinMaxInfo ) );  mm.ptMaxSize.x := disp.width;
 		mm.ptMaxSize.y := disp.height;  mm.ptMaxTrackSize := mm.ptMaxSize;  RETURN TRUE;
 	END GetMinMaxInfo;
 
@@ -735,7 +735,7 @@ VAR
 	PROCEDURE PosChanging( win: Window;  lParam: User32.LParam );
 	VAR pos: User32.WindowPos;
 	BEGIN
-		SYSTEM.MOVE( lParam, SYSTEM.ADR( pos ), SYSTEM.SIZEOF( User32.WindowPos ) );
+		SYSTEM.MOVE( lParam, ADDRESSOF( pos ), SIZEOF( User32.WindowPos ) );
 		IF ~(User32.SWPNoMove IN pos.flags) THEN
 			IF (pos.x < -disp.width) & (pos.y < -disp.height) THEN Minimize( win )
 			ELSIF (pos.x >= 0) & (pos.y >= 0) THEN Restore( win )
@@ -906,20 +906,20 @@ VAR
 	VAR str: ARRAY 32 OF CHAR;
 		ret: Kernel32.ATOM;
 	BEGIN
-		dummyClass.cbSize := SYSTEM.SIZEOF( User32.WndClassEx );  dummyClass.style := {};  dummyClass.lpfnWndProc := DummyProc;
+		dummyClass.cbSize := SIZEOF( User32.WndClassEx );  dummyClass.style := {};  dummyClass.lpfnWndProc := DummyProc;
 		dummyClass.cbClsExtra := 0;  dummyClass.cbWndExtra := 4;  dummyClass.hInstance := Machine.hInstance;
 		dummyClass.hIcon := Kernel32.NULL;  dummyClass.hIconSm := Kernel32.NULL;  dummyClass.hCursor := Kernel32.NULL;
 		dummyClass.hbrBackground := Kernel32.NULL;  dummyClass.lpszMenuName := Kernel32.NULL;
-		dummyClass.lpszClassName := SYSTEM.VAL( Kernel32.LPSTR, SYSTEM.ADR( dummyClassName ) );
+		dummyClass.lpszClassName := SYSTEM.VAL( Kernel32.LPSTR, ADDRESSOF( dummyClassName ) );
 		ret := User32.RegisterClassEx( dummyClass );
 
-		windowClass.cbSize := SYSTEM.SIZEOF( User32.WndClassEx );
+		windowClass.cbSize := SIZEOF( User32.WndClassEx );
 		windowClass.style := {7};   (* Cs_parentdc: INTEGER is 128  = 2^7 *)
 		windowClass.lpfnWndProc := WindowProc;  windowClass.cbClsExtra := 0;  windowClass.cbWndExtra := 4;
 		windowClass.hInstance := Machine.hInstance;  str := "Console";  windowClass.hIcon := User32.LoadIcon( Machine.hInstance, str );
 		str := "Console.Small";  windowClass.hIconSm := User32.LoadIcon( Machine.hInstance, str );  windowClass.hCursor := Kernel32.NULL;
 		windowClass.hbrBackground := Kernel32.NULL;  windowClass.lpszMenuName := Kernel32.NULL;
-		windowClass.lpszClassName := SYSTEM.VAL( Kernel32.LPSTR, SYSTEM.ADR( windowClassName ) );
+		windowClass.lpszClassName := SYSTEM.VAL( Kernel32.LPSTR, ADDRESSOF( windowClassName ) );
 		ret := User32.RegisterClassEx( windowClass )
 	END RegisterClasses;
 
@@ -1038,7 +1038,7 @@ VAR
 
 	PROCEDURE InitBMI;
 	BEGIN
-		bmi.info.bmiHeader.biSize := SYSTEM.SIZEOF( GDI32.BitmapInfoHeader );  bmi.info.bmiHeader.biWidth := 0;
+		bmi.info.bmiHeader.biSize := SIZEOF( GDI32.BitmapInfoHeader );  bmi.info.bmiHeader.biWidth := 0;
 		bmi.info.bmiHeader.biHeight := 0;  bmi.info.bmiHeader.biPlanes := 1;  bmi.info.bmiHeader.biBitCount := (format * 8);
 		bmi.info.bmiHeader.biCompression := GDI32.BIRGB;  bmi.info.bmiHeader.biSizeImage := 0;
 		bmi.info.bmiHeader.biXPelsPerMeter := 0;  bmi.info.bmiHeader.biYPelsPerMeter := 0;
@@ -1291,13 +1291,13 @@ Wm_enteridle: INTEGER is 289
 Wm_entermenuloop: INTEGER is 529
 -- Declared in Windows as WM_ENTERMENULOOP
 Wm_entersizemove: INTEGER is 561
--- Declared in Windows as WM_ENTERSYSTEM.SIZEOFMOVE
+-- Declared in Windows as WM_ENTERSIZEOFMOVE
 Wm_erasebkgnd: INTEGER is 20
 -- Declared in Windows as WM_ERASEBKGND
 Wm_exitmenuloop: INTEGER is 530
 -- Declared in Windows as WM_EXITMENULOOP
 Wm_exitsizemove: INTEGER is 562
--- Declared in Windows as WM_EXITSYSTEM.SIZEOFMOVE
+-- Declared in Windows as WM_EXITSIZEOFMOVE
 Wm_fontchange: INTEGER is 29
 -- Declared in Windows as WM_FONTCHANGE
 Wm_getdlgcode: INTEGER is 135
@@ -1449,7 +1449,7 @@ Wm_moving: INTEGER is 534
 Wm_ncactivate: INTEGER is 134
 -- Declared in Windows as WM_NCACTIVATE
 Wm_nccalcsize: INTEGER is 131
--- Declared in Windows as WM_NCCALCSYSTEM.SIZEOF
+-- Declared in Windows as WM_NCCALCSIZEOF
 Wm_nccreate: INTEGER is 129
 -- Declared in Windows as WM_NCCREATE
 Wm_ncdestroy: INTEGER is 130
@@ -1570,9 +1570,9 @@ Wm_settingchange: INTEGER is 26
 Wm_showwindow: INTEGER is 24
 -- Declared in Windows as WM_SHOWWINDOW
 Wm_size: INTEGER is 5
--- Declared in Windows as WM_SYSTEM.SIZEOF
+-- Declared in Windows as WM_SIZEOF
 Wm_sizeclipboard: INTEGER is 779
--- Declared in Windows as WM_SYSTEM.SIZEOFCLIPBOARD
+-- Declared in Windows as WM_SIZEOFCLIPBOARD
 Wm_sizing: INTEGER is 532
 -- Declared in Windows as WM_SIZING
 Wm_spoolerstatus: INTEGER is 42
@@ -2186,29 +2186,29 @@ reflexive_conformance: conforms_to (Current)
 end -- class WEL_WS_CONSTANTS
 
 indexing
-description: "Size (SYSTEM.SIZEOF) constants."
+description: "Size (SIZEOF) constants."
 status: "See notice at end of class."
 date: "$Date: 2001/11/12 17:58:04 $"
 revision: "$Revision: 1.3 $"
 class interface
-WEL_SYSTEM.SIZEOF_CONSTANTS
+WEL_SIZEOF_CONSTANTS
 feature -- Access
 Size_maxhide: INTEGER is 4
--- Declared in Windows as SYSTEM.SIZEOF_MAXHIDE
+-- Declared in Windows as SIZEOF_MAXHIDE
 Size_maximized: INTEGER is 2
--- Declared in Windows as SYSTEM.SIZEOF_MAXIMIZED
+-- Declared in Windows as SIZEOF_MAXIMIZED
 Size_maxshow: INTEGER is 3
--- Declared in Windows as SYSTEM.SIZEOF_MAXSHOW
+-- Declared in Windows as SIZEOF_MAXSHOW
 Size_minimized: INTEGER is 1
--- Declared in Windows as SYSTEM.SIZEOF_MINIMIZED
+-- Declared in Windows as SIZEOF_MINIMIZED
 Size_restored: INTEGER is 0
--- Declared in Windows as SYSTEM.SIZEOF_RESTORED
+-- Declared in Windows as SIZEOF_RESTORED
 
 invariant
 -- from ANY
 reflexive_equality: standard_is_equal (Current)
 reflexive_conformance: conforms_to (Current)
-end -- class WEL_SYSTEM.SIZEOF_CONSTANTS
+end -- class WEL_SIZEOF_CONSTANTS
 
 
 SetPriorityClass

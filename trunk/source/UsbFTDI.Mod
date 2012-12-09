@@ -748,9 +748,9 @@ TYPE
 			divfrac[0]:=0;divfrac[1]:=3;divfrac[2]:=2;divfrac[3]:=4;
 			divfrac[4]:=1;divfrac[5]:=5;divfrac[6]:=6;divfrac[7]:=7;
 			divisor3:= (48000000 DIV 2) DIV baud ; (* divisor shifted 3 bits to the left*)
-			divisor:= SYSTEM.LSH(divisor3,3);
+			divisor:= LSH(divisor3,3);
 (*divisor3 >> 3*)
-			divisor:=divisor + SYSTEM.LSH(divfrac[divisor3 ], -14);
+			divisor:=divisor + LSH(divfrac[divisor3 ], -14);
 			(* Deal with special cases for highest baud rates. *)
 
 			IF divisor = 1 THEN
@@ -818,9 +818,9 @@ TYPE
 				END;
 
 				data4[0] := CHR(divisor);
-				data4[1] := CHR(SYSTEM.LSH(divisor, -8));
-				data4[2] := CHR(SYSTEM.LSH(divisor, -16));
-				data4[3] := CHR(SYSTEM.LSH(divisor, -24));
+				data4[1] := CHR(LSH(divisor, -8));
+				data4[2] := CHR(LSH(divisor, -16));
+				data4[3] := CHR(LSH(divisor, -24));
 				status := device.Request(Usbdi.ToDevice + Usbdi.Vendor + Usbdi.Device, FtdiSetBaudrateRequest, 0, 0, 4, data4^);
 			END;
 
@@ -958,7 +958,7 @@ TYPE
 			IF ~open THEN res := Serials.Closed; RETURN; END;
 			IF Trace * TraceSend # {} THEN ShowModule("Sending "); KernelLog.Int(len, 0); KernelLog.String(" bytes"); KernelLog.Ln; END;
 			IF ((sendBuffer = NIL) OR (LEN(sendBuffer) < len)) THEN NEW(sendBuffer, len) END;
-			SYSTEM.MOVE(SYSTEM.ADR(buf[ofs]), SYSTEM.ADR(sendBuffer[0]), len);
+			SYSTEM.MOVE(ADDRESSOF(buf[ofs]), ADDRESSOF(sendBuffer[0]), len);
 			status := driver.bulkOut.Transfer(len, ofs, sendBuffer^);
 			IF status = Usbdi.Ok THEN
 				res := Serials.Ok;

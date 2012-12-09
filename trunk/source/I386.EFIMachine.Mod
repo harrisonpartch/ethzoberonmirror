@@ -7,7 +7,7 @@ IMPORT SYSTEM, EFI;
 	esi	: ?
 	edi	: address of frame buffer
 *)
-PROCEDURE JumpTo*(adr : SYSTEM.ADDRESS; eax,esi,edi, ecx : LONGINT);
+PROCEDURE JumpTo*(adr : ADDRESS; eax,esi,edi, ecx : LONGINT);
 CODE {SYSTEM.i386}
 	XOR ECX,ECX
 	XOR EDX,EDX
@@ -71,6 +71,6 @@ CODE {SYSTEM.i386}
 END GetParameter;
 
 BEGIN
-	SYSTEM.PUT32 (SYSTEM.ADR (EFI.imageHandle), GetParameter (12));
-	SYSTEM.PUT32 (SYSTEM.ADR (EFI.table), GetParameter (16));
+	SYSTEM.PUT32 (ADDRESSOF (EFI.imageHandle), GetParameter (12));
+	SYSTEM.PUT32 (ADDRESSOF (EFI.table), GetParameter (16));
 END EFIMachine.

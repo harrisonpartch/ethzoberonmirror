@@ -787,14 +787,14 @@ TYPE
 		END ReadBytes;
 
 		PROCEDURE ReadBytesX(VAR r: Files.Rider; VAR x: ARRAY OF CHAR; ofs, len: LONGINT);
-		VAR src, dst: SYSTEM.ADDRESS; m: LONGINT;
+		VAR src, dst: ADDRESS; m: LONGINT;
 		BEGIN
 			IF LEN(x)-ofs < len THEN SYSTEM.HALT(19) END;
 			IF len > 0 THEN
-				dst := SYSTEM.ADR(x[ofs]);
+				dst := ADDRESSOF(x[ofs]);
 				WHILE (len > 0) & (Pos(r) < size) DO
 					IF (buffer.pos # r.apos) THEN ReadBuffer(buffer, r.apos) END;
-					src := SYSTEM.ADR(buffer.data[r.bpos]);
+					src := ADDRESSOF(buffer.data[r.bpos]);
 					m := Strings.Min(Strings.Min(size - Pos(r), clusterSize - r.bpos), len);
 					SYSTEM.MOVE(src, dst, m);
 					INC(dst, m); DEC(len, m);
@@ -832,15 +832,15 @@ TYPE
 		END WriteBytes;
 
 		PROCEDURE WriteBytesX(VAR r: Files.Rider; CONST x: ARRAY OF CHAR; ofs, len: LONGINT);
-		VAR src, dst: SYSTEM.ADDRESS; m: LONGINT;
+		VAR src, dst: ADDRESS; m: LONGINT;
 		BEGIN
 			IF (attr * WriteProtected # {}) THEN HALT(ErrFileReadOnly) END;
 			IF LEN(x)-ofs < len THEN SYSTEM.HALT(19) END;
 			IF len > 0 THEN
-				src := SYSTEM.ADR(x[ofs]);
+				src := ADDRESSOF(x[ofs]);
 				WHILE (len > 0) DO
 					IF (buffer.pos # r.apos) THEN ReadBuffer(buffer, r.apos) END;
-					dst := SYSTEM.ADR(buffer.data[r.bpos]);
+					dst := ADDRESSOF(buffer.data[r.bpos]);
 					m := Strings.Min(clusterSize-r.bpos, len);
 					SYSTEM.MOVE(src, dst, m);
 					WriteBuffer(buffer);

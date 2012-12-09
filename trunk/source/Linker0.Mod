@@ -12,7 +12,7 @@ CONST
 	DefaultExtension = ".Obx";
 	HeapSize = 630*1024;	(* linker heap size *)
 
-	AddressSize = SYSTEM.SIZEOF (SYSTEM.ADDRESS);
+	AddressSize = SIZEOF (ADDRESS);
 	LenOfs = 3 * AddressSize; (* offset of first array dimension in SysBlk or ArrayBlk *)
 	Unmarked = 0; (* mark value of free block *)
 
@@ -56,7 +56,7 @@ CONST
 	NumPriorities* = 6;
 
 TYPE
-	AdrTable = POINTER TO ARRAY OF SYSTEM.ADDRESS;
+	AdrTable = POINTER TO ARRAY OF ADDRESS;
 
 (** --- MODULE Heaps --- *)
 
@@ -107,16 +107,16 @@ TYPE
 	MemoryBlock = POINTER TO MemoryBlockDesc;
 	MemoryBlockDesc = RECORD
 		next {UNTRACED}: MemoryBlock;
-		startAdr: SYSTEM.ADDRESS;
-		size: SYSTEM.SIZE;
-		beginBlockAdr, endBlockAdr: SYSTEM.ADDRESS
+		startAdr: ADDRESS;
+		size: SIZE;
+		beginBlockAdr, endBlockAdr: ADDRESS
 	END;
 
 	HeapBlock = POINTER TO HeapBlockDesc;	(* base object of all heap blocks *)
 	HeapBlockDesc = RECORD
 		mark: LONGINT;
-		dataAdr: SYSTEM.ADDRESS;
-		size: SYSTEM.SIZE;
+		dataAdr: ADDRESS;
+		size: SIZE;
 		nextRealtime: HeapBlock;
 	END;
 
@@ -149,11 +149,11 @@ TYPE
 
 	StaticTypeBlock*= POINTER TO StaticTypeDesc;
 	StaticTypeDesc* = RECORD
-		recSize: SYSTEM.SIZE;
+		recSize: SIZE;
 		pointerOffsets* {UNTRACED}: PointerOffsets;
 	END;
 
-	PointerOffsets = POINTER TO ARRAY OF SYSTEM.SIZE;
+	PointerOffsets = POINTER TO ARRAY OF SIZE;
 
 (** --- MODULE Modules --- *)
 
@@ -166,13 +166,13 @@ TYPE
 
 	Command* = RECORD
 		name*: Name;
-		argTdAdr*, retTdAdr* : SYSTEM.ADDRESS;
-		entryAdr* : SYSTEM.ADDRESS;
+		argTdAdr*, retTdAdr* : ADDRESS;
+		entryAdr* : ADDRESS;
 	END;
 
 	ExportDesc* = RECORD
-		fp*: SYSTEM.ADDRESS;
-		adr*: SYSTEM.ADDRESS;
+		fp*: ADDRESS;
+		adr*: ADDRESS;
 		exports*: LONGINT;
 		dsc*: ExportArray
 	END;
@@ -183,21 +183,21 @@ TYPE
 	TerminationHandler* = PROCEDURE;
 
 	ExceptionTableEntry* = RECORD
-		pcFrom*: SYSTEM.ADDRESS;
-		pcTo*: SYSTEM.ADDRESS;
-		pcHandler*: SYSTEM.ADDRESS;
+		pcFrom*: ADDRESS;
+		pcTo*: ADDRESS;
+		pcHandler*: ADDRESS;
 	END;
 
 	ExceptionTable* = POINTER TO ARRAY OF ExceptionTableEntry;
 
 	ProcTableEntry* = RECORD
-		pcFrom*, pcLimit*, pcStatementBegin*, pcStatementEnd*: SYSTEM.ADDRESS;
+		pcFrom*, pcLimit*, pcStatementBegin*, pcStatementEnd*: ADDRESS;
 		noPtr*: LONGINT;
 	END;
 
 	ProcTable* = POINTER TO ARRAY OF ProcTableEntry;
 
-	PtrTable* = POINTER TO ARRAY OF SYSTEM.SIZE;
+	PtrTable* = POINTER TO ARRAY OF SIZE;
 
 	ProcOffsetEntry* = RECORD
 		data*: ProcTableEntry;	(* code offsets of procedures *)
@@ -212,10 +212,10 @@ TYPE
 			name*: Name;
 			init, published: BOOLEAN;
 			refcnt*: LONGINT;
-			sb*: SYSTEM.ADDRESS;
-			entry*: POINTER TO ARRAY OF SYSTEM.ADDRESS;
+			sb*: ADDRESS;
+			entry*: POINTER TO ARRAY OF ADDRESS;
 			command*: POINTER TO ARRAY OF Command;
-			ptrAdr*: POINTER TO ARRAY OF SYSTEM.ADDRESS;
+			ptrAdr*: POINTER TO ARRAY OF ADDRESS;
 			typeInfo*: POINTER TO ARRAY OF TypeDesc; (* traced explicitly in FindRoots *) (* ug *)
 			module*: POINTER TO ARRAY OF Module;
 			procTable*: ProcTable; (* information inserted by loader, removed after use in Publish, not used by linker *)
@@ -225,7 +225,7 @@ TYPE
 			term*: TerminationHandler;
 			exTable*: ExceptionTable;
 			noProcs*: LONGINT;
-			firstProc*: SYSTEM.ADDRESS;		(* procedure with lowest PC in module *)
+			firstProc*: ADDRESS;		(* procedure with lowest PC in module *)
 			maxPtrs*: LONGINT;
 			crc*: LONGINT;
 	END Module;
@@ -233,7 +233,7 @@ TYPE
 	TypeDesc* = POINTER TO RECORD   (* ug: adapt constant TypeDescRecSize if this type if this type is changed !!! *)
 		descSize: LONGINT;
 		sentinel: LONGINT;	(* = MPO-4 *)
-		tag*: SYSTEM.ADDRESS; (* pointer to static type descriptor, only used by linker and loader *)
+		tag*: ADDRESS; (* pointer to static type descriptor, only used by linker and loader *)
 		flags*: SET;
 		mod*: Module;	(* hint only, because module may have been freed (at Heaps.ModOfs) *)
 		name*: Name;
@@ -242,16 +242,16 @@ TYPE
 VAR
 	logWriter: Streams.Writer; logFile: Files.File;
 
-	root-: SYSTEM.ADDRESS;
+	root-: ADDRESS;
 	procOffsets {UNTRACED}: ProcOffsetTable;	(* global table containing procedure code offsets and pointer offsets, sorted in ascending order of procedure code offsets *)
 	numProcs: LONGINT;			(* number of entries in procOffsets *)
 	ptrOffsets {UNTRACED}: PtrTable;			(* global table containing pointer offsets of procedures *)
 	numPtrs: LONGINT;				(* number of entries in ptrOffsets *)
 	heap: ANY;
 	memBlock {UNTRACED}: MemoryBlock;
-	beginMemBlockAdr, endMemBlockAdr: SYSTEM.ADDRESS;	(* block boundaries of linker heap (including memory block descriptor) *)
-	beginAdr, freeAdr, baseAdr (* fof 071201 *) : SYSTEM.ADDRESS;
-	heapOfs: SYSTEM.SIZE;
+	beginMemBlockAdr, endMemBlockAdr: ADDRESS;	(* block boundaries of linker heap (including memory block descriptor) *)
+	beginAdr, freeAdr, baseAdr (* fof 071201 *) : ADDRESS;
+	heapOfs: SIZE;
 	exportTags, relocates: LONGINT;
 	exportTagAdr: AdrTable;
 	relocateAdr: AdrTable;
@@ -261,7 +261,7 @@ VAR
 	loadObj*: PROCEDURE (name, fileName: ARRAY OF CHAR;  VAR res: LONGINT;
 			VAR msg: ARRAY OF CHAR): Module;
 	getProcs: ARRAY 9 OF BOOLEAN;
-	freeBlockTag, systemBlockTag, recordBlockTag, protRecBlockTag, arrayBlockTag: SYSTEM.ADDRESS;
+	freeBlockTag, systemBlockTag, recordBlockTag, protRecBlockTag, arrayBlockTag: ADDRESS;
 	initBlock {UNTRACED}: ANY;	(* address of init block, i.e. block that contains calls to module bodies *)
 	currentMarkValue: LONGINT; (* all objects allocated in the link phase receive this mark value *)
 
@@ -270,11 +270,11 @@ VAR
 
 (** Fill4 - Fill "size" dwords at "destAdr" with "filler". *)
 
-PROCEDURE Fill4 (destAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE; filler: LONGINT);
+PROCEDURE Fill4 (destAdr: ADDRESS; size: SIZE; filler: LONGINT);
 BEGIN
 	WHILE size > 0 DO
 		SYSTEM.PUT (destAdr, filler);
-		INC (destAdr, SYSTEM.SIZEOF(LONGINT));
+		INC (destAdr, SIZEOF(LONGINT));
 		DEC (size);
 	END;
 END Fill4;
@@ -318,14 +318,14 @@ END Hex;
 
 (** Address - Write "x" as an address. *)
 
-PROCEDURE Address*(x: SYSTEM.ADDRESS);
+PROCEDURE Address*(x: ADDRESS);
 BEGIN
 	logWriter.Address(x);
 END Address;
 
 (** Memory - Write a block of memory. *)
 
-PROCEDURE Memory*(adr, size: LONGINT);  (* ug: not yet rewritten using SYSTEM.ADDRESS and SYSTEM.SIZE *)
+PROCEDURE Memory*(adr, size: LONGINT);  (* ug: not yet rewritten using ADDRESS and SIZE *)
 VAR i, j, t: LONGINT;  buf: ARRAY 4 OF CHAR;  reset, missed: BOOLEAN;
 BEGIN
 	(*
@@ -418,29 +418,29 @@ END Exit;
 (** --- MODULE Heaps --- *)
 
 (* initialize a free block *)
-PROCEDURE InitFreeBlock(freeBlock: FreeBlock; mark: LONGINT; dataAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE);
-VAR freeBlockAdr: SYSTEM.ADDRESS;
+PROCEDURE InitFreeBlock(freeBlock: FreeBlock; mark: LONGINT; dataAdr: ADDRESS; size: SIZE);
+VAR freeBlockAdr: ADDRESS;
 BEGIN
 	freeBlock.mark := mark;
 	freeBlock.dataAdr := dataAdr;
 	freeBlock.size := size;
 	freeBlock.nextRealtime := NIL;
 	(* initialize free block header *)
-	freeBlockAdr := SYSTEM.VAL(SYSTEM.ADDRESS, freeBlock);
+	freeBlockAdr := SYSTEM.VAL(ADDRESS, freeBlock);
 	SYSTEM.PUT(freeBlockAdr + TypeDescOffset, FreeBlockId); (* use temporary constant here, correct tags are filled in by FixupHeapBlockTags *)
 	SYSTEM.PUT(freeBlockAdr + HeapBlockOffset, NilVal)
 END InitFreeBlock;
 
 (* NewBlock - Allocate a heap block.  {(size MOD BlockSize = 0)} *)
 
-PROCEDURE NewBlock(size: SYSTEM.SIZE): SYSTEM.ADDRESS;
-VAR p, freeBlockAdr: SYSTEM.ADDRESS; freeBlock: FreeBlock; blockSize: SYSTEM.SIZE;
+PROCEDURE NewBlock(size: SIZE): ADDRESS;
+VAR p, freeBlockAdr: ADDRESS; freeBlock: FreeBlock; blockSize: SIZE;
 BEGIN
 	ASSERT(size MOD BlockSize = 0);
 	freeBlock := SYSTEM.VAL(FreeBlock, freeAdr + BlockHeaderSize);
 	blockSize := freeBlock.size;
 	p := freeAdr; INC(freeAdr, size);
-	ASSERT(freeAdr + BlockHeaderSize  + SYSTEM.SIZEOF(FreeBlockDesc) <= memBlock.endBlockAdr); (* there must be space for an empty heap block *)
+	ASSERT(freeAdr + BlockHeaderSize  + SIZEOF(FreeBlockDesc) <= memBlock.endBlockAdr); (* there must be space for an empty heap block *)
 	freeBlockAdr := freeAdr + BlockHeaderSize;	(* address of remaining free block *)
 	freeBlock := SYSTEM.VAL(FreeBlock, freeBlockAdr);
 	InitFreeBlock(freeBlock, Unmarked, NilVal, blockSize - size);
@@ -449,12 +449,12 @@ END NewBlock;
 
 (** NewSys - Implementation of SYSTEM.NEW *)
 
-PROCEDURE NewSys*(VAR p: ANY; size: SYSTEM.SIZE);
-VAR systemBlockSize, blockSize: SYSTEM.SIZE; systemBlockAdr, dataBlockAdr: SYSTEM.ADDRESS;
+PROCEDURE NewSys*(VAR p: ANY; size: SIZE);
+VAR systemBlockSize, blockSize: SIZE; systemBlockAdr, dataBlockAdr: ADDRESS;
 	systemBlock: SystemBlock;
 BEGIN
 	ASSERT((BlockHeaderSize MOD ArrayAlignment = 0));
-	systemBlockSize := BlockHeaderSize + SYSTEM.SIZEOF(SystemBlockDesc);
+	systemBlockSize := BlockHeaderSize + SIZEOF(SystemBlockDesc);
 	systemBlockSize := ((systemBlockSize + ArrayAlignment - 1) DIV ArrayAlignment) * ArrayAlignment; (* align SystemBlock such that first data element is aligned 0 MOD ArrayAlignment, required for arrays that do not contain pointers *)
 	blockSize := systemBlockSize + BlockHeaderSize + size;
 	INC(blockSize,(-blockSize) MOD BlockSize);  (* round up to multiple of BlockSize *)
@@ -470,8 +470,8 @@ BEGIN
 	systemBlock.mark := currentMarkValue;
 	systemBlock.dataAdr := dataBlockAdr;
 	systemBlock.nextRealtime := NIL; (* no realtime object since SystemBlock during allocation of a module *)
-	Relocate(SYSTEM.ADR(systemBlock.dataAdr));
-	Relocate(SYSTEM.ADR(systemBlock.nextRealtime));
+	Relocate(ADDRESSOF(systemBlock.dataAdr));
+	Relocate(ADDRESSOF(systemBlock.nextRealtime));
 	systemBlock.size := blockSize;
 	p := SYSTEM.VAL(ANY, dataBlockAdr);
 
@@ -480,10 +480,10 @@ END NewSys;
 
 (* NewRealArr - Implementation of allocation of new real array *)
 
-PROCEDURE NewRealArr*(VAR p: ANY; numElems, elemSize: SYSTEM.SIZE; numDims: LONGINT);
-VAR arrayBlockAdr, dataBlockAdr, firstElem, elemTag: SYSTEM.ADDRESS; arrSize, arrayBlockSize, blockSize, fillSize: SYSTEM.SIZE;
+PROCEDURE NewRealArr*(VAR p: ANY; numElems, elemSize: SIZE; numDims: LONGINT);
+VAR arrayBlockAdr, dataBlockAdr, firstElem, elemTag: ADDRESS; arrSize, arrayBlockSize, blockSize, fillSize: SIZE;
 	arrayBlock: ArrayBlock;
-	arrayDataOffset: SYSTEM.SIZE; (* offset from descriptor origin to first element of array, depends on number of dimensions, must be aligned to 0 MOD 8 *)
+	arrayDataOffset: SIZE; (* offset from descriptor origin to first element of array, depends on number of dimensions, must be aligned to 0 MOD 8 *)
 BEGIN
 	elemTag := 0;
 	arrSize := numElems * elemSize;
@@ -491,7 +491,7 @@ BEGIN
 	ASSERT((BlockHeaderSize MOD ArrayAlignment = 0));
 	arrayDataOffset := numDims * AddressSize + 3 * AddressSize;
 	INC(arrayDataOffset, (-arrayDataOffset) MOD ArrayAlignment);  (* align here such that first first array element is aligned 0 MOD ArrayAlignment *)
-	arrayBlockSize := BlockHeaderSize + SYSTEM.SIZEOF(ArrayBlockDesc);
+	arrayBlockSize := BlockHeaderSize + SIZEOF(ArrayBlockDesc);
 	INC(arrayBlockSize,(-arrayBlockSize) MOD ArrayAlignment);  (* do. *)
 	blockSize := arrayBlockSize + BlockHeaderSize + (arrayDataOffset + arrSize);
 	INC(blockSize,(-blockSize) MOD BlockSize);(* round up to multiple of BlockSize *)
@@ -507,8 +507,8 @@ BEGIN
 	arrayBlock.mark := currentMarkValue;
 	arrayBlock.dataAdr := dataBlockAdr;
 	arrayBlock.nextRealtime := NIL; (* no realtime object since this object is used during allocation of a module *)
-	Relocate(SYSTEM.ADR(arrayBlock.dataAdr));
-	Relocate(SYSTEM.ADR(arrayBlock.nextRealtime));
+	Relocate(ADDRESSOF(arrayBlock.dataAdr));
+	Relocate(ADDRESSOF(arrayBlock.nextRealtime));
 	arrayBlock.size := blockSize;
 
 	(* clear data part of array, clear everything from dataBlockAdr until end of block, write GC support info after clearing the block *)
@@ -529,17 +529,17 @@ END NewRealArr;
 
 (* NewTypeDesc - Implementation of allocation of dynamic record *)
 
-PROCEDURE NewTypeDesc*(VAR p: ANY; recSize: SYSTEM.SIZE);
-VAR blockSize: SYSTEM.SIZE; recordBlockAdr, dataBlockAdr: SYSTEM.ADDRESS;
+PROCEDURE NewTypeDesc*(VAR p: ANY; recSize: SIZE);
+VAR blockSize: SIZE; recordBlockAdr, dataBlockAdr: ADDRESS;
 	recordBlock: RecordBlock;
 BEGIN
-	blockSize := BlockHeaderSize + SYSTEM.SIZEOF(RecordBlockDesc) + BlockHeaderSize + recSize;
+	blockSize := BlockHeaderSize + SIZEOF(RecordBlockDesc) + BlockHeaderSize + recSize;
 	INC(blockSize, (-blockSize) MOD BlockSize); (* align to multiple of BlockSize *)
 
 	recordBlockAdr := NewBlock(blockSize) + BlockHeaderSize;
 	SYSTEM.PUT(recordBlockAdr + TypeDescOffset, RecordBlockId);		 (* temporary tag value, fixup and relocation are done later *)
 	SYSTEM.PUT(recordBlockAdr + HeapBlockOffset, NilVal);
-	dataBlockAdr := recordBlockAdr + SYSTEM.SIZEOF(RecordBlockDesc) + BlockHeaderSize;
+	dataBlockAdr := recordBlockAdr + SIZEOF(RecordBlockDesc) + BlockHeaderSize;
 	SYSTEM.PUT(dataBlockAdr + TypeDescOffset, NilVal);					(* type descriptor tag will be filled in FixupTypeDescTags *)
 	SYSTEM.PUT(dataBlockAdr + HeapBlockOffset, recordBlockAdr);		(* reference to heap block descriptor *)
 	Relocate(dataBlockAdr + HeapBlockOffset);
@@ -547,19 +547,19 @@ BEGIN
 	recordBlock.mark := currentMarkValue;
 	recordBlock.dataAdr := dataBlockAdr;
 	recordBlock.nextRealtime := NIL; (* default value NIL since module type descriptors are no realtime objects *)
-	Relocate(SYSTEM.ADR(recordBlock.dataAdr));
-	Relocate(SYSTEM.ADR(recordBlock.nextRealtime));
+	Relocate(ADDRESSOF(recordBlock.dataAdr));
+	Relocate(ADDRESSOF(recordBlock.nextRealtime));
 	recordBlock.size := blockSize;
 	p := SYSTEM.VAL(ANY, dataBlockAdr);
 
-	Fill4(dataBlockAdr, (blockSize - SYSTEM.SIZEOF(RecordBlockDesc) - 2 * BlockHeaderSize) DIV 4, 0);	(* clear everything from dataBlockAdr to end of blockr *)
+	Fill4(dataBlockAdr, (blockSize - SIZEOF(RecordBlockDesc) - 2 * BlockHeaderSize) DIV 4, 0);	(* clear everything from dataBlockAdr to end of blockr *)
 END NewTypeDesc;
 
 (* FillStaticType - Implementation of filling static type descriptor *)
 
-PROCEDURE FillStaticType*(VAR staticTypeAddr: SYSTEM.ADDRESS; startAddr, typeInfoAdr: SYSTEM.ADDRESS; size, recSize: SYSTEM.SIZE;
+PROCEDURE FillStaticType*(VAR staticTypeAddr: ADDRESS; startAddr, typeInfoAdr: ADDRESS; size, recSize: SIZE;
 							numPtrs, numSlots: LONGINT);
-VAR p, offset: SYSTEM.ADDRESS; staticTypeBlock {UNTRACED}: StaticTypeBlock;
+VAR p, offset: ADDRESS; staticTypeBlock {UNTRACED}: StaticTypeBlock;
 BEGIN
 	Fill4(startAddr, size DIV 4, 0);	(* clear whole static type, size MOD AddressSize = 0 implicitly, see WriteType in PCOF.Mod *)
 	SYSTEM.PUT(startAddr, MethodEndMarker); 	(* sentinel *)
@@ -576,12 +576,12 @@ BEGIN
 
 	(* create the pointer for the dynamic array of pointer, the dynamic array of pointer offsets is stored in the static type
 	    descriptor and has no header part *)
-	INC(p, SYSTEM.SIZEOF(StaticTypeDesc));
+	INC(p, SIZEOF(StaticTypeDesc));
 	IF p MOD (2 * AddressSize) # 0 THEN INC(p, AddressSize) END;
 	ASSERT(p MOD (2 * AddressSize) = 0);
 	SYSTEM.PUT(p + 3 * AddressSize, numPtrs); (* internal structure of dynamic array without pointers: the first 3 fields are unused *)
 	staticTypeBlock.pointerOffsets := SYSTEM.VAL(PointerOffsets, p); (* the fourth field contains the dimension of the array *)
-	Relocate(SYSTEM.ADR(staticTypeBlock.pointerOffsets));
+	Relocate(ADDRESSOF(staticTypeBlock.pointerOffsets));
 
 	(* pointer offsets filled in later *)
 
@@ -612,7 +612,7 @@ BEGIN
 	ELSE
 		m.published := TRUE;
 		m.next := SYSTEM.VAL(Module, root);
-		root := SYSTEM.VAL(SYSTEM.ADDRESS, m);
+		root := SYSTEM.VAL(ADDRESS, m);
 		m.refcnt := 0;
 		FOR i := 0 TO LEN(m.module)-1 DO INC(m.module[i].refcnt) END;
 		new := TRUE
@@ -653,7 +653,7 @@ BEGIN
 		IF (m # NIL) & ~m.published THEN
 			p := m;  Publish(m, new);
 			IF new THEN	(* m was successfully published *)
-				(*body := SYSTEM.VAL(Body, SYSTEM.ADR(m.code[0]));
+				(*body := SYSTEM.VAL(Body, ADDRESSOF(m.code[0]));
 				body;  res := 0;  msg[0] := 0X;*)
 				m.init := TRUE	(* allow ThisCommand *)
 			ELSE
@@ -681,7 +681,7 @@ END ThisType;
 
 (* ug: just for debugging *)
 (** WriteType - Write a type name (for tracing only). *)
-PROCEDURE WriteType(t: SYSTEM.ADDRESS);	(* t is static type descriptor *)
+PROCEDURE WriteType(t: ADDRESS);	(* t is static type descriptor *)
 VAR typeDesc: TypeDesc;
 BEGIN
 	IF t # NilVal THEN
@@ -770,7 +770,7 @@ END GrowTable;
 
 (** Relocate - Record a relocate location. *)
 
-PROCEDURE Relocate*(adr: SYSTEM.ADDRESS);
+PROCEDURE Relocate*(adr: ADDRESS);
 BEGIN
 	IF relocates = LEN(relocateAdr) THEN GrowTable(relocateAdr) END;
 	relocateAdr[relocates] := adr;  INC(relocates);
@@ -780,7 +780,7 @@ END Relocate;
 
 (** Open - Initialize the log file etc. *)
 
-PROCEDURE Open*(CONST namePrefix,nameSuffix: ARRAY OF CHAR; base: SYSTEM.ADDRESS; log: Streams.Writer);
+PROCEDURE Open*(CONST namePrefix,nameSuffix: ARRAY OF CHAR; base: ADDRESS; log: Streams.Writer);
 VAR i: LONGINT; w: Files.Writer;
 BEGIN
 	(* fof 071201 *)
@@ -813,7 +813,7 @@ END Open;
 (* RelocateModules - Relocate the module records. *)
 
 PROCEDURE RelocateModules;
-VAR adr: SYSTEM.ADDRESS; i: LONGINT;  type, hdPtrDescType: TypeDesc;  m: Module;
+VAR adr: ADDRESS; i: LONGINT;  type, hdPtrDescType: TypeDesc;  m: Module;
 BEGIN
 	type := ThisType(ModuleByName(ModDescModule), ModDescType);
 	hdPtrDescType := ThisType(ModuleByName(HdPtrDescModule), HdPtrDescType);
@@ -823,75 +823,75 @@ BEGIN
 	END;
 	m := SYSTEM.VAL(Module, root);
 	WHILE m # NIL DO
-		adr := SYSTEM.VAL(SYSTEM.ADDRESS, m);
+		adr := SYSTEM.VAL(ADDRESS, m);
 		SYSTEM.PUT(adr + TypeDescOffset, type.tag);  Relocate(adr + TypeDescOffset);		(* module descriptor tag *)
 		IF LEN(m.typeInfo) > 0 THEN	(* type tag only set in case of no. elements > 0 otherwise a SystemBlock with no type tag is used *)
-			adr := SYSTEM.VAL(SYSTEM.ADDRESS, m.typeInfo);
+			adr := SYSTEM.VAL(ADDRESS, m.typeInfo);
 			SYSTEM.PUT(adr + TypeDescOffset, hdPtrDescType.tag);
 			Relocate(adr + TypeDescOffset)
 		END;
 		IF LEN(m.module) > 0 THEN (* do. *)
-			adr := SYSTEM.VAL(SYSTEM.ADDRESS, m.module);
+			adr := SYSTEM.VAL(ADDRESS, m.module);
 			SYSTEM.PUT(adr + TypeDescOffset, hdPtrDescType.tag);
 			Relocate(adr + TypeDescOffset)
 		END;
 
 		(* relocation of addresses *)
 
-		Relocate(SYSTEM.ADR(m.next));
+		Relocate(ADDRESSOF(m.next));
 		Relocate(m.sb);	(* SELF in const area *)
-		Relocate(SYSTEM.ADR(m.sb));
+		Relocate(ADDRESSOF(m.sb));
 
 			(* m.entry in module block *)
 		(* m.entry indirect tag already relocated (same as SysBlk) *)
-		FOR i := 0 TO LEN(m.entry)-1 DO Relocate(SYSTEM.ADR(m.entry[i])) END;
-		Relocate(SYSTEM.ADR(m.entry));
+		FOR i := 0 TO LEN(m.entry)-1 DO Relocate(ADDRESSOF(m.entry[i])) END;
+		Relocate(ADDRESSOF(m.entry));
 
 			(* m.command in module block *)
 		FOR i := 0 TO LEN(m.command)-1 DO
-			Relocate(SYSTEM.ADR(m.command[i].entryAdr));
-			IF (m.command[i].argTdAdr > 1) THEN Relocate(SYSTEM.ADR(m.command[i].argTdAdr)); END;
-			IF (m.command[i].retTdAdr > 1) THEN Relocate(SYSTEM.ADR(m.command[i].retTdAdr)); END;
+			Relocate(ADDRESSOF(m.command[i].entryAdr));
+			IF (m.command[i].argTdAdr > 1) THEN Relocate(ADDRESSOF(m.command[i].argTdAdr)); END;
+			IF (m.command[i].retTdAdr > 1) THEN Relocate(ADDRESSOF(m.command[i].retTdAdr)); END;
 		END;
-		Relocate(SYSTEM.ADR(m.command));
+		Relocate(ADDRESSOF(m.command));
 
 			(* m.ptrAdr in module block *)
-		FOR i := 0 TO LEN(m.ptrAdr)-1 DO Relocate(SYSTEM.ADR(m.ptrAdr[i])) END;
-		Relocate(SYSTEM.ADR(m.ptrAdr));
+		FOR i := 0 TO LEN(m.ptrAdr)-1 DO Relocate(ADDRESSOF(m.ptrAdr[i])) END;
+		Relocate(ADDRESSOF(m.ptrAdr));
 
 			(* m.typeInfo in module block *)
 		FOR i := 0 TO LEN(m.typeInfo) - 1 DO
-			Relocate(SYSTEM.ADR(m.typeInfo[i]));
-			Relocate(SYSTEM.ADR(m.typeInfo[i].tag));
-			Relocate(SYSTEM.ADR(m.typeInfo[i].mod))
+			Relocate(ADDRESSOF(m.typeInfo[i]));
+			Relocate(ADDRESSOF(m.typeInfo[i].tag));
+			Relocate(ADDRESSOF(m.typeInfo[i].mod))
 		END;
-		Relocate(SYSTEM.ADR(m.typeInfo));
+		Relocate(ADDRESSOF(m.typeInfo));
 
 			(* m.module in module block *)
-		FOR i := 0 TO LEN(m.module)-1 DO Relocate(SYSTEM.ADR(m.module[i])) END;
-		Relocate(SYSTEM.ADR(m.module));
+		FOR i := 0 TO LEN(m.module)-1 DO Relocate(ADDRESSOF(m.module[i])) END;
+		Relocate(ADDRESSOF(m.module));
 
 			(* m.data in module block *)
-		Relocate(SYSTEM.ADR(m.data));
+		Relocate(ADDRESSOF(m.data));
 
 			(* m.code in module block *)
-		Relocate(SYSTEM.ADR(m.code));
+		Relocate(ADDRESSOF(m.code));
 
 			(* m.staticTypeDescs in module block *)
-		Relocate(SYSTEM.ADR(m.staticTypeDescs));
+		Relocate(ADDRESSOF(m.staticTypeDescs));
 
 			(* m.refs in module block *)
-		Relocate(SYSTEM.ADR(m.refs));
+		Relocate(ADDRESSOF(m.refs));
 
 			(* m.exTable in module block *)
 		FOR i := 0 TO LEN(m.exTable)-1 DO
-			Relocate(SYSTEM.ADR(m.exTable[i].pcFrom));
-			Relocate(SYSTEM.ADR(m.exTable[i].pcTo));
-			Relocate(SYSTEM.ADR(m.exTable[i].pcHandler))
+			Relocate(ADDRESSOF(m.exTable[i].pcFrom));
+			Relocate(ADDRESSOF(m.exTable[i].pcTo));
+			Relocate(ADDRESSOF(m.exTable[i].pcHandler))
 		END;
-		Relocate(SYSTEM.ADR(m.exTable));
+		Relocate(ADDRESSOF(m.exTable));
 
-		Relocate(SYSTEM.ADR(m.firstProc));
+		Relocate(ADDRESSOF(m.firstProc));
 
 		(*
 			(* object model support *)
@@ -900,15 +900,15 @@ BEGIN
 		ASSERT(m.struct = NIL);	(* not marked *)
 		ASSERT(m.reimp = NIL);	(* not marked *)
 		*)
-		Relocate(SYSTEM.ADR(m.export.dsc));	(* descendants relocated via RelocateArray *)
+		Relocate(ADDRESSOF(m.export.dsc));	(* descendants relocated via RelocateArray *)
 		m := m.next
 	END
 END RelocateModules;
 
 (* RelocateArrayFields - Fix up a dynamic array. *)
 
-PROCEDURE RelocateArrayFields(tagAdr: SYSTEM.ADDRESS);
-VAR adr, p, lastElem: SYSTEM.ADDRESS; staticTypeBlock {UNTRACED}: StaticTypeBlock; i: LONGINT;
+PROCEDURE RelocateArrayFields(tagAdr: ADDRESS);
+VAR adr, p, lastElem: ADDRESS; staticTypeBlock {UNTRACED}: StaticTypeBlock; i: LONGINT;
 BEGIN
 	SYSTEM.GET(tagAdr + AddressSize, lastElem);
 	SYSTEM.GET(tagAdr + 3 * AddressSize, p);	(* firstElem *)
@@ -943,22 +943,22 @@ PROCEDURE RelocateProcOffsets;
 VAR i: LONGINT;
 BEGIN
 	FOR i := 0 TO numProcs - 1 DO	(* relocation of code addresses in procOffsets *)
-		Relocate(SYSTEM.ADR(procOffsets[i].data.pcFrom));
-		Relocate(SYSTEM.ADR(procOffsets[i].data.pcLimit));
-		Relocate(SYSTEM.ADR(procOffsets[i].data.pcStatementBegin));
-		Relocate(SYSTEM.ADR(procOffsets[i].data.pcStatementEnd));
+		Relocate(ADDRESSOF(procOffsets[i].data.pcFrom));
+		Relocate(ADDRESSOF(procOffsets[i].data.pcLimit));
+		Relocate(ADDRESSOF(procOffsets[i].data.pcStatementBegin));
+		Relocate(ADDRESSOF(procOffsets[i].data.pcStatementEnd));
 	END;
 END RelocateProcOffsets;
 
 PROCEDURE FixupTypeDescTags;
-VAR type: TypeDesc; i: LONGINT; m: Module; adr: SYSTEM.ADDRESS;
+VAR type: TypeDesc; i: LONGINT; m: Module; adr: ADDRESS;
 BEGIN
 	type := ThisType(ModuleByName(TypeDescModule), TypeDescType);
 	ASSERT(type # NIL);
 	m := SYSTEM.VAL(Module, root);
 	WHILE m # NIL DO
 		FOR i := 0 TO LEN(m.typeInfo) - 1 DO
-			adr := SYSTEM.VAL(SYSTEM.ADDRESS, m.typeInfo[i]);
+			adr := SYSTEM.VAL(ADDRESS, m.typeInfo[i]);
 			SYSTEM.PUT(adr + TypeDescOffset, type.tag);
 			Relocate(adr + TypeDescOffset);
 		END;
@@ -967,7 +967,7 @@ BEGIN
 END FixupTypeDescTags;
 
 PROCEDURE FixupHeapBlockTags;
-VAR type: TypeDesc; m: Module; heapBlock {UNTRACED}: HeapBlock; adr, heapBlockAdr: SYSTEM.ADDRESS; val: LONGINT;
+VAR type: TypeDesc; m: Module; heapBlock {UNTRACED}: HeapBlock; adr, heapBlockAdr: ADDRESS; val: LONGINT;
 BEGIN
 	m := ModuleByName(HeapModule); ASSERT(m # NIL);
 	type := ThisType(m, FreeBlockDescType); ASSERT(type # NIL); freeBlockTag := type.tag;
@@ -995,7 +995,7 @@ END FixupHeapBlockTags;
 (* SortRelocates - Sort the relocates. *)
 
 PROCEDURE SortRelocates;
-VAR h, i, j: LONGINT; p: SYSTEM.ADDRESS;
+VAR h, i, j: LONGINT; p: ADDRESS;
 BEGIN
 	h := 1;  REPEAT h := h*3 + 1 UNTIL h > relocates;
 	REPEAT
@@ -1030,7 +1030,7 @@ END GetNum;
 
 (* VarByName - Find a global variable in the reference block. *)
 
-PROCEDURE VarByName(refs: Bytes;  i: LONGINT;  CONST name: ARRAY OF CHAR): SYSTEM.SIZE;
+PROCEDURE VarByName(refs: Bytes;  i: LONGINT;  CONST name: ARRAY OF CHAR): SIZE;
 VAR mode: CHAR;  j, m, adr, type, t: LONGINT;  s: Name;  found: BOOLEAN;
 BEGIN
 	m := LEN(refs^);  found := FALSE;
@@ -1051,27 +1051,27 @@ BEGIN
 	ELSE
 		adr := 0
 	END;
-	RETURN SYSTEM.VAL(SYSTEM.SIZE, adr)
+	RETURN SYSTEM.VAL(SIZE, adr)
 END VarByName;
 
 (* InitTable - Generate init code for module bodies. *)
 
-PROCEDURE InitTable(diff: SYSTEM.SIZE; baseAdr, loadAdr: SYSTEM.ADDRESS);
-VAR i, n: LONGINT; adr: SYSTEM.ADDRESS; m: Module;
+PROCEDURE InitTable(diff: SIZE; baseAdr, loadAdr: ADDRESS);
+VAR i, n: LONGINT; adr: ADDRESS; m: Module;
 
 	PROCEDURE InitBody(m: Module);
 	BEGIN
 		IF m = NIL THEN
 			(* allocate block for init calls of n modules - each call requires 5 bytes (1 byte for the opcode and 4 bytes for the call address) - and some
 			     extra code following it, see body of InitTable *)
-			NewSys(initBlock, 5*n + (5+3));  adr := SYSTEM.VAL(SYSTEM.ADDRESS, initBlock)
+			NewSys(initBlock, 5*n + (5+3));  adr := SYSTEM.VAL(ADDRESS, initBlock)
 		ELSE
 			INC(n);  InitBody(m.next);
-			Address(SYSTEM.ADR(m.code[0])+diff);  Char("H");  Char(" ");
-			Address(SYSTEM.ADR(m.data[0])+diff);  Char("H");  Char(" ");
+			Address(ADDRESSOF(m.code[0])+diff);  Char("H");  Char(" ");
+			Address(ADDRESSOF(m.data[0])+diff);  Char("H");  Char(" ");
 			String(m.name);  Ln;
 			SYSTEM.PUT(adr, 0E8X);	(* CALL *)
-			SYSTEM.PUT(adr+1, SYSTEM.ADR(m.code[0]) - (adr+5));  (* call address *)
+			SYSTEM.PUT(adr+1, ADDRESSOF(m.code[0]) - (adr+5));  (* call address *)
 			INC(adr, 5)
 		END
 	END InitBody;
@@ -1083,7 +1083,7 @@ BEGIN
 		(* startup command *)
 	m := ModuleByName(StartModule);
 	i := 0;  WHILE m.command[i].name # StartCommand DO INC(i) END;
-	Address(SYSTEM.VAL(SYSTEM.ADDRESS, m.command[i].entryAdr)+diff);  Char(" ");
+	Address(SYSTEM.VAL(ADDRESS, m.command[i].entryAdr)+diff);  Char(" ");
 	String(m.name);  Char(".");  String(StartCommand);  Ln;
 	SYSTEM.PUT(adr, 0E8X);	(* CALL *)
 	SYSTEM.PUT(adr+1, SYSTEM.VAL(LONGINT, m.command[i].entryAdr) - (adr+5));
@@ -1099,7 +1099,7 @@ BEGIN
 	END;
 	IF baseAdr = loadAdr THEN
 		SYSTEM.PUT(beginAdr, 0E8X);	(* CALL *)
-		SYSTEM.PUT(beginAdr+1, SYSTEM.VAL(SYSTEM.ADDRESS, initBlock) - (beginAdr+5))
+		SYSTEM.PUT(beginAdr+1, SYSTEM.VAL(ADDRESS, initBlock) - (beginAdr+5))
 	ELSE	(* image will relocate itself *)
 		adr := beginAdr;
 		SYSTEM.PUT(adr, 60X);	(* PUSHAD *)
@@ -1120,7 +1120,7 @@ BEGIN
 		SYSTEM.PUT(adr, 61X);	(* POPAD *)
 		INC(adr);
 		SYSTEM.PUT(adr, 0E8X);	(* CALL *)
-		SYSTEM.PUT(adr+1, SYSTEM.VAL(SYSTEM.ADDRESS, initBlock) - (adr+5) + (baseAdr-loadAdr));
+		SYSTEM.PUT(adr+1, SYSTEM.VAL(ADDRESS, initBlock) - (adr+5) + (baseAdr-loadAdr));
 		INC(adr, 5);
 		ASSERT(adr-beginAdr <= EndBlockOfs)	(* not too much code *)
 	END;
@@ -1128,7 +1128,7 @@ BEGIN
 END InitTable;
 
 PROCEDURE RootGlobals;
-VAR m: Module; i: LONGINT; ofs: SYSTEM.SIZE;
+VAR m: Module; i: LONGINT; ofs: SIZE;
 BEGIN
 	(* root init block pointer *)
 	m := ModuleByName(InitPtrModule);
@@ -1143,15 +1143,15 @@ BEGIN
 	ofs := VarByName(m.refs, i, ModRootName); ASSERT(ofs # 0);
 	SYSTEM.PUT(m.sb + ofs, root);  Relocate(m.sb + ofs);
 	ofs := VarByName(m.refs, i, ProcOffsetsName); ASSERT(ofs # 0);
-	SYSTEM.PUT(m.sb + ofs, SYSTEM.VAL(SYSTEM.ADDRESS, procOffsets)); Relocate(m.sb + ofs);
+	SYSTEM.PUT(m.sb + ofs, SYSTEM.VAL(ADDRESS, procOffsets)); Relocate(m.sb + ofs);
 	ofs := VarByName(m.refs, i, NumProcsName); ASSERT(ofs # 0);
 	SYSTEM.PUT(m.sb + ofs, numProcs);
 	ofs := VarByName(m.refs, i, PtrOffsetsName); ASSERT(ofs # 0);
-	SYSTEM.PUT(m.sb + ofs, SYSTEM.VAL(SYSTEM.ADDRESS, ptrOffsets)); Relocate(m.sb + ofs);
+	SYSTEM.PUT(m.sb + ofs, SYSTEM.VAL(ADDRESS, ptrOffsets)); Relocate(m.sb + ofs);
 	ofs := VarByName(m.refs, i, NumPtrsName); ASSERT(ofs # 0);
 	SYSTEM.PUT(m.sb + ofs, numPtrs);
 
-	(* write tag addresses as pointer values since the reference section does not contain variables of type SYSTEM.ADDRESS *)
+	(* write tag addresses as pointer values since the reference section does not contain variables of type ADDRESS *)
 	(* patching of Type Tags not necessary any more -- cf. Module Heaps *)
 
 	m := ModuleByName(HeapModule);
@@ -1163,22 +1163,22 @@ END RootGlobals;
 
 (* ScopeInfo - Write information for debugger. *)
 
-PROCEDURE ScopeInfo(diff: SYSTEM.SIZE; baseAdr: SYSTEM.ADDRESS;  root: Module);
-VAR main: SYSTEM.ADDRESS;  m: Module;  i: LONGINT;
+PROCEDURE ScopeInfo(diff: SIZE; baseAdr: ADDRESS;  root: Module);
+VAR main: ADDRESS;  m: Module;  i: LONGINT;
 BEGIN
 	m := root;  WHILE (m # NIL) & (m.name # MainModule) DO m := m.next END;
-	IF m = NIL THEN main := -1 ELSE main := SYSTEM.ADR(m.code[0])+diff END;
+	IF m = NIL THEN main := -1 ELSE main := ADDRESSOF(m.code[0])+diff END;
 	IF main = -1 THEN String(MainModule);  String(" not found");  Ln END;
 	String("SCOPE.BEGIN 0");  Address(baseAdr);  String("H 0");  Address(main);  Char("H");  Ln;
 	m := root;
 	WHILE m # NIL DO
 		String("  ");  String(m.name);  String(" 0");
-		Address(SYSTEM.ADR(m.code[0])+diff);  String("H 0");
+		Address(ADDRESSOF(m.code[0])+diff);  String("H 0");
 		Hex(LEN(m.code), 8);  String("H 0");
 		Address(m.sb);  String("H ");  Int(LEN(m.typeInfo), 1);  Ln;
 		FOR i := 0 TO LEN(m.typeInfo)-1 DO
 			String("    0");  Hex(-1, 8);  String("H 0");
-			Address(SYSTEM.VAL(SYSTEM.ADDRESS, m.typeInfo[i].tag)+diff);  Char("H");  Ln
+			Address(SYSTEM.VAL(ADDRESS, m.typeInfo[i].tag)+diff);  Char("H");  Ln
 		END;
 		m := m.next
 	END;
@@ -1187,13 +1187,13 @@ END ScopeInfo;
 
 (* ug *)
 PROCEDURE CheckLinkerHeap; (* ug: for debugging *)
-VAR p, tagAdr, typeDescAdr: SYSTEM.ADDRESS; heapBlock: HeapBlock;
+VAR p, tagAdr, typeDescAdr: ADDRESS; heapBlock: HeapBlock;
 BEGIN
 	(* find last block in static heap *)
 	p := beginMemBlockAdr;
 	heapBlock := SYSTEM.VAL(HeapBlock, p + BlockHeaderSize);
 	WHILE p < endMemBlockAdr DO
-		SYSTEM.GET(SYSTEM.VAL(SYSTEM.ADDRESS, heapBlock) + TypeDescOffset, tagAdr);
+		SYSTEM.GET(SYSTEM.VAL(ADDRESS, heapBlock) + TypeDescOffset, tagAdr);
 		IF tagAdr = freeBlockTag THEN
 			String("FreeBlock at adr = "); Address(p); Ln
 		ELSIF tagAdr = systemBlockTag THEN
@@ -1217,8 +1217,8 @@ END CheckLinkerHeap;
 
 (** Close - Finalize the log file etc. *)
 
-PROCEDURE Close*(w: Files.Writer;  loadAdr: SYSTEM.ADDRESS; res: LONGINT; CONST msg: ARRAY OF CHAR; log: Streams.Writer);
-VAR i: LONGINT; adr: SYSTEM.ADDRESS; diff: SYSTEM.SIZE;  ch: CHAR;
+PROCEDURE Close*(w: Files.Writer;  loadAdr: ADDRESS; res: LONGINT; CONST msg: ARRAY OF CHAR; log: Streams.Writer);
+VAR i: LONGINT; adr: ADDRESS; diff: SIZE;  ch: CHAR;
 BEGIN
 	IF res = 0 THEN
 		IF baseAdr = -1 THEN diff := 0 ELSE diff := baseAdr - beginAdr END;
@@ -1293,17 +1293,17 @@ END Close;
 (* NewModule - Allocate a module descriptor (protected record) *)
 
 PROCEDURE NewModule*(VAR m: Module);
-VAR size, blockSize: SYSTEM.SIZE; protRecBlockAdr, dataBlockAdr: SYSTEM.ADDRESS;
+VAR size, blockSize: SIZE; protRecBlockAdr, dataBlockAdr: ADDRESS;
 	protRecBlock: ProtRecBlock; i: LONGINT;
 BEGIN
 	size := SYSTEM.GET32(SYSTEM.TYPECODE(Module));
-	blockSize := BlockHeaderSize +  SYSTEM.SIZEOF(ProtRecBlockDesc) + BlockHeaderSize + size;
+	blockSize := BlockHeaderSize +  SIZEOF(ProtRecBlockDesc) + BlockHeaderSize + size;
 	INC(blockSize, (-blockSize) MOD BlockSize); (* round up to multiple of BlockSize *)
 
 	protRecBlockAdr := NewBlock(blockSize) + BlockHeaderSize;
 	SYSTEM.PUT(protRecBlockAdr + TypeDescOffset, ProtRecBlockId);
 	SYSTEM.PUT(protRecBlockAdr + HeapBlockOffset, NilVal);
-	dataBlockAdr := protRecBlockAdr + SYSTEM.SIZEOF(ProtRecBlockDesc) + BlockHeaderSize;
+	dataBlockAdr := protRecBlockAdr + SIZEOF(ProtRecBlockDesc) + BlockHeaderSize;
 	SYSTEM.PUT(dataBlockAdr + TypeDescOffset, NilVal);		(* will be set later *)
 	SYSTEM.PUT(dataBlockAdr + HeapBlockOffset, protRecBlockAdr);
 	Relocate(dataBlockAdr + HeapBlockOffset);
@@ -1311,8 +1311,8 @@ BEGIN
 	protRecBlock.mark := currentMarkValue;
 	protRecBlock.dataAdr := dataBlockAdr;
 	protRecBlock.nextRealtime := NIL; (* default value NIL since module is never a realtime object *)
-	Relocate(SYSTEM.ADR(protRecBlock.dataAdr));
-	Relocate(SYSTEM.ADR(protRecBlock.nextRealtime));
+	Relocate(ADDRESSOF(protRecBlock.dataAdr));
+	Relocate(ADDRESSOF(protRecBlock.nextRealtime));
 	protRecBlock.size := blockSize;
 	protRecBlock.count := 0;
 	protRecBlock.awaitingLock.head := NIL;
@@ -1327,24 +1327,24 @@ BEGIN
 	INC(protRecBlock.waitingPriorities[0]);	(* set sentinel value: assume that idle process with priority 0 waits on this resource *)
 	m := SYSTEM.VAL(Module, dataBlockAdr);
 
-	Fill4(dataBlockAdr, (blockSize - SYSTEM.SIZEOF(ProtRecBlockDesc) - 2 * BlockHeaderSize) DIV 4, 0);	(* clear everything except tag & header *)
+	Fill4(dataBlockAdr, (blockSize - SIZEOF(ProtRecBlockDesc) - 2 * BlockHeaderSize) DIV 4, 0);	(* clear everything except tag & header *)
 END NewModule;
 
 (* NewExportDesc - Allocate an export array. *)
 
 PROCEDURE NewExportDesc*(VAR p: ExportArray;  numElems: LONGINT);
-VAR adr: SYSTEM.ADDRESS; block: ANY;
+VAR adr: ADDRESS; block: ANY;
 BEGIN
-	NewRealArr(block, numElems, SYSTEM.SIZEOF(ExportDesc), 1);
-	adr := SYSTEM.VAL(SYSTEM.ADDRESS, block);
+	NewRealArr(block, numElems, SIZEOF(ExportDesc), 1);
+	adr := SYSTEM.VAL(ADDRESS, block);
 	SYSTEM.PUT(adr + LenOfs, numElems);
 	p := SYSTEM.VAL(ExportArray, block);
 	IF exportTags = LEN(exportTagAdr) THEN GrowTable(exportTagAdr) END;
 	exportTagAdr[exportTags] := adr + TypeDescOffset;  INC(exportTags);
 END NewExportDesc;
 
-PROCEDURE ArraySize*(numElems, elemSize: SYSTEM.SIZE; numDims: LONGINT): SYSTEM.SIZE;
-VAR arrSize, arrayDataOffset: SYSTEM.SIZE;
+PROCEDURE ArraySize*(numElems, elemSize: SIZE; numDims: LONGINT): SIZE;
+VAR arrSize, arrayDataOffset: SIZE;
 BEGIN
 	arrSize := numElems * elemSize;
 	arrayDataOffset := numDims * AddressSize + 3 * AddressSize;
@@ -1355,10 +1355,10 @@ END ArraySize;
 (* NewProcOffsets - Allocate a procedure offset  table *)
 
 PROCEDURE NewProcOffsets(VAR p: ProcOffsetTable; numElems: LONGINT);
-VAR adr: SYSTEM.ADDRESS; block: ANY;
+VAR adr: ADDRESS; block: ANY;
 BEGIN
-	NewSys(block, ArraySize(numElems, SYSTEM.SIZEOF(ProcOffsetEntry), 1));
-	adr := SYSTEM.VAL(SYSTEM.ADDRESS, block);
+	NewSys(block, ArraySize(numElems, SIZEOF(ProcOffsetEntry), 1));
+	adr := SYSTEM.VAL(ADDRESS, block);
 	SYSTEM.PUT(adr + LenOfs, numElems);
 	p := SYSTEM.VAL(ProcOffsetTable, block)
 END NewProcOffsets;
@@ -1366,26 +1366,26 @@ END NewProcOffsets;
 (* NewPtrOffsets - Allocate a pointer offset table *)
 
 PROCEDURE NewPtrOffsets(VAR p: PtrTable; numElems: LONGINT);
-VAR adr: SYSTEM.ADDRESS; block: ANY;
+VAR adr: ADDRESS; block: ANY;
 BEGIN
-	NewSys(block, ArraySize(numElems, SYSTEM.SIZEOF(SYSTEM.SIZE), 1));
-	adr := SYSTEM.VAL(SYSTEM.ADDRESS, block);
+	NewSys(block, ArraySize(numElems, SIZEOF(SIZE), 1));
+	adr := SYSTEM.VAL(ADDRESS, block);
 	SYSTEM.PUT(adr + LenOfs, numElems);
 	p := SYSTEM.VAL(PtrTable, block)
 END NewPtrOffsets;
 
 (* fit memory block at given start address - relocation of addresses is done later, see RelocateMemoryBlock *)
 
-PROCEDURE FitMemoryBlock(startAdr: SYSTEM.ADDRESS; size: SYSTEM.SIZE; VAR memBlock: MemoryBlock);
-VAR blockSize: SYSTEM.SIZE; recordBlock: RecordBlock; recordBlockAdr, dataBlockAdr: SYSTEM.ADDRESS;
+PROCEDURE FitMemoryBlock(startAdr: ADDRESS; size: SIZE; VAR memBlock: MemoryBlock);
+VAR blockSize: SIZE; recordBlock: RecordBlock; recordBlockAdr, dataBlockAdr: ADDRESS;
 BEGIN
-	blockSize := BlockHeaderSize + SYSTEM.SIZEOF(RecordBlockDesc) + BlockHeaderSize + SYSTEM.SIZEOF(MemoryBlockDesc);
+	blockSize := BlockHeaderSize + SIZEOF(RecordBlockDesc) + BlockHeaderSize + SIZEOF(MemoryBlockDesc);
 	INC(blockSize,(-blockSize) MOD BlockSize); (* align to multiple of BlockSize *)
 
 	recordBlockAdr := startAdr + BlockHeaderSize;
 	SYSTEM.PUT(recordBlockAdr + TypeDescOffset, RecordBlockId);		(* temporary tag value, fixup and relocation are done later *)
 	SYSTEM.PUT(recordBlockAdr + HeapBlockOffset, NilVal);
-	dataBlockAdr := recordBlockAdr + SYSTEM.SIZEOF(RecordBlockDesc) + BlockHeaderSize;
+	dataBlockAdr := recordBlockAdr + SIZEOF(RecordBlockDesc) + BlockHeaderSize;
 	SYSTEM.PUT(dataBlockAdr + TypeDescOffset, NilVal);					(* type descriptor tag will be filled in FixupTypeDescTags *)
 	SYSTEM.PUT(dataBlockAdr + HeapBlockOffset, recordBlockAdr);		(* reference to heap block descriptor *)
 	recordBlock := SYSTEM.VAL(RecordBlock, recordBlockAdr);
@@ -1407,28 +1407,28 @@ END FitMemoryBlock;
 
 (* relocate addresses of memory block *)
 PROCEDURE RelocateMemoryBlock;
-VAR type: TypeDesc; memBlockAdr: SYSTEM.ADDRESS; recordBlock: RecordBlock;
+VAR type: TypeDesc; memBlockAdr: ADDRESS; recordBlock: RecordBlock;
 BEGIN
 	type := ThisType(ModuleByName(MemBlockDescModule), MemBlockDescType);
 	ASSERT(type # NIL);
-	memBlockAdr := SYSTEM.VAL(SYSTEM.ADDRESS, memBlock);
+	memBlockAdr := SYSTEM.VAL(ADDRESS, memBlock);
 	SYSTEM.PUT(memBlockAdr + TypeDescOffset, type.tag);
 	Relocate(memBlockAdr + TypeDescOffset);
 	Relocate(memBlockAdr + HeapBlockOffset);
 	SYSTEM.GET(memBlockAdr + HeapBlockOffset, recordBlock);
 	(* type descriptor field of record block is relocated in FixupHeapBlockTags *)
-	Relocate(SYSTEM.ADR(recordBlock.dataAdr));
-	Relocate(SYSTEM.ADR(recordBlock.nextRealtime));
-	Relocate(SYSTEM.ADR(memBlock.beginBlockAdr));
-	Relocate(SYSTEM.ADR(memBlock.endBlockAdr))
+	Relocate(ADDRESSOF(recordBlock.dataAdr));
+	Relocate(ADDRESSOF(recordBlock.nextRealtime));
+	Relocate(ADDRESSOF(memBlock.beginBlockAdr));
+	Relocate(ADDRESSOF(memBlock.endBlockAdr))
 END RelocateMemoryBlock;
 
 (* InitHeap - Initialize the virtual heap. *)
 PROCEDURE InitHeap;
-VAR freeBlock: FreeBlock; alignOffset: SYSTEM.SIZE;
+VAR freeBlock: FreeBlock; alignOffset: SIZE;
 BEGIN
 	SYSTEM.NEW(heap, HeapSize);
-	beginMemBlockAdr := SYSTEM.VAL(SYSTEM.ADDRESS, heap) + HeaderSize;
+	beginMemBlockAdr := SYSTEM.VAL(ADDRESS, heap) + HeaderSize;
 	alignOffset := (-beginMemBlockAdr) MOD BlockSize;
 	beginMemBlockAdr := beginMemBlockAdr + alignOffset;	(* round up to multiple of BlockSize *)
 	beginAdr := beginMemBlockAdr - HeaderSize;
@@ -1459,7 +1459,7 @@ END InitHeap;
 
 (* ProcByName - Find a procedure in the reference block.  Return procedure offset, or -1 if not found. *)
 
-PROCEDURE ProcByName (refs: Bytes;  CONST name: ARRAY OF CHAR): SYSTEM.SIZE;
+PROCEDURE ProcByName (refs: Bytes;  CONST name: ARRAY OF CHAR): SIZE;
 VAR i, j, m, t, pofs: LONGINT;  ch: CHAR;  found: BOOLEAN;
 BEGIN
 	i := 0;  m := LEN(refs^);  found := FALSE;
@@ -1491,13 +1491,13 @@ BEGIN
 		END
 	END;
 	IF ~found THEN pofs := -1 END;
-	RETURN SYSTEM.VAL(SYSTEM.SIZE, pofs)
+	RETURN SYSTEM.VAL(SIZE, pofs)
 END ProcByName;
 
 (* GetProc - Return procedure address. *)
 
-PROCEDURE GetProc(m: Module; i: LONGINT; CONST mod, proc: ARRAY OF CHAR): SYSTEM.ADDRESS;
-VAR adr: SYSTEM.SIZE;
+PROCEDURE GetProc(m: Module; i: LONGINT; CONST mod, proc: ARRAY OF CHAR): ADDRESS;
+VAR adr: SIZE;
 BEGIN
 	IF m.name # mod THEN	(* fixup not in current module *)
 		m := ModuleByName(mod)	(* must have been loaded already *)
@@ -1508,13 +1508,13 @@ BEGIN
 		getProcs[i] := TRUE
 	END;
 	ASSERT(adr # -1);
-	RETURN SYSTEM.ADR(m.code[0]) + adr
+	RETURN ADDRESSOF(m.code[0]) + adr
 END GetProc;
 
 (* GetKernelProc - Return the specified kernel procedure. *)
 
-PROCEDURE GetKernelProc*(m: Module; num: LONGINT): SYSTEM.ADDRESS;
-VAR adr: SYSTEM.ADDRESS;
+PROCEDURE GetKernelProc*(m: Module; num: LONGINT): ADDRESS;
+VAR adr: ADDRESS;
 BEGIN
 	CASE num OF
 		|243: adr := GetProc(m, 8, "Modules", "GetProcedure")

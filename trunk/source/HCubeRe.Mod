@@ -137,8 +137,8 @@ TYPE
 		VAR destm: ArrayXdBytes.ArrayMemoryStructure;
 		BEGIN
 			destm :=
-				ArrayXdBytes.MakeMemoryStructure( 1, ArrayXdBytes.Index1( 0 ), ArrayXdBytes.Index1( LEN( dest ) ), SYSTEM.SIZEOF( Value ),
-																			  SYSTEM.ADR( dest[0] ) );
+				ArrayXdBytes.MakeMemoryStructure( 1, ArrayXdBytes.Index1( 0 ), ArrayXdBytes.Index1( LEN( dest ) ), SIZEOF( Value ),
+																			  ADDRESSOF( dest[0] ) );
 			ArrayXd.CopyArrayToArrayPartB( SELF, destm, bc, ArrayXdBytes.Index4( sx, sy, sz, st ),
 																  ArrayXdBytes.Index4( slenx, sleny, slenz, slent ), ArrayXdBytes.Index1( dpos ),
 																  ArrayXdBytes.Index1( dlen ) );
@@ -150,7 +150,7 @@ TYPE
 		BEGIN
 			destm :=
 				ArrayXdBytes.MakeMemoryStructure( 2, ArrayXdBytes.Index2( 0, 0 ), ArrayXdBytes.Index2( LEN( dest, 1 ), LEN( dest, 0 ) ),
-																			  SYSTEM.SIZEOF( Value ), SYSTEM.ADR( dest[0, 0] ) );
+																			  SIZEOF( Value ), ADDRESSOF( dest[0, 0] ) );
 			ArrayXd.CopyArrayToArrayPartB( SELF, destm, bc, ArrayXdBytes.Index4( sx, sy, sz, st ),
 																  ArrayXdBytes.Index4( slenx, sleny, slenz, slent ),
 																  ArrayXdBytes.Index2( dposx, dposy ), ArrayXdBytes.Index2( dlenx, dleny ) );
@@ -162,8 +162,8 @@ TYPE
 		BEGIN
 			destm :=
 				ArrayXdBytes.MakeMemoryStructure( 3, ArrayXdBytes.Index3( 0, 0, 0 ),
-																			  ArrayXdBytes.Index3( LEN( dest, 2 ), LEN( dest, 1 ), LEN( dest, 0 ) ), SYSTEM.SIZEOF( Value ),
-																			  SYSTEM.ADR( dest[0, 0, 0] ) );
+																			  ArrayXdBytes.Index3( LEN( dest, 2 ), LEN( dest, 1 ), LEN( dest, 0 ) ), SIZEOF( Value ),
+																			  ADDRESSOF( dest[0, 0, 0] ) );
 			ArrayXd.CopyArrayToArrayPartB( SELF, destm, bc, ArrayXdBytes.Index4( sx, sy, sz, st ),
 																  ArrayXdBytes.Index4( slenx, sleny, slenz, slent ),
 																  ArrayXdBytes.Index3( dposx, dposy, dposz ),
@@ -177,8 +177,8 @@ TYPE
 		BEGIN
 			destm :=
 				ArrayXdBytes.MakeMemoryStructure( 4, ArrayXdBytes.Index4( 0, 0, 0, 0 ),
-																			  ArrayXdBytes.Index4( LEN( dest, 3 ), LEN( dest, 2 ), LEN( dest, 1 ), LEN( dest, 0 ) ), SYSTEM.SIZEOF( Value ),
-																			  SYSTEM.ADR( dest[0, 0, 0, 0] ) );
+																			  ArrayXdBytes.Index4( LEN( dest, 3 ), LEN( dest, 2 ), LEN( dest, 1 ), LEN( dest, 0 ) ), SIZEOF( Value ),
+																			  ADDRESSOF( dest[0, 0, 0, 0] ) );
 			ArrayXd.CopyArrayToArrayPartB( SELF, destm, bc, ArrayXdBytes.Index4( sx, sy, sz, st ),
 																  ArrayXdBytes.Index4( slenx, sleny, slenz, slent ),
 																  ArrayXdBytes.Index4( dposx, dposy, dposz, dpost ),
@@ -191,8 +191,8 @@ TYPE
 		VAR srcm: ArrayXdBytes.ArrayMemoryStructure;
 		BEGIN
 			srcm :=
-				ArrayXdBytes.MakeMemoryStructure( 1, ArrayXdBytes.Index1( 0 ), ArrayXdBytes.Index1( LEN( src ) ), SYSTEM.SIZEOF( Value ),
-																			  SYSTEM.ADR( src[0] ) );
+				ArrayXdBytes.MakeMemoryStructure( 1, ArrayXdBytes.Index1( 0 ), ArrayXdBytes.Index1( LEN( src ) ), SIZEOF( Value ),
+																			  ADDRESSOF( src[0] ) );
 			ArrayXdBytes.CopyArrayPartToArrayPart( srcm, SELF, ArrayXdBytes.Index1( spos ), ArrayXdBytes.Index1( slen ),
 																			   ArrayXdBytes.Index4( dx, dy, dz, dt ),
 																			   ArrayXdBytes.Index4( dlenx, dleny, dlenz, dlent ) );
@@ -204,7 +204,7 @@ TYPE
 		BEGIN
 			srcm :=
 				ArrayXdBytes.MakeMemoryStructure( 2, ArrayXdBytes.Index2( 0, 0 ), ArrayXdBytes.Index2( LEN( src, 1 ), LEN( src, 0 ) ),
-																			  SYSTEM.SIZEOF( Value ), SYSTEM.ADR( src[0, 0] ) );
+																			  SIZEOF( Value ), ADDRESSOF( src[0, 0] ) );
 			ArrayXdBytes.CopyArrayPartToArrayPart( srcm, SELF, ArrayXdBytes.Index2( sposx, spoxy ),
 																			   ArrayXdBytes.Index2( slenx, sleny ), ArrayXdBytes.Index4( dx, dy, dz, dt ),
 																			   ArrayXdBytes.Index4( dlenx, dleny, dlenz, dlent ) );
@@ -216,8 +216,8 @@ TYPE
 		BEGIN
 			srcm :=
 				ArrayXdBytes.MakeMemoryStructure( 3, ArrayXdBytes.Index3( 0, 0, 0 ),
-																			  ArrayXdBytes.Index3( LEN( src, 2 ), LEN( src, 1 ), LEN( src, 0 ) ), SYSTEM.SIZEOF( Value ),
-																			  SYSTEM.ADR( src[0, 0, 0] ) );
+																			  ArrayXdBytes.Index3( LEN( src, 2 ), LEN( src, 1 ), LEN( src, 0 ) ), SIZEOF( Value ),
+																			  ADDRESSOF( src[0, 0, 0] ) );
 			ArrayXdBytes.CopyArrayPartToArrayPart( srcm, SELF, ArrayXdBytes.Index3( sposx, spoxy, sposz ),
 																			   ArrayXdBytes.Index3( slenx, sleny, slenz ),
 																			   ArrayXdBytes.Index4( dx, dy, dz, dt ),
@@ -231,8 +231,8 @@ TYPE
 		BEGIN
 			srcm :=
 				ArrayXdBytes.MakeMemoryStructure( 4, ArrayXdBytes.Index4( 0, 0, 0, 0 ),
-																			  ArrayXdBytes.Index4( LEN( src, 3 ), LEN( src, 2 ), LEN( src, 1 ), LEN( src, 0 ) ), SYSTEM.SIZEOF( Value ),
-																			  SYSTEM.ADR( src[0, 0, 0, 0] ) );
+																			  ArrayXdBytes.Index4( LEN( src, 3 ), LEN( src, 2 ), LEN( src, 1 ), LEN( src, 0 ) ), SIZEOF( Value ),
+																			  ADDRESSOF( src[0, 0, 0, 0] ) );
 			ArrayXdBytes.CopyArrayPartToArrayPart( srcm, SELF, ArrayXdBytes.Index4( sposx, spoxy, sposz, spost ),
 																			   ArrayXdBytes.Index4( slenx, sleny, slenz, slent ),
 																			   ArrayXdBytes.Index4( dx, dy, dz, dt ),
@@ -247,7 +247,7 @@ TYPE
 		IF l = NIL THEN NEW( l, 0, LEN( r, 3 ), 0, LEN( r, 2 ), 0, LEN( r, 1 ), 0, LEN( r, 0 ) )
 		ELSE l.NewRange( 0, LEN( r, 3 ), 0, LEN( r, 2 ), 0, LEN( r, 1 ), 0, LEN( r, 0 ), FALSE )
 		END;
-		ArrayXdBytes.CopyMemoryToArrayPart( SYSTEM.ADR( r[0, 0, 0, 0] ), l, LEN( r, 0 ) * LEN( r, 1 ) * LEN( r, 2 ) * LEN( r, 3 ), NIL , NIL );
+		ArrayXdBytes.CopyMemoryToArrayPart( ADDRESSOF( r[0, 0, 0, 0] ), l, LEN( r, 0 ) * LEN( r, 1 ) * LEN( r, 2 ) * LEN( r, 3 ), NIL , NIL );
 	END ":=";
 
 	PROCEDURE ":="*( VAR l: HCube;  r: HCubeInt.HCube );

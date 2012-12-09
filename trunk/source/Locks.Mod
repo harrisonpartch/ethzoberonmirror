@@ -272,7 +272,7 @@ TYPE
 		END SetDeadLock;
 
 		PROCEDURE WriteLock*;
-		VAR w : Streams.Writer; tag: SYSTEM.ADDRESS;
+		VAR w : Streams.Writer; tag: ADDRESS;
 		BEGIN
 			KernelLog.String("Lock held by : ");
 			IF lockedBy = NIL THEN KernelLog.String("nobody")
@@ -282,10 +282,10 @@ TYPE
 				(*
 
 				Streams.OpenWriter(w, KernelLog.Send);
-				SYSTEM.GET (SYSTEM.VAL (SYSTEM.ADDRESS, lockedBy) - SYSTEM.SIZEOF (SYSTEM.ADDRESS), tag);
+				SYSTEM.GET (SYSTEM.VAL (ADDRESS, lockedBy) - SIZEOF (ADDRESS), tag);
 				Reflection.WriteType(w, tag);
 				w.String(" New Acquire by : ");
-				SYSTEM.GET (SYSTEM.VAL (SYSTEM.ADDRESS, Objects.CurrentProcess()) - SYSTEM.SIZEOF (SYSTEM.ADDRESS), tag);
+				SYSTEM.GET (SYSTEM.VAL (ADDRESS, Objects.CurrentProcess()) - SIZEOF (ADDRESS), tag);
 				Reflection.WriteType(w, tag);
 				w.Update
 				*)
