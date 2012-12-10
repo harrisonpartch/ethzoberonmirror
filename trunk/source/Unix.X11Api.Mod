@@ -6,7 +6,6 @@ IMPORT
 (*! New XEvent types *)
 
 TYPE 
-	ADDRESS*= ADDRESS;
 	PChar* = POINTER TO ARRAY OF CHAR;
 
 	VisualPtr = X11.VisualPtr;

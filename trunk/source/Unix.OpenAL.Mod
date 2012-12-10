@@ -10,7 +10,6 @@ TYPE
   String256*=ARRAY 256 OF CHAR;
   PString256*= POINTER TO ARRAY OF String256;
 
-  ADDRESS = ADDRESS;
 
  ALbyte    * =  CHAR;  (* 1-byte signed *)
   ALshort   * =  INTEGER;  (* 2-byte signed *)
