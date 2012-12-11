@@ -31,6 +31,7 @@ CONST
 	PriorityStr = "PRIORITY";
 	NoPAFStr = "NOPAF"; FixedStr = "FIXED"; AlignedStr = "FIXED";
 	DynamicStr = "DYNAMIC"; InterruptStr = "INTERRUPT"; PCOffsetStr = "PCOFFSET";
+	
 
 TYPE
 	InfoItem* = OBJECT
@@ -1165,6 +1166,7 @@ TYPE
 						ELSIF symbol.identifierString = DynamicStr THEN NextSymbol
 						ELSIF symbol.identifierString = InterruptStr THEN NextSymbol; procHead.modifiers := procHead.modifiers + {Interrupt}
 						ELSIF symbol.identifierString = PCOffsetStr THEN NextSymbol; ModifierValueP(value)
+						ELSIF symbol.identifierString = RealtimeStr THEN NextSymbol
 						ELSE Error(symbol.start); NextSymbol (* skip the ident, probably a typo *)
 						END
 					END

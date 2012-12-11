@@ -6840,7 +6840,7 @@ TYPE
 				rightType := right.type.resolved(SyntaxTree.MathArrayType);
 				leftBase := SemanticChecker.ArrayBase(leftType,MAX(LONGINT));
 				rightBase := SemanticChecker.ArrayBase(rightType,MAX(LONGINT));
-				ASSERT(leftBase.SameType(rightBase));
+				ASSERT(leftBase.resolved.SameType(rightBase.resolved));
 
 				IF leftType.form = SyntaxTree.Tensor THEN
 					procedureName := "CopyTensor"; rightKind := SyntaxTree.ValueParameter;
