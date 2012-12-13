@@ -16,11 +16,9 @@ MODULE X11;   (* 1993-95 / rc *)
 IMPORT S := SYSTEM, Trace, Machine, Unix, Modules;
 
 TYPE
-	Address = ADDRESS;
+	Pixmap* = ADDRESS;
 
-	Pixmap* = Address;
-
-	Pattern* = Address (* = PatternPtr *) ;
+	Pattern* = ADDRESS (* = PatternPtr *) ;
 	PatternPtr* = POINTER TO PatternDesc;
 	PatternDesc* = RECORD
 				x*, y*: LONGINT;
@@ -49,7 +47,7 @@ TYPE
 					   END;
 	Modifiers* = ARRAY 8 OF LONGINT;
 
-	DisplayPtr* = Address;
+	DisplayPtr* = ADDRESS;
 	Window* = LONGINT;
 	Drawable* = LONGINT;
 	GC* = LONGINT;
@@ -60,7 +58,7 @@ TYPE
 
 	VisualID* = LONGINT;
 	Visual* = RECORD
-				extData*: Address;
+				extData*: ADDRESS;
 				visualid*: VisualID;
 				class*: LONGINT;
 				redMask*, greenMask*, blueMask*: LONGINT;
@@ -145,7 +143,7 @@ TYPE
 				sameScreen: Bool
 			END;
 
-	Image* = Address;
+	Image* = ADDRESS;
 	ImagePtr* = POINTER TO ImageDesc;
 	ImageDesc* = RECORD
 				width*, height*: LONGINT;
@@ -232,7 +230,7 @@ VAR
 
 VAR
 	(* Xlib calls: *)
-	OpenDisplay-:			PROCEDURE {C} ( name: Address ): DisplayPtr;
+	OpenDisplay-:			PROCEDURE {C} ( name: ADDRESS ): DisplayPtr;
 	DefaultScreen-:			PROCEDURE {C} ( d: DisplayPtr ): LONGINT;
 	DisplayWidth-,
 	DisplayHeight-,
@@ -264,13 +262,13 @@ VAR
 	Flush-:					PROCEDURE {C} ( d: DisplayPtr );
 	StoreColor-:			PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap;  color: LONGINT );
 	CreateBitmapFromData-:
-							PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;  data: Address;
+							PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;  data: ADDRESS;
 											width, height: LONGINT ): Pixmap;
 	CopyArea-:				PROCEDURE {C} ( d: DisplayPtr;  src, dest: Drawable;  gc: GC;
 											srcX, srcY, width, height, destX, destY: LONGINT );
-	CopyPlane-:				PROCEDURE {C} ( d: DisplayPtr;  src, dest: Drawable;  gc: GC;
+	CopyPlane-:			PROCEDURE {C} ( d: DisplayPtr;  src, dest: Drawable;  gc: GC;
 											srcX, srcY, width, height, destX, destY, plane: LONGINT );
-	SetStipple-:				PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  stipple: Pixmap );
+	SetStipple-:			PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  stipple: Pixmap );
 	SetTSOrigin-:			PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  tsxorigin, tsyorigin: LONGINT );
 	DrawPoint-:			PROCEDURE {C} ( d: DisplayPtr;  w: Drawable;  gc: GC;  x, y: LONGINT );
 	FillRectangle-:			PROCEDURE {C} ( d: DisplayPtr;  w: Drawable;  gc: GC;  x, y, width, height: LONGINT );
@@ -306,10 +304,10 @@ VAR
 	ListFonts-:				PROCEDURE {C} ( d: DisplayPtr;  pattern, maxnames: LONGINT;
 											VAR count: LONGINT ): LONGINT;
 	FreeFontNames-:		PROCEDURE {C} ( list: LONGINT );
-	LoadFont-:				PROCEDURE {C} ( d: DisplayPtr;  name: Address ): LONGINT;
+	LoadFont-:				PROCEDURE {C} ( d: DisplayPtr;  name: ADDRESS ): LONGINT;
 	SelectInput-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window;  eventMask: LONGINT );
 	NextEvent-:			PROCEDURE {C} ( d: DisplayPtr;  VAR event: Event );
-	EventsQueued-:			PROCEDURE {C} ( d: DisplayPtr;  mode: LONGINT ): LONGINT;
+	EventsQueued-:		PROCEDURE {C} ( d: DisplayPtr;  mode: LONGINT ): LONGINT;
 	SetInputFocus-:			PROCEDURE {C} ( d: DisplayPtr;  focus: Window;  revertTo: LONGINT;  time: LONGINT );
 	LookupString-:			PROCEDURE {C} ( VAR event: Event;  VAR buf: Buffer;  bufsize: LONGINT;  VAR keysym: KeySym;
 											VAR cstat: ComposeStatus ): LONGINT;
@@ -319,15 +317,15 @@ VAR
 							PROCEDURE {C} ( event: LONGINT );
 	Bell-:					PROCEDURE {C} ( d: DisplayPtr;  percent: LONGINT );
 	RebindKeysym-:			PROCEDURE {C} ( d: DisplayPtr;  reboundsym: KeySym;  VAR modlist: Modifiers;
-											modlength: LONGINT;  newstring: Address;  newlength: LONGINT );
-	StringToKeysym-:		PROCEDURE {C} ( string: Address ): KeySym;
+											modlength: LONGINT;  newstring: ADDRESS;  newlength: LONGINT );
+	StringToKeysym-:		PROCEDURE {C} ( string: ADDRESS ): KeySym;
 	CopyColormapAndFree-:
 							PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap ): Colormap;
 	CreateColormap-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  vis: VisualPtr; alloc: LONGINT ): Colormap;
 	MatchVisualInfo-:		PROCEDURE {C} ( d: DisplayPtr;  screen, depth, class: LONGINT; VAR vinfo: VisualInfo ): LONGINT;
 	SetWindowColormap-:
 							PROCEDURE {C} ( d: DisplayPtr;  w: Window;  cmap: Colormap );
-	QueryBestSize-:			PROCEDURE {C} ( d: DisplayPtr;  class: LONGINT;
+	QueryBestSize-:		PROCEDURE {C} ( d: DisplayPtr;  class: LONGINT;
 											screen: Drawable;  width, height: LONGINT;  VAR w, h: LONGINT );
 	CreatePixmap-:			PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;
 											width, height, depth: LONGINT ): Pixmap;
@@ -370,7 +368,7 @@ VAR
 	InstallColormap-:		PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap );
 	GetGeometry-:			PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;
 											VAR root, x, y, width, height, orderWidth, Depth: LONGINT );
-	ResizeWindow-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window;  x, y: LONGINT );
+	ResizeWindow-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  x, y: LONGINT );
 	Synchronize-:			PROCEDURE {C} ( d: DisplayPtr;  onoff: LONGINT );
 	AllocColor-:				PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap;  color: LONGINT ): LONGINT;
 	(*SetIOErrorHandler-:	procedure {C} ( handler: IOErrorHandler ); *)
@@ -411,110 +409,110 @@ VAR
 			Trace.StringLn( "X11.LinkToX:  Unix.Dlopen( libX11.so ) failed " );  Unix.exit( 3 )
 		END;
 
-		Unix.Dlsym( xlib, "XOpenDisplay", S.VAL( Address, OpenDisplay ) );
-		Unix.Dlsym( xlib, "XDefaultScreen", S.VAL( Address, DefaultScreen ) );
-		Unix.Dlsym( xlib, "XDisplayWidth", S.VAL( Address, DisplayWidth ) );
-		Unix.Dlsym( xlib, "XDisplayHeight", S.VAL( Address, DisplayHeight ) );
-		Unix.Dlsym( xlib, "XDisplayHeightMM", S.VAL( Address, DisplayHeightMM ) );
-		Unix.Dlsym( xlib, "XDefaultDepth", S.VAL( Address, DefaultDepth ) );
-		Unix.Dlsym( xlib, "XDisplayCells", S.VAL( Address, DisplayCells ) );
-		Unix.Dlsym( xlib, "XDisplayPlanes", S.VAL( Address, DisplayPlanes ) );
-		Unix.Dlsym( xlib, "XBlackPixel", S.VAL( Address, BlackPixel ) );
-		Unix.Dlsym( xlib, "XWhitePixel", S.VAL( Address, WhitePixel ) );
-		Unix.Dlsym( xlib, "XDefaultVisual", S.VAL( Address, DefaultVisual ) );
-		Unix.Dlsym( xlib, "XDefaultColormap", S.VAL( Address, DefaultColormap ) );
-		Unix.Dlsym( xlib, "XDefaultRootWindow", S.VAL( Address, DefaultRootWindow ) );
-		Unix.Dlsym( xlib, "XCreateSimpleWindow", S.VAL( Address, CreateSimpleWindow ) );
-		Unix.Dlsym( xlib, "XTranslateCoordinates", S.VAL( Address, TranslateCoordinates ) );
-		Unix.Dlsym( xlib, "XMoveResizeWindow", S.VAL( Address, MoveResizeWindow ) );
-		Unix.Dlsym( xlib, "XStoreName", S.VAL( Address, StoreName ) );
-		Unix.Dlsym( xlib, "XSetIconName", S.VAL( Address, SetIconName ) );
-		Unix.Dlsym( xlib, "XSetCommand", S.VAL( Address, SetCommand ) );
-		Unix.Dlsym( xlib, "XMapRaised", S.VAL( Address, MapRaised ) );
-		Unix.Dlsym( xlib, "XLowerWindow", S.VAL( Address, LowerWindow ) );
-		Unix.Dlsym( xlib, "XClearWindow", S.VAL( Address, ClearWindow ) );
-		Unix.Dlsym( xlib, "XSync", S.VAL( Address, Sync ) );  Unix.Dlsym( xlib, "XFlush", S.VAL( Address, Flush ) );
-		Unix.Dlsym( xlib, "XStoreColor", S.VAL( Address, StoreColor ) );
-		Unix.Dlsym( xlib, "XCreateBitmapFromData", S.VAL( Address, CreateBitmapFromData ) );
-		Unix.Dlsym( xlib, "XCopyArea", S.VAL( Address, CopyArea ) );
-		Unix.Dlsym( xlib, "XCopyPlane", S.VAL( Address, CopyPlane ) );
-		Unix.Dlsym( xlib, "XSetStipple", S.VAL( Address, SetStipple ) );
-		Unix.Dlsym( xlib, "XSetTSOrigin", S.VAL( Address, SetTSOrigin ) );
-		Unix.Dlsym( xlib, "XFillRectangle", S.VAL( Address, FillRectangle ) );
-		Unix.Dlsym( xlib, "XDrawPoint", S.VAL( Address, DrawPoint ) );
-		Unix.Dlsym( xlib, "XDrawString", S.VAL( Address, DrawString ) );
-		Unix.Dlsym( xlib, "XCreateGC", S.VAL( Address, CreateGC ) );
-		Unix.Dlsym( xlib, "XSetForeground", S.VAL( Address, SetForeground ) );
-		Unix.Dlsym( xlib, "XSetBackground", S.VAL( Address, SetBackground ) );
-		Unix.Dlsym( xlib, "XSetPlaneMask", S.VAL( Address, SetPlaneMask ) );
-		Unix.Dlsym( xlib, "XSetLineAttributes", S.VAL( Address, SetLineAttributes ) );
-		Unix.Dlsym( xlib, "XSetFunction", S.VAL( Address, SetFunction ) );
-		Unix.Dlsym( xlib, "XSetFont", S.VAL( Address, SetFont ) );
-		Unix.Dlsym( xlib, "XSetFillStyle", S.VAL( Address, SetFillStyle ) );
-		Unix.Dlsym( xlib, "XSetGraphicsExposures", S.VAL( Address, SetGraphicsExposures ) );
-		Unix.Dlsym( xlib, "XAllocColorCells", S.VAL( Address, AllocColorCells ) );
-		Unix.Dlsym( xlib, "XSetWindowBackground", S.VAL( Address, SetWindowBackground ) );
-		Unix.Dlsym( xlib, "XCreateFontCursor", S.VAL( Address, CreateFontCursor ) );
-		Unix.Dlsym( xlib, "XCreatePixmapCursor", S.VAL( Address, CreatePixmapCursor ) );
-		Unix.Dlsym( xlib, "XRecolorCursor", S.VAL( Address, RecolorCursor ) );
-		Unix.Dlsym( xlib, "XDefineCursor", S.VAL( Address, DefineCursor ) );
-		Unix.Dlsym( xlib, "XDrawLine", S.VAL( Address, DrawLine ) );
-		Unix.Dlsym( xlib, "XSetArcMode", S.VAL( Address, SetArcMode ) );
-		Unix.Dlsym( xlib, "XDrawArc", S.VAL( Address, DrawArc ) );
-		Unix.Dlsym( xlib, "XFillArc", S.VAL( Address, FillArc ) );
-		Unix.Dlsym( xlib, "XFillPolygon", S.VAL( Address, FillPolygon ) );
-		Unix.Dlsym( xlib, "XSetClipMask", S.VAL( Address, SetClipMask ) );
-		Unix.Dlsym( xlib, "XSetClipRectangles", S.VAL( Address, SetClipRectangles ) );
-		Unix.Dlsym( xlib, "XListFonts", S.VAL( Address, ListFonts ) );
-		Unix.Dlsym( xlib, "XFreeFontNames", S.VAL( Address, FreeFontNames ) );
-		Unix.Dlsym( xlib, "XLoadFont", S.VAL( Address, LoadFont ) );
-		Unix.Dlsym( xlib, "XSelectInput", S.VAL( Address, SelectInput ) );
-		Unix.Dlsym( xlib, "XSync", S.VAL( Address, Sync ) );
-		Unix.Dlsym( xlib, "XNextEvent", S.VAL( Address, NextEvent ) );
-		Unix.Dlsym( xlib, "XEventsQueued", S.VAL( Address, EventsQueued ) );
-		Unix.Dlsym( xlib, "XSetInputFocus", S.VAL( Address, SetInputFocus ) );
-		Unix.Dlsym( xlib, "XLookupString", S.VAL( Address, LookupString ) );
-		Unix.Dlsym( xlib, "XQueryPointer", S.VAL( Address, QueryPointer ) );
-		Unix.Dlsym( xlib, "XRefreshKeyboardMapping", S.VAL( Address, RefreshKeyboardMapping ) );
-		Unix.Dlsym( xlib, "XBell", S.VAL( Address, Bell ) );
-		Unix.Dlsym( xlib, "XRebindKeysym", S.VAL( Address, RebindKeysym ) );
-		Unix.Dlsym( xlib, "XStringToKeysym", S.VAL( Address, StringToKeysym ) );
-		Unix.Dlsym( xlib, "XCopyColormapAndFree", S.VAL( Address, CopyColormapAndFree ) );
-		Unix.Dlsym( xlib, "XCreateColormap", S.VAL( Address, CreateColormap ) );
-		Unix.Dlsym( xlib, "XMatchVisualInfo", S.VAL( Address, MatchVisualInfo ) );
-		Unix.Dlsym( xlib, "XSetWindowColormap", S.VAL( Address, SetWindowColormap ) );
-		Unix.Dlsym( xlib, "XQueryBestSize", S.VAL( Address, QueryBestSize ) );
-		Unix.Dlsym( xlib, "XCreatePixmap", S.VAL( Address, CreatePixmap ) );
-		Unix.Dlsym( xlib, "XFreePixmap", S.VAL( Address, FreePixmap ) );
-		Unix.Dlsym( xlib, "XCreateImage", S.VAL( Address, CreateImage ) );
-		Unix.Dlsym( xlib, "XDestroyImage", S.VAL( Address, DestroyImage ) );
-		Unix.Dlsym( xlib, "XSubImage", S.VAL( Address, SubImage ) );
-		Unix.Dlsym( xlib, "XGetImage", S.VAL( Address, GetImage ) );
-		Unix.Dlsym( xlib, "XGetSubImage", S.VAL( Address, GetSubImage ) );
-		Unix.Dlsym( xlib, "XPutImage", S.VAL( Address, PutImage ) );
-		Unix.Dlsym( xlib, "XPutPixel", S.VAL( Address, PutPixel ) );
-		Unix.Dlsym( xlib, "XGetPixel", S.VAL( Address, GetPixel ) );
-		Unix.Dlsym( xlib, "XAddPixel", S.VAL( Address, AddPixel ) );
-		Unix.Dlsym( xlib, "XFree", S.VAL( Address, Free ) );
-		(*Unix.Dlsym( xlib, "XSetErrorHandler", S.VAL( Address, SetErrorHandler ) );*)
-		(*Unix.Dlsym( xlib, "XSetIOErrorHandler", S.VAL( Address, SetIOErrorHandler ) );*)
-		Unix.Dlsym( xlib, "XGetErrorText", S.VAL( Address, GetErrorText ) );
-		Unix.Dlsym( xlib, "XStoreBytes", S.VAL( Address, StoreBytes ) );
-		Unix.Dlsym( xlib, "XFetchBytes", S.VAL( Address, FetchBytes ) );
-		Unix.Dlsym( xlib, "XSetSelectionOwner", S.VAL( Address, SetSelectionOwner ) );
-		Unix.Dlsym( xlib, "XGetSelectionOwner", S.VAL( Address, GetSelectionOwner ) );
-		Unix.Dlsym( xlib, "XInternAtom", S.VAL( Address, InternAtom ) );
-		Unix.Dlsym( xlib, "XSendEvent", S.VAL( Address, SendEvent ) );
-		Unix.Dlsym( xlib, "XConvertSelection", S.VAL( Address, ConvertSelection ) );
-		Unix.Dlsym( xlib, "XChangeProperty", S.VAL( Address, ChangeProperty ) );
-		Unix.Dlsym( xlib, "XGetWindowProperty", S.VAL( Address, GetWindowProperty ) );
-		Unix.Dlsym( xlib, "XDeleteProperty", S.VAL( Address, DeleteProperty ) );
-		Unix.Dlsym( xlib, "XWarpPointer", S.VAL( Address, WarpPointer ) );
-		Unix.Dlsym( xlib, "XInstallColormap", S.VAL( Address, InstallColormap ) );
-		Unix.Dlsym( xlib, "XGetGeometry", S.VAL( Address, GetGeometry ) );
-		Unix.Dlsym( xlib, "XResizeWindow", S.VAL( Address, ResizeWindow ) );
-		Unix.Dlsym( xlib, "XSynchronize", S.VAL( Address, Synchronize ) );
-		Unix.Dlsym( xlib, "XAllocColor", S.VAL( Address, AllocColor ) );
+		Unix.Dlsym( xlib, "XOpenDisplay", S.VAL( ADDRESS, OpenDisplay ) );
+		Unix.Dlsym( xlib, "XDefaultScreen", S.VAL( ADDRESS, DefaultScreen ) );
+		Unix.Dlsym( xlib, "XDisplayWidth", S.VAL( ADDRESS, DisplayWidth ) );
+		Unix.Dlsym( xlib, "XDisplayHeight", S.VAL( ADDRESS, DisplayHeight ) );
+		Unix.Dlsym( xlib, "XDisplayHeightMM", S.VAL( ADDRESS, DisplayHeightMM ) );
+		Unix.Dlsym( xlib, "XDefaultDepth", S.VAL( ADDRESS, DefaultDepth ) );
+		Unix.Dlsym( xlib, "XDisplayCells", S.VAL( ADDRESS, DisplayCells ) );
+		Unix.Dlsym( xlib, "XDisplayPlanes", S.VAL( ADDRESS, DisplayPlanes ) );
+		Unix.Dlsym( xlib, "XBlackPixel", S.VAL( ADDRESS, BlackPixel ) );
+		Unix.Dlsym( xlib, "XWhitePixel", S.VAL( ADDRESS, WhitePixel ) );
+		Unix.Dlsym( xlib, "XDefaultVisual", S.VAL( ADDRESS, DefaultVisual ) );
+		Unix.Dlsym( xlib, "XDefaultColormap", S.VAL( ADDRESS, DefaultColormap ) );
+		Unix.Dlsym( xlib, "XDefaultRootWindow", S.VAL( ADDRESS, DefaultRootWindow ) );
+		Unix.Dlsym( xlib, "XCreateSimpleWindow", S.VAL( ADDRESS, CreateSimpleWindow ) );
+		Unix.Dlsym( xlib, "XTranslateCoordinates", S.VAL( ADDRESS, TranslateCoordinates ) );
+		Unix.Dlsym( xlib, "XMoveResizeWindow", S.VAL( ADDRESS, MoveResizeWindow ) );
+		Unix.Dlsym( xlib, "XStoreName", S.VAL( ADDRESS, StoreName ) );
+		Unix.Dlsym( xlib, "XSetIconName", S.VAL( ADDRESS, SetIconName ) );
+		Unix.Dlsym( xlib, "XSetCommand", S.VAL( ADDRESS, SetCommand ) );
+		Unix.Dlsym( xlib, "XMapRaised", S.VAL( ADDRESS, MapRaised ) );
+		Unix.Dlsym( xlib, "XLowerWindow", S.VAL( ADDRESS, LowerWindow ) );
+		Unix.Dlsym( xlib, "XClearWindow", S.VAL( ADDRESS, ClearWindow ) );
+		Unix.Dlsym( xlib, "XSync", S.VAL( ADDRESS, Sync ) );  Unix.Dlsym( xlib, "XFlush", S.VAL( ADDRESS, Flush ) );
+		Unix.Dlsym( xlib, "XStoreColor", S.VAL( ADDRESS, StoreColor ) );
+		Unix.Dlsym( xlib, "XCreateBitmapFromData", S.VAL( ADDRESS, CreateBitmapFromData ) );
+		Unix.Dlsym( xlib, "XCopyArea", S.VAL( ADDRESS, CopyArea ) );
+		Unix.Dlsym( xlib, "XCopyPlane", S.VAL( ADDRESS, CopyPlane ) );
+		Unix.Dlsym( xlib, "XSetStipple", S.VAL( ADDRESS, SetStipple ) );
+		Unix.Dlsym( xlib, "XSetTSOrigin", S.VAL( ADDRESS, SetTSOrigin ) );
+		Unix.Dlsym( xlib, "XFillRectangle", S.VAL( ADDRESS, FillRectangle ) );
+		Unix.Dlsym( xlib, "XDrawPoint", S.VAL( ADDRESS, DrawPoint ) );
+		Unix.Dlsym( xlib, "XDrawString", S.VAL( ADDRESS, DrawString ) );
+		Unix.Dlsym( xlib, "XCreateGC", S.VAL( ADDRESS, CreateGC ) );
+		Unix.Dlsym( xlib, "XSetForeground", S.VAL( ADDRESS, SetForeground ) );
+		Unix.Dlsym( xlib, "XSetBackground", S.VAL( ADDRESS, SetBackground ) );
+		Unix.Dlsym( xlib, "XSetPlaneMask", S.VAL( ADDRESS, SetPlaneMask ) );
+		Unix.Dlsym( xlib, "XSetLineAttributes", S.VAL( ADDRESS, SetLineAttributes ) );
+		Unix.Dlsym( xlib, "XSetFunction", S.VAL( ADDRESS, SetFunction ) );
+		Unix.Dlsym( xlib, "XSetFont", S.VAL( ADDRESS, SetFont ) );
+		Unix.Dlsym( xlib, "XSetFillStyle", S.VAL( ADDRESS, SetFillStyle ) );
+		Unix.Dlsym( xlib, "XSetGraphicsExposures", S.VAL( ADDRESS, SetGraphicsExposures ) );
+		Unix.Dlsym( xlib, "XAllocColorCells", S.VAL( ADDRESS, AllocColorCells ) );
+		Unix.Dlsym( xlib, "XSetWindowBackground", S.VAL( ADDRESS, SetWindowBackground ) );
+		Unix.Dlsym( xlib, "XCreateFontCursor", S.VAL( ADDRESS, CreateFontCursor ) );
+		Unix.Dlsym( xlib, "XCreatePixmapCursor", S.VAL( ADDRESS, CreatePixmapCursor ) );
+		Unix.Dlsym( xlib, "XRecolorCursor", S.VAL( ADDRESS, RecolorCursor ) );
+		Unix.Dlsym( xlib, "XDefineCursor", S.VAL( ADDRESS, DefineCursor ) );
+		Unix.Dlsym( xlib, "XDrawLine", S.VAL( ADDRESS, DrawLine ) );
+		Unix.Dlsym( xlib, "XSetArcMode", S.VAL( ADDRESS, SetArcMode ) );
+		Unix.Dlsym( xlib, "XDrawArc", S.VAL( ADDRESS, DrawArc ) );
+		Unix.Dlsym( xlib, "XFillArc", S.VAL( ADDRESS, FillArc ) );
+		Unix.Dlsym( xlib, "XFillPolygon", S.VAL( ADDRESS, FillPolygon ) );
+		Unix.Dlsym( xlib, "XSetClipMask", S.VAL( ADDRESS, SetClipMask ) );
+		Unix.Dlsym( xlib, "XSetClipRectangles", S.VAL( ADDRESS, SetClipRectangles ) );
+		Unix.Dlsym( xlib, "XListFonts", S.VAL( ADDRESS, ListFonts ) );
+		Unix.Dlsym( xlib, "XFreeFontNames", S.VAL( ADDRESS, FreeFontNames ) );
+		Unix.Dlsym( xlib, "XLoadFont", S.VAL( ADDRESS, LoadFont ) );
+		Unix.Dlsym( xlib, "XSelectInput", S.VAL( ADDRESS, SelectInput ) );
+		Unix.Dlsym( xlib, "XSync", S.VAL( ADDRESS, Sync ) );
+		Unix.Dlsym( xlib, "XNextEvent", S.VAL( ADDRESS, NextEvent ) );
+		Unix.Dlsym( xlib, "XEventsQueued", S.VAL( ADDRESS, EventsQueued ) );
+		Unix.Dlsym( xlib, "XSetInputFocus", S.VAL( ADDRESS, SetInputFocus ) );
+		Unix.Dlsym( xlib, "XLookupString", S.VAL( ADDRESS, LookupString ) );
+		Unix.Dlsym( xlib, "XQueryPointer", S.VAL( ADDRESS, QueryPointer ) );
+		Unix.Dlsym( xlib, "XRefreshKeyboardMapping", S.VAL( ADDRESS, RefreshKeyboardMapping ) );
+		Unix.Dlsym( xlib, "XBell", S.VAL( ADDRESS, Bell ) );
+		Unix.Dlsym( xlib, "XRebindKeysym", S.VAL( ADDRESS, RebindKeysym ) );
+		Unix.Dlsym( xlib, "XStringToKeysym", S.VAL( ADDRESS, StringToKeysym ) );
+		Unix.Dlsym( xlib, "XCopyColormapAndFree", S.VAL( ADDRESS, CopyColormapAndFree ) );
+		Unix.Dlsym( xlib, "XCreateColormap", S.VAL( ADDRESS, CreateColormap ) );
+		Unix.Dlsym( xlib, "XMatchVisualInfo", S.VAL( ADDRESS, MatchVisualInfo ) );
+		Unix.Dlsym( xlib, "XSetWindowColormap", S.VAL( ADDRESS, SetWindowColormap ) );
+		Unix.Dlsym( xlib, "XQueryBestSize", S.VAL( ADDRESS, QueryBestSize ) );
+		Unix.Dlsym( xlib, "XCreatePixmap", S.VAL( ADDRESS, CreatePixmap ) );
+		Unix.Dlsym( xlib, "XFreePixmap", S.VAL( ADDRESS, FreePixmap ) );
+		Unix.Dlsym( xlib, "XCreateImage", S.VAL( ADDRESS, CreateImage ) );
+		Unix.Dlsym( xlib, "XDestroyImage", S.VAL( ADDRESS, DestroyImage ) );
+		Unix.Dlsym( xlib, "XSubImage", S.VAL( ADDRESS, SubImage ) );
+		Unix.Dlsym( xlib, "XGetImage", S.VAL( ADDRESS, GetImage ) );
+		Unix.Dlsym( xlib, "XGetSubImage", S.VAL( ADDRESS, GetSubImage ) );
+		Unix.Dlsym( xlib, "XPutImage", S.VAL( ADDRESS, PutImage ) );
+		Unix.Dlsym( xlib, "XPutPixel", S.VAL( ADDRESS, PutPixel ) );
+		Unix.Dlsym( xlib, "XGetPixel", S.VAL( ADDRESS, GetPixel ) );
+		Unix.Dlsym( xlib, "XAddPixel", S.VAL( ADDRESS, AddPixel ) );
+		Unix.Dlsym( xlib, "XFree", S.VAL( ADDRESS, Free ) );
+		(*Unix.Dlsym( xlib, "XSetErrorHandler", S.VAL( ADDRESS, SetErrorHandler ) );*)
+		(*Unix.Dlsym( xlib, "XSetIOErrorHandler", S.VAL( ADDRESS, SetIOErrorHandler ) );*)
+		Unix.Dlsym( xlib, "XGetErrorText", S.VAL( ADDRESS, GetErrorText ) );
+		Unix.Dlsym( xlib, "XStoreBytes", S.VAL( ADDRESS, StoreBytes ) );
+		Unix.Dlsym( xlib, "XFetchBytes", S.VAL( ADDRESS, FetchBytes ) );
+		Unix.Dlsym( xlib, "XSetSelectionOwner", S.VAL( ADDRESS, SetSelectionOwner ) );
+		Unix.Dlsym( xlib, "XGetSelectionOwner", S.VAL( ADDRESS, GetSelectionOwner ) );
+		Unix.Dlsym( xlib, "XInternAtom", S.VAL( ADDRESS, InternAtom ) );
+		Unix.Dlsym( xlib, "XSendEvent", S.VAL( ADDRESS, SendEvent ) );
+		Unix.Dlsym( xlib, "XConvertSelection", S.VAL( ADDRESS, ConvertSelection ) );
+		Unix.Dlsym( xlib, "XChangeProperty", S.VAL( ADDRESS, ChangeProperty ) );
+		Unix.Dlsym( xlib, "XGetWindowProperty", S.VAL( ADDRESS, GetWindowProperty ) );
+		Unix.Dlsym( xlib, "XDeleteProperty", S.VAL( ADDRESS, DeleteProperty ) );
+		Unix.Dlsym( xlib, "XWarpPointer", S.VAL( ADDRESS, WarpPointer ) );
+		Unix.Dlsym( xlib, "XInstallColormap", S.VAL( ADDRESS, InstallColormap ) );
+		Unix.Dlsym( xlib, "XGetGeometry", S.VAL( ADDRESS, GetGeometry ) );
+		Unix.Dlsym( xlib, "XResizeWindow", S.VAL( ADDRESS, ResizeWindow ) );
+		Unix.Dlsym( xlib, "XSynchronize", S.VAL( ADDRESS, Synchronize ) );
+		Unix.Dlsym( xlib, "XAllocColor", S.VAL( ADDRESS, AllocColor ) );
 
 		xlib := Unix.Dlopen( Unix.libXextname, 2 );
 		IF xlib = 0 THEN  (* try default version *)
@@ -522,14 +520,14 @@ VAR
 		END;
 		IF xlib = 0 THEN  Trace.StringLn( "X11.LinkToX:  Unix.Dlopen( libXext.so ) failed " )  END;
 
-		Unix.Dlsym( xlib, "XShmQueryVersion", S.VAL( Address, ShmQueryVersion ) );
-		Unix.Dlsym( xlib, "XShmPixmapFormat", S.VAL( Address, ShmPixmapFormat ) );
-		Unix.Dlsym( xlib, "XShmAttach", S.VAL( Address, ShmAttach ) );
-		Unix.Dlsym( xlib, "XShmDetach", S.VAL( Address, ShmDetach ) );
-		Unix.Dlsym( xlib, "XShmPutImage", S.VAL( Address, ShmPutImage ) );
-		Unix.Dlsym( xlib, "XShmGetImage", S.VAL( Address, ShmGetImage ) );
-		Unix.Dlsym( xlib, "XShmCreateImage", S.VAL( Address, ShmCreateImage ) );
-		Unix.Dlsym( xlib, "XShmCreatePixmap", S.VAL( Address, ShmCreatePixmap ) );
+		Unix.Dlsym( xlib, "XShmQueryVersion", S.VAL( ADDRESS, ShmQueryVersion ) );
+		Unix.Dlsym( xlib, "XShmPixmapFormat", S.VAL( ADDRESS, ShmPixmapFormat ) );
+		Unix.Dlsym( xlib, "XShmAttach", S.VAL( ADDRESS, ShmAttach ) );
+		Unix.Dlsym( xlib, "XShmDetach", S.VAL( ADDRESS, ShmDetach ) );
+		Unix.Dlsym( xlib, "XShmPutImage", S.VAL( ADDRESS, ShmPutImage ) );
+		Unix.Dlsym( xlib, "XShmGetImage", S.VAL( ADDRESS, ShmGetImage ) );
+		Unix.Dlsym( xlib, "XShmCreateImage", S.VAL( ADDRESS, ShmCreateImage ) );
+		Unix.Dlsym( xlib, "XShmCreatePixmap", S.VAL( ADDRESS, ShmCreatePixmap ) );
 	END LinkToX;
 
 	PROCEDURE MyErrorHandler( d: DisplayPtr;  err: ErrorEventPtr; p3, p4: LONGINT ): LONGINT;
@@ -556,6 +554,6 @@ BEGIN
 			(* Oberon procedures cannot be used as callback procedures because of
 				incompatibilities between the PPC Oberon ABI and the PPC SYSV ABI.
 				PPC Oberon follows the old MAC and IBM AIX ABI *)
-	Unix.Dlsym( 0, "InitXErrH", S.VAL( Address, InitXErrorHandlers ) );
+	Unix.Dlsym( 0, "InitXErrH", S.VAL( ADDRESS, InitXErrorHandlers ) );
 	InitXErrorHandlers( MyErrorHandler, MyIOErrorHandler );
 END X11.

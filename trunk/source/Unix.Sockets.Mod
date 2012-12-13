@@ -19,9 +19,7 @@ CONST
 	Backlog = 5;		(* max number of pending connections *)
 
 
-TYPE
-	Address = ADDRESS;
-				
+TYPE				
 	SocketAdr* = POINTER TO RECORD 
 		family*		: INTEGER;
 		port*		: INTEGER;	(* in network byte order! *)
@@ -63,14 +61,14 @@ CONST
 VAR
 	socket		: PROCEDURE {C} ( af, typ, protocol: LONGINT ): LONGINT;		
 	setsockopt	: PROCEDURE {C} ( s: LONGINT; level, optname: LONGINT; opt: SocketOption; optlen: LONGINT): LONGINT;
-	accept		: PROCEDURE {C} ( s: LONGINT; adrPtr: Address; VAR adrlen: LONGINT ): LONGINT;
+	accept		: PROCEDURE {C} ( s: LONGINT; adrPtr: ADDRESS; VAR adrlen: LONGINT ): LONGINT;
 	bind		: PROCEDURE {C} ( s: LONGINT; adr: SocketAdr; adrlen: LONGINT ): LONGINT;
 	connect		: PROCEDURE {C} ( s: LONGINT; adr: SocketAdr; adrlen: LONGINT ): LONGINT;
 	listen		: PROCEDURE {C} ( s: LONGINT; backlog: LONGINT ): LONGINT;
-	recv		: PROCEDURE {C} ( s: LONGINT; buf: Address; len, flags: LONGINT ): LONGINT;
-	send		: PROCEDURE {C} ( s: LONGINT; buf: Address; len, flags: LONGINT ): LONGINT;
-	recvfrom	: PROCEDURE {C} ( s: LONGINT; buf: Address; len, flags: LONGINT; from: NameBuf; VAR flen: LONGINT ): LONGINT;
-	sendto		: PROCEDURE {C} ( s: LONGINT; buf: Address; len, flags: LONGINT; to: SocketAdr; tolen: LONGINT ): LONGINT;
+	recv		: PROCEDURE {C} ( s: LONGINT; buf: ADDRESS; len, flags: LONGINT ): LONGINT;
+	send		: PROCEDURE {C} ( s: LONGINT; buf: ADDRESS; len, flags: LONGINT ): LONGINT;
+	recvfrom	: PROCEDURE {C} ( s: LONGINT; buf: ADDRESS; len, flags: LONGINT; from: NameBuf; VAR flen: LONGINT ): LONGINT;
+	sendto		: PROCEDURE {C} ( s: LONGINT; buf: ADDRESS; len, flags: LONGINT; to: SocketAdr; tolen: LONGINT ): LONGINT;
 	shutdown	: PROCEDURE {C} ( s: LONGINT; how: LONGINT );
 	
 	getpeername	: PROCEDURE {C} ( s: LONGINT; adr: NameBuf; VAR adrlen: LONGINT ): LONGINT;
@@ -406,23 +404,23 @@ VAR
 		ELSE
 			slib := Unix.libc
 		END;
-		Unix.Dlsym( slib, "accept", S.VAL( Address, accept ) );
-		Unix.Dlsym( slib, "bind", S.VAL( Address, bind ) );
-		Unix.Dlsym( slib, "connect", S.VAL( Address, connect ) );
-		Unix.Dlsym( slib, "shutdown", S.VAL( Address, shutdown ) );
-		Unix.Dlsym( slib, "getpeername", S.VAL( Address, getpeername ) );
-		Unix.Dlsym( slib, "htonl", S.VAL( Address, htonl ) );
-		Unix.Dlsym( slib, "htons", S.VAL( Address, htons ) );
-		Unix.Dlsym( slib, "listen", S.VAL( Address, listen ) );
-		Unix.Dlsym( slib, "ntohl", S.VAL( Address, ntohl ) );
-		Unix.Dlsym( slib, "ntohs", S.VAL( Address, ntohs ) );
-		Unix.Dlsym( slib, "recv", S.VAL( Address, recv ) );
-		Unix.Dlsym( slib, "recvfrom", S.VAL( Address, recvfrom ) );
-		Unix.Dlsym( slib, "send", S.VAL( Address, send ) );
-		Unix.Dlsym( slib, "sendto", S.VAL( Address, sendto ) );
-		Unix.Dlsym( slib, "setsockopt", S.VAL( Address, setsockopt ) );
-		Unix.Dlsym( slib, "socket", S.VAL( Address, socket ) );
-		Unix.Dlsym( slib, "getsockname", S.VAL( Address, getsockname ) );
+		Unix.Dlsym( slib, "accept", S.VAL( ADDRESS, accept ) );
+		Unix.Dlsym( slib, "bind", S.VAL( ADDRESS, bind ) );
+		Unix.Dlsym( slib, "connect", S.VAL( ADDRESS, connect ) );
+		Unix.Dlsym( slib, "shutdown", S.VAL( ADDRESS, shutdown ) );
+		Unix.Dlsym( slib, "getpeername", S.VAL( ADDRESS, getpeername ) );
+		Unix.Dlsym( slib, "htonl", S.VAL( ADDRESS, htonl ) );
+		Unix.Dlsym( slib, "htons", S.VAL( ADDRESS, htons ) );
+		Unix.Dlsym( slib, "listen", S.VAL( ADDRESS, listen ) );
+		Unix.Dlsym( slib, "ntohl", S.VAL( ADDRESS, ntohl ) );
+		Unix.Dlsym( slib, "ntohs", S.VAL( ADDRESS, ntohs ) );
+		Unix.Dlsym( slib, "recv", S.VAL( ADDRESS, recv ) );
+		Unix.Dlsym( slib, "recvfrom", S.VAL( ADDRESS, recvfrom ) );
+		Unix.Dlsym( slib, "send", S.VAL( ADDRESS, send ) );
+		Unix.Dlsym( slib, "sendto", S.VAL( ADDRESS, sendto ) );
+		Unix.Dlsym( slib, "setsockopt", S.VAL( ADDRESS, setsockopt ) );
+		Unix.Dlsym( slib, "socket", S.VAL( ADDRESS, socket ) );
+		Unix.Dlsym( slib, "getsockname", S.VAL( ADDRESS, getsockname ) );
 	END Init;
 
 BEGIN

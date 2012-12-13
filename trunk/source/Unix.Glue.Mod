@@ -6,29 +6,27 @@ MODULE Glue;   (** AUTHOR "G.F."; PURPOSE "Interface to the dynamic linker of Un
 
 IMPORT S := SYSTEM, Trace;
 
-TYPE
-	Address = ADDRESS;
-	
+TYPE	
 	PtrElemDesc* = RECORD  a: ANY  END;	(* used by BootLinker only *)
 		(* has same type descriptor as element of ARRAY OF POINTER TO ... *)
 
 CONST
-	AdrSize = SIZEOF( ADDRESS );
+	AddrSize = SIZEOF( ADDRESS );
 
 
 VAR
 	(* the first variable ("AA...") gets initialized by the bootfile loader *)
-	AAgetadr	: Address;	(* address of procedure dlsym *)
+	AAgetadr	: ADDRESS;	(* address of procedure dlsym *)
 
-	dlsym-		: PROCEDURE {C} ( handle: Address;  name: Address; adr: Address );
-	dlopen-	: PROCEDURE {C} ( pathname: Address;  mode: LONGINT ): Address;
-	dlclose-	: PROCEDURE {C} ( handle: Address );
+	dlsym-		: PROCEDURE {C} ( handle: ADDRESS;  name: ADDRESS; adr: ADDRESS );
+	dlopen-	: PROCEDURE {C} ( pathname: ADDRESS;  mode: LONGINT ): ADDRESS;
+	dlclose-	: PROCEDURE {C} ( handle: ADDRESS );
 	cout		: PROCEDURE {C} ( c: CHAR );	(* output to Unix stdout *)
 
 	debug-		: SET;	(* value of environment variable  AOSDEBUG  *)
 
 
-	stackBottom-	: Address;	(* of main thread *)
+	stackBottom-	: ADDRESS;	(* of main thread *)
 
 
 	PROCEDURE Char ( c: CHAR );
@@ -41,14 +39,15 @@ VAR
 	PROCEDURE Init;
 	VAR i: LONGINT;
 	BEGIN
-		S.MOVE( ADDRESSOF( AAgetadr ), ADDRESSOF( dlsym ), AdrSize );
+		S.MOVE( ADDRESSOF( AAgetadr ), ADDRESSOF( dlsym ), AddrSize );
+		
 		dlsym( 0, ADDRESSOF( "dlopen" ), ADDRESSOF( dlopen ) );
 		dlsym( 0, ADDRESSOF( "dlclose" ), ADDRESSOF( dlclose ) );
 		
 		dlsym( 0, ADDRESSOF( "debug" ), ADDRESSOF( debug ) );
 		dlsym( 0, ADDRESSOF( "cout" ), ADDRESSOF( cout ) );
 		
-		stackBottom := ADDRESSOF( i ) + 2*AdrSize;
+		stackBottom := ADDRESSOF( i ) + 2*AddrSize;
 		
 		Trace.Char := Char;
 	END Init;

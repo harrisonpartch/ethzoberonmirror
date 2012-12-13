@@ -10,10 +10,8 @@ IMPORT S := SYSTEM, Trace, Glue, Unix, Objects, Machine, Heaps, Streams, Modules
 		TrapWriters, Commands, StdIO;  
 
 
-TYPE 	
-	Address = ADDRESS;
-	
-	SigHandler = PROCEDURE ( sig: LONGINT; scp, ucp, dum: Address );  
+TYPE 		
+	SigHandler = PROCEDURE ( sig: LONGINT; scp, ucp, dum: ADDRESS );  
 	
 VAR 
 	InstallSignalHandler: PROCEDURE ( h: SigHandler );  
@@ -35,7 +33,7 @@ VAR
 	END Append;
 	
 	
-	PROCEDURE GetTypeName( tag: Address;  VAR name: ARRAY OF CHAR );
+	PROCEDURE GetTypeName( tag: ADDRESS;  VAR name: ARRAY OF CHAR );
 	VAR  typ: Modules.TypeDesc;
 	BEGIN
 		S.GET( tag - 4, typ );  name[0] := 0X;
@@ -45,13 +43,13 @@ VAR
 
 	PROCEDURE Trap( sig: LONGINT;  ucp: Unix.Ucontext );  
 	VAR 
-		pc, sp, bp: Address;  
+		pc, sp, bp: ADDRESS;  
 		trapno: LONGINT;  
 		trProcess: Objects.Process;  handled: BOOLEAN;  
 		w: Streams.Writer;
 	
 		PROCEDURE FinishTrapText( exitAos: BOOLEAN );
-		VAR tag: Address;  name: ARRAY 72 OF CHAR;
+		VAR tag: ADDRESS;  name: ARRAY 72 OF CHAR;
 		BEGIN
 			
 			w.Ln; w.Ln; 
@@ -62,7 +60,7 @@ VAR
 			
 			IF exitAos THEN  Unix.exit( 1 )  END;
 			
-			S.GET( S.VAL( Address, trProcess.obj ) - 4, tag );
+			S.GET( S.VAL( ADDRESS, trProcess.obj ) - 4, tag );
 			GetTypeName( tag, name );
 			IF name = "Oberon.System.OberonRunner" THEN  UnlockOberon  END;
 			TrapHandlingLevel := 0;
@@ -91,7 +89,7 @@ VAR
 		INC( TrapHandlingLevel ); 
 		IF trace THEN  
 			Trace.String( "Aos Trap:  signal = " );  Trace.Int( sig, 0 );  
-			Trace.String( ",  ucp = " );  Trace.Hex( S.VAL( Address, ucp ), -8 );  
+			Trace.String( ",  ucp = " );  Trace.Hex( S.VAL( ADDRESS, ucp ), -8 );  
 			Trace.String( ", traphandling  level = " ); Trace.Int( TrapHandlingLevel, 1 );  
 			Trace.Ln;  
 		END;  
@@ -221,8 +219,8 @@ VAR
 	END HandleException;  
 	
 	
-	PROCEDURE SignalHandler( signal: LONGINT;  scp, ucp, dum: Address );   
-		(* 'dum' for 16 byte stack alignment, MacOS! *)
+	PROCEDURE SignalHandler( signal: LONGINT;  scp, ucp, dummy: ADDRESS );   
+		(* 'dummy' for 16 byte stack alignment, MacOS! *)
 	CONST SIGALRM = 14;  
 	VAR ures: LONGINT;
 	BEGIN 
@@ -250,7 +248,7 @@ VAR
 
 BEGIN 
 	trace := 3 IN Glue.debug; 
-	Unix.Dlsym( 0, "InstallTrap", S.VAL( Address, InstallSignalHandler ) );
+	Unix.Dlsym( 0, "InstallTrap", S.VAL( ADDRESS, InstallSignalHandler ) );
 	InstallSignalHandler( SignalHandler );
 	unix := StdIO.env
 END Traps.

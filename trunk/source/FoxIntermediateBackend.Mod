@@ -6040,11 +6040,28 @@ TYPE
 			|Global.systemPut, Global.systemPut64, Global.systemPut32, Global.systemPut16, Global.systemPut8:
 				Evaluate(p0,s0); (*  *)
 				Evaluate(p1,s1); (* variable *)
-				MakeMemory(res,s0.op,IntermediateCode.GetType(system,p1.type),0);
-				ReleaseOperand(s0);
-				Emit(Mov(position,res,s1.op));
-				ReleaseIntermediateOperand(res);
-				ReleaseOperand(s1);
+				IF p1.type.resolved IS SyntaxTree.ComplexType THEN
+					componentType := p1.type.resolved(SyntaxTree.ComplexType).componentType;
+
+					(* real part *)
+					MakeMemory(res, s0.op, IntermediateCode.GetType(system, componentType), 0);
+					Emit(Mov(position,res, s1.op));
+					ReleaseIntermediateOperand(res);
+
+					(* imaginary part *)
+					MakeMemory(res, s0.op, IntermediateCode.GetType(system, componentType), ToMemoryUnits(system, system.SizeOf(componentType)));
+					Emit(Mov(position,res, s1.tag));
+					ReleaseIntermediateOperand(res);
+
+					ReleaseOperand(s1);
+					ReleaseOperand(s0);
+				ELSE
+					MakeMemory(res,s0.op,IntermediateCode.GetType(system,p1.type),0);
+					ReleaseOperand(s0);
+					Emit(Mov(position,res,s1.op));
+					ReleaseIntermediateOperand(res);
+					ReleaseOperand(s1);
+				END;
 			(* ---- SYSTEM.MOVE ----- *)
 			|Global.systemMove:
 				Evaluate(p0,s0);

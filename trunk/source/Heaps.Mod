@@ -247,7 +247,7 @@ BEGIN
 	IF Stats THEN INC(Nmark) END;
 	markStackHeight := 0; 	(* clear mark stack *)
 	lowestForgotten := Machine.memBlockTail.endBlockAdr; 	(* sentinel: no overflow has happened *)
-	block := SYSTEM.VAL(ADDRESS, p);
+	block := p;
 	Inspect(block);
 	LOOP
 		WHILE markStackHeight # 0 DO
@@ -274,12 +274,12 @@ BEGIN
 					END
 				END;
 				IF orgHeapBlock IS ProtRecBlock THEN
-					Inspect(SYSTEM.VAL(ADDRESS, orgHeapBlock(ProtRecBlock).awaitingLock.head));
+					Inspect(orgHeapBlock(ProtRecBlock).awaitingLock.head);
 					(* inspection of orgHeapBlock.awaitingLock.tail implicitly done *)
-					Inspect(SYSTEM.VAL(ADDRESS, orgHeapBlock(ProtRecBlock).awaitingCond.head));
+					Inspect(orgHeapBlock(ProtRecBlock).awaitingCond.head);
 					(* inspection of orgHeapBlock.awaitingCond.tail implicity done *)
-					Inspect(SYSTEM.VAL(ADDRESS, orgHeapBlock(ProtRecBlock).lockedBy));
-					Inspect(SYSTEM.VAL(ADDRESS, orgHeapBlock(ProtRecBlock).lock))
+					Inspect(orgHeapBlock(ProtRecBlock).lockedBy);
+					Inspect(orgHeapBlock(ProtRecBlock).lock)
 				END
 			ELSE
 				(* mark stack entry is of type HeapBlock or extended type - this may happen, do nothing in this case *)
@@ -667,11 +667,11 @@ BEGIN
 						END
 					END;
 					IF heapBlock IS ProtRecBlock THEN
-						IF CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).awaitingLock.head)) &
-							CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).awaitingLock.tail)) &
-							CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).awaitingCond.head)) &
-							CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).awaitingCond.tail)) &
-							CheckBlock(SYSTEM.VAL(ADDRESS, heapBlock(ProtRecBlock).lockedBy)) THEN
+						IF CheckBlock(heapBlock(ProtRecBlock).awaitingLock.head) &
+							CheckBlock(heapBlock(ProtRecBlock).awaitingLock.tail) &
+							CheckBlock(heapBlock(ProtRecBlock).awaitingCond.head) &
+							CheckBlock(heapBlock(ProtRecBlock).awaitingCond.tail) &
+							CheckBlock(heapBlock(ProtRecBlock).lockedBy) THEN
 						ELSE
 							Trace.String("SEVERE ERROR in awaiting queues of block = "); Trace.Hex(heapBlock.dataAdr, 8); Trace.Ln
 						END
@@ -889,7 +889,7 @@ END CleanupModuleFinalizers;
 PROCEDURE AddRootObject*(rootObject: RootObject);
 BEGIN
 	IF rootObject = NIL THEN (* nothing *)
-	ELSIF CheckPointer(SYSTEM.VAL(ADDRESS,rootObject)) THEN
+	ELSIF CheckPointer(rootObject) THEN
 		(* object in heap, must be fully marked and traversed *)
 		Mark(rootObject)
 	ELSE
@@ -1023,7 +1023,7 @@ BEGIN
 	freeBlock.size := size;
 	freeBlock.next := NIL;
 	(* initialize heap block header *)
-	freeBlockAdr := SYSTEM.VAL(ADDRESS, freeBlock);
+	freeBlockAdr := freeBlock;
 	SYSTEM.PUT(freeBlockAdr + TypeDescOffset, freeBlockTag);
 	SYSTEM.PUT(freeBlockAdr + HeapBlockOffset, NilVal)
 END InitFreeBlock;
@@ -1072,7 +1072,7 @@ BEGIN
 	IF p # NIL THEN
 		IF Stats THEN INC(Nnew); INC(NnewBytes, size) END;
 		ASSERT(p.size >= size);
-		RETURN SYSTEM.VAL(ADDRESS, p)
+		RETURN p;
 	ELSE 	(* try = MaxTries *)
 		SYSTEM.HALT(14) 	(* out of memory *)
 	END;

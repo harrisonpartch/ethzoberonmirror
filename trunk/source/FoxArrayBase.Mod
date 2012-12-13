@@ -2143,7 +2143,7 @@ Sufficient (but not necessary) conditions:
 	(*** subtraction array-scalar -> array  ********************************************************************)
 
 (** SHORTINT *)
-	OPERATOR "-"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF SHORTINT;;   (* a: left, b: right, c: dest *)
+	OPERATOR "-"*(CONST left: ARRAY [ ? ] OF SHORTINT; right: SHORTINT ): ARRAY [ ? ] OF SHORTINT;   (* a: left, b: right, c: dest *)
 	BEGIN
 		RESULT := left + (-right);
 		RETURN RESULT

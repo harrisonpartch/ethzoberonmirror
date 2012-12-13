@@ -26,7 +26,6 @@ VAR
 
 
 TYPE
-	Address = ADDRESS;
 	
 	RGB =	RECORD
 				r, g, b: INTEGER
@@ -162,7 +161,7 @@ TYPE
 				CONST  Get = 0;  Set = 1;
 				VAR image: X11.Image;
 					imp: X11.ImagePtr;
-					bp, ip: Address; 
+					bp, ip: ADDRESS; 
 					line, ll: LONGINT;
 				BEGIN
 					ll := w*(xformat DIV 8);
@@ -472,7 +471,7 @@ VAR
 	END ColorToIndex0;
 
 
-	PROCEDURE PutLine( xformat, width: LONGINT;  ip, bp: Address );
+	PROCEDURE PutLine( xformat, width: LONGINT;  ip, bp: ADDRESS );
 	VAR i: LONGINT;  byte: CHAR;
 	BEGIN
 		CASE xformat OF
@@ -504,7 +503,7 @@ VAR
 
 
 
-	PROCEDURE GetLine( xformat, width: LONGINT;  ip, bp: Address );
+	PROCEDURE GetLine( xformat, width: LONGINT;  ip, bp: ADDRESS );
 	VAR i: LONGINT;  byte: CHAR;
 	BEGIN			
 		CASE xformat OF
@@ -535,7 +534,7 @@ VAR
 	END GetLine;
 
 
-	PROCEDURE PutLineBE( xformat, width: LONGINT;  ip, bp: Address );
+	PROCEDURE PutLineBE( xformat, width: LONGINT;  ip, bp: ADDRESS );
 	VAR i: LONGINT;  byte: CHAR;
 	BEGIN
 		CASE xformat OF
@@ -568,7 +567,7 @@ VAR
 		END;
 	END PutLineBE;
 
-	PROCEDURE GetLineBE( xformat, width: LONGINT;  ip, bp: Address );
+	PROCEDURE GetLineBE( xformat, width: LONGINT;  ip, bp: ADDRESS );
 	VAR i: LONGINT;  byte: CHAR;
 	BEGIN
 		CASE xformat OF

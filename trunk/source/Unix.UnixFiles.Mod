@@ -11,16 +11,12 @@ CONST
 	NBufs = 4;  Bufsize = 4096;  FileTabSize = 1024;  ResFiles = 128;  NoDesc = -1;
 
 	Open = 0;  Create = 1;  Closed = 2;	(* file states *)
-
-TYPE
-	Address = ADDRESS;
-	Size = SIZE;
 	
 VAR
 	searchPath: ARRAY 1024 OF CHAR;
 	cwd: ARRAY 256 OF CHAR;
 
-	fileTab: ARRAY FileTabSize OF Address;
+	fileTab: ARRAY FileTabSize OF ADDRESS;
 	tempno: INTEGER;
 	openfiles: INTEGER;
 	
@@ -191,7 +187,7 @@ TYPE
 										f.flags := {Files.ReadOnly}
 									END;
 									f.key := S.VAL( LONGINT, f );  f.fs := SELF;
-									fileTab[fd] := S.VAL( Address, f );  (* cache file *)
+									fileTab[fd] := S.VAL( ADDRESS, f );  (* cache file *)
 									INC( openfiles );  RegisterFinalizer( f, Cleanup );
 									EXIT
 								ELSE  
@@ -304,7 +300,7 @@ TYPE
 					checkSet: NameSet;  ent: Unix.Dirent; 
 					
 					PROCEDURE GetEntryName;
-					VAR i: INTEGER;  adr: Address;
+					VAR i: INTEGER;  adr: ADDRESS;
 					BEGIN
 						i := -1;  adr := ADDRESSOF( ent.name );
 						REPEAT  INC( i );  S.GET( adr, fileName[i] );  INC( adr )  UNTIL fileName[i] = 0X
@@ -312,7 +308,7 @@ TYPE
 					
 					PROCEDURE EnumDir( CONST dirName: ARRAY OF CHAR );
 					VAR
-						dir: Address;   
+						dir: ADDRESS;   
 						tm: Unix.TmPtr;  date, time: LONGINT;  
 						stat: Unix.Status; r: LONGINT;
 					BEGIN
@@ -393,7 +389,7 @@ TYPE
 				dev: Unix.DevT;
 				ino: LONGINT;
 				mtime: LONGINT;
-				fsize, fpos: Size;
+				fsize, fpos: SIZE;
 				bufs: ARRAY NBufs OF Buffer;
 				swapper, state: LONGINT;
 
@@ -436,7 +432,7 @@ TYPE
 							r := Unix.fstat( fd, stat );  
 							dev := stat.dev;  ino := stat.ino;  mtime := stat.mtime.sec;
 							state := Open;  fpos := 0;
-							fileTab[fd] := S.VAL( Address, SELF );
+							fileTab[fd] := S.VAL( ADDRESS, SELF );
 							INC( openfiles );  RegisterFinalizer( SELF, Cleanup );
 						END
 					ELSE  
@@ -951,7 +947,7 @@ TYPE
 
 	
 	PROCEDURE Initialize;
-	VAR a: Address;  i: INTEGER;  ch: CHAR;
+	VAR a: ADDRESS;  i: INTEGER;  ch: CHAR;
 	BEGIN
 		(* get current working directory *)
 		a := Unix.getenv( ADDRESSOF( "PWD" ) );

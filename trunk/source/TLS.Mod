@@ -7,7 +7,7 @@ IMPORT
 
 CONST
 	(* debugging *)
-	Trace = TRUE;
+	Trace = FALSE; 
 
 	(** tlsStates *)
 	ServerHandshake* = 12;
@@ -1311,10 +1311,10 @@ TYPE
 
 		PROCEDURE ReceiveError( alertType: LONGINT);
 		BEGIN
-			(*IF Trace THEN*)
+			IF Trace THEN
 				KernelLog.String("C > S  Error");KernelLog.Ln;
 				KernelLog.String("  alertType: ");KernelLog.Int(alertType, 3);KernelLog.Ln;
-			(*END;*)
+			END;
 			IF session # NIL THEN 		SELF.session.Invalidate( )		END;
 			SELF.conn.Close( );
 			applicationDataPipe.Close();
@@ -1334,10 +1334,10 @@ TYPE
 
 		PROCEDURE SendError( alertType: LONGINT );
 		BEGIN
-			(*IF Trace THEN*)
+			IF Trace THEN
 				KernelLog.String("S > C  Error");KernelLog.Ln;
 				KernelLog.String("  alertType: ");KernelLog.Int(alertType, 3);KernelLog.Ln;
-			(*END;*)
+			END;
 			outbuf[ 0 ] := CHR( 2 );	(* level: fatal *)
 			outbuf[ 1 ] := CHR( alertType );
 			SendRecord( outbuf, Alert, 0, 2 );

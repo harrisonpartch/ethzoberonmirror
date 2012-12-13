@@ -5,23 +5,18 @@ MODULE Heaps;	(** AUTHOR "G.F."; PURPOSE "Heap management and garbage collector"
 
 IMPORT S := SYSTEM, Trace, Unix, Machine;
 
-TYPE
-	Address = ADDRESS;
-	Size = SIZE;
-
 
 CONST
 	Stats* = TRUE; (* maintain statistical counters *)
-
 	
-	AdrSize = SIZEOF( ADDRESS );
+	AddrSize = SIZEOF( ADDRESS );
 	SizeSize = SIZEOF( SIZE );
 
 
-	FlagsOfs = AdrSize * 3;			(* flags offset in TypeDesc *)
-	ModOfs* = AdrSize * 4;			(* moduleAdr offset in TypeDesc *)
-(*	TypeNameOfs = AdrSize * 5;		(* type name offset in TypeDesc *)
-	ModNameOfs = AdrSize * 2;		(* module name offset in ModuleDesc *)
+	FlagsOfs = AddrSize * 3;				(* flags offset in TypeDesc *)
+	ModOfs* = AddrSize * 4;			(* moduleAdr offset in TypeDesc *)
+(*	TypeNameOfs = AddrSize * 5;		(* type name offset in TypeDesc *)
+	ModNameOfs = AddrSize * 2;		(* module name offset in ModuleDesc *)
 *)	
 	NilVal* = 0;
 	
@@ -29,8 +24,8 @@ CONST
 	MethodEndMarker* = MinPtrOfs;   (* marks the end of the method addresses, used in Info.ModuleDetails *)
 
 	ArrayAlignment = 8;
-	HeapBlockOffset* = - 2*AdrSize;
-	TypeDescOffset* = -AdrSize;
+	HeapBlockOffset* = - 2*AddrSize;
+	TypeDescOffset* = -AddrSize;
 	
 	MaxMarkDepth = 8000;
 
@@ -42,8 +37,8 @@ TYPE
 	Finalizer* = PROCEDURE {DELEGATE}( obj: ANY );
 
 	FinalizerNode* = POINTER TO RECORD
-				objWeak*{UNTRACED}: ANY;	(* weak reference to checked object *)
-				markAdr: Address;   				(* address of type tag of object *)
+				objWeak*{UNTRACED}: ANY;		(* weak reference to checked object *)
+				markAdr: ADDRESS;   			(* address of type tag of object *)
 				nextFin: FinalizerNode;   		(* in finalization list *)
 				objStrong*: ANY;   				(* strong reference to object to be finalized *)
 				finalizer*{UNTRACED}: Finalizer;	(* finalizer, if any *)
@@ -68,8 +63,8 @@ CONST
 
 TYPE
 	FreeBlock = POINTER TO RECORD
-				tag: Address;  (* = ADDRESSOF( size ) *)
-				size: Size;
+				tag: ADDRESS;  (* = ADDRESSOF( size ) *)
+				size: SIZE;
 				next{UNTRACED}: FreeBlock;
 			END;
 	
@@ -85,7 +80,7 @@ TYPE
 			
 	ProtRecBlock* = POINTER TO ProtRecBlockDesc;
 	ProtRecBlockDesc* = RECORD 
-		recSize: Size;	(* needed by SizeOf(blk) in Sweep *)
+		recSize: SIZE;	(* needed by SizeOf(blk) in Sweep *)
 		
 		awaitingLock*:	ProcessQueue;	(* unused in UnixAos *)
 		awaitingCond*: ProcessQueue;
@@ -103,24 +98,24 @@ TYPE
 
 	StaticTypeBlock* = POINTER TO StaticTypeDesc;
 	StaticTypeDesc = RECORD
-		recSize: Size;
+		recSize: SIZE;
 		pointerOffsets* {UNTRACED}: PointerOffsets;
 	END;
 
-	PointerOffsets = POINTER TO ARRAY OF Size;
+	PointerOffsets = POINTER TO ARRAY OF SIZE;
 	
 VAR
 	freeLists: ARRAY MaxFreeLists + 1 OF FreeList;
 
-	candidates: ARRAY 1024 OF  Address;
+	candidates: ARRAY 1024 OF ADDRESS;
 	nofcand: LONGINT;
 	
-	deferred: ARRAY 1000 OF Address;
+	deferred: ARRAY 1000 OF ADDRESS;
 	noDeferred: LONGINT;
 	
-	heapSize, heapAvailable: Size;
+	heapSize, heapAvailable: SIZE;
 
-	thruput:  Size;
+	thruput:  SIZE;
 	GC* : PROCEDURE;
 	InvokeGC* : PROCEDURE;
 	collecting-: BOOLEAN;
@@ -149,15 +144,15 @@ VAR
 
 
 	PROCEDURE AddFinalizer*( obj: ANY;  n: FinalizerNode );
-	VAR adr: Address;
+	VAR adr: ADDRESS;
 	BEGIN
 		n.objWeak := obj;  n.objStrong := NIL;  n.finalizerStrong := NIL;
-		adr := S.VAL( Address, obj );
+		adr := S.VAL( ADDRESS, obj );
 		IF SubObjBit IN S.VAL( SET, obj ) THEN  (* indirect tag *)
-			n.markAdr := S.GET32( adr - AdrSize ) - AdrSize
+			n.markAdr := S.GET32( adr - AddrSize ) - AddrSize
 		ELSIF ProtObjBit IN S.VAL( SET, obj ) THEN  (* protected object *)
-			n.markAdr := adr - ProtOfs - AdrSize
-		ELSE  n.markAdr := adr - AdrSize
+			n.markAdr := adr - ProtOfs - AddrSize
+		ELSE  n.markAdr := adr - AddrSize
 		END;
 		Machine.Acquire( Machine.Heaps );
 		n.nextFin := checkRoot;  checkRoot := n;
@@ -171,7 +166,7 @@ VAR
 		PROCEDURE MarkDelegate( p: Finalizer );
 		VAR pointer: ANY;
 		BEGIN
-			S.GET( ADDRESSOF( p ) + AdrSize, pointer );
+			S.GET( ADDRESSOF( p ) + AddrSize, pointer );
 			IF pointer # NIL THEN  Mark( pointer )  END
 		END MarkDelegate;
 
@@ -221,16 +216,16 @@ VAR
 
 	(** Check finalizers registered in the specified module, which is about to be freed or shut down.
 			Remove all finalizer procedures in this module from the finalizer lists so they won't be called any more. *)
-	PROCEDURE CleanupModuleFinalizers*( codeAdr: Address; codeLen: Size;  CONST name: ARRAY OF CHAR );
-	VAR n, p, t: FinalizerNode;  codeEnd: Address;  N1, N2: LONGINT;
+	PROCEDURE CleanupModuleFinalizers*( codeAdr: ADDRESS; codeLen: SIZE;  CONST name: ARRAY OF CHAR );
+	VAR n, p, t: FinalizerNode;  codeEnd: ADDRESS;  N1, N2: LONGINT;
 	BEGIN
 		codeEnd := codeAdr + codeLen;  N1 := 0; N2 := 0;
 		Machine.Acquire( Machine.Heaps );
 		n := checkRoot;
 		WHILE n # NIL DO  (* iterate over checked list *)
 			t := n;  n := n.nextFin;
-			IF Machine.LessOrEqual( codeAdr, S.VAL( Address, t.finalizer ) ) & 
-			    Machine.LessOrEqual( S.VAL( Address, t.finalizer ), codeEnd ) THEN
+			IF Machine.LessOrEqual( codeAdr, S.VAL( ADDRESS, t.finalizer ) ) & 
+			    Machine.LessOrEqual( S.VAL( ADDRESS, t.finalizer ), codeEnd ) THEN
 				IF t = checkRoot THEN  checkRoot := t.nextFin  ELSE  p.nextFin := t.nextFin  END;
 				IF Stats THEN DEC(NfinalizeAlive) END;
 				INC( N1 )
@@ -242,8 +237,8 @@ VAR
 		n := finalizeRoot;
 		WHILE n # NIL DO  (* iterate over finalized list *)
 			t := n;  n := n.nextFin;
-			IF Machine.LessOrEqual( codeAdr, S.VAL( Address, t.finalizer ) ) & 
-			    Machine.LessOrEqual( S.VAL( Address, t.finalizer ), codeEnd ) THEN
+			IF Machine.LessOrEqual( codeAdr, S.VAL( ADDRESS, t.finalizer ) ) & 
+			    Machine.LessOrEqual( S.VAL( ADDRESS, t.finalizer ), codeEnd ) THEN
 				IF t = finalizeRoot THEN  finalizeRoot := t.nextFin  ELSE  p.nextFin := t.nextFin  END;
 				IF Stats THEN DEC(NfinalizeDead) END;
 				INC( N2 )
@@ -286,16 +281,16 @@ VAR
 
 
 	PROCEDURE UnmarkedObject( ptr: ANY ): BOOLEAN; (* FALSE: alredy marked or sysblock or subobj *)
-	VAR taddr, haddr, block: Address;  hval, tag: SET;  sysblock: BOOLEAN;
+	VAR taddr, haddr, block: ADDRESS;  hval, tag: SET;  sysblock: BOOLEAN;
 	BEGIN
 		IF ptr = NIL THEN  RETURN FALSE  END;
-		block := S.VAL( Address, ptr );
+		block := S.VAL( ADDRESS, ptr );
 		IF ~ValidPointer( block ) THEN  RETURN FALSE  END;	
-		sysblock := FALSE;  taddr := block - AdrSize;
+		sysblock := FALSE;  taddr := block - AddrSize;
 		IF SubObjBit IN S.VAL( SET, block ) THEN
 			(* Subobject or sysblock *)
 			S.GET( taddr, tag );
-			haddr := S.VAL( Address, tag - {ArrayBit, MarkBit} ) - AdrSize;
+			haddr := S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ) - AddrSize;
 			IF taddr - haddr # 24 THEN
 				(* subobject! don't mark it *)  RETURN FALSE
 			END;
@@ -315,8 +310,8 @@ VAR
 		RETURN FALSE
 	END UnmarkedObject;
 
-	PROCEDURE MarkRecordFields( rec: Address; sTB: StaticTypeBlock );
-	VAR ptr: ANY; i, n: Size;  
+	PROCEDURE MarkRecordFields( rec: ADDRESS; sTB: StaticTypeBlock );
+	VAR ptr: ANY; i, n: SIZE;  
 	BEGIN
 		n := LEN( sTB.pointerOffsets ); i := 0;
 		WHILE i < n DO
@@ -328,20 +323,20 @@ VAR
 	
 	PROCEDURE Mark*( ptr: ANY );
 	VAR 
-		block, cur, lastElem: Address;  
+		block, cur, lastElem: ADDRESS;  
 		tag: SET;  sTB{UNTRACED}: StaticTypeBlock;
 	BEGIN
 		IF Stats THEN  INC(Nmark)  END;
 		INC( markDepth );  
 		
 		IF UnmarkedObject( ptr ) THEN
-			block := S.VAL( Address, ptr );
-			S.GET( block - AdrSize, tag );
+			block := S.VAL( ADDRESS, ptr );
+			S.GET( block - AddrSize, tag );
 			sTB := S.VAL( StaticTypeBlock, tag - {ArrayBit, MarkBit} );
 			IF ArrayBit IN tag THEN
 				IF markDepth <= MaxMarkDepth - 10 THEN
 					 S.GET( block, lastElem );
-					 S.GET( block + 2*AdrSize, cur );   
+					 S.GET( block + 2*AddrSize, cur );   
 					 REPEAT
 						MarkRecordFields( cur, sTB );						
 						INC( cur, sTB.recSize );
@@ -363,18 +358,18 @@ VAR
 
 	PROCEDURE MarkDeferred;
 	VAR 
-		block, cur, lastElem: Address;  
+		block, cur, lastElem: ADDRESS;  
 		tag: SET;  sTB{UNTRACED}: StaticTypeBlock;
 	BEGIN
 		markDepth := 1;
 		WHILE noDeferred > 0 DO
 			DEC( noDeferred );  
 			block := deferred[noDeferred];  
-			S.GET( block - AdrSize, tag );
+			S.GET( block - AddrSize, tag );
 			sTB := S.VAL( StaticTypeBlock, tag - {ArrayBit, MarkBit} );
 			IF ArrayBit IN tag THEN
 				 S.GET( block, lastElem );
-				 S.GET( block + 2*AdrSize, cur );   
+				 S.GET( block + 2*AddrSize, cur );   
 				 REPEAT
 					MarkRecordFields( cur, sTB );						
 					INC( cur, sTB.recSize );
@@ -397,12 +392,12 @@ VAR
 		block.next := NIL
 	END AppendFree;
 	
-	PROCEDURE Recycle( blkAdr: Address; blkSize: Size );
+	PROCEDURE Recycle( blkAdr: ADDRESS; blkSize: SIZE );
 	VAR i: LONGINT;  block, x: FreeBlock;
 	BEGIN
 		block := S.VAL( FreeBlock, blkAdr );
-		block.tag := blkAdr + AdrSize;
-		block.size := blkSize - AdrSize;
+		block.tag := blkAdr + AddrSize;
+		block.size := blkSize - AddrSize;
 		block.next := NIL;
 		
 		i := 0;
@@ -416,7 +411,7 @@ VAR
 			    130 MB vs. 240 MB heap for compiling and linking a new system
 			    but it slows down heap allocation speed. 	*)
 			x := freeLists[MaxFreeLists].first;
-			IF (x = NIL) OR (x.size > blkSize - AdrSize) THEN 
+			IF (x = NIL) OR (x.size > blkSize - AddrSize) THEN 
 				block.next := x;
 				freeLists[MaxFreeLists].first := block
 			ELSE
@@ -446,8 +441,8 @@ VAR
 
 	PROCEDURE Sweep;
 	VAR
-		block, freeBlock, endBlockAdr: Address;  tag: SET;  
-		blockSize, freeSize: Size;
+		block, freeBlock, endBlockAdr: ADDRESS;  tag: SET;  
+		blockSize, freeSize: SIZE;
 		memBlock, nextMemBlock: Machine.MemoryBlock;
 	BEGIN
 		ClearFreeLists;
@@ -490,16 +485,16 @@ VAR
 	END Sweep;
 
 
-	PROCEDURE SizeOf( block: Address ): Size;
-	VAR tag: SET;  lastElem: Address;  recSize, blockSize: Size;
+	PROCEDURE SizeOf( block: ADDRESS ): SIZE;
+	VAR tag: SET;  lastElem: ADDRESS;  recSize, blockSize: SIZE;
 	BEGIN
 		S.GET( block, tag );
-		S.GET( S.VAL( Address, tag - {ArrayBit, MarkBit} ), recSize );
+		S.GET( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ), recSize );
 		IF ArrayBit IN tag THEN
-			S.GET( block + AdrSize, lastElem );
+			S.GET( block + AddrSize, lastElem );
 			blockSize := lastElem + recSize - block
 		ELSE
-			blockSize := recSize + AdrSize
+			blockSize := recSize + AddrSize
 		END;
 		INC( blockSize, (-blockSize) MOD BlockSize );
 		RETURN blockSize
@@ -507,7 +502,7 @@ VAR
 	
 	
 	PROCEDURE SortCandidates;
-	VAR i, j, h: LONGINT;  p: Address;
+	VAR i, j, h: LONGINT;  p: ADDRESS;
 	BEGIN
 		(* sort them in increasing order using shellsort *)
 		h := 1;
@@ -527,8 +522,8 @@ VAR
 	PROCEDURE CheckCandidates;  
 	VAR
 		i: LONGINT; sb: Machine.MemoryBlock;
-		p, tag1, tag2, block, endBlockAdr: Address;
-		blkSize: Size;
+		p, tag1, tag2, block, endBlockAdr: ADDRESS;
+		blkSize: SIZE;
 	BEGIN
 		IF nofcand = 0 THEN  RETURN  END;
 		
@@ -545,26 +540,26 @@ VAR
 			blkSize := SizeOf( block );
 
 			LOOP
-				IF Machine.LessOrEqual( p, block + AdrSize ) THEN
-					IF p = block + AdrSize THEN
+				IF Machine.LessOrEqual( p, block + AddrSize ) THEN
+					IF p = block + AddrSize THEN
 						S.GET( block, tag1 );
 						IF tag1 # p THEN  (* not a free block *) Mark( S.VAL( ANY, p ) )  END
 					END;
 					INC( i );
 					IF i = nofcand THEN  EXIT   END;
 					p := candidates[i]
-				ELSIF p = block + AdrSize + 24 THEN  (* system block ? *)
+				ELSIF p = block + AddrSize + 24 THEN  (* system block ? *)
 					S.GET( block, tag1 );
-					S.GET( p - AdrSize, tag2 );
+					S.GET( p - AddrSize, tag2 );
 					IF (tag2 = p - 24) & (tag2 = tag1)  THEN
 						(* really a sysblock *)  Mark( S.VAL( ANY, p ) );
 					END;
 					INC( i );
 					IF i = nofcand THEN  EXIT   END;
 					p := candidates[i]
-				ELSIF (blkSize > AdrSize + ProtOfs) & (p = block + AdrSize + ProtOfs)  THEN  (* prot. obj. ? *)
+				ELSIF (blkSize > AddrSize + ProtOfs) & (p = block + AddrSize + ProtOfs)  THEN  (* prot. obj. ? *)
 					S.GET( block, tag1 );
-					IF tag1 = block + AdrSize THEN  Mark( S.VAL( ANY, p ) )  END;
+					IF tag1 = block + AddrSize THEN  Mark( S.VAL( ANY, p ) )  END;
 					INC( i );
 					IF i = nofcand THEN  EXIT   END;
 					p := candidates[i]
@@ -582,22 +577,22 @@ VAR
 	END CheckCandidates;
 
 
-	PROCEDURE AddCandidate*( p: Address );
-	VAR tag0Addr, tag0: Address;  tag: SET;
+	PROCEDURE AddCandidate*( p: ADDRESS );
+	VAR tag0Addr, tag0: ADDRESS;  tag: SET;
 	BEGIN
 		IF p MOD 32 = 0 THEN
-			tag0Addr := p - AdrSize (* RecBlk, ArrBlk *)
+			tag0Addr := p - AddrSize (* RecBlk, ArrBlk *)
 		ELSIF p MOD 32 = 16 THEN
-			tag0Addr := p - ProtOfs - AdrSize (* ProtObj *)
+			tag0Addr := p - ProtOfs - AddrSize (* ProtObj *)
 		ELSIF p MOD 16 = 8 THEN
-			tag0Addr := p - 24 - AdrSize (* SysBlk *)
+			tag0Addr := p - 24 - AddrSize (* SysBlk *)
 		ELSE  RETURN
 		END;
 		IF ValidAddress( tag0Addr ) THEN
 			S.GET( tag0Addr, tag0 );
 			IF ODD( tag0 ) THEN  RETURN  END;  (* already marked *)
-			S.GET ( p - AdrSize, tag );
-			IF ValidAddress( S.VAL( Address, tag - {ArrayBit, MarkBit} ) ) THEN
+			S.GET ( p - AddrSize, tag );
+			IF ValidAddress( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ) ) THEN
 				candidates[nofcand] := p;  INC( nofcand );
 				IF nofcand = LEN( candidates ) THEN  CheckCandidates  END
 			END;
@@ -634,7 +629,7 @@ VAR
 
 	(* -------------------------- memory allocation ----------------------- *)
 
-	PROCEDURE FindFreeBlock( size: Size ): FreeBlock;
+	PROCEDURE FindFreeBlock( size: SIZE ): FreeBlock;
 	VAR prev, block: FreeBlock;  i: LONGINT;
 	BEGIN
 		i := 0;
@@ -643,13 +638,13 @@ VAR
 		REPEAT
 			block := freeLists[i].first;
 			IF block # NIL THEN  
-				IF block.size + AdrSize >= size THEN
+				IF block.size + AddrSize >= size THEN
 					IF block = freeLists[i].last THEN  freeLists[i].first := NIL;  freeLists[i].last := NIL
 					ELSE freeLists[i].first := block.next;  block.next := NIL
 					END;
 				ELSE  (* i = MaxFreeLists *)
 					REPEAT  prev := block;  block := block.next
-					UNTIL (block = NIL) OR (block.size + AdrSize >= size);
+					UNTIL (block = NIL) OR (block.size + AddrSize >= size);
 					IF block # NIL THEN  prev.next := block.next  END
 				END
 			END;
@@ -660,9 +655,9 @@ VAR
 	
 	
 
-	PROCEDURE GetBlock( size: Size ): Address;   (* size MOD B = 0 *)
+	PROCEDURE GetBlock( size: SIZE ): ADDRESS;   (* size MOD B = 0 *)
 	VAR 
-		block: FreeBlock;  blkSize: Size;  blkAdr, adr2: Address;
+		block: FreeBlock;  blkSize: SIZE;  blkAdr, adr2: ADDRESS;
 	BEGIN
 		IF ((thruput > ThruputBarrier) OR (heapAvailable < size)) & (Machine.lock[Machine.GC] = 'N') THEN
 			thruput := 0;
@@ -680,7 +675,7 @@ VAR
 					GC;
 					Machine.Acquire( Machine.Heaps );
 				ELSE	
-					Machine.ExpandHeap( 0, size, S.VAL( Address, block ), adr2 );
+					Machine.ExpandHeap( 0, size, S.VAL( ADDRESS, block ), adr2 );
 					IF block # NIL  THEN  
 						heapSize := GetHeapSize();
 					ELSE
@@ -693,8 +688,8 @@ VAR
 			END
 		UNTIL block # NIL;
 
-		blkSize := block.size + AdrSize;
-		blkAdr := S.VAL( Address, block );
+		blkSize := block.size + AddrSize;
+		blkAdr := S.VAL( ADDRESS, block );
 		DEC( heapAvailable, blkSize );
 		IF blkSize > size THEN  Recycle( blkAdr + size, blkSize - size )  END;
 		
@@ -707,37 +702,37 @@ VAR
 
 
 	(** Private compiler interface. Do not use. *)
-	PROCEDURE NewRec*( VAR p: ANY;  tag: Address; isRealtime: BOOLEAN );   (* implementation of NEW( ptr ) *)
-	VAR size, recSize: Size;  ptr: Address;  typeInfoAdr: Address;  flags: SET;
+	PROCEDURE NewRec*( VAR p: ANY;  tag: ADDRESS; isRealtime: BOOLEAN );   (* implementation of NEW( ptr ) *)
+	VAR size, recSize: SIZE;  ptr: ADDRESS;  typeInfoAdr: ADDRESS;  flags: SET;
 	BEGIN
-		S.GET( tag - AdrSize, typeInfoAdr );   
+		S.GET( tag - AddrSize, typeInfoAdr );   
 		S.GET( typeInfoAdr + FlagsOfs, flags );
 		IF ProtTypeBit IN flags THEN  (* protected record *)
 			NewProtRec( p, tag, isRealtime );  RETURN
 		END;
 		S.GET( tag, recSize );
-		size := recSize + AdrSize;  INC( size, (-size) MOD BlockSize );
+		size := recSize + AddrSize;  INC( size, (-size) MOD BlockSize );
 		
 		Machine.Acquire( Machine.Heaps );
-		ptr := GetBlock( size ) + AdrSize;
-		S.PUT( ptr - AdrSize, tag );
+		ptr := GetBlock( size ) + AddrSize;
+		S.PUT( ptr - AddrSize, tag );
 		p := S.VAL( ANY, ptr );
 		Machine.Release( Machine.Heaps )
 	END NewRec;
 	
 	
 	(** Private compiler interface. Do not use. *)
-	PROCEDURE NewProtRec*( VAR p: ANY;  tag: Address; isRealtime: BOOLEAN );
-	VAR recSize, size: Size;  ptr0, ptr: Address;
+	PROCEDURE NewProtRec*( VAR p: ANY;  tag: ADDRESS; isRealtime: BOOLEAN );
+	VAR recSize, size: SIZE;  ptr0, ptr: ADDRESS;
 	BEGIN
 		S.GET( tag, recSize );
 		(* add space for tag and header and round up to BlockSize *)
-		size := recSize + ProtOfs + AdrSize;  INC( size, (-size) MOD BlockSize );
+		size := recSize + ProtOfs + AddrSize;  INC( size, (-size) MOD BlockSize );
 		
 		Machine.Acquire( Machine.Heaps );
-		ptr0 := GetBlock( size ) + AdrSize;
-		S.PUT( ptr0 - AdrSize, ptr0 );		(* set the tag used by Sweep *)
-		S.PUT( ptr0, size - AdrSize );		(* size, needed by SizeOf(blk) in Sweep *)
+		ptr0 := GetBlock( size ) + AddrSize;
+		S.PUT( ptr0 - AddrSize, ptr0 );		(* set the tag used by Sweep *)
+		S.PUT( ptr0, size - AddrSize );		(* size, needed by SizeOf(blk) in Sweep *)
 		
 		ptr := ptr0 + ProtOfs;				(* mod 32 = 16 ! *)
 		S.PUT( ptr + HeapBlockOffset, ptr0 );
@@ -749,68 +744,68 @@ VAR
 
 
 	(** Private compiler interface. Do not use. *)
-	PROCEDURE NewSys*( VAR p: ANY;  size: Size; isRealtime: BOOLEAN );   (* implementation of S.NEW(ptr, size) *)
-	VAR ptr: Address;
+	PROCEDURE NewSys*( VAR p: ANY;  size: SIZE; isRealtime: BOOLEAN );   (* implementation of S.NEW(ptr, size) *)
+	VAR ptr: ADDRESS;
 	BEGIN
-		size := size + AdrSize + 24;  INC( size, (-size) MOD BlockSize );
+		size := size + AddrSize + 24;  INC( size, (-size) MOD BlockSize );
 		Machine.Acquire( Machine.Heaps );
-		ptr := GetBlock( size ) + AdrSize;  
-		S.PUT( ptr - AdrSize, ptr );		(* tag used by Sweep *)
-		S.PUT( ptr, size - AdrSize );		(* size, needed by SizeOf(blk) in Sweep *)
-		S.PUT( ptr + AdrSize, S.VAL( Address, -AdrSize ) );	
+		ptr := GetBlock( size ) + AddrSize;  
+		S.PUT( ptr - AddrSize, ptr );		(* tag used by Sweep *)
+		S.PUT( ptr, size - AddrSize );		(* size, needed by SizeOf(blk) in Sweep *)
+		S.PUT( ptr + AddrSize, S.VAL( ADDRESS, -AddrSize ) );	
 		
-		S.PUT( ptr + 24 - AdrSize, ptr );	(* tag *)
+		S.PUT( ptr + 24 - AddrSize, ptr );	(* tag *)
 		p := S.VAL( ANY, ptr + 24 );		(* mod 16 = 8 ! *)
 		Machine.Release( Machine.Heaps )
 	END NewSys;
 
 	(** Private compiler interface. Do not use. *)
-	PROCEDURE NewArr*( VAR p: ANY;  eltag: Address;  nofelem, nofdim: Size; isRealtime: BOOLEAN );
-	VAR elSize, arrSize, blkSize, dataOffset, ptrOffset: Size;  ptr, firstElem: Address; 
+	PROCEDURE NewArr*( VAR p: ANY;  eltag: ADDRESS;  nofelem, nofdim: SIZE; isRealtime: BOOLEAN );
+	VAR elSize, arrSize, blkSize, dataOffset, ptrOffset: SIZE;  ptr, firstElem: ADDRESS; 
 	BEGIN
 		S.GET( eltag, elSize );
 		arrSize := nofelem*elSize;
 		IF arrSize = 0 THEN
-			NewSys( p, nofdim*4 + 3*AdrSize, isRealtime );
+			NewSys( p, nofdim*4 + 3*AddrSize, isRealtime );
 		ELSE
-			dataOffset := 3*AdrSize + nofdim*AdrSize;
+			dataOffset := 3*AddrSize + nofdim*AddrSize;
 			INC( dataOffset, (-dataOffset) MOD ArrayAlignment );
-			S.GET( eltag + AdrSize, ptrOffset );
-			IF ptrOffset = -AdrSize THEN
+			S.GET( eltag + AddrSize, ptrOffset );
+			IF ptrOffset = -AddrSize THEN
 				(* no pointers in element type *)
 				NewSys( p, dataOffset + arrSize, isRealtime );
 			ELSE
-				blkSize := dataOffset + arrSize + AdrSize; INC( blkSize, (-blkSize) MOD BlockSize );
+				blkSize := dataOffset + arrSize + AddrSize; INC( blkSize, (-blkSize) MOD BlockSize );
 				Machine.Acquire( Machine.Heaps );
-				ptr := GetBlock( blkSize ) + AdrSize;
-				S.PUT( ptr - AdrSize, S.VAL( SET, eltag ) + {ArrayBit} );
+				ptr := GetBlock( blkSize ) + AddrSize;
+				S.PUT( ptr - AddrSize, S.VAL( SET, eltag ) + {ArrayBit} );
 				firstElem := ptr + dataOffset;
 				S.PUT( ptr, firstElem + arrSize - elSize );  (* last elem *)
 				(* ptr + 4 is reserved for mark phase *)
-				S.PUT( ptr + 2*AdrSize, firstElem );
+				S.PUT( ptr + 2*AddrSize, firstElem );
 				p := S.VAL( ANY, ptr );
 				Machine.Release( Machine.Heaps )
 			END
 		END;
 	END NewArr;
 
-	PROCEDURE FillStaticType* ( VAR staticTypeAddr: Address;
-								   startAddr, typeInfoAdr: Address;
-								   size, recSize: Size;
+	PROCEDURE FillStaticType* ( VAR staticTypeAddr: ADDRESS;
+								   startAddr, typeInfoAdr: ADDRESS;
+								   size, recSize: SIZE;
 								   numPtrs, numSlots: LONGINT );
 	VAR 
-		p, offset: Address;  sTB {UNTRACED}: StaticTypeBlock;
+		p, offset: ADDRESS;  sTB {UNTRACED}: StaticTypeBlock;
 	BEGIN
 		Machine.Acquire( Machine.Heaps );
 		
-		Machine.Fill32( startAddr, size, 0 );	(* clear whole static type, size MOD AdrSize = 0 implicitly, see WriteType in PCOF.Mod *)
-		S.PUT( startAddr, S.VAL( Address, -AdrSize ) );	(* sentinel *)
+		Machine.Fill32( startAddr, size, 0 );	(* clear whole static type, size MOD AddrSize = 0 implicitly, see WriteType in PCOF.Mod *)
+		S.PUT( startAddr, S.VAL( ADDRESS, -AddrSize ) );	(* sentinel *)
 
 		(* methods and tags filled in later *)
 
-		offset := AdrSize*(numSlots + 1 + 1);  (* #methods, max. no. of tags, method end marker (sentinel), pointer to type information*)
+		offset := AddrSize*(numSlots + 1 + 1);  (* #methods, max. no. of tags, method end marker (sentinel), pointer to type information*)
 		p := startAddr + offset;
-		S.PUT( p - AdrSize, typeInfoAdr ); 	(* pointer to typeInfo *)
+		S.PUT( p - AddrSize, typeInfoAdr ); 	(* pointer to typeInfo *)
 		sTB := S.VAL( StaticTypeBlock, p );
 		sTB.recSize := recSize;
 		staticTypeAddr := p;
@@ -818,8 +813,8 @@ VAR
 		(* create the pointer for the dynamic array of pointer offsets, the dynamic array of pointer offsets 
 		    is stored in the static type descriptor, it has no header part *)
 		INC( p, SIZEOF(StaticTypeDesc) );
-		IF p MOD (2 * AdrSize) # 0 THEN  INC( p, AdrSize )  END;
-		S.PUT( p + 3 * AdrSize, numPtrs ); (* internal structure of dynamic array without pointers: the first 3 fields are unused *)
+		IF p MOD (2 * AddrSize) # 0 THEN  INC( p, AddrSize )  END;
+		S.PUT( p + 3 * AddrSize, numPtrs ); (* internal structure of dynamic array without pointers: the first 3 fields are unused *)
 		sTB.pointerOffsets := S.VAL( PointerOffsets, p ); (* the fourth field contains the dimension of the array *)
 
 		(* ptrOfs filled in later *)
@@ -832,13 +827,13 @@ VAR
 	(*------------------------------  misc  ----------------------------------------*)
 
 	(** WriteType - Write a type name (for tracing only). *)
-	PROCEDURE WriteType*( t: Address );		(* t is static type descriptor *)
-	VAR m: Address; i: LONGINT;  ch: CHAR;  a: Address;
+	PROCEDURE WriteType*( t: ADDRESS );		(* t is static type descriptor *)
+	VAR m, a: ADDRESS; i: LONGINT;  ch: CHAR;  
 	BEGIN
-		S.GET( t - AdrSize, t );
-		S.GET( t + 4*AdrSize, m );
+		S.GET( t - AddrSize, t );
+		S.GET( t + 4*AddrSize, m );
 		IF m # 0 THEN
-			a := m + AdrSize;
+			a := m + AddrSize;
 			i := 0;  S.GET( a, ch );
 			WHILE (ch >= '0') & (ch <= 'z') & (i < 32) DO
 				Trace.Char( ch );
@@ -847,7 +842,7 @@ VAR
 		ELSE  Trace.String( "NIL" )
 		END;
 		Trace.Char( '.' );
-		a := t + 5*AdrSize;  i := 0;  S.GET( a, ch );
+		a := t + 5*AddrSize;  i := 0;  S.GET( a, ch );
 		WHILE (ch >= '0') & (ch <= 'z') & (i < 32) DO
 			Trace.Char( ch );
 			INC( i );  S.GET( a + i, ch )
@@ -856,7 +851,7 @@ VAR
 	END WriteType;
 
 
-	PROCEDURE ValidAddress*( p: Address ): BOOLEAN;
+	PROCEDURE ValidAddress*( p: ADDRESS ): BOOLEAN;
 	VAR sb: Machine.MemoryBlock;
 	BEGIN
 		IF (p # 0 ) & (p MOD 4 = 0) THEN
@@ -870,21 +865,21 @@ VAR
 		RETURN FALSE
 	END ValidAddress;
 
-	PROCEDURE ValidPointer( p: Address ): BOOLEAN;   (* check if p is a valid pointer into the Heap *)
+	PROCEDURE ValidPointer( p: ADDRESS ): BOOLEAN;   (* check if p is a valid pointer into the Heap *)
 	VAR tag: SET;  ok: BOOLEAN;
 	BEGIN
 		ok := FALSE;  tag := {};
 		IF (p MOD 8 = 0) & ValidAddress( p ) THEN
 			IF p MOD 16 = 8 THEN  ok := TRUE (* subobject or sysblock *)
 			ELSE
-				S.GET( p - AdrSize, tag );
-				ok := ValidAddress( S.VAL( Address, tag - {ArrayBit, MarkBit} ) )
+				S.GET( p - AddrSize, tag );
+				ok := ValidAddress( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ) )
 			END
 		END;
 		IF ~ok THEN
 			Trace.String( "illegal pointer value: " ); Trace.Hex( p, -8 );
 			IF tag # {} THEN  
-				Trace.String( " (bad tag: " );  Trace.Hex( S.VAL( Address, tag ), -8 );  Trace.Char( ')' )  
+				Trace.String( " (bad tag: " );  Trace.Hex( S.VAL( ADDRESS, tag ), -8 );  Trace.Char( ')' )  
 			END;
 			Trace.Ln
 		END;
@@ -893,14 +888,14 @@ VAR
 	
 
 	(* Returns the size in bytes of the remaining free heap *)
-	PROCEDURE Available( ): Size;
-	VAR i: LONGINT;  avail: Size;  block: FreeBlock;
+	PROCEDURE Available( ): SIZE;
+	VAR i: LONGINT;  avail: SIZE;  block: FreeBlock;
 	BEGIN
 		avail := 0;  i := 0;
 		WHILE i <= MaxFreeLists DO
 			block := freeLists[i].first;
 			WHILE block # NIL  DO
-				INC( avail, block.size + AdrSize );  block := block.next
+				INC( avail, block.size + AddrSize );  block := block.next
 			END;
 			INC( i )
 		END;
@@ -909,13 +904,13 @@ VAR
 	
 
 	(** Returns the total heap size of the Oberon system. *)
-	PROCEDURE HeapSize*( ): LONGINT;
+	PROCEDURE HeapSize*( ): SIZE;
 	BEGIN
 		RETURN heapSize;
 	END HeapSize;
 	
 	
-	PROCEDURE GetHeapInfo*( VAR total, free, largest: Size );
+	PROCEDURE GetHeapInfo*( VAR total, free, largest: SIZE );
 	VAR i: LONGINT;  block: FreeBlock;
 	BEGIN
 		free := 0;  largest := 0;  i := 0;
@@ -924,7 +919,7 @@ VAR
 		WHILE i <= MaxFreeLists DO
 			block := freeLists[i].first;
 			WHILE block # NIL DO
-				INC( free, block.size + AdrSize );  
+				INC( free, block.size + AddrSize );  
 				IF block.size > largest THEN  largest := block.size  END;
 				block := block.next;
 			END;
@@ -933,7 +928,7 @@ VAR
 		Machine.Release( Machine.Heaps );
 	END GetHeapInfo;
 
-	PROCEDURE Used*( ): LONGINT;
+	PROCEDURE Used*( ): SIZE;
 	VAR used: LONGINT;
 	BEGIN
 		Machine.Acquire( Machine.Heaps );
@@ -942,8 +937,8 @@ VAR
 		RETURN used
 	END Used;
 
-	PROCEDURE GetHeapSize( ): Size;
-	VAR heap: Size;  sb: Machine.MemoryBlock;
+	PROCEDURE GetHeapSize( ): SIZE;
+	VAR heap: SIZE;  sb: Machine.MemoryBlock;
 	BEGIN
 		sb := Machine.memBlockHead;  heap := 0;
 		WHILE sb # NIL DO  heap := heap + sb.size;  sb := sb.next  END;
@@ -957,31 +952,31 @@ VAR
 	
 	(*
 	(* for debugging the static linker output *)
-	PROCEDURE BlockInfo( block: Address );
-	VAR tag: SET;  lastElem: Address;  recSize, blockSize: Size;
-		tag0, ttag: Address;
+	PROCEDURE BlockInfo( block: ADDRESS );
+	VAR tag: SET;  lastElem: ADDRESS;  recSize, blockSize: SIZE;
+		tag0, ttag: ADDRESS;
 	BEGIN
 		S.GET( block, tag );
-		S.GET( S.VAL( Address, tag - {ArrayBit, MarkBit} ), recSize );
-		tag0 := S.VAL( Address, tag - {ArrayBit, MarkBit} );
+		S.GET( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ), recSize );
+		tag0 := S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} );
 		Trace.Hex( block, -8 );  Trace.Char( ' ' );  Trace.Hex( tag0, -8 ); Trace.Char( ' ' );
 		IF ArrayBit IN tag THEN
-			S.GET( block + AdrSize, lastElem );
+			S.GET( block + AddrSize, lastElem );
 			blockSize := lastElem + recSize - block;
 			INC( blockSize, (-blockSize) MOD BlockSize );
 			
 			Trace.String( "array of " );  WriteType( tag0 )
 		ELSE
-			blockSize := recSize + AdrSize;
+			blockSize := recSize + AddrSize;
 			INC( blockSize, (-blockSize) MOD BlockSize );
 			
-			IF tag0 # block + AdrSize THEN  
+			IF tag0 # block + AddrSize THEN  
 				WriteType( tag0 )
 			ELSE
 				S.GET( block + 24, ttag );
 				IF ttag = tag0 THEN  Trace.String( "sysblock" )
 				ELSE
-					S.GET( block + ProtOfs - AdrSize, ttag );
+					S.GET( block + ProtOfs - AddrSize, ttag );
 					IF ttag = tag0 THEN 
 						Trace.String( "prot. " );
 						S.GET( block + ProtOfs, ttag );  WriteType( ttag )
@@ -998,8 +993,8 @@ VAR
 	*)
 	
 	PROCEDURE InitHeap;
-	VAR adr2: Address;
-		block, tag: Address;  frBlock:FreeBlock;
+	VAR adr2: ADDRESS;
+		block, tag: ADDRESS;  frBlock:FreeBlock;
 		n: LONGINT;
 	BEGIN
 		n := 0;
@@ -1011,14 +1006,14 @@ VAR
 			S.GET( block, tag );
 		END;
 
-		S.PUT( block, block + AdrSize );	(* tag *)
-		S.PUT( block + AdrSize,  Machine.memBlockHead.endBlockAdr - block - AdrSize );	(* size *)
-		S.PUT( block + AdrSize + SizeSize, S.VAL( Address, 0 ) );		(* next *)
+		S.PUT( block, block + AddrSize );	(* tag *)
+		S.PUT( block + AddrSize,  Machine.memBlockHead.endBlockAdr - block - AddrSize );	(* size *)
+		S.PUT( block + AddrSize + SizeSize, S.VAL( ADDRESS, 0 ) );		(* next *)
 	
 		ClearFreeLists;
 		freeLists[MaxFreeLists].first := S.VAL( FreeBlock, block );
 		
-		Machine.ExpandHeap( 0, 2*Machine.MemBlockSize - BlockSize, S.VAL( Address, frBlock ), adr2 );
+		Machine.ExpandHeap( 0, 2*Machine.MemBlockSize - BlockSize, S.VAL( ADDRESS, frBlock ), adr2 );
 		IF frBlock # NIL  THEN  freeLists[MaxFreeLists].first.next := frBlock  END;
 
 		heapSize := GetHeapSize();

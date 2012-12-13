@@ -1584,7 +1584,7 @@ TYPE
 			- check if left is variable
 			- check compatiblity
 		**)
-		PROCEDURE AssignmentCompatible(VAR left: SyntaxTree.Designator; right: SyntaxTree.Expression): BOOLEAN;
+		PROCEDURE AssignmentCompatible(left: SyntaxTree.Designator; right: SyntaxTree.Expression): BOOLEAN;
 		VAR leftType,rightType: SyntaxTree.Type; VAR result: BOOLEAN;
 		BEGIN
 			result := FALSE;
@@ -1609,7 +1609,6 @@ TYPE
 					Printout.Info("right",right);
 				END;
 			ELSIF (leftType IS SyntaxTree.AddressType) & IsAddressValue(right) THEN
-				right.SetType(system.addressType);
 				result := TRUE;
 			ELSIF ~CompatibleTo(system,rightType,leftType) THEN
 				Error(left.position,Diagnostics.Invalid,"incompatible assignment");

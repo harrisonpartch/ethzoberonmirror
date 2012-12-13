@@ -234,7 +234,6 @@ TYPE
 			op2form := instruction.op2.type.form;
 			op3form := instruction.op3.type.form;
 
-			(*
 			IF SameType12 IN instructionFormat[instruction.opcode].flags THEN
 				Assert(TypeEquals(instruction.op1.type,instruction.op2.type),"operands 1 and 2 not of same type");
 			END;
@@ -247,7 +246,7 @@ TYPE
 			IF Op1IsDestination IN instructionFormat[instruction.opcode].flags THEN
 				Assert((instruction.op1.mode # ModeRegister) OR (instruction.op1.offset = 0),"destination operand may not be register with nonzero offset");
 			END;
-			*)
+
 			Assert(instruction.op1.symbol.name[0] # 0, "not intialized operand 1");
 			Assert(instruction.op2.symbol.name[0] # 0, "not intialized operand 2");
 			Assert(instruction.op3.symbol.name[0] # 0, "not intialized operand 3");

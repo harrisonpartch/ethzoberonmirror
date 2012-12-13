@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5040)";
+	Version = "Aos (rev.5090)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -15,7 +15,7 @@ CONST
 	(** bits in features variable *)
 	MTTR* = 12;  MMX* = 23; 
 	
-	AdrSize = SIZEOF( ADDRESS );
+	AddrSize = SIZEOF( ADDRESS );
 	SizeSize = SIZEOF( SIZE );
 	
 	BlockSize = 32;
@@ -37,18 +37,15 @@ CONST
 	MaxCPU* = 4;
 	
 
-TYPE
-	Address = ADDRESS;
-	Size = SIZE;
-	
+TYPE	
 	Vendor* = ARRAY 13 OF CHAR;	
 
 	MemoryBlock* = POINTER TO MemoryBlockDesc;
 	MemoryBlockDesc* = RECORD
 		next- {UNTRACED}: MemoryBlock;
-		startAdr-: Address; 		(* sort key in linked list of memory blocks *)
-		size-: Size; 					
-		beginBlockAdr-, endBlockAdr-: Address
+		startAdr-: ADDRESS; 		(* sort key in linked list of memory blocks *)
+		size-: SIZE; 					
+		beginBlockAdr-, endBlockAdr-: ADDRESS
 	END;
 	
 	(** processor state, ordering of record fields is predefined! *)
@@ -173,8 +170,8 @@ VAR
 	
 
 	(* expand heap by allocating a new memory block *)
-	PROCEDURE ExpandHeap*( dummy: LONGINT; size: Size; VAR beginBlockAdr, endBlockAdr: Address );
-	VAR mBlock: MemoryBlock;  alloc, s: Size;  a, adr: Address; 
+	PROCEDURE ExpandHeap*( dummy: LONGINT; size: SIZE; VAR beginBlockAdr, endBlockAdr: ADDRESS );
+	VAR mBlock: MemoryBlock;  alloc, s: SIZE;  a, adr: ADDRESS; 
 	BEGIN 
 		IF size < (MemBlockSize - BlockSize)  THEN  alloc := MemBlockSize  
 		ELSE  alloc := size + BlockSize;
@@ -191,9 +188,9 @@ VAR
 			mBlock.next := NIL;  
 			mBlock.startAdr := adr;
 			mBlock.size := alloc;  
-			mBlock.beginBlockAdr := adr + BlockSize - AdrSize;  
+			mBlock.beginBlockAdr := adr + BlockSize - AddrSize;  
 			
-			ASSERT( (mBlock.beginBlockAdr + AdrSize) MOD BlockSize = 0 );  
+			ASSERT( (mBlock.beginBlockAdr + AddrSize) MOD BlockSize = 0 );  
 
 			s := adr + alloc - mBlock.beginBlockAdr; 
 			DEC( s, s MOD BlockSize );  
@@ -204,9 +201,9 @@ VAR
 			IF 1 IN Glue.debug THEN TraceHeap( mBlock )  END;
 			
 			a := mBlock.beginBlockAdr;
-			S.PUT( a, a + AdrSize );	(* tag *)
-			S.PUT( a + AdrSize, s - AdrSize );  (* size *)
-			S.PUT( a + AdrSize + SizeSize, S.VAL( Address, 0 ) ); (* next *)
+			S.PUT( a, a + AddrSize );	(* tag *)
+			S.PUT( a + AddrSize, s - AddrSize );  (* size *)
+			S.PUT( a + AddrSize + SizeSize, S.VAL( ADDRESS, 0 ) ); (* next *)
 			
 			beginBlockAdr := mBlock.beginBlockAdr;
 			endBlockAdr := mBlock.endBlockAdr;
@@ -232,7 +229,7 @@ VAR
 
 	
 	(** Return information on free memory in Kbytes. *)
-	PROCEDURE GetFreeK*(VAR total, lowFree, highFree: Size);
+	PROCEDURE GetFreeK*(VAR total, lowFree, highFree: SIZE);
 	BEGIN
 		(* meaningless in Unix port, for interface compatibility only *)
 		total := 0;
@@ -241,7 +238,7 @@ VAR
 	END GetFreeK;
 
 (* Compare two unsigned addresses *)
-PROCEDURE {REALTIME} -LessThan* (a, b: Address): BOOLEAN;
+PROCEDURE {REALTIME} -LessThan* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -249,7 +246,7 @@ CODE {SYSTEM.i386}
 	SETB AL
 END LessThan;
 
-PROCEDURE {REALTIME} -LessOrEqual* (a, b: Address): BOOLEAN;
+PROCEDURE {REALTIME} -LessOrEqual* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -257,7 +254,7 @@ CODE {SYSTEM.i386}
 	SETBE AL
 END LessOrEqual;
 
-PROCEDURE {REALTIME} -GreaterThan* (a, b: Address): BOOLEAN;
+PROCEDURE {REALTIME} -GreaterThan* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -265,7 +262,7 @@ CODE {SYSTEM.i386}
 	SETA AL
 END GreaterThan;
 
-PROCEDURE {REALTIME} -GreaterOrEqual* (a, b: Address): BOOLEAN;
+PROCEDURE {REALTIME} -GreaterOrEqual* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
 	POP EBX
 	POP EAX
@@ -274,7 +271,7 @@ CODE {SYSTEM.i386}
 END GreaterOrEqual;
 
 (** Fill "size" bytes at "destAdr" with "filler". "size" must be multiple of 4. *)
-PROCEDURE {REALTIME} Fill32* (destAdr: Address; size: Size; filler: LONGINT);
+PROCEDURE {REALTIME} Fill32* (destAdr: ADDRESS; size: SIZE; filler: LONGINT);
 CODE {SYSTEM.i386}
 	MOV EDI, [EBP+destAdr]
 	MOV ECX, [EBP+size]
@@ -467,7 +464,7 @@ END Portout32;
 
 
 (* returns if an address is a currently allocated heap address *)
-PROCEDURE ValidHeapAddress*( p: Address ): BOOLEAN;
+PROCEDURE ValidHeapAddress*( p: ADDRESS ): BOOLEAN;
 VAR mb: MemoryBlock; 
 BEGIN
 	mb := memBlockHead;  
@@ -478,12 +475,12 @@ BEGIN
 	RETURN FALSE  
 END ValidHeapAddress;
 
-PROCEDURE Ensure32BitAddress*( adr: Address ): LONGINT;
+PROCEDURE Ensure32BitAddress*( adr: ADDRESS ): LONGINT;
 BEGIN
 	RETURN adr
 END Ensure32BitAddress;
 
-PROCEDURE Is32BitAddress*( adr: Address ): BOOLEAN;
+PROCEDURE Is32BitAddress*( adr: ADDRESS ): BOOLEAN;
 BEGIN  RETURN S.VAL( LONGINT, adr ) = adr;
 END Is32BitAddress;
 
@@ -545,31 +542,31 @@ END AtomicCAS;
 
 
 (* Return current instruction pointer *)
-PROCEDURE {REALTIME} CurrentPC* (): Address;
+PROCEDURE {REALTIME} CurrentPC* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, [EBP+4]
 END CurrentPC;
 
 (* Return current frame pointer *)
-PROCEDURE {REALTIME} -CurrentBP* (): Address;
+PROCEDURE {REALTIME} -CurrentBP* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, EBP
 END CurrentBP;
 
 (* Set current frame pointer *)
-PROCEDURE {REALTIME} -SetBP* (bp: Address);
+PROCEDURE {REALTIME} -SetBP* (bp: ADDRESS);
 CODE {SYSTEM.i386}
 	POP EBP
 END SetBP;
 
 (* Return current stack pointer *)
-PROCEDURE {REALTIME} -CurrentSP* (): Address;
+PROCEDURE {REALTIME} -CurrentSP* (): ADDRESS;
 CODE {SYSTEM.i386}
 	MOV EAX, ESP
 END CurrentSP;
 
 (* Set current stack pointer *)
-PROCEDURE {REALTIME} -SetSP* (sp: Address);
+PROCEDURE {REALTIME} -SetSP* (sp: ADDRESS);
 CODE {SYSTEM.i386}
 	POP ESP
 END SetSP;
@@ -877,11 +874,11 @@ END ChangeByteOrder;
 		
 
 	PROCEDURE InitHeap;
-	VAR heapAdr, firstBlock, size: Address;  
+	VAR heapAdr, firstBlock, size: ADDRESS;  
 	BEGIN
 		Unix.Dlsym( 0, "heapAdr", heapAdr );  
 		Unix.Dlsym( 0, "heapSize", size );  
-		firstBlock := heapAdr + ((-heapAdr - AdrSize) MOD BlockSize);
+		firstBlock := heapAdr + ((-heapAdr - AddrSize) MOD BlockSize);
 		size := heapAdr + size - firstBlock;  DEC( size, size MOD BlockSize + BlockSize );
 
 		firstMemBlock.next := NIL;
@@ -895,7 +892,7 @@ END ChangeByteOrder;
 	END InitHeap;
 
 	PROCEDURE InitConfig;
-	VAR a: Address;  i: LONGINT;  c: CHAR;
+	VAR a: ADDRESS;  i: LONGINT;  c: CHAR;
 	BEGIN
 		a := Unix.getenv( ADDRESSOF( "AOSCONFIG" ) );
 		IF a = 0 THEN  config := DefaultConfig
@@ -989,19 +986,19 @@ END ChangeByteOrder;
 	PROCEDURE Init;
 	VAR vendor: Vendor; ver: LONGINT;
 	BEGIN
-		Unix.Dlsym( 0, "thrInitialize",	S.VAL( Address, thrInitialize ) );
+		Unix.Dlsym( 0, "thrInitialize",	S.VAL( ADDRESS, thrInitialize ) );
 		
-		Unix.Dlsym( 0, "mtxInit",		S.VAL( Address, mtxInit ) );
-		Unix.Dlsym( 0, "mtxDestroy",	S.VAL( Address, mtxDestroy ) );
-		Unix.Dlsym( 0, "mtxLock",		S.VAL( Address, mtxLock ) );
-		Unix.Dlsym( 0, "mtxUnlock",		S.VAL( Address, mtxUnlock ) );
+		Unix.Dlsym( 0, "mtxInit",		S.VAL( ADDRESS, mtxInit ) );
+		Unix.Dlsym( 0, "mtxDestroy",	S.VAL( ADDRESS, mtxDestroy ) );
+		Unix.Dlsym( 0, "mtxLock",		S.VAL( ADDRESS, mtxLock ) );
+		Unix.Dlsym( 0, "mtxUnlock",		S.VAL( ADDRESS, mtxUnlock ) );
 		
-		Unix.Dlsym( 0, "conInit",			S.VAL( Address, conInit ) );
-		Unix.Dlsym( 0, "conDestroy",	S.VAL( Address, conDestroy ) );
-		Unix.Dlsym( 0, "conWait",		S.VAL( Address, conWait ) );
-		Unix.Dlsym( 0, "conSignal",		S.VAL( Address, conSignal ) );
+		Unix.Dlsym( 0, "conInit",			S.VAL( ADDRESS, conInit ) );
+		Unix.Dlsym( 0, "conDestroy",	S.VAL( ADDRESS, conDestroy ) );
+		Unix.Dlsym( 0, "conWait",		S.VAL( ADDRESS, conWait ) );
+		Unix.Dlsym( 0, "conSignal",		S.VAL( ADDRESS, conSignal ) );
 			
-		Unix.Dlsym( 0, "thrSleep",		S.VAL( Address, thrSleep ) );
+		Unix.Dlsym( 0, "thrSleep",		S.VAL( ADDRESS, thrSleep ) );
 		
 		standaloneAppl := FALSE;
 		

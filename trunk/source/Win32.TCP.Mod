@@ -153,7 +153,7 @@ TYPE
 			IF state = Closed THEN res := NotConnected;  RETURN
 			ELSIF state = Closing THEN
 			ELSE
-				ASSERT ( (state = Established) & (socket # WSock32.InvalidSocket) );
+				ASSERT ((*state = Established) & *) (socket # WSock32.InvalidSocket) );
 			END;
 
 			res := Streams.Ok;
@@ -363,7 +363,7 @@ TYPE
 			IF res = 0 THEN  (* check socket for shutdown *)
 				fdset.fdcount := 1;  fdset.socket[0] := socket;
 				(* KernelLog.String("select..."); *)
-				ret := WSock32.select( 0, fdset, NIL , NIL , NIL );
+				ret := WSock32.select( 0, fdset, NIL , NIL , selectTimeout );
 				IF ret = 1 THEN  (* nothing available but we can receive, try it: *)
 					(* KernelLog.Enter;  KernelLog.String( " Available: trying to receive " );  KernelLog.Exit;  *)
 
@@ -411,10 +411,11 @@ TYPE
 
 VAR
 	pool*: Kernel.FinalizedCollection;   (* pool of all Connections *)
+	selectTimeout: WSock32.TimeVal;
 
 	PROCEDURE Init;
 	BEGIN
-		NEW( pool )
+		NEW( pool ); NEW(selectTimeout); (* zero *)
 	END Init;
 
 	PROCEDURE Finalize( obj: ANY;  VAR cont: BOOLEAN );
