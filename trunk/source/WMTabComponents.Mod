@@ -178,7 +178,7 @@ TYPE
 			cur := tabs;
 			WHILE cur # NIL DO
 				w := cur.w;
-				IF pos + w DIV 2 > bounds.GetWidth() THEN INC(posy, h); pos := dl; (*RETURN NIL*) END;
+				IF pos + w > bounds.GetWidth() THEN INC(posy, h); pos := dl; (*RETURN NIL*) END;
 				pos := pos + w;
 				IF (x < pos) & (y < posy+h) THEN RETURN cur END;
 				cur := cur.next
@@ -369,7 +369,7 @@ TYPE
 				ELSE
 					w := 2 * border
 				END;
-				IF (pos + w DIV 2 > bounds.GetWidth()) & (lh # 0) THEN
+				IF (pos + w > bounds.GetWidth()) & (lh # 0) THEN
 					width := 0; pos := 0; INC(lines);
 				END;
 				width := width + w; pos := pos + w;
@@ -453,7 +453,7 @@ TYPE
 					w := 2 * border
 				END;
 				cur.w := w;
-				IF pos + w DIV 2>  bounds.GetWidth() THEN
+				IF pos + w >  bounds.GetWidth() THEN
 					pos := 0;
 					ypos := ypos + h;
 				END;

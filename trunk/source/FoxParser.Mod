@@ -1922,17 +1922,14 @@ TYPE
 						REPEAT
 							IF Peek(Scanner.Identifier) THEN VariableDeclaration( parentScope ) END
 						UNTIL ~Optional( Scanner.Semicolon )
+					ELSIF Optional(Scanner.Operator) THEN
+						OperatorDeclaration( parentScope);
+					ELSIF Optional( Scanner.Procedure ) THEN
+						ProcedureDeclaration( parentScope );
 					ELSE EXIT
 					END;
 					Ignore(Scanner.Semicolon)
 				END;
-				REPEAT
-					IF Optional( Scanner.Operator ) THEN
-						OperatorDeclaration( parentScope);
-					ELSIF Optional( Scanner.Procedure ) THEN
-						ProcedureDeclaration( parentScope );
-					END;
-				UNTIL ~Optional( Scanner.Semicolon );
 			END;
 			currentScope := previousScope;
 			IF Trace THEN E( "DeclarationSequence" ) END;

@@ -9,7 +9,7 @@ MODULE BootLinkerLoader;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 IMPORT S := SYSTEM, Heaps := BootLinkerHeaps, Modules := BootLinkerModules, Streams, Files, Strings;
 
 CONST	
-	AdrSize = SIZEOF( ADDRESS );
+	AddrSize = SIZEOF( ADDRESS );
 
 	ObjSuffix = ".Obj";
 
@@ -37,8 +37,6 @@ CONST
 
 
 TYPE
-	Address = ADDRESS; Size = SIZE;
-
 	ObjHeader = RECORD  (* data in object file header *)
 				entries			: LONGINT;
 				commands		: LONGINT;
@@ -72,7 +70,7 @@ TYPE
 	TypeRec = RECORD
 				init: BOOLEAN;
 				entry, methods, inhMethods, baseMod: LONGINT;
-				baseEntry: Address
+				baseEntry: ADDRESS
 			END;
 
 VAR
@@ -80,10 +78,10 @@ VAR
 
 	KernelRoutines: ARRAY 11 OF RECORD
 				name: Modules.Name;
-				adr: Address
+				adr: ADDRESS
 			END;
 	
-	dlsymAdr-, entrypoint-: Address;
+	dlsymAdr-, entrypoint-: ADDRESS;
 	
 	out*: Streams.Writer;
 	error*: Streams.Writer;
@@ -117,7 +115,7 @@ VAR
 	BEGIN
 		INC( m.refcnt );   (* gets never unloaded *)
 
-		dlsymAdr := m.sb - AdrSize;	(*! link to Unix (dlsym) *)
+		dlsymAdr := m.sb - AddrSize;	(*! link to Unix (dlsym) *)
 		
 		n := 0;
 		FOR i := 0 TO LEN( m.typeInfo ) - 1 DO
@@ -209,14 +207,14 @@ VAR
 		END ArrSize;
 
 		PROCEDURE SubObjArray( VAR ptr: ANY;  elements, elemSize: LONGINT );
-		VAR a: Address; s: Size;
+		VAR a: ADDRESS; s: SIZE;
 		BEGIN
 			ASSERT( adr MOD 16 = 8 );   (* => adr MOD 8 = 0 *)
 			a := adr;  s := ArrSize( elements, elemSize );
 			INC( adr, s );  DEC( size, s );   (* allocate *)
 			(* array header *)
-			S.PUT( a - AdrSize, tag );   (* indirect tag *) 
-			IF a # adr0 THEN  Heaps.Relocate( a - AdrSize )  END;
+			S.PUT( a - AddrSize, tag );   (* indirect tag *) 
+			IF a # adr0 THEN  Heaps.Relocate( a - AddrSize )  END;
 			S.PUT( a + LenOfs, elements );   (* dimension *)
 			ptr := S.VAL( ANY, a );  Heaps.Relocate( ADDRESSOF( ptr ) );
 		END SubObjArray;
@@ -224,9 +222,9 @@ VAR
 	BEGIN
 		dataSize := h.dataSize + (-h.dataSize) MOD 8;   (* round up to 8 to align constant block *)
 
-		size :=	ArrSize( h.entries, AdrSize ) +
+		size :=	ArrSize( h.entries, AddrSize ) +
 				ArrSize( h.commands, SIZEOF( Modules.Command ) ) +
-				ArrSize( h.pointers, AdrSize ) +
+				ArrSize( h.pointers, AddrSize ) +
 				ArrSize( h.modules, SIZEOF( Modules.Module ) ) +
 				ArrSize( dataSize + h.constSize, 1 ) +
 				ArrSize( h.codeSize, 1 ) +
@@ -234,11 +232,11 @@ VAR
 				ArrSize( h.exTableLen, SIZEOF( Modules.ExceptionTableEntry ) ) +
 				ArrSize( h.refSize, 1 );
 
-		adr := Heaps.NewSys( size );  S.GET( adr - AdrSize, tag );  adr0 := adr;
+		adr := Heaps.NewSys( size );  S.GET( adr - AddrSize, tag );  adr0 := adr;
 
-		SubObjArray( S.VAL( ANY, m.entry ), h.entries, AdrSize );
+		SubObjArray( S.VAL( ANY, m.entry ), h.entries, AddrSize );
 		SubObjArray( S.VAL( ANY, m.command ), h.commands, SIZEOF( Modules.Command ) );
-		SubObjArray( S.VAL( ANY, m.ptrAdr ), h.pointers, AdrSize );
+		SubObjArray( S.VAL( ANY, m.ptrAdr ), h.pointers, AddrSize );
 		Heaps.NewArr( S.VAL( ANY, m.typeInfo ), Modules.ptrElemTag, h.types, 1 );  Heaps.Relocate( ADDRESSOF( m.typeInfo ) );
 		SubObjArray( S.VAL( ANY, m.module ), h.modules, SIZEOF( Modules.Module ) );
 		SubObjArray( S.VAL( ANY, m.data ), dataSize + h.constSize, 1 );
@@ -281,7 +279,7 @@ VAR
 		IF tag = 84X THEN	(* pointer tag *)
 			FOR i := 0 TO h.pointers-1 DO
 				r.RawNum(num);
-				ASSERT(num MOD AdrSize = 0);	(* no deep copy flag *)
+				ASSERT(num MOD AddrSize = 0);	(* no deep copy flag *)
 				m.ptrAdr[i] := m.sb + num;
 				Heaps.Relocate( ADDRESSOF( m.ptrAdr[i] ) );
 			END;
@@ -346,7 +344,7 @@ VAR
 	(* ReadConstBlock - Read the constant block. *)
 
 	PROCEDURE ReadConstBlock( r: Streams.Reader;  m: Modules.Module; h: ObjHeader ): BOOLEAN;
-	VAR tag: CHAR;  i: LONGINT;  t: Address;
+	VAR tag: CHAR;  i: LONGINT;  t: ADDRESS;
 	BEGIN
 		r.Char(tag);
 		IF tag = 87X THEN	(* constant tag *)
@@ -399,8 +397,8 @@ VAR
 		tag: CHAR;  i, j, num, newMethods, method, pointers, entry: LONGINT;
 		tdSize: LONGINT; (* ug *)
 		name: Modules.Name;  flags: SET;
-		recSize, ofs, totTdSize: Size;
-		startAddr, tdAdr, base: Address;
+		recSize, ofs, totTdSize: SIZE;
+		startAddr, tdAdr, base: ADDRESS;
 		sTB {UNTRACED}: Heaps.StaticTypeBlock;
 	BEGIN
 		r.Char(tag);
@@ -423,7 +421,7 @@ VAR
 
 				Heaps.NewRec( S.VAL( ANY, m.typeInfo[i] ), Modules.tdTag, SIZEOF( Modules.TypeDescRec) );
 				Heaps.Relocate( ADDRESSOF( m.typeInfo[i] ) );
-				Heaps.FillStaticType( tdAdr, startAddr, S.VAL( Address, m.typeInfo[i] ), tdSize, recSize, pointers,
+				Heaps.FillStaticType( tdAdr, startAddr, S.VAL( ADDRESS, m.typeInfo[i] ), tdSize, recSize, pointers,
 									 Modules.MaxTags + type[i].methods);
 				m.typeInfo[i].tag := tdAdr;	Heaps.Relocate( ADDRESSOF( m.typeInfo[i].tag ) );
 				m.typeInfo[i].flags := flags;
@@ -434,8 +432,8 @@ VAR
 				FOR j := 0 TO newMethods - 1 DO
 					r.RawNum( method );
 					r.RawNum( entry );
-					S.PUT( base - AdrSize*method, m.entry[entry] );
-					Heaps.Relocate( base - AdrSize*method );
+					S.PUT( base - AddrSize*method, m.entry[entry] );
+					Heaps.Relocate( base - AddrSize*method );
 				END;
 				(* other methods are left NIL *)
 				sTB := S.VAL( Heaps.StaticTypeBlock, tdAdr );
@@ -457,7 +455,7 @@ VAR
 				startAddr := startAddr + tdSize;
 				totTdSize := totTdSize + tdSize;
 			END;
-			base := S.VAL( Address, m.typeInfo ) - AdrSize;
+			base := S.VAL( ADDRESS, m.typeInfo ) - AddrSize;
 			S.PUT( base, S.VAL( SET, Modules.ptrElemTag ) + Heaps.ArrayMask );
 
 			RETURN TRUE
@@ -621,7 +619,7 @@ VAR
 
 
 	PROCEDURE ReadExportBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
-	VAR tag: CHAR;  struct: ARRAY MaxStructs OF Address;
+	VAR tag: CHAR;  struct: ARRAY MaxStructs OF ADDRESS;
 		structs, i: LONGINT;
 		p {UNTRACED}: Modules.ExportPtr; (* this variable must be untraced since it will be casted from a pure address field, it is not a valid heap block *)
 
@@ -638,7 +636,7 @@ VAR
 				scope.dsc[0].adr := adr
 			END;
 			IF level = EUrecScope THEN
-				INC( structs );  struct[structs] := S.VAL( Address, ADDRESSOF( scope ) )
+				INC( structs );  struct[structs] := ADDRESSOF( scope )
 			END;
 			r.RawNum( fp );
 			WHILE fp # EUEnd DO
@@ -715,7 +713,7 @@ VAR
 		END FixupCall;
 
 		PROCEDURE CheckScope( scope: Modules.ExportDesc;  level: INTEGER );
-		VAR fp, link, i: LONGINT;  adr, tdadr: Address;  tmpErr: BOOLEAN; 
+		VAR fp, link, i: LONGINT;  adr, tdadr: ADDRESS;  tmpErr: BOOLEAN; 
 		BEGIN
 			tmpErr := (level = EUerrScope);  i := 0;  link := 0;  r.RawNum( fp ); 
 			WHILE fp # EUEnd DO
@@ -778,7 +776,7 @@ VAR
 
 	(* FixupGlobals - Fix up references to global variables. *)
 	PROCEDURE FixupGlobals( m: Modules.Module;  CONST dataLink: ARRAY OF DataLinkRec );
-	VAR i: LONGINT; t: SIZE;  adr: Address;
+	VAR i: LONGINT; t: SIZE;  adr: ADDRESS;
 	BEGIN
 		IF dataLink[0].mod = 0 THEN  (* local module has globals *)
 			FOR i := 0 TO dataLink[0].fixups - 1 DO
@@ -836,24 +834,24 @@ VAR
 				S.GET( baseM.sb + type[i].baseEntry, baseRoot );
 				S.GET( baseRoot + Modules.Tag0Ofs, t );
 				WHILE t # 0 DO
-					S.PUT( baseTag - AdrSize*extLevel, t );  Heaps.Relocate( baseTag - AdrSize*extLevel );
+					S.PUT( baseTag - AddrSize*extLevel, t );  Heaps.Relocate( baseTag - AddrSize*extLevel );
 					INC( extLevel );
-					S.GET( baseRoot + Modules.Tag0Ofs - AdrSize*extLevel, t )
+					S.GET( baseRoot + Modules.Tag0Ofs - AddrSize*extLevel, t )
 				END;
 				(* copy non-overwritten base methods *)
 				FOR j := 0 TO type[i].inhMethods - 1 DO
-					S.GET( baseMth - AdrSize*j, t );   (* existing method *)
+					S.GET( baseMth - AddrSize*j, t );   (* existing method *)
 					IF t = 0 THEN
-						S.GET( baseRoot + Modules.Mth0Ofs - AdrSize*j, t );   (* base method *)
-						S.PUT( baseMth - AdrSize*j, t );  Heaps.Relocate( baseMth - AdrSize*j )
+						S.GET( baseRoot + Modules.Mth0Ofs - AddrSize*j, t );   (* base method *)
+						S.PUT( baseMth - AddrSize*j, t );  Heaps.Relocate( baseMth - AddrSize*j )
 					END;
 				END
 			END;
 			m.typeInfo[i].flags := m.typeInfo[i].flags + S.VAL( SET, extLevel );
 			ASSERT( extLevel < Modules.MaxTags );
 
-			S.PUT( baseTag - AdrSize*extLevel, m.typeInfo[i].tag );    (* self *)
-			Heaps.Relocate( baseTag - AdrSize*extLevel );
+			S.PUT( baseTag - AddrSize*extLevel, m.typeInfo[i].tag );    (* self *)
+			Heaps.Relocate( baseTag - AddrSize*extLevel );
 
 			(* init type for static type descriptors *)
 			type[i].init := TRUE
@@ -875,7 +873,7 @@ VAR
 			ASSERT( val # 0 );
 			WHILE ofs # Sentinel DO
 				adr := codeadr + ofs;  S.GET( adr, t );
-				S.PUT( adr, val - (adr + AdrSize) );   (* relative => no relocation required *)
+				S.PUT( adr, val - (adr + AddrSize) );   (* relative => no relocation required *)
 				ofs := t
 			END
 		END FixRelative;

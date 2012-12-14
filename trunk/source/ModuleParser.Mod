@@ -250,9 +250,7 @@ TYPE
 	FormalPars* = OBJECT(Node)
 	VAR
 		fpSectionList*: FPSection;
-		returnType*: Qualident;
-		returnTypeAry*: Array;
-		returnTypeObj*: InfoItem;
+		returnType*: Type;
 	END FormalPars;
 
 	FPSection* = OBJECT (NodeList)
@@ -693,13 +691,22 @@ TYPE
 		END ProcHeadP;
 
 		PROCEDURE SysFlag;
+		VAR ignore: InfoItem;
 		BEGIN
 			IF symbol.token = FoxScanner.LeftBrace THEN
 				NextSymbol;
-				Check(FoxScanner.Identifier);
-				IF symbol.token = FoxScanner.Comma THEN
-					NextSymbol;
-					Check(FoxScanner.Identifier)
+				IF symbol.token # FoxScanner.RightBrace THEN
+					LOOP
+						Check(FoxScanner.Identifier);
+						IF symbol.token = FoxScanner.LeftParenthesis THEN
+							NextSymbol;
+							NEW (ignore);
+							ConstExprP	 (FoxScanner.RightParenthesis, -1, ignore);
+							Check (FoxScanner.RightParenthesis);
+						END;
+						IF symbol.token # FoxScanner.Comma THEN EXIT END;
+						NextSymbol;
+					END;
 				END;
 				Check(FoxScanner.RightBrace);
 			END;
@@ -733,26 +740,8 @@ TYPE
 			Check(FoxScanner.RightParenthesis);
 			IF symbol.token = FoxScanner.Colon THEN
 				NextSymbol;
-				IF symbol.token = FoxScanner.Object THEN
-					NEW(pars.returnTypeObj);
-					pars.returnTypeObj.name := Strings.NewString("OBJECT");
-					pars.returnTypeObj.pos := symbol.start;
-					NextSymbol;
-				ELSIF symbol.token = FoxScanner.Array THEN
-					NEW(pars.returnTypeAry, pars);
-					NextSymbol;
-					ArrayP(pars.returnTypeAry);
-
-					(*
-					NEW(pars.returnType.ident);
-					pars.returnType.ident.name := Strings.NewString("ARRAY OF ???");
-					pars.returnType.ident.pos := bol.start;
-					SkipTo(FoxScanner.Semicolon);
-					*)
-				ELSE
-					NEW(pars.returnType, pars);
-					QualidentP(pars.returnType)
-				END;
+				NEW(pars.returnType, pars);
+				TypeP(pars.returnType)
 			END;
 		END FormalParsP;
 
@@ -817,6 +806,8 @@ TYPE
 			| FoxScanner.Enum: NextSymbol; NEW(type.enum, type); EnumP(type.enum);
 			| FoxScanner.Procedure, FoxScanner.Operator: NextSymbol; NEW(type.procedure, type); ProcedureP(type.procedure);
 			| FoxScanner.Identifier: NEW(type.qualident, type); QualidentP(type.qualident);
+			| FoxScanner.Address, FoxScanner.Size: NEW(type.qualident, type); NEW(type.qualident.ident);
+				type.qualident.ident.name := Strings.NewString(symbol.identifierString); type.qualident.ident.pos := symbol.start; NextSymbol;
 			ELSE
 				(* Error *)
 				hasError := TRUE; KernelLog.String("err4: "); KernelLog.Int(symbol.start, 0); KernelLog.Ln;
@@ -1154,23 +1145,28 @@ TYPE
 
 		PROCEDURE ProcedureModifierP(procHead: ProcHead);
 		VAR
-			value: LONGINT;
+			value: LONGINT; ignore: InfoItem;
 		BEGIN
 			IF symbol.token = FoxScanner.LeftBrace THEN
-				REPEAT
-					NextSymbol;
-					IF symbol.token = FoxScanner.Identifier THEN
-						IF symbol.identifierString = NoPAFStr THEN NextSymbol
-						ELSIF symbol.identifierString = FixedStr THEN NextSymbol; ModifierValueP(value)
-						ELSIF symbol.identifierString = AlignedStr THEN NextSymbol; ModifierValueP(value)
-						ELSIF symbol.identifierString = DynamicStr THEN NextSymbol
-						ELSIF symbol.identifierString = InterruptStr THEN NextSymbol; procHead.modifiers := procHead.modifiers + {Interrupt}
-						ELSIF symbol.identifierString = PCOffsetStr THEN NextSymbol; ModifierValueP(value)
-						ELSIF symbol.identifierString = RealtimeStr THEN NextSymbol
-						ELSE Error(symbol.start); NextSymbol (* skip the ident, probably a typo *)
-						END
+				NextSymbol;
+				IF symbol.token # FoxScanner.RightBrace THEN
+					LOOP
+						IF symbol.token = FoxScanner.Identifier THEN
+							IF symbol.identifierString = InterruptStr THEN NextSymbol; procHead.modifiers := procHead.modifiers + {Interrupt}
+							ELSE NextSymbol;
+							END;
+						ELSE Error(symbol.start); NextSymbol; (* skip the ident, probably a typo *)
+						END;
+						IF symbol.token = FoxScanner.LeftParenthesis THEN
+							NextSymbol;
+							NEW (ignore);
+							ConstExprP	 (FoxScanner.RightParenthesis, -1, ignore);
+							Check (FoxScanner.RightParenthesis);
+						END;
+						IF symbol.token # FoxScanner.Comma THEN EXIT END;
+						NextSymbol;
 					END
-				UNTIL symbol.token # FoxScanner.Comma;
+				END;
 				Check(FoxScanner.RightBrace)
 			END
 		END ProcedureModifierP;
@@ -1210,6 +1206,7 @@ TYPE
 					CASE symbol.token OF
 					| FoxScanner.Begin: INC(end);
 					| FoxScanner.If, FoxScanner.Case, FoxScanner.While, FoxScanner.For, FoxScanner.Loop, FoxScanner.With: INC(end);
+					| FoxScanner.Code: REPEAT NextSymbol UNTIL (symbol.token = FoxScanner.End) OR (symbol.token = FoxScanner.EndOfText);
 					| FoxScanner.End: DEC(end);
 					ELSE
 					END;

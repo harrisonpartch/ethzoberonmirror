@@ -23,22 +23,21 @@ CONST
 	InitPtrTableLen = 2048;
 
 TYPE
-	Address = ADDRESS; 
 
 	Name* = ARRAY 32 OF CHAR;
 	TermHandler* = PROCEDURE;
 
 	Command* = RECORD
 				name*		: Name;		(* Name of the command *)
-				argTdAdr*	: Address;	(* address of type descriptor of argument *)
-				retTdAdr*	: Address;	(* address of type descriptor of return type, 0 if no type *)
-				entryAdr*	: Address;	(* entry address of procedure *)
+				argTdAdr*	: ADDRESS;	(* address of type descriptor of argument *)
+				retTdAdr*	: ADDRESS;	(* address of type descriptor of return type, 0 if no type *)
+				entryAdr*	: ADDRESS;	(* entry address of procedure *)
 			END;
 
 
 	ExportDesc* = RECORD
-				fp*			: Address;
-				adr*		: Address;
+				fp*			: ADDRESS;
+				adr*		: ADDRESS;
 				exports*	: LONGINT;
 				dsc*		: ExportArray
 			END;
@@ -51,16 +50,16 @@ TYPE
 	TypeDescRec* = RECORD
 				tdSize*		: LONGINT;
 				sentinel*	: LONGINT;	(*  = -4 *)
-				tag*		: Address; 	(* pointer to static type descriptor, only used by linker and loader *)
+				tag*		: ADDRESS; 	(* pointer to static type descriptor, only used by linker and loader *)
 				flags*		: SET;
 				mod*		: Module;   	(** hint only, because module may have been freed *)
 				name*		: Name;
 			END;
 
 	ExceptionTableEntry* = RECORD
-				pcFrom*	: Address;
-				pcTo*		: Address;
-				pcHandler*	: Address;
+				pcFrom*	: ADDRESS;
+				pcTo*		: ADDRESS;
+				pcHandler*	: ADDRESS;
 			END;
 
 	
@@ -68,10 +67,10 @@ TYPE
 	ExceptionTable* = POINTER TO ARRAY OF ExceptionTableEntry;
 
 	ProcTableEntry* = RECORD
-				pcFrom*			: Address;
-				pcLimit*			: Address;
-				pcStatementBegin*	: Address;
-				pcStatementEnd*	: Address;
+				pcFrom*			: ADDRESS;
+				pcLimit*			: ADDRESS;
+				pcStatementBegin*	: ADDRESS;
+				pcStatementEnd*	: ADDRESS;
 				noPtr*				: LONGINT
 			END;
 	
@@ -83,7 +82,7 @@ TYPE
 	ProcOffsetTable* = POINTER TO ARRAY OF ProcOffsetEntry;
 	
 	ProcTable* = POINTER TO ARRAY OF ProcTableEntry;
-	PtrTable* = POINTER TO ARRAY OF Address;
+	PtrTable* = POINTER TO ARRAY OF ADDRESS;
 
 	Bytes* = POINTER TO ARRAY OF CHAR;
 	
@@ -95,11 +94,11 @@ TYPE
 				init*		: BOOLEAN;
 				published*	: BOOLEAN;
 				refcnt*		: LONGINT;
-				sb*	 		: Address;
+				sb*	 		: ADDRESS;
 			
-				entry*		: POINTER TO ARRAY OF Address;
+				entry*		: POINTER TO ARRAY OF ADDRESS;
 				command*	: POINTER TO ARRAY OF Command;
-				ptrAdr*		: POINTER TO ARRAY OF Address;
+				ptrAdr*		: POINTER TO ARRAY OF ADDRESS;
 				typeInfo*	: POINTER TO ARRAY OF TypeDesc;
 				module*	: POINTER TO ARRAY OF Module;
 
@@ -112,7 +111,7 @@ TYPE
 				term*		: TermHandler;
 				exTable*	: ExceptionTable;
 				noProcs*	: LONGINT;
-				firstProc	*	: Address;   (* procedure with lowest PC in module *)
+				firstProc	*	: ADDRESS;   (* procedure with lowest PC in module *)
 				maxPtrs	*	: LONGINT;
 				crc*		: LONGINT
 			END Module;
@@ -122,7 +121,7 @@ TYPE
 VAR
 	root*{UNTRACED}: Module;
 	
-	modTag-, expTag-, ptrElemTag*, procTableEntryTag-, procOffsetEntryTag-, ptrTableTag-, tdTag-: Address;
+	modTag-, expTag-, ptrElemTag*, procTableEntryTag-, procOffsetEntryTag-, ptrTableTag-, tdTag-: ADDRESS;
 	
 	procOffsets-{UNTRACED}: ProcOffsetTable;	(* global table containing procedure code offsets and pointer offsets, sorted in ascending order of procedure code offsets *)
 	numProcs-: LONGINT;			(* number of entries in procOffsets *)
@@ -143,13 +142,13 @@ VAR
 		proc: ProcTable;  procOfs: ProcOffsetTable;
 		td: TypeDesc;  pTab: PtrTable;
 	BEGIN
-		NEW( exp );  S.GET( S.VAL( Address, exp ) - AdrSize, expTag );		
-		NEW( td );  S.GET( S.VAL( Address, td ) - AdrSize, tdTag );			
-		NEW( mod );  S.GET( S.VAL( Address, mod ) - AdrSize, modTag );		
-		NEW( ptr );  S.GET( S.VAL( Address, ptr ) - AdrSize, ptrElemTag );
-		NEW( proc, 1 );  S.GET( S.VAL( Address, proc ) - AdrSize, procTableEntryTag );		
-		NEW( procOfs, 1 );  S.GET( S.VAL( Address, procOfs ) - AdrSize, procOffsetEntryTag );		
-		NEW( pTab, 1 );  S.GET( S.VAL( Address, pTab ) - AdrSize, ptrTableTag );			
+		NEW( exp );  S.GET( S.VAL( ADDRESS, exp ) - AdrSize, expTag );		
+		NEW( td );  S.GET( S.VAL( ADDRESS, td ) - AdrSize, tdTag );			
+		NEW( mod );  S.GET( S.VAL( ADDRESS, mod ) - AdrSize, modTag );		
+		NEW( ptr );  S.GET( S.VAL( ADDRESS, ptr ) - AdrSize, ptrElemTag );
+		NEW( proc, 1 );  S.GET( S.VAL( ADDRESS, proc ) - AdrSize, procTableEntryTag );		
+		NEW( procOfs, 1 );  S.GET( S.VAL( ADDRESS, procOfs ) - AdrSize, procOffsetEntryTag );		
+		NEW( pTab, 1 );  S.GET( S.VAL( ADDRESS, pTab ) - AdrSize, ptrTableTag );			
 	END MakeTD;
 
 
@@ -157,11 +156,11 @@ VAR
 	VAR i: LONGINT; 
 		
 		PROCEDURE PatchExport( VAR scope: ExportDesc;  tag: LONGINT );
-		VAR i: LONGINT;  t: Address;
+		VAR i: LONGINT;  t: ADDRESS;
 		BEGIN
-			S.GET( S.VAL( Address, scope.dsc ) - AdrSize, t );
+			S.GET( S.VAL( ADDRESS, scope.dsc ) - AdrSize, t );
 			IF t # tag THEN
-				S.PUT( S.VAL( Address, scope.dsc ) - AdrSize, tag );  i := 0;
+				S.PUT( S.VAL( ADDRESS, scope.dsc ) - AdrSize, tag );  i := 0;
 				WHILE i < scope.exports DO
 					IF scope.dsc[i].exports > 0 THEN  PatchExport( scope.dsc[i], tag )  END;
 					INC( i )
@@ -170,12 +169,12 @@ VAR
 		END PatchExport;
 	
 	BEGIN
-		S.PUT( S.VAL( Address, m.typeInfo ) - AdrSize, S.VAL( SET, ptrElemTag ) + Heaps.ArrayMask );
+		S.PUT( S.VAL( ADDRESS, m.typeInfo ) - AdrSize, S.VAL( SET, ptrElemTag ) + Heaps.ArrayMask );
 		FOR i := 0 TO LEN( m.typeInfo ) -1 DO
-			S.PUT( S.VAL( Address, m.typeInfo[i] ) - AdrSize, tdTag );
+			S.PUT( S.VAL( ADDRESS, m.typeInfo[i] ) - AdrSize, tdTag );
 		END;
-		S.PUT( S.VAL( Address, m ) - AdrSize,  modTag );
-		PatchExport( m.export, S.VAL( Address, S.VAL( SET, expTag ) + Heaps.ArrayMask ) );
+		S.PUT( S.VAL( ADDRESS, m ) - AdrSize,  modTag );
+		PatchExport( m.export, S.VAL( ADDRESS, S.VAL( SET, expTag ) + Heaps.ArrayMask ) );
 	END FixTypeDescs;
 
 	
@@ -366,30 +365,51 @@ VAR
 	END VarByName;
 	
 	
-	PROCEDURE AssignValue*( CONST module, variable: ARRAY OF CHAR; value: Address; reloc: BOOLEAN );
+	PROCEDURE AssignValue*( CONST modName, varName: ARRAY OF CHAR; value: LONGINT );
 	VAR m: Module; ofs: SIZE;
 	BEGIN
 		m := root;
-		WHILE (m # NIL) & (m.name # module) DO m := m.next  END;
+		WHILE (m # NIL) & (m.name # modName) DO m := m.next  END;
 		IF m = NIL THEN
-			error.String( "### AssignValue: module '" ); error.String( module ); 
+			error.String( "### AssignValue: module '" ); error.String( modName ); 
 			error.String( "' not found" ); error.Ln;
 		ELSE
-			ofs := VarByName( m.refs, variable );
+			ofs := VarByName( m.refs, varName );
 			IF ofs = 0 THEN
-				error.String( "### AssignValue: variable '" ); error.String( module ); 
-				error.Char( '.' ); error.String( variable );
+				error.String( "### AssignValue: variable '" ); error.String( modName ); 
+				error.Char( '.' ); error.String( varName );
 				error.String( "' not found" ); error.Ln
 			ELSE
 				S.PUT( m.sb + ofs, value );
-				IF reloc THEN  Heaps.Relocate( m.sb + ofs )  END
 			END
 		END
 	END AssignValue;
+	
+	
+	PROCEDURE AssignAddress*( CONST modName, varName: ARRAY OF CHAR; value: ADDRESS );
+	VAR m: Module; ofs: SIZE;
+	BEGIN
+		m := root;
+		WHILE (m # NIL) & (m.name # modName) DO m := m.next  END;
+		IF m = NIL THEN
+			error.String( "### AssignValue: module '" ); error.String( modName ); 
+			error.String( "' not found" ); error.Ln;
+		ELSE
+			ofs := VarByName( m.refs, varName );
+			IF ofs = 0 THEN
+				error.String( "### AssignValue: variable '" ); error.String( modName ); 
+				error.Char( '.' ); error.String( varName );
+				error.String( "' not found" ); error.Ln
+			ELSE
+				S.PUT( m.sb + ofs, value );
+				Heaps.Relocate( m.sb + ofs ) 
+			END
+		END
+	END AssignAddress;
 
 
 	PROCEDURE RelocateProcOffsets*;	
-	VAR i, j: LONGINT; a: Address;
+	VAR i, j: LONGINT; a: ADDRESS;
 	BEGIN
 		FOR i := 0 TO numProcs - 1 DO
 			a := ADDRESSOF( procOffsets[i].data.pcFrom );  j := 0;

@@ -374,13 +374,7 @@ TYPE
 				out.Char(")");
 				module := formalPars.GetModule();
 				IF (formalPars.returnType # NIL) THEN
-					FixTypeName(module, formalPars.returnType.ident.name^, fullname);
-					out.String(" : "); out.String(fullname);
-				ELSIF (formalPars.returnTypeAry # NIL) THEN
-					out.String(" : "); Array(formalPars.returnTypeAry);
-				ELSIF (formalPars.returnTypeObj # NIL) THEN
-					FixTypeName(module, formalPars.returnTypeObj.name^, fullname);
-					out.String(" : "); out.String(fullname);
+					out.String(" : "); Type(formalPars.returnType);
 				END;
 			END;
 		END FormalPars;

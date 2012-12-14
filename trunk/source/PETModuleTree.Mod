@@ -582,23 +582,14 @@ TYPE
 		END AddProcHead;
 
 		PROCEDURE AddFormalPars(parent: WMTrees.TreeNode; formalPars: ModuleParser.FormalPars);
-		VAR newNode, dummy: WMTrees.TreeNode; add : BOOLEAN;
+		VAR newNode: WMTrees.TreeNode;
 		BEGIN
 			IF formalPars # NIL THEN
 				AddFPSection(parent, formalPars.fpSectionList);
 				NEW(newNode);
 				tree.SetNodeCaption(newNode, StrRETURN);
 				IF formalPars.returnType # NIL THEN
-					dummy := AddQualident(newNode, formalPars.returnType, treeView.clTextDefault.Get(), {});
-					add := TRUE;
-				ELSIF formalPars.returnTypeAry # NIL THEN
-					AddArray(newNode, formalPars.returnTypeAry);
-					add := TRUE;
-				ELSIF formalPars.returnTypeObj # NIL THEN
-					dummy := AddInfoItem(newNode, formalPars, formalPars.returnTypeObj, TRUE, SortIgnore, treeView.clTextDefault.Get(), {});
-					add := TRUE;
-				END;
-				IF add THEN
+					AddType(newNode, formalPars.returnType, TRUE);
 					tree.AddChildNode(parent, newNode);
 				END;
 			END;

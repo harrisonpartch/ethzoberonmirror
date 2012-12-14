@@ -10,11 +10,8 @@ IMPORT S := SYSTEM, Heaps := BootLinkerHeaps,  Modules := BootLinkerModules, Loa
 		Commands, Streams, Files;
 
 CONST	
-	AdrSize = SIZEOF( ADDRESS );
+	AddrSize = SIZEOF( ADDRESS );
 
-
-TYPE
-	Address = ADDRESS; 
 
 VAR
 	out: Streams.Writer;
@@ -34,7 +31,7 @@ VAR
 		(* output heap *)
 		w.RawLInt( Heaps.heapAdr );
 		w.RawLInt( top - Heaps.heapAdr );
-		from := Heaps.heapAdr + Heaps.BlockSize - AdrSize;
+		from := Heaps.heapAdr + Heaps.BlockSize - AddrSize;
 		w.RawLInt( from );  w.RawLInt( top - from );
 		WHILE from < top DO  S.GET( from, i );  w.RawLInt( i );  INC( from, 4 )  END;
 		w.RawLInt( Loader.entrypoint );  
@@ -89,15 +86,15 @@ VAR
 			UNTIL ~context.arg.GetString( name ) OR (m = NIL);
 			
 			IF res = Ok THEN  
-				Modules.AssignValue( "Modules", "root", S.VAL( Address, Modules.root ), TRUE );
+				Modules.AssignAddress( "Modules", "root", S.VAL( ADDRESS, Modules.root ) );
 	
 				Modules.RelocateProcOffsets;
-				Modules.AssignValue( "Modules", "procOffsets", S.VAL( Address, Modules.procOffsets ), TRUE );
-				Modules.AssignValue( "Modules", "numProcs", S.VAL( Address, Modules.numProcs ), FALSE );
+				Modules.AssignAddress( "Modules", "procOffsets", S.VAL( ADDRESS, Modules.procOffsets ) );
+				Modules.AssignValue( "Modules", "numProcs", Modules.numProcs );
 				
 				Modules.RelocatePtrOffsets;
-				Modules.AssignValue( "Modules", "ptrOffsets", S.VAL( Address, Modules.ptrOffsets ), TRUE );
-				Modules.AssignValue( "Modules", "numPtrs", S.VAL( Address, Modules.numPtrs ), FALSE );
+				Modules.AssignAddress( "Modules", "ptrOffsets", S.VAL( ADDRESS, Modules.ptrOffsets ) );
+				Modules.AssignValue( "Modules", "numPtrs", Modules.numPtrs );
 
 				OutBootfile( bootFileName )  
 			END;
@@ -117,6 +114,8 @@ Compiler.Compile
 	Unix.BootLinkerHeaps.Mod  Unix.BootLinkerModules.Mod  Unix.BootLinkerLoader.Mod  Unix.BootLinker.Mod ~
 
 SystemTools.Free  BootLinker BootLinkerLoader  BootLinkerModules  BootLinkerHeaps ~
+
+
 
 
 BootLinker.Link  bootFileName := modName0 modName1 ... ~
