@@ -1234,6 +1234,12 @@ Sufficient (but not necessary) conditions:
 		SYSTEM.PUT(ADDRESSOF(dest),d);
 	END ZeroCopy;
 
+	OPERATOR "ALIAS"*(CONST src: ARRAY [?]): ARRAY[?];
+	BEGIN
+		ZeroCopy(src, RESULT);
+		RETURN RESULT
+	END "ALIAS";
+
 	PROCEDURE SameShape( l, r: LONGINT ): BOOLEAN;
 	VAR dim: LONGINT;
 	BEGIN
@@ -5761,7 +5767,7 @@ Sufficient (but not necessary) conditions:
 	BEGIN
 		RETURN ~ApplyBinaryAABOp( ADDRESSOF( left ), ADDRESSOF( right ), EqlAXAXLoop, FALSE );
 	END "#";
-	
+
 (** COMPLEX *)
 	PROCEDURE EqlAZAZLoop( ladr, radr, linc, rinc, len: LONGINT ): BOOLEAN;
 	VAR lval, rval: COMPLEX;
@@ -8396,7 +8402,6 @@ Sufficient (but not necessary) conditions:
 	END "`";
 
 	OPERATOR "`"*( CONST left: ARRAY [ * , * ] OF LONGREAL ): ARRAY [ * , * ] OF LONGREAL;
-												    ;
 	BEGIN
 		Transpose( ADDRESSOF( RESULT ), ADDRESSOF( left ), SIZEOF( LONGREAL ) );
 		RETURN RESULT

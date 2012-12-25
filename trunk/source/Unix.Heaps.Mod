@@ -224,8 +224,7 @@ VAR
 		n := checkRoot;
 		WHILE n # NIL DO  (* iterate over checked list *)
 			t := n;  n := n.nextFin;
-			IF Machine.LessOrEqual( codeAdr, S.VAL( ADDRESS, t.finalizer ) ) & 
-			    Machine.LessOrEqual( S.VAL( ADDRESS, t.finalizer ), codeEnd ) THEN
+			IF (codeAdr <= S.VAL( ADDRESS, t.finalizer )) & (S.VAL( ADDRESS, t.finalizer ) <= codeEnd ) THEN
 				IF t = checkRoot THEN  checkRoot := t.nextFin  ELSE  p.nextFin := t.nextFin  END;
 				IF Stats THEN DEC(NfinalizeAlive) END;
 				INC( N1 )
@@ -237,8 +236,7 @@ VAR
 		n := finalizeRoot;
 		WHILE n # NIL DO  (* iterate over finalized list *)
 			t := n;  n := n.nextFin;
-			IF Machine.LessOrEqual( codeAdr, S.VAL( ADDRESS, t.finalizer ) ) & 
-			    Machine.LessOrEqual( S.VAL( ADDRESS, t.finalizer ), codeEnd ) THEN
+			IF (codeAdr <= S.VAL( ADDRESS, t.finalizer ) ) & (S.VAL( ADDRESS, t.finalizer ) <= codeEnd ) THEN
 				IF t = finalizeRoot THEN  finalizeRoot := t.nextFin  ELSE  p.nextFin := t.nextFin  END;
 				IF Stats THEN DEC(NfinalizeDead) END;
 				INC( N2 )
@@ -340,7 +338,7 @@ VAR
 					 REPEAT
 						MarkRecordFields( cur, sTB );						
 						INC( cur, sTB.recSize );
-					UNTIL Machine.GreaterThan( cur, lastElem )
+					UNTIL cur > lastElem
 				ELSE
 					deferred[noDeferred] := block;  INC( noDeferred );
 				END;
@@ -373,7 +371,7 @@ VAR
 				 REPEAT
 					MarkRecordFields( cur, sTB );						
 					INC( cur, sTB.recSize );
-				UNTIL Machine.GreaterThan( cur, lastElem )
+				UNTIL cur > lastElem
 			ELSE  
 				MarkRecordFields( block, sTB )
 			END;			
@@ -392,8 +390,26 @@ VAR
 		block.next := NIL
 	END AppendFree;
 	
+	PROCEDURE InsertSorted( VAR freeList: FreeList; block: FreeBlock );
+	VAR x: FreeBlock;
+	BEGIN
+		(* keep them ordered to avoid unnecessary splits *)
+		(* this optimization has positive impact on heap utilization
+			130 MB vs. 240 MB heap for compiling and linking a new system
+			but it slows down heap allocation speed. 	*)
+		x := freeList.first;
+		IF (x = NIL) OR (x.size > block.size) THEN 
+			block.next := x;
+			freeList.first := block
+		ELSE
+			WHILE ( x.next # NIL) & (x.next.size < block.size) DO  x := x.next  END;
+			block.next := x.next;
+			x.next := block 
+		END	
+	END InsertSorted;
+	
 	PROCEDURE Recycle( blkAdr: ADDRESS; blkSize: SIZE );
-	VAR i: LONGINT;  block, x: FreeBlock;
+	VAR i: LONGINT;  block: FreeBlock;
 	BEGIN
 		block := S.VAL( FreeBlock, blkAdr );
 		block.tag := blkAdr + AddrSize;
@@ -406,21 +422,8 @@ VAR
 		IF i < FreeListBarrier THEN	
 			AppendFree( freeLists[i], block )
 		ELSE
-			(* keep them ordered to avoid unnecessary splits *)
-			(* this optimization has positive impact on heap utilization
-			    130 MB vs. 240 MB heap for compiling and linking a new system
-			    but it slows down heap allocation speed. 	*)
-			x := freeLists[MaxFreeLists].first;
-			IF (x = NIL) OR (x.size > blkSize - AddrSize) THEN 
-				block.next := x;
-				freeLists[MaxFreeLists].first := block
-			ELSE
-				WHILE ( x.next # NIL) & (x.next.size < block.size) DO  x := x.next  END;
-				block.next := x.next;
-				x.next := block 
-			END	
+			InsertSorted( freeLists[i], block )
 		END;	
-		
 		INC( heapAvailable, blkSize );
 	END Recycle;
 	
@@ -453,7 +456,7 @@ VAR
 			block := memBlock.beginBlockAdr;  endBlockAdr := memBlock.endBlockAdr;
 
 			freeSize := 0;
-			WHILE Machine.LessThan( block, endBlockAdr ) DO
+			WHILE block < endBlockAdr DO
 				blockSize := SizeOf( block );
 				S.GET( block, tag );
 				IF ~(MarkBit IN tag) THEN
@@ -474,7 +477,7 @@ VAR
 			
 			IF (freeSize = endBlockAdr - memBlock.beginBlockAdr)  THEN
 				(* whole block is free, unlink it*)
-				Machine.FreeMemBlock( S.VAL( Machine.MemoryBlock, memBlock ) );
+				Machine.FreeMemBlock( memBlock );
 				heapSize := GetHeapSize();
 			ELSIF freeSize > 0 THEN
 				Recycle( freeBlock, freeSize ); (* last collected block: *)
@@ -511,7 +514,7 @@ VAR
 			h := h DIV 3;  i := h;
 			WHILE i < nofcand DO
 				p := candidates[i];  j := i;
-				WHILE (j >= h) & Machine.GreaterThan(candidates[j - h], p) DO  
+				WHILE (j >= h) & (candidates[j - h] > p) DO  
 					candidates[j] := candidates[j - h];  j := j - h  
 				END;
 				candidates[j] := p;  INC( i )
@@ -540,7 +543,7 @@ VAR
 			blkSize := SizeOf( block );
 
 			LOOP
-				IF Machine.LessOrEqual( p, block + AddrSize ) THEN
+				IF p <= block + AddrSize THEN
 					IF p = block + AddrSize THEN
 						S.GET( block, tag1 );
 						IF tag1 # p THEN  (* not a free block *) Mark( S.VAL( ANY, p ) )  END
@@ -565,7 +568,7 @@ VAR
 					p := candidates[i]
 				ELSE
 					block := block + blkSize;
-					IF Machine.GreaterOrEqual( block, endBlockAdr ) THEN  EXIT   END;
+					IF block >= endBlockAdr THEN  EXIT   END;
 					blkSize := SizeOf( block );
 				END;
 			END;
@@ -606,8 +609,8 @@ VAR
 	BEGIN
 		IF Stats THEN
 			Nmark := 0; Nmarked := 0;
-			INC(Ngc);
-			time1 := Machine.GetTimer ();
+			INC( Ngc );
+			time1 := Machine.GetTimer( );
 		END;
 		collecting := TRUE;  markDepth := 0; noDeferred := 0;
 		
@@ -617,10 +620,10 @@ VAR
 
 		collecting := FALSE;  thruput := 0;
 		IF Stats THEN
-			time2 := Machine.GetTimer ();
+			time2 := Machine.GetTimer( );
 			NgcCyclesLastRun := time2 - time1;
-			IF NgcCyclesLastRun > NgcCyclesMax THEN NgcCyclesMax := NgcCyclesLastRun; END;
-			INC(NgcCyclesAllRuns, NgcCyclesLastRun);
+			IF NgcCyclesLastRun > NgcCyclesMax THEN  NgcCyclesMax := NgcCyclesLastRun  END;
+			INC( NgcCyclesAllRuns, NgcCyclesLastRun );
 			NgcCyclesMark := NgcCyclesLastRun
 		END;
 	END CollectGarbage;
@@ -857,8 +860,7 @@ VAR
 		IF (p # 0 ) & (p MOD 4 = 0) THEN
 			sb := Machine.memBlockHead;
 			WHILE sb # NIL DO
-				IF Machine.LessOrEqual( sb.beginBlockAdr, p ) & 
-				    Machine.LessOrEqual( p, sb.endBlockAdr ) THEN  RETURN TRUE  END;
+				IF (sb.beginBlockAdr <= p) & (p <= sb.endBlockAdr) THEN  RETURN TRUE  END;
 				sb := sb.next;
 			END
 		END;

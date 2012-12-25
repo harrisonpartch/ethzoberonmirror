@@ -25,7 +25,7 @@ IMPORT
 	Modules, Kernel, Serials, XYModem, Files, Inputs,
 	WMWindowManager, WMMessages, WMRestorable, WMGraphics, WMRectangles,
 	WMComponents, WMStandardComponents, WMProgressComponents, WMTextView, WMEditors, WMPopups, WMDialogs,
-	XML, XMLObjects, WMSearchComponents, Commands, T := Trace;
+	XML, XMLObjects, WMSearchComponents, Commands, V24, T := Trace;
 
 CONST
 

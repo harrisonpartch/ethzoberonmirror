@@ -422,7 +422,7 @@ TYPE
 		VAR i, nextInt, m, n, d, e, si: LONGINT;
 			dig: ARRAY 24 OF CHAR;
 			f: LONGREAL;  expCh: CHAR;  neg, long: BOOLEAN;
-			result: LONGINT;
+			result: Token;
 			hugeint, tenh: HUGEINT;
 
 			(** 10^e **)
@@ -811,6 +811,59 @@ TYPE
 			IF i = MaxIdentifierLength THEN Error( Basic.IdentifierTooLong );  DEC( i ) END;
 			symbol.identifierString[i] := 0X;
 		END GetIdentifier;
+
+		PROCEDURE GetNumber(VAR symbol: Symbol): Token;
+		VAR number: HUGEINT; result: Token; digits: LONGINT;
+
+			(** return hexadecimal number associated to character ch, error if none **)
+			PROCEDURE Hexadecimal( ch: CHAR ): LONGINT;
+			BEGIN
+				IF (ch >= "0") & (ch <= "9") THEN RETURN ORD( ch ) - ORD( "0" )
+				ELSIF (ch >= "a") & (ch <= "f") THEN RETURN ORD( ch ) - ORD( "a" ) + 10
+				ELSE Error( Basic.NumberIllegalCharacter );  RETURN 0
+				END
+			END Hexadecimal;
+
+		BEGIN
+			result := Number;
+			IF (ch = "0") THEN
+				IF reader.Peek() = "x" THEN (* hex number *)
+					digits := 0;
+					GetNextCharacter; GetNextCharacter;
+					WHILE (ch >= "0") & (ch <= "9") OR (ch >= "a") & (ch <="f") DO
+						number := number * 10H + Hexadecimal(ch);
+						INC(digits);
+						GetNextCharacter;
+					END;
+					symbol.hugeint := number;
+					symbol.integer := SHORT(number);
+					IF digits > MaxHexDigits THEN
+						symbol.numberType := Hugeint
+					ELSE
+						symbol.numberType := Integer
+					END;
+				ELSIF reader.Peek() = "b" THEN (* binary number *)
+					digits := 0;
+					GetNextCharacter; GetNextCharacter;
+					WHILE (ch >= "0") & (ch <= "1") DO
+						number := number * 2;
+						INC(digits);
+						IF ch = "1" THEN INC(number) END;
+						GetNextCharacter;
+					END;
+					symbol.hugeint := number;
+					symbol.integer := SHORT(number);
+					IF digits > 32 THEN
+						symbol.numberType := Hugeint
+					ELSE
+						symbol.numberType := Integer
+					END;
+				ELSE RETURN GetNumber^(symbol)
+				END;
+			ELSE RETURN GetNumber^(symbol)
+			END;
+			RETURN result
+		END GetNumber;
 
 		(** get next symbol **)
 		PROCEDURE GetNextSymbol*(VAR symbol: Symbol ): BOOLEAN;

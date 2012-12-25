@@ -948,7 +948,7 @@ PACKAGE GuiApplicationsMini ARCHIVE "GuiApplicationsMini.zip" SOURCE "GuiApplica
 	WMClockImages.tar
 	WMCalendar.Mod
 
-	WMV24Component.Mod
+	NATIVE, WIN { WMV24Component.Mod }
 	WMShell.Mod	# GUI for Shell
 
 	# GUI for hierarchical profiler (HierarchicalProfiler.Mod)

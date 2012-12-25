@@ -827,13 +827,7 @@ BEGIN
 	Trace.String("first heap block adr "); Trace.Int(adr,1); Trace.Ln;
 	ASSERT(adr # 0);
 
-	IF adr > 0 THEN
-		alignOffset := (-adr) MOD StaticBlockSize;
-	ELSE
-		(* expanding the heap above 2 GB limit *)
-		h := LONG(adr)+100000000H; (* convert negative address to unsigned value *)
-		alignOffset := SHORT(-h MOD StaticBlockSize);
-	END;
+	alignOffset := (-adr) MOD StaticBlockSize;
 
 	memHeaderAdr := adr + alignOffset;  	(* force alignment of memory block start *)
 	memBlockAdr := memHeaderAdr + MemBlockHeaderSize;
@@ -984,13 +978,7 @@ BEGIN
 
 	IF adr # 0 THEN
 
-		IF adr > 0 THEN
-			alignOffset := (-adr) MOD StaticBlockSize;
-		ELSE
-			(* expanding the heap above 2 GB limit *)
-			h := LONG(adr)+100000000H; (* convert negative address to unsigned value *)
-			alignOffset := SHORT(-h MOD StaticBlockSize);
-		END;
+		alignOffset := (-adr) MOD StaticBlockSize;
 
 		IF continue THEN
 			memBlock := memBlockTail;

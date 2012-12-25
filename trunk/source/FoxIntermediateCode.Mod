@@ -1055,13 +1055,18 @@ TYPE
 		IF type IS SyntaxTree.CharacterType THEN
 			RETURN UnsignedIntegerType(system.SizeOf(type))
 		ELSIF type IS SyntaxTree.IntegerType THEN
-			RETURN  SignedIntegerType(system.SizeOf(type))
+			IF type(SyntaxTree.IntegerType).signed THEN
+				RETURN  SignedIntegerType(system.SizeOf(type))
+			ELSE
+				RETURN  UnsignedIntegerType(system.SizeOf(type))
+			END;
 		ELSIF type IS SyntaxTree.FloatType THEN
 			RETURN  FloatType(system.SizeOf(type))
 		ELSIF type IS SyntaxTree.RangeType THEN
 			RETURN GetType(system,system.addressType)
 		ELSIF type IS SyntaxTree.BasicType THEN
-			IF type IS SyntaxTree.SizeType THEN RETURN  SignedIntegerType(system.SizeOf(type))
+			IF type IS SyntaxTree.SizeType THEN
+				RETURN  SignedIntegerType(system.SizeOf(type))
 			ELSE
 				RETURN  UnsignedIntegerType(system.SizeOf(type))
 			END;

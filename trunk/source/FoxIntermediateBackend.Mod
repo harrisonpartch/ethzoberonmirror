@@ -7578,15 +7578,7 @@ TYPE
 		VAR (*  inline: Sections.CellNet; symbol: SyntaxTree.Symbol; *)
 		BEGIN
 			IF Trace THEN TraceEnter("VisitCode") END;
-			Emit(Asm(position,x.sourceCode));
-			(*
-			NEW(inline,x."inline",cg.pc,x);
-			cg.Inline(inline);
-			symbol := currentScope(SyntaxTree.ProcedureScope).ownerProcedure;
-			IF symbol(SyntaxTree.Procedure).HasFlag(SyntaxTree.InlineFlag) THEN
-				module.inlineCode.Add(inline)
-			END;
-			*)
+			Emit(Asm(x.position,x.sourceCode));
 			IF Trace THEN TraceExit("VisitCode") END;
 		END VisitCode;
 

@@ -397,7 +397,7 @@ VAR
 	PROCEDURE Init;
 	VAR slib: LONGINT;
 	BEGIN
-		IF Unix.version = "Solaris" THEN
+		IF Unix.Version = "Solaris" THEN
 			slib := Unix.Dlopen( "libsocket.so.1", 2 );
 			IF slib = 0 THEN  slib := Unix.Dlopen( "libsocket.so", 2 )  END;
 			IF slib = 0 THEN  Trace.StringLn( "Unix.Dlopen( 'libsocket.so' ) failed")  END;

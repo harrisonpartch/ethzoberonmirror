@@ -9,12 +9,9 @@ MODULE Unix;   (* Josef Templ, 5.3.90	SVR4 system calls *)  (** Linux x86 versio
 
 IMPORT S := SYSTEM, Glue, Trace;
 
-TYPE
-	Address = ADDRESS;
-	Size = SIZE;
 
 CONST
-	version* = "Linux";
+	Version* = "Linux";
 
   	libcname* = "libc.so.6";
 	libmname* = "libm.so.6";
@@ -195,15 +192,15 @@ TYPE
 			END;
 
 	Stack* = RECORD
-				sp*			: Address;
+				sp*			: ADDRESS;
 				flags*		: SET;
-				size*		: Size
+				size*		: SIZE
 			END;
 
 	Ucontext* = POINTER TO UcontextDesc;
 	UcontextDesc* = RECORD
 				flags-		: SET;
-				link-		: Address;
+				link-		: ADDRESS;
 				stack-		: Stack;
 				mc-		: McontextDesc
 			END;
@@ -241,8 +238,8 @@ TYPE
 
 
 VAR
-	argc-: LONGINT;  argv-: Address;
-	aargc: Address;
+	argc-: LONGINT;  argv-: ADDRESS;
+	aargc: ADDRESS;
 
 	sysinfo-: RECORD
 				sysname-, nodename-, release-, version-, machine-: ARRAY 65 OF CHAR;
@@ -250,36 +247,36 @@ VAR
 
 
 
-	read-			: PROCEDURE {C} ( fd: LONGINT; buf: Address; n: Size ): LONGINT;
-	write-			: PROCEDURE {C} ( fd: LONGINT; buf: Address; n: Size ): LONGINT;
-	open-			: PROCEDURE {C} ( name: Address;  flags, mode: SET ): LONGINT;
+	read-			: PROCEDURE {C} ( fd: LONGINT; buf: ADDRESS; n: SIZE ): LONGINT;
+	write-			: PROCEDURE {C} ( fd: LONGINT; buf: ADDRESS; n: SIZE ): LONGINT;
+	open-			: PROCEDURE {C} ( name: ADDRESS;  flags, mode: SET ): LONGINT;
 	close-			: PROCEDURE {C} ( fd: LONGINT ): LONGINT;
-	lseek-			: PROCEDURE {C} ( fd: LONGINT; offset, origin: Size ): LONGINT;
+	lseek-			: PROCEDURE {C} ( fd: LONGINT; offset, origin: SIZE ): LONGINT;
 	fsync-			: PROCEDURE {C} ( fd: LONGINT ): LONGINT;
-	ioctl-			: PROCEDURE {C} ( fd: LONGINT; request: LONGINT; arg: Address ): LONGINT;
-	unlink-			: PROCEDURE {C} ( name: Address ): LONGINT;
-	rename-		: PROCEDURE {C} ( oldname, newname: Address ): LONGINT;
-	ftruncate-		: PROCEDURE {C} ( fd: LONGINT;  length: Size ): LONGINT;
-	chmod-			: PROCEDURE {C} ( name: Address;  mode: SET ): LONGINT;
-	utime-			: PROCEDURE {C} ( fd: LONGINT;  tb: Address ): LONGINT;
-	access-			: PROCEDURE {C} ( name: Address;  mode: SET ): LONGINT;
+	ioctl-			: PROCEDURE {C} ( fd: LONGINT; request: LONGINT; arg: ADDRESS ): LONGINT;
+	unlink-			: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
+	rename-		: PROCEDURE {C} ( oldname, newname: ADDRESS ): LONGINT;
+	ftruncate-		: PROCEDURE {C} ( fd: LONGINT;  length: SIZE ): LONGINT;
+	chmod-			: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
+	utime-			: PROCEDURE {C} ( fd: LONGINT;  tb: ADDRESS ): LONGINT;
+	access-			: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
 	select-			: PROCEDURE {C} ( width: LONGINT; rd, wr, ex: FdSetPtr;  VAR timeout: Timeval ): LONGINT;
 
-	chdir-			: PROCEDURE {C} ( name: Address ): LONGINT;
-	mkdir-			: PROCEDURE {C} ( name: Address;  mode: SET ): LONGINT;
-	rmdir-			: PROCEDURE {C} ( path: Address ): LONGINT;
+	chdir-			: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
+	mkdir-			: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
+	rmdir-			: PROCEDURE {C} ( path: ADDRESS ): LONGINT;
 
-	stat-			: PROCEDURE {C} ( name: Address;  VAR buf: Status ): LONGINT;
-	lstat-			: PROCEDURE {C} ( name: Address;  VAR buf: Status ): LONGINT;
+	stat-			: PROCEDURE {C} ( name: ADDRESS;  VAR buf: Status ): LONGINT;
+	lstat-			: PROCEDURE {C} ( name: ADDRESS;  VAR buf: Status ): LONGINT;
 	fstat-			: PROCEDURE {C} ( fd: LONGINT;  VAR buf: Status ): LONGINT;
 
 	getpid-			: PROCEDURE {C} ( ): LONGINT;
 	getuid-			: PROCEDURE {C} ( ): LONGINT;
 
-	malloc-			: PROCEDURE {C} ( size: Size ): Address;
-	valloc-			: PROCEDURE {C} ( size: Size ): Address;
-	free-			: PROCEDURE {C} ( p: Address );
-	mprotect-		: PROCEDURE {C} ( p: Address; len: Size; prot: LONGINT ): LONGINT;
+	malloc-			: PROCEDURE {C} ( size: SIZE ): ADDRESS;
+	valloc-			: PROCEDURE {C} ( size: SIZE ): ADDRESS;
+	free-			: PROCEDURE {C} ( p: ADDRESS );
+	mprotect-		: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
 
 	alarm-			: PROCEDURE {C} ( ms: LONGINT ): LONGINT;
 	setitimer-		: PROCEDURE {C} ( which: LONGINT;  VAR value, ovalue: Itimerval ): LONGINT;
@@ -291,22 +288,22 @@ VAR
 	time-			: PROCEDURE {C} ( VAR tv: Timeval ): LONGINT;
 	times-			: PROCEDURE {C} ( VAR tms: Tms ): LONGINT;
 
-	system-			: PROCEDURE {C} ( cmd: Address );
-	uname-		: PROCEDURE {C} ( utsname: Address ): LONGINT;
+	system-			: PROCEDURE {C} ( cmd: ADDRESS );
+	uname-		: PROCEDURE {C} ( utsname: ADDRESS ): LONGINT;
 
-	getcwd-		: PROCEDURE {C} ( buf: Address;  len: Size ): LONGINT;
-	getenv-		: PROCEDURE {C} ( name: Address ): LONGINT;
+	getcwd-		: PROCEDURE {C} ( buf: ADDRESS;  len: SIZE ): LONGINT;
+	getenv-		: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
 
-	opendir-		: PROCEDURE {C} ( name: Address ): Address;
-	readdir-		: PROCEDURE {C} ( dir: Address ): Dirent;
-	closedir-		: PROCEDURE {C} ( dir: Address );
+	opendir-		: PROCEDURE {C} ( name: ADDRESS ): ADDRESS;
+	readdir-		: PROCEDURE {C} ( dir: ADDRESS ): Dirent;
+	closedir-		: PROCEDURE {C} ( dir: ADDRESS );
 
-	sigsetjmp-		: PROCEDURE {C} ( env: Address;  savemask: LONGINT ): LONGINT;
-	siglongjmp-		: PROCEDURE {C} ( env: Address;  val: LONGINT );
+	sigsetjmp-		: PROCEDURE {C} ( env: ADDRESS;  savemask: LONGINT ): LONGINT;
+	siglongjmp-		: PROCEDURE {C} ( env: ADDRESS;  val: LONGINT );
 
 	kill-			: PROCEDURE {C} ( pid, sig: LONGINT ): LONGINT;
 	exit-			: PROCEDURE {C} ( status: LONGINT );
-	perror-			: PROCEDURE {C} ( msg: Address );
+	perror-			: PROCEDURE {C} ( msg: ADDRESS );
 	errno-			: PROCEDURE {C} ( ): LONGINT;
 
 
@@ -329,7 +326,7 @@ VAR
 	END Perror;
 
 
-	PROCEDURE Dlsym*( lib: LONGINT;  CONST sym: ARRAY OF CHAR;  VAR var: Address );
+	PROCEDURE Dlsym*( lib: LONGINT;  CONST sym: ARRAY OF CHAR;  VAR var: ADDRESS );
 	BEGIN
 		var := 0;  Glue.dlsym( lib, ADDRESSOF( sym ), ADDRESSOF( var ) );
 		IF var = 0 THEN
@@ -429,64 +426,64 @@ BEGIN
 
 	libc := Dlopen( libcname, 2 );
 
-	Dlsym( libc, "read", S.VAL( Address, read ) );
-	Dlsym( libc, "write", S.VAL( Address, write ) );
-	Dlsym( libc, "open", S.VAL( Address, open ) );
-	Dlsym( libc, "close", S.VAL( Address, close ) );
-	Dlsym( libc, "lseek", S.VAL( Address, lseek ) );
-	Dlsym( libc, "fsync", S.VAL( Address, fsync ) );
-	Dlsym( libc, "ioctl", S.VAL( Address, ioctl ) );
-	Dlsym( libc, "unlink", S.VAL( Address, unlink ) );
-	Dlsym( libc, "rename", S.VAL( Address, rename ) );
-	Dlsym( libc, "ftruncate", S.VAL( Address, ftruncate ) );
-	Dlsym( libc, "chmod", S.VAL( Address, chmod ) );
-	Dlsym( libc, "utime", S.VAL( Address, utime ) );
-	Dlsym( libc, "access", S.VAL( Address, access ) );
-	Dlsym( libc, "select", S.VAL( Address, select ) );
+	Dlsym( libc, "read", S.VAL( ADDRESS, read ) );
+	Dlsym( libc, "write", S.VAL( ADDRESS, write ) );
+	Dlsym( libc, "open", S.VAL( ADDRESS, open ) );
+	Dlsym( libc, "close", S.VAL( ADDRESS, close ) );
+	Dlsym( libc, "lseek", S.VAL( ADDRESS, lseek ) );
+	Dlsym( libc, "fsync", S.VAL( ADDRESS, fsync ) );
+	Dlsym( libc, "ioctl", S.VAL( ADDRESS, ioctl ) );
+	Dlsym( libc, "unlink", S.VAL( ADDRESS, unlink ) );
+	Dlsym( libc, "rename", S.VAL( ADDRESS, rename ) );
+	Dlsym( libc, "ftruncate", S.VAL( ADDRESS, ftruncate ) );
+	Dlsym( libc, "chmod", S.VAL( ADDRESS, chmod ) );
+	Dlsym( libc, "utime", S.VAL( ADDRESS, utime ) );
+	Dlsym( libc, "access", S.VAL( ADDRESS, access ) );
+	Dlsym( libc, "select", S.VAL( ADDRESS, select ) );
 
-	Dlsym( libc, "chdir", S.VAL( Address, chdir ) );
-	Dlsym( libc, "mkdir", S.VAL( Address, mkdir ) );
-	Dlsym( libc, "rmdir", S.VAL( Address, rmdir ) );
+	Dlsym( libc, "chdir", S.VAL( ADDRESS, chdir ) );
+	Dlsym( libc, "mkdir", S.VAL( ADDRESS, mkdir ) );
+	Dlsym( libc, "rmdir", S.VAL( ADDRESS, rmdir ) );
 
-	Dlsym( libc, "stat", S.VAL( Address, stat ) );
-	Dlsym( libc, "lstat", S.VAL( Address, lstat ) );
-	Dlsym( libc, "fstat", S.VAL( Address, fstat ) );
+	Dlsym( libc, "stat", S.VAL( ADDRESS, stat ) );
+	Dlsym( libc, "lstat", S.VAL( ADDRESS, lstat ) );
+	Dlsym( libc, "fstat", S.VAL( ADDRESS, fstat ) );
 
-	Dlsym( libc, "getpid", S.VAL( Address, getpid ) );
-	Dlsym( libc, "getuid", S.VAL( Address, getuid ) );
+	Dlsym( libc, "getpid", S.VAL( ADDRESS, getpid ) );
+	Dlsym( libc, "getuid", S.VAL( ADDRESS, getuid ) );
 
-	Dlsym( libc, "alarm", S.VAL( Address, alarm ) );
-	Dlsym( libc, "setitimer", S.VAL( Address, setitimer ) );
-	Dlsym( libc, "getitimer", S.VAL( Address, getitimer ) );
+	Dlsym( libc, "alarm", S.VAL( ADDRESS, alarm ) );
+	Dlsym( libc, "setitimer", S.VAL( ADDRESS, setitimer ) );
+	Dlsym( libc, "getitimer", S.VAL( ADDRESS, getitimer ) );
 
-	Dlsym( libc, "gettimeofday", S.VAL( Address, gettimeofday ) );
-	Dlsym( libc, "mktime", S.VAL( Address, mktime ) );
-	Dlsym( libc, "localtime", S.VAL( Address, localtime ) );
-	Dlsym( libc, "time", S.VAL( Address, time ) );
-	Dlsym( libc, "times", S.VAL( Address, times ) );
+	Dlsym( libc, "gettimeofday", S.VAL( ADDRESS, gettimeofday ) );
+	Dlsym( libc, "mktime", S.VAL( ADDRESS, mktime ) );
+	Dlsym( libc, "localtime", S.VAL( ADDRESS, localtime ) );
+	Dlsym( libc, "time", S.VAL( ADDRESS, time ) );
+	Dlsym( libc, "times", S.VAL( ADDRESS, times ) );
 
-	Dlsym( libc, "getcwd", S.VAL( Address, getcwd ) );
-	Dlsym( libc, "getenv", S.VAL( Address, getenv ) );
+	Dlsym( libc, "getcwd", S.VAL( ADDRESS, getcwd ) );
+	Dlsym( libc, "getenv", S.VAL( ADDRESS, getenv ) );
 
-	Dlsym( libc, "opendir", S.VAL( Address, opendir ) );
-	Dlsym( libc, "readdir", S.VAL( Address, readdir ) );
-	Dlsym( libc, "closedir", S.VAL( Address, closedir ) );
+	Dlsym( libc, "opendir", S.VAL( ADDRESS, opendir ) );
+	Dlsym( libc, "readdir", S.VAL( ADDRESS, readdir ) );
+	Dlsym( libc, "closedir", S.VAL( ADDRESS, closedir ) );
 
-	Dlsym( libc, "sigsetjmp", S.VAL( Address, sigsetjmp ) );
-	Dlsym( libc, "siglongjmp", S.VAL( Address, siglongjmp ) );
+	Dlsym( libc, "sigsetjmp", S.VAL( ADDRESS, sigsetjmp ) );
+	Dlsym( libc, "siglongjmp", S.VAL( ADDRESS, siglongjmp ) );
 
-	Dlsym( libc, "malloc", S.VAL( Address, malloc ) );
-	Dlsym( libc, "valloc", S.VAL( Address, valloc ) );
-	Dlsym( libc, "free", S.VAL( Address, free ) );
-	Dlsym( libc, "mprotect", S.VAL( Address, mprotect ) );
+	Dlsym( libc, "malloc", S.VAL( ADDRESS, malloc ) );
+	Dlsym( libc, "valloc", S.VAL( ADDRESS, valloc ) );
+	Dlsym( libc, "free", S.VAL( ADDRESS, free ) );
+	Dlsym( libc, "mprotect", S.VAL( ADDRESS, mprotect ) );
 
-	Dlsym( libc, "system", S.VAL( Address, system ) );
-	Dlsym( libc, "uname", S.VAL( Address, uname ) );
+	Dlsym( libc, "system", S.VAL( ADDRESS, system ) );
+	Dlsym( libc, "uname", S.VAL( ADDRESS, uname ) );
 
-	Dlsym( libc, "kill", S.VAL( Address, kill ) );
-	Dlsym( libc, "exit", S.VAL( Address, exit ) );
-	Dlsym( libc, "perror", S.VAL( Address, perror ) );
-	Dlsym( libc, "errno", S.VAL( Address, errno ) );
+	Dlsym( libc, "kill", S.VAL( ADDRESS, kill ) );
+	Dlsym( libc, "exit", S.VAL( ADDRESS, exit ) );
+	Dlsym( libc, "perror", S.VAL( ADDRESS, perror ) );
+	Dlsym( libc, "errno", S.VAL( ADDRESS, errno ) );
 
 
 	getSysinfo;

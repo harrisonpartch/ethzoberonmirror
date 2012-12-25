@@ -187,11 +187,11 @@ VAR
 	
 
 	(* Handles an exception. Interrupts are on during this procedure. *)
-	PROCEDURE HandleException( obj: Objects.Process; cont: Unix.Ucontext;  VAR handled: BOOLEAN );  
-	VAR handler, fp, sp, pc: LONGINT;
+	PROCEDURE HandleException( process: Objects.Process;  cont: Unix.Ucontext;  VAR handled: BOOLEAN );  
+	VAR handler, fp, sp, pc: ADDRESS;
 	BEGIN 
-		IF Unix.version = "Darwin" THEN  handled := FALSE;  RETURN  END;
-		(* in Darwin ModifyContext fails with bus error *)
+		IF Unix.Version = "Darwin" THEN  handled := FALSE;  RETURN  END;
+		(* in Darwin Unix.ModifyContext fails with bus error. Stack alignment problem? *)
 		
 		pc := cont.mc.eip;  fp := cont.mc.ebp;  sp := cont.mc.espatsig;
 		IF pc = 0 THEN  
@@ -203,7 +203,7 @@ VAR
 			Unix.ModifyContext( cont, handler, fp, sp );
 			handled := TRUE;  
 		ELSE  
-			WHILE Machine.LessOrEqual( fp, obj.stackBottom) & (handler = -1) DO  
+			WHILE (fp <= process.stackBottom) & (handler = -1) DO  
 				S.GET( fp + 4, pc );  
 				pc := pc - 1;   (*  CALL instruction, machine dependant!!! *)
 				handler := Modules.GetExceptionHandler( pc );  

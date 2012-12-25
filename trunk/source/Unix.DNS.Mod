@@ -130,7 +130,7 @@ BEGIN
 	NDNSMismatchID := 0;
 	NDNSError := 0;
 	
-	IF Unix.version = "Darwin" THEN
+	IF Unix.Version = "Darwin" THEN
 		nlib := Unix.libc
 	ELSE
 		nlib := Unix.Dlopen( "libnsl.so.1", 2 );

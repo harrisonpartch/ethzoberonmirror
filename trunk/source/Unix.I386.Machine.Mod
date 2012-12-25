@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5090)";
+	Version = "Aos (rev.5117)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -1004,7 +1004,7 @@ END ChangeByteOrder;
 		
 		saveSP := Empty;	(* to be replaced in module Objects *)
 		
-		COPY( Unix.version, version );  Append( version, Version );
+		COPY( Unix.Version, version );  Append( version, Version );
 		InitThreads;
 		InitLocks;
 

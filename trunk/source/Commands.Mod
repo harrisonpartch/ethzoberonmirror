@@ -127,7 +127,6 @@ TYPE
 		END Join;
 
 	BEGIN {ACTIVE, SAFE}
-		SetContext(context); (* cannot be called in Init because there the process is not created yet *)
 		IF ~exception THEN
 			exception := TRUE; (* catch exceptions from now on *)
 			module := Modules.ThisModule(moduleName, res, msg);
@@ -219,23 +218,13 @@ END Split;
 (**	Can be called by a command to retrieve the context associated with its active object. *)
 
 PROCEDURE GetContext*() : Context;
-VAR process: Objects.Process; context: ANY;
+VAR object: ANY;
 BEGIN
-	process := Objects.CurrentProcess();
-	context := process.context;
-	IF (context # NIL) & (context IS Context) THEN RETURN context(Context)
+	object := Objects.ActiveObject();
+	IF (object # NIL) & (object IS Runner) & (object(Runner).state = Loaded) THEN RETURN object(Runner).context;
 	ELSE RETURN defaultContext
 	END;
 END GetContext;
-
-PROCEDURE SetContext*(context: Context);
-VAR process: Objects.Process;
-BEGIN
-	process := Objects.CurrentProcess();
-	Objects.SetContext(process, context)
-END SetContext;
-
-
 
 (**	Activate a command in its own active object.
 	Returns res = Ok if successful, otherwise msg contains error message.

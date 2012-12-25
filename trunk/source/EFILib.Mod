@@ -126,14 +126,14 @@ BEGIN
 			Trace.Address(MemMapElement.VirtualStart+MemMapElement.NumberOfPages*LONG(EFI.PageSize));
 			*)
 			IF (tmp # MemMapElement.PhysicalStart) THEN
-				SYSTEM.PUT(adr+(numcritEntries*2+1+1)*8, MemMapElement.PhysicalStart);
+				SYSTEM.PUT(ADDRESS(adr+(numcritEntries*2+1+1)*8), MemMapElement.PhysicalStart);
 				tmp := MemMapElement.PhysicalStart+MemMapElement.NumberOfPages*LONG(EFI.PageSize);
-				SYSTEM.PUT(adr+(numcritEntries*2+1+1+1)*8, tmp);
+				SYSTEM.PUT(ADDRESS(adr+(numcritEntries*2+1+1+1)*8), tmp);
 				numcritEntries := 	numcritEntries +1;
 			ELSE
 				numcritEntries := 	numcritEntries -1;
 				tmp := MemMapElement.PhysicalStart+MemMapElement.NumberOfPages*LONG(EFI.PageSize);
-				SYSTEM.PUT(adr+(numcritEntries*2+1+1+1)*8, tmp);
+				SYSTEM.PUT(ADDRESS(adr+(numcritEntries*2+1+1+1)*8), tmp);
 				numcritEntries := 	numcritEntries +1;
 			END;
 		END;
@@ -141,16 +141,16 @@ BEGIN
 	END;
 
 	FOR hi:= 0 TO numcritEntries-1 DO
-		SYSTEM.GET(adr+(hi*2+1+1)*8, tmp);
+		SYSTEM.GET(ADDRESS(adr+(hi*2+1+1)*8), tmp);
 		TRACE(tmp);
-		SYSTEM.GET(adr+(hi*2+1+1+1)*8, tmp);
+		SYSTEM.GET(ADDRESS(adr+(hi*2+1+1+1)*8), tmp);
 		TRACE(tmp);
 	END;
 
 
 
-	SYSTEM.PUT(adr,numcritEntries);
-	SYSTEM.PUT(adr+8,memsize);
+	SYSTEM.PUT(ADDRESS(adr),numcritEntries);
+	SYSTEM.PUT(ADDRESS(adr+8),memsize);
 	TRACE(adr);
 	RETURN EFI.Success;
 END GetMemoryMapping;

@@ -74,7 +74,7 @@ TYPE
 		(** Transfer a block of pixels from a 1-bit mask to the display.  Pixels in the rectangular area are transferred from left to right and top to bottom.  The pixels are transferred from "buf", starting at bit offset "bitofs".  The line byte increment is "stride", which may be positive, negative or zero. "fg" and "bg" specify the colors for value 1 and 0 pixels respectively. *)
 		PROCEDURE Mask*(VAR buf: ARRAY OF CHAR; bitof, stride, fg, bg, x, y, w, h: LONGINT);
 		CONST SetSize = MAX (SET) + 1;
-		VAR p, i, bitofs: ADDRESS; s: SET;
+		VAR p: ADDRESS; i, bitofs: LONGINT; s: SET;
 		BEGIN
 			IF (w > 0) & (h > 0) THEN
 				i := ADDRESSOF(buf[0]) MOD SIZEOF (SET);

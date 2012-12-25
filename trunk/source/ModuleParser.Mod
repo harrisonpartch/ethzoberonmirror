@@ -31,7 +31,7 @@ CONST
 	PriorityStr = "PRIORITY";
 	NoPAFStr = "NOPAF"; FixedStr = "FIXED"; AlignedStr = "FIXED";
 	DynamicStr = "DYNAMIC"; InterruptStr = "INTERRUPT"; PCOffsetStr = "PCOFFSET";
-	
+
 
 TYPE
 	InfoItem* = OBJECT
@@ -1157,11 +1157,15 @@ TYPE
 							END;
 						ELSE Error(symbol.start); NextSymbol; (* skip the ident, probably a typo *)
 						END;
-						IF symbol.token = FoxScanner.LeftParenthesis THEN
+						IF (symbol.token = FoxScanner.LeftParenthesis) THEN
 							NextSymbol;
 							NEW (ignore);
 							ConstExprP	 (FoxScanner.RightParenthesis, -1, ignore);
 							Check (FoxScanner.RightParenthesis);
+						ELSIF (symbol.token = FoxScanner.Equal) THEN
+							NextSymbol;
+							NEW (ignore);
+							ConstExprP	 (FoxScanner.Comma, FoxScanner.RightBrace, ignore);
 						END;
 						IF symbol.token # FoxScanner.Comma THEN EXIT END;
 						NextSymbol;
@@ -1206,7 +1210,9 @@ TYPE
 					CASE symbol.token OF
 					| FoxScanner.Begin: INC(end);
 					| FoxScanner.If, FoxScanner.Case, FoxScanner.While, FoxScanner.For, FoxScanner.Loop, FoxScanner.With: INC(end);
-					| FoxScanner.Code: REPEAT NextSymbol UNTIL (symbol.token = FoxScanner.End) OR (symbol.token = FoxScanner.EndOfText);
+					| FoxScanner.Code:
+						REPEAT NextSymbol UNTIL (symbol.token = FoxScanner.End) OR (symbol.token = FoxScanner.EndOfText);
+						NextSymbol;
 					| FoxScanner.End: DEC(end);
 					ELSE
 					END;
