@@ -6422,7 +6422,7 @@ TYPE
 				IF HasValue(modifiers,Global.NameAligned,position,value) THEN procedure.SetAlignment(FALSE,value)
 				ELSIF HasValue(modifiers,Global.NameFixed,position,value) THEN procedure.SetAlignment(TRUE,value)
 				END;
-				IF HasValue(modifiers,Global.NameStackAligned,value,position) THEN
+				IF HasValue(modifiers,Global.NameStackAligned, position, value) THEN
 					IF ~PowerOf2(value) THEN
 						Error(position,Diagnostics.Invalid,"forbidden stack alignment - must be power of two");
 					ELSE
@@ -8024,7 +8024,7 @@ TYPE
 		WHILE i < x DO
 			i := i *2
 		END;
-		IF i # x THEN RETURN FALSE ELSE RETURN TRUE END;
+		RETURN i=x
 	END PowerOf2;
 
 	PROCEDURE IsCellNetScope(scope: SyntaxTree.Scope): BOOLEAN;

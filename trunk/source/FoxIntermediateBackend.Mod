@@ -3779,7 +3779,7 @@ TYPE
 			structuredReturnType: BOOLEAN;
 			firstWriteBackCall, currentWriteBackCall: WriteBackCall;
 			tempVariableDesignator: SyntaxTree.Designator;
-			gap: LONGINT; (*fld*)
+			gap, alignment: LONGINT; (*fld*)
 
 			(* TODO: remove unnecessary backup variables *)
 			oldResult: Operand;
@@ -3931,14 +3931,21 @@ TYPE
 				isCallOfDynamicOperator := FALSE
 			END;
 
-			IF procedureType.stackAlignment > 1 THEN
+			alignment := procedureType.stackAlignment;
+			IF alignment > 1 THEN
 				IntermediateCode.InitRegister(reg,addressType,IntermediateCode.GeneralPurposeRegister,AcquireRegister(addressType,IntermediateCode.GeneralPurposeRegister));
 				Emit(Mov(position,reg, sp));
-				Emit(Sub(position,sp, sp, IntermediateCode.Immediate(addressType,ToMemoryUnits(system,system.addressSize))));
-				IntermediateCode.InitImmediate(mask,addressType,-procedureType.stackAlignment);
+				gap := ParametersSize(system, procedureType, FALSE) + ToMemoryUnits(system,system.offsetFirstParameter) + ToMemoryUnits(system,system.addressSize);
+
+				Emit(Sub(position,sp, sp, IntermediateCode.Immediate(addressType,gap)));
+				IntermediateCode.InitImmediate(mask,addressType,-alignment);
 				Emit(And(position,sp, sp, mask));
+				Emit(Add(position, sp, sp, IntermediateCode.Immediate(addressType, gap)));
+			 	Emit(Push(position,reg));
+				(*
 				IntermediateCode.InitMemory(mem, addressType, sp, 0);
 				Emit(Mov(position,mem,reg));
+				*)
 				ReleaseIntermediateOperand(reg);
 			END;
 
@@ -4159,7 +4166,7 @@ TYPE
 				END;
 			END;
 
-			IF procedureType.stackAlignment > 1 THEN
+			IF alignment > 1 THEN
 				Emit(Pop(position,sp));
 			END;
 

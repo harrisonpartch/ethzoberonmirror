@@ -397,6 +397,7 @@ PACKAGE Drivers ARCHIVE "Drivers.zip" SOURCE "DriversSrc.zip" DESCRIPTION "Devic
 	# Serial port drivers (implement Serials interface)
 	NATIVE { V24.Mod }
 	WIN { Win32.V24.Mod }
+	UNIX { Unix.V24.Mod }
 
 	# PC speaker driver
 	NATIVE { Beep.Mod }
@@ -948,7 +949,7 @@ PACKAGE GuiApplicationsMini ARCHIVE "GuiApplicationsMini.zip" SOURCE "GuiApplica
 	WMClockImages.tar
 	WMCalendar.Mod
 
-	NATIVE, WIN { WMV24Component.Mod }
+	WMV24Component.Mod
 	WMShell.Mod	# GUI for Shell
 
 	# GUI for hierarchical profiler (HierarchicalProfiler.Mod)

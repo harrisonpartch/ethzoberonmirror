@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5117)";
+	Version = "Aos (rev.5131)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -851,16 +851,16 @@ END ChangeByteOrder;
 	(** Acquire a spin-lock. *)
 	PROCEDURE  Acquire*( level: LONGINT );   (* non reentrant lock *)
 	BEGIN 
-		mtxLock( mtx[level] );
 		lock[level] := "Y"; 
+		mtxLock( mtx[level] );
 		IF level = Heaps THEN  saveSP  END
 	END Acquire;  
 
 	(** Release a spin-lock. *)
 	PROCEDURE  Release*( level: LONGINT );   
 	BEGIN 
+		mtxUnlock( mtx[level] );
 		lock[level] := "N"; 
-		mtxUnlock( mtx[level] )
 	END Release;  
 	
 	PROCEDURE Shutdown*( reboot: BOOLEAN );
@@ -874,10 +874,10 @@ END ChangeByteOrder;
 		
 
 	PROCEDURE InitHeap;
-	VAR heapAdr, firstBlock, size: ADDRESS;  
+	VAR heapAdr, firstBlock: ADDRESS; size: SIZE;  
 	BEGIN
-		Unix.Dlsym( 0, "heapAdr", heapAdr );  
-		Unix.Dlsym( 0, "heapSize", size );  
+		Unix.Dlsym( 0, "heapAdr", ADDRESSOF( heapAdr ) );  
+		Unix.Dlsym( 0, "heapSize", ADDRESSOF( size ) );  
 		firstBlock := heapAdr + ((-heapAdr - AddrSize) MOD BlockSize);
 		size := heapAdr + size - firstBlock;  DEC( size, size MOD BlockSize + BlockSize );
 
@@ -927,7 +927,7 @@ END ChangeByteOrder;
 		t1 := GetTimer();
 		mhz := (t1 - t0) DIV 100000;
 		IF Glue.debug # {} THEN
-			Trace.String( "CPU speed: ~" );  Trace.Int( SHORT( mhz ), 0);  Trace.String( " Mhz" );  Trace.Ln
+			Trace.String( "CPU speed: ~" );  Trace.Int( SHORT( mhz ), 0);  Trace.String( " MHz" );  Trace.Ln
 		END
 	END CPUSpeed;
 	
@@ -986,19 +986,19 @@ END ChangeByteOrder;
 	PROCEDURE Init;
 	VAR vendor: Vendor; ver: LONGINT;
 	BEGIN
-		Unix.Dlsym( 0, "thrInitialize",	S.VAL( ADDRESS, thrInitialize ) );
+		Unix.Dlsym( 0, "thrInitialize",	ADDRESSOF( thrInitialize ) );
 		
-		Unix.Dlsym( 0, "mtxInit",		S.VAL( ADDRESS, mtxInit ) );
-		Unix.Dlsym( 0, "mtxDestroy",	S.VAL( ADDRESS, mtxDestroy ) );
-		Unix.Dlsym( 0, "mtxLock",		S.VAL( ADDRESS, mtxLock ) );
-		Unix.Dlsym( 0, "mtxUnlock",		S.VAL( ADDRESS, mtxUnlock ) );
+		Unix.Dlsym( 0, "mtxInit",		ADDRESSOF( mtxInit ) );
+		Unix.Dlsym( 0, "mtxDestroy",	ADDRESSOF( mtxDestroy ) );
+		Unix.Dlsym( 0, "mtxLock",		ADDRESSOF( mtxLock ) );
+		Unix.Dlsym( 0, "mtxUnlock",		ADDRESSOF( mtxUnlock ) );
 		
-		Unix.Dlsym( 0, "conInit",			S.VAL( ADDRESS, conInit ) );
-		Unix.Dlsym( 0, "conDestroy",	S.VAL( ADDRESS, conDestroy ) );
-		Unix.Dlsym( 0, "conWait",		S.VAL( ADDRESS, conWait ) );
-		Unix.Dlsym( 0, "conSignal",		S.VAL( ADDRESS, conSignal ) );
+		Unix.Dlsym( 0, "conInit",			ADDRESSOF( conInit ) );
+		Unix.Dlsym( 0, "conDestroy",	ADDRESSOF( conDestroy ) );
+		Unix.Dlsym( 0, "conWait",		ADDRESSOF( conWait ) );
+		Unix.Dlsym( 0, "conSignal",		ADDRESSOF( conSignal ) );
 			
-		Unix.Dlsym( 0, "thrSleep",		S.VAL( ADDRESS, thrSleep ) );
+		Unix.Dlsym( 0, "thrSleep",		ADDRESSOF( thrSleep ) );
 		
 		standaloneAppl := FALSE;
 		
@@ -1013,7 +1013,7 @@ END ChangeByteOrder;
 		InitLog;
 		CPUSpeed;
 		
-		CPUID( vendor, ver, features,features2 );	 SetupSSE2Ext;
+		CPUID( vendor, ver, features, features2 );	 SetupSSE2Ext;
 		fcr := (FCR() - {0,2,3,10,11}) + {0..5,8,9};	(* default FCR RC=00B *)
 	END Init;
 

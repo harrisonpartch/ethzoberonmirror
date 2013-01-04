@@ -11,7 +11,7 @@ TYPE
   PString256*= POINTER TO ARRAY OF String256;
 
 
- ALbyte    * =  CHAR;  (* 1-byte signed *)
+  ALbyte    * =  CHAR;  (* 1-byte signed *)
   ALshort   * =  INTEGER;  (* 2-byte signed *)
   ALint     * =  LONGINT;  (* 4-byte signed *)
 
@@ -395,7 +395,7 @@ CONST
 
 VAR
 
-  xlib: LONGINT;
+  oallib: LONGINT;
 
 (* Renderer State management *)
 alEnable-: PROCEDURE { C } (capability : ALenum);
@@ -652,132 +652,132 @@ alBufferSubDataSOFT-: PROCEDURE { C } (buffer: ALuint; format: ALenum; data: ADD
 
 PROCEDURE LoadFunctions;
 BEGIN
-		xlib := Unix.Dlopen(libname, 2 );
-		ASSERT(xlib # 0, 103);
+		oallib := Unix.Dlopen(libname, 2 );
+		ASSERT(oallib # 0, 103);
 
-		Unix.Dlsym( xlib, "alEnable", SYSTEM.VAL( ADDRESS, alEnable));
-		Unix.Dlsym( xlib, "alDisable", SYSTEM.VAL( ADDRESS, alDisable));
-		Unix.Dlsym( xlib, "alIsEnabled", SYSTEM.VAL( ADDRESS, alIsEnabled));
-		Unix.Dlsym( xlib, "alGetBoolean", SYSTEM.VAL( ADDRESS, alGetBoolean));
-		Unix.Dlsym( xlib, "alGetInteger", SYSTEM.VAL( ADDRESS, alGetInteger));
-		Unix.Dlsym( xlib, "alGetFloat", SYSTEM.VAL( ADDRESS, alGetFloat));
-		Unix.Dlsym( xlib, "alGetDouble", SYSTEM.VAL( ADDRESS, alGetDouble));
-		Unix.Dlsym( xlib, "alGetBooleanv", SYSTEM.VAL( ADDRESS, alGetBooleanv));
-		Unix.Dlsym( xlib, "alGetIntegerv", SYSTEM.VAL( ADDRESS, alGetIntegerv));
-		Unix.Dlsym( xlib, "alGetFloatv", SYSTEM.VAL( ADDRESS, alGetFloatv));
-		Unix.Dlsym( xlib, "alGetDoublev", SYSTEM.VAL( ADDRESS, alGetDoublev));
-		Unix.Dlsym( xlib, "alGetString", SYSTEM.VAL( ADDRESS, alGetString));
-		Unix.Dlsym( xlib, "alGetError", SYSTEM.VAL( ADDRESS, alGetError));
-		Unix.Dlsym( xlib, "alIsExtensionPresent", SYSTEM.VAL( ADDRESS, alIsExtensionPresent));
-		Unix.Dlsym( xlib, "alGetProcAddress", SYSTEM.VAL( ADDRESS, alGetProcAddress));
-		Unix.Dlsym( xlib, "alGetEnumValue", SYSTEM.VAL( ADDRESS, alGetEnumValue));
+		Unix.Dlsym( oallib, "alEnable", ADDRESSOF( alEnable));
+		Unix.Dlsym( oallib, "alDisable", ADDRESSOF( alDisable));
+		Unix.Dlsym( oallib, "alIsEnabled", ADDRESSOF( alIsEnabled));
+		Unix.Dlsym( oallib, "alGetBoolean", ADDRESSOF( alGetBoolean));
+		Unix.Dlsym( oallib, "alGetInteger", ADDRESSOF( alGetInteger));
+		Unix.Dlsym( oallib, "alGetFloat", ADDRESSOF( alGetFloat));
+		Unix.Dlsym( oallib, "alGetDouble", ADDRESSOF( alGetDouble));
+		Unix.Dlsym( oallib, "alGetBooleanv", ADDRESSOF( alGetBooleanv));
+		Unix.Dlsym( oallib, "alGetIntegerv", ADDRESSOF( alGetIntegerv));
+		Unix.Dlsym( oallib, "alGetFloatv", ADDRESSOF( alGetFloatv));
+		Unix.Dlsym( oallib, "alGetDoublev", ADDRESSOF( alGetDoublev));
+		Unix.Dlsym( oallib, "alGetString", ADDRESSOF( alGetString));
+		Unix.Dlsym( oallib, "alGetError", ADDRESSOF( alGetError));
+		Unix.Dlsym( oallib, "alIsExtensionPresent", ADDRESSOF( alIsExtensionPresent));
+		Unix.Dlsym( oallib, "alGetProcAddress", ADDRESSOF( alGetProcAddress));
+		Unix.Dlsym( oallib, "alGetEnumValue", ADDRESSOF( alGetEnumValue));
 
-		Unix.Dlsym( xlib, "alListenerf", SYSTEM.VAL( ADDRESS, alListenerf));
-		Unix.Dlsym( xlib, "alListener3f", SYSTEM.VAL( ADDRESS, alListener3f));
-		Unix.Dlsym( xlib, "alListenerfv", SYSTEM.VAL( ADDRESS, alListenerfv));
-		Unix.Dlsym( xlib, "alListeneri", SYSTEM.VAL( ADDRESS, alListeneri));
-		Unix.Dlsym( xlib, "alListener3i", SYSTEM.VAL( ADDRESS, alListener3i));
-		Unix.Dlsym( xlib, "alListeneriv", SYSTEM.VAL( ADDRESS, alListeneriv));
+		Unix.Dlsym( oallib, "alListenerf", ADDRESSOF( alListenerf));
+		Unix.Dlsym( oallib, "alListener3f", ADDRESSOF( alListener3f));
+		Unix.Dlsym( oallib, "alListenerfv", ADDRESSOF( alListenerfv));
+		Unix.Dlsym( oallib, "alListeneri", ADDRESSOF( alListeneri));
+		Unix.Dlsym( oallib, "alListener3i", ADDRESSOF( alListener3i));
+		Unix.Dlsym( oallib, "alListeneriv", ADDRESSOF( alListeneriv));
 
-		Unix.Dlsym( xlib, "alGetListenerf", SYSTEM.VAL( ADDRESS, alGetListenerf));
-		Unix.Dlsym( xlib, "alGetListener3f", SYSTEM.VAL( ADDRESS, alGetListener3f));
-		Unix.Dlsym( xlib, "alGetListenerfv", SYSTEM.VAL( ADDRESS, alGetListenerfv));
-		Unix.Dlsym( xlib, "alGetListeneri", SYSTEM.VAL( ADDRESS, alGetListeneri));
-		Unix.Dlsym( xlib, "alGetListener3i", SYSTEM.VAL( ADDRESS, alGetListener3i));
-		Unix.Dlsym( xlib, "alGetListeneriv", SYSTEM.VAL( ADDRESS, alGetListeneriv));
+		Unix.Dlsym( oallib, "alGetListenerf", ADDRESSOF( alGetListenerf));
+		Unix.Dlsym( oallib, "alGetListener3f", ADDRESSOF( alGetListener3f));
+		Unix.Dlsym( oallib, "alGetListenerfv", ADDRESSOF( alGetListenerfv));
+		Unix.Dlsym( oallib, "alGetListeneri", ADDRESSOF( alGetListeneri));
+		Unix.Dlsym( oallib, "alGetListener3i", ADDRESSOF( alGetListener3i));
+		Unix.Dlsym( oallib, "alGetListeneriv", ADDRESSOF( alGetListeneriv));
 
-		Unix.Dlsym( xlib, "alGenSources", SYSTEM.VAL( ADDRESS, alGenSources));
-		Unix.Dlsym( xlib, "alDeleteSources", SYSTEM.VAL( ADDRESS, alDeleteSources));
-		Unix.Dlsym( xlib, "alIsSource", SYSTEM.VAL( ADDRESS, alIsSource));
-		Unix.Dlsym( xlib, "alSourcei", SYSTEM.VAL( ADDRESS, alSourcei));
+		Unix.Dlsym( oallib, "alGenSources", ADDRESSOF( alGenSources));
+		Unix.Dlsym( oallib, "alDeleteSources", ADDRESSOF( alDeleteSources));
+		Unix.Dlsym( oallib, "alIsSource", ADDRESSOF( alIsSource));
+		Unix.Dlsym( oallib, "alSourcei", ADDRESSOF( alSourcei));
 
-		Unix.Dlsym( xlib, "alSourcef", SYSTEM.VAL( ADDRESS, alSourcef));
-		Unix.Dlsym( xlib, "alSource3f", SYSTEM.VAL( ADDRESS, alSource3f));
-		Unix.Dlsym( xlib, "alSourcefv", SYSTEM.VAL( ADDRESS, alSourcefv));
-		Unix.Dlsym( xlib, "alSourcei", SYSTEM.VAL( ADDRESS, alSourcei));
-		Unix.Dlsym( xlib, "alSource3i", SYSTEM.VAL( ADDRESS, alSource3i));
-		Unix.Dlsym( xlib, "alSourceiv", SYSTEM.VAL( ADDRESS, alSourceiv));
+		Unix.Dlsym( oallib, "alSourcef", ADDRESSOF( alSourcef));
+		Unix.Dlsym( oallib, "alSource3f", ADDRESSOF( alSource3f));
+		Unix.Dlsym( oallib, "alSourcefv", ADDRESSOF( alSourcefv));
+		Unix.Dlsym( oallib, "alSourcei", ADDRESSOF( alSourcei));
+		Unix.Dlsym( oallib, "alSource3i", ADDRESSOF( alSource3i));
+		Unix.Dlsym( oallib, "alSourceiv", ADDRESSOF( alSourceiv));
 
-		Unix.Dlsym( xlib, "alGetSourcef", SYSTEM.VAL( ADDRESS, alGetSourcef));
-		Unix.Dlsym( xlib, "alGetSource3f", SYSTEM.VAL( ADDRESS, alGetSource3f));
-		Unix.Dlsym( xlib, "alGetSourcefv", SYSTEM.VAL( ADDRESS, alGetSourcefv));
-		Unix.Dlsym( xlib, "alGetSourcei", SYSTEM.VAL( ADDRESS, alGetSourcei));
-		Unix.Dlsym( xlib, "alGetSource3i", SYSTEM.VAL( ADDRESS, alGetSource3i));
-		Unix.Dlsym( xlib, "alGetSourceiv", SYSTEM.VAL( ADDRESS, alGetSourceiv));
+		Unix.Dlsym( oallib, "alGetSourcef", ADDRESSOF( alGetSourcef));
+		Unix.Dlsym( oallib, "alGetSource3f", ADDRESSOF( alGetSource3f));
+		Unix.Dlsym( oallib, "alGetSourcefv", ADDRESSOF( alGetSourcefv));
+		Unix.Dlsym( oallib, "alGetSourcei", ADDRESSOF( alGetSourcei));
+		Unix.Dlsym( oallib, "alGetSource3i", ADDRESSOF( alGetSource3i));
+		Unix.Dlsym( oallib, "alGetSourceiv", ADDRESSOF( alGetSourceiv));
 
-		Unix.Dlsym( xlib, "alSourcePlayv", SYSTEM.VAL( ADDRESS, alSourcePlayv));
-		Unix.Dlsym( xlib, "alSourcePausev", SYSTEM.VAL( ADDRESS, alSourcePausev));
-		Unix.Dlsym( xlib, "alSourceStopv", SYSTEM.VAL( ADDRESS, alSourceStopv));
-		Unix.Dlsym( xlib, "alSourceRewindv", SYSTEM.VAL( ADDRESS, alSourceRewindv));
-		Unix.Dlsym( xlib, "alSourcePlay", SYSTEM.VAL( ADDRESS, alSourcePlay));
-		Unix.Dlsym( xlib, "alSourcePause", SYSTEM.VAL( ADDRESS, alSourcePause));
-		Unix.Dlsym( xlib, "alSourceStop", SYSTEM.VAL( ADDRESS, alSourceStop));
-		Unix.Dlsym( xlib, "alSourceRewind", SYSTEM.VAL( ADDRESS, alSourceRewind));
+		Unix.Dlsym( oallib, "alSourcePlayv", ADDRESSOF( alSourcePlayv));
+		Unix.Dlsym( oallib, "alSourcePausev", ADDRESSOF( alSourcePausev));
+		Unix.Dlsym( oallib, "alSourceStopv", ADDRESSOF( alSourceStopv));
+		Unix.Dlsym( oallib, "alSourceRewindv", ADDRESSOF( alSourceRewindv));
+		Unix.Dlsym( oallib, "alSourcePlay", ADDRESSOF( alSourcePlay));
+		Unix.Dlsym( oallib, "alSourcePause", ADDRESSOF( alSourcePause));
+		Unix.Dlsym( oallib, "alSourceStop", ADDRESSOF( alSourceStop));
+		Unix.Dlsym( oallib, "alSourceRewind", ADDRESSOF( alSourceRewind));
 
-		Unix.Dlsym( xlib, "alGenBuffers", SYSTEM.VAL( ADDRESS, alGenBuffers));
-		Unix.Dlsym( xlib, "alDeleteBuffers", SYSTEM.VAL( ADDRESS, alDeleteBuffers));
-		Unix.Dlsym( xlib, "alIsBuffer", SYSTEM.VAL( ADDRESS, alIsBuffer));
-		Unix.Dlsym( xlib, "alBufferData", SYSTEM.VAL( ADDRESS, alBufferData));
+		Unix.Dlsym( oallib, "alGenBuffers", ADDRESSOF( alGenBuffers));
+		Unix.Dlsym( oallib, "alDeleteBuffers", ADDRESSOF( alDeleteBuffers));
+		Unix.Dlsym( oallib, "alIsBuffer", ADDRESSOF( alIsBuffer));
+		Unix.Dlsym( oallib, "alBufferData", ADDRESSOF( alBufferData));
 
-		Unix.Dlsym( xlib, "alBufferf", SYSTEM.VAL( ADDRESS, alBufferf));
-		Unix.Dlsym( xlib, "alBuffer3f", SYSTEM.VAL( ADDRESS, alBuffer3f));
-		Unix.Dlsym( xlib, "alBufferfv", SYSTEM.VAL( ADDRESS, alBufferfv));
-		Unix.Dlsym( xlib, "alBufferi", SYSTEM.VAL( ADDRESS, alBufferi));
-		Unix.Dlsym( xlib, "alBuffer3i", SYSTEM.VAL( ADDRESS, alBuffer3i));
-		Unix.Dlsym( xlib, "alBufferiv", SYSTEM.VAL( ADDRESS, alBufferiv));
+		Unix.Dlsym( oallib, "alBufferf", ADDRESSOF( alBufferf));
+		Unix.Dlsym( oallib, "alBuffer3f", ADDRESSOF( alBuffer3f));
+		Unix.Dlsym( oallib, "alBufferfv", ADDRESSOF( alBufferfv));
+		Unix.Dlsym( oallib, "alBufferi", ADDRESSOF( alBufferi));
+		Unix.Dlsym( oallib, "alBuffer3i", ADDRESSOF( alBuffer3i));
+		Unix.Dlsym( oallib, "alBufferiv", ADDRESSOF( alBufferiv));
 
-		Unix.Dlsym( xlib, "alGetBufferf", SYSTEM.VAL( ADDRESS, alGetBufferf));
-		Unix.Dlsym( xlib, "alGetBuffer3f", SYSTEM.VAL( ADDRESS, alGetBuffer3f));
-		Unix.Dlsym( xlib, "alGetBufferfv", SYSTEM.VAL( ADDRESS, alGetBufferfv));
-		Unix.Dlsym( xlib, "alGetBufferi", SYSTEM.VAL( ADDRESS, alGetBufferi));
-		Unix.Dlsym( xlib, "alGetBuffer3i", SYSTEM.VAL( ADDRESS, alGetBuffer3i));
-		Unix.Dlsym( xlib, "alGetBufferiv", SYSTEM.VAL( ADDRESS, alGetBufferiv));
+		Unix.Dlsym( oallib, "alGetBufferf", ADDRESSOF( alGetBufferf));
+		Unix.Dlsym( oallib, "alGetBuffer3f", ADDRESSOF( alGetBuffer3f));
+		Unix.Dlsym( oallib, "alGetBufferfv", ADDRESSOF( alGetBufferfv));
+		Unix.Dlsym( oallib, "alGetBufferi", ADDRESSOF( alGetBufferi));
+		Unix.Dlsym( oallib, "alGetBuffer3i", ADDRESSOF( alGetBuffer3i));
+		Unix.Dlsym( oallib, "alGetBufferiv", ADDRESSOF( alGetBufferiv));
 
-		Unix.Dlsym( xlib, "alSourceQueueBuffers", SYSTEM.VAL( ADDRESS, alSourceQueueBuffers));
-		Unix.Dlsym( xlib, "alSourceUnqueueBuffers", SYSTEM.VAL( ADDRESS, alSourceUnqueueBuffers));
-		Unix.Dlsym( xlib, "alDistanceModel", SYSTEM.VAL( ADDRESS, alDistanceModel));
-		Unix.Dlsym( xlib, "alDopplerFactor", SYSTEM.VAL( ADDRESS, alDopplerFactor));
-		Unix.Dlsym( xlib, "alSpeedOfSound", SYSTEM.VAL( ADDRESS, alSpeedOfSound));
-		Unix.Dlsym( xlib, "alDopplerVelocity", SYSTEM.VAL( ADDRESS, alDopplerVelocity));
+		Unix.Dlsym( oallib, "alSourceQueueBuffers", ADDRESSOF( alSourceQueueBuffers));
+		Unix.Dlsym( oallib, "alSourceUnqueueBuffers", ADDRESSOF( alSourceUnqueueBuffers));
+		Unix.Dlsym( oallib, "alDistanceModel", ADDRESSOF( alDistanceModel));
+		Unix.Dlsym( oallib, "alDopplerFactor", ADDRESSOF( alDopplerFactor));
+		Unix.Dlsym( oallib, "alSpeedOfSound", ADDRESSOF( alSpeedOfSound));
+		Unix.Dlsym( oallib, "alDopplerVelocity", ADDRESSOF( alDopplerVelocity));
 
 
-		Unix.Dlsym( xlib, "alcOpenDevice", SYSTEM.VAL( ADDRESS, alcOpenDeviceXXX));
-		Unix.Dlsym( xlib, "alcCloseDevice", SYSTEM.VAL( ADDRESS, alcCloseDevice));
-		Unix.Dlsym( xlib, "alcCreateContext", SYSTEM.VAL( ADDRESS, alcCreateContext));
-		Unix.Dlsym( xlib, "alcMakeContextCurrent", SYSTEM.VAL( ADDRESS, alcMakeContextCurrent));
-		Unix.Dlsym( xlib, "alcProcessContext", SYSTEM.VAL( ADDRESS, alcProcessContext));
-		Unix.Dlsym( xlib, "alcGetCurrentContext", SYSTEM.VAL( ADDRESS, alcGetCurrentContext));
-		Unix.Dlsym( xlib, "alcGetContextsDevice", SYSTEM.VAL( ADDRESS, alcGetContextsDevice));
-		Unix.Dlsym( xlib, "alcSuspendContext", SYSTEM.VAL( ADDRESS, alcSuspendContext));
-		Unix.Dlsym( xlib, "alcDestroyContext", SYSTEM.VAL( ADDRESS, alcDestroyContext));
-		Unix.Dlsym( xlib, "alcGetError", SYSTEM.VAL( ADDRESS, alcGetError));
-		Unix.Dlsym( xlib, "alcGetString", SYSTEM.VAL( ADDRESS, alcGetString));
-		Unix.Dlsym( xlib, "alcGetIntegerv", SYSTEM.VAL( ADDRESS, alcGetIntegerv));
+		Unix.Dlsym( oallib, "alcOpenDevice", ADDRESSOF( alcOpenDeviceXXX));
+		Unix.Dlsym( oallib, "alcCloseDevice", ADDRESSOF( alcCloseDevice));
+		Unix.Dlsym( oallib, "alcCreateContext", ADDRESSOF( alcCreateContext));
+		Unix.Dlsym( oallib, "alcMakeContextCurrent", ADDRESSOF( alcMakeContextCurrent));
+		Unix.Dlsym( oallib, "alcProcessContext", ADDRESSOF( alcProcessContext));
+		Unix.Dlsym( oallib, "alcGetCurrentContext", ADDRESSOF( alcGetCurrentContext));
+		Unix.Dlsym( oallib, "alcGetContextsDevice", ADDRESSOF( alcGetContextsDevice));
+		Unix.Dlsym( oallib, "alcSuspendContext", ADDRESSOF( alcSuspendContext));
+		Unix.Dlsym( oallib, "alcDestroyContext", ADDRESSOF( alcDestroyContext));
+		Unix.Dlsym( oallib, "alcGetError", ADDRESSOF( alcGetError));
+		Unix.Dlsym( oallib, "alcGetString", ADDRESSOF( alcGetString));
+		Unix.Dlsym( oallib, "alcGetIntegerv", ADDRESSOF( alcGetIntegerv));
 
-		Unix.Dlsym( xlib, "alcIsExtensionPresent", SYSTEM.VAL( ADDRESS, alcIsExtensionPresentXXX));
-		Unix.Dlsym( xlib, "alcGetProcAddress", SYSTEM.VAL( ADDRESS, alcGetProcAddressXXX));
-		Unix.Dlsym( xlib, "alcGetEnumValue", SYSTEM.VAL( ADDRESS, alcGetEnumValue));
+		Unix.Dlsym( oallib, "alcIsExtensionPresent", ADDRESSOF( alcIsExtensionPresentXXX));
+		Unix.Dlsym( oallib, "alcGetProcAddress", ADDRESSOF( alcGetProcAddressXXX));
+		Unix.Dlsym( oallib, "alcGetEnumValue", ADDRESSOF( alcGetEnumValue));
 
-		Unix.Dlsym( xlib, "alcCaptureOpenDevice", SYSTEM.VAL( ADDRESS, alcCaptureOpenDeviceXXX));
-		Unix.Dlsym( xlib, "alcCaptureCloseDevice", SYSTEM.VAL( ADDRESS, alcCaptureCloseDevice));
-		Unix.Dlsym( xlib, "alcCaptureStart", SYSTEM.VAL( ADDRESS, alcCaptureStart));
-		Unix.Dlsym( xlib, "alcCaptureStop", SYSTEM.VAL( ADDRESS, alcCaptureStop));
-		Unix.Dlsym( xlib, "alcCaptureSamples", SYSTEM.VAL( ADDRESS, alcCaptureSamples));
+		Unix.Dlsym( oallib, "alcCaptureOpenDevice", ADDRESSOF( alcCaptureOpenDeviceXXX));
+		Unix.Dlsym( oallib, "alcCaptureCloseDevice", ADDRESSOF( alcCaptureCloseDevice));
+		Unix.Dlsym( oallib, "alcCaptureStart", ADDRESSOF( alcCaptureStart));
+		Unix.Dlsym( oallib, "alcCaptureStop", ADDRESSOF( alcCaptureStop));
+		Unix.Dlsym( oallib, "alcCaptureSamples", ADDRESSOF( alcCaptureSamples));
 
 (*
 		(* extensions *)
-		Unix.Dlsym( xlib, "alBufferDataStatic", SYSTEM.VAL( ADDRESS, alBufferDataStatic));
-		Unix.Dlsym( xlib, "alcSetThreadContext", SYSTEM.VAL( ADDRESS, alcSetThreadContext));
-		Unix.Dlsym( xlib, "alcGetThreadContext", SYSTEM.VAL( ADDRESS, alcGetThreadContext));
-		Unix.Dlsym( xlib, "alBufferSubDataSOFT", SYSTEM.VAL( ADDRESS, alBufferSubDataSOFT));
+		Unix.Dlsym( oallib, "alBufferDataStatic", ADDRESSOF( alBufferDataStatic));
+		Unix.Dlsym( oallib, "alcSetThreadContext", ADDRESSOF( alcSetThreadContext));
+		Unix.Dlsym( oallib, "alcGetThreadContext", ADDRESSOF( alcGetThreadContext));
+		Unix.Dlsym( oallib, "alBufferSubDataSOFT", ADDRESSOF( alBufferSubDataSOFT));
 *)
 
 END LoadFunctions;
 
 PROCEDURE OnClose;
 BEGIN
- IF xlib # 0 THEN
-       Unix.Dlclose(xlib);
+ IF oallib # 0 THEN
+       Unix.Dlclose(oallib);
        KernelLog.String(libname); KernelLog.String(' unloaded.'); KernelLog.Ln;
 END;
 END OnClose;
@@ -814,8 +814,8 @@ BEGIN
 END alcGetProcAddress;
 
 (* Get string from address *)
-PROCEDURE GetStringFromAddr(adr: LONGINT): Strings.String;
-VAR  sadr, sadr1: LONGINT;
+PROCEDURE GetStringFromAddr(adr: ADDRESS): Strings.String;
+VAR  sadr, sadr1: ADDRESS;
 		i, cnt: LONGINT;
 		ch: CHAR;
 		s: Strings.String;

@@ -20,8 +20,7 @@ CONST
 *)	
 	NilVal* = 0;
 	
-	MinPtrOfs = -40000000H;	(* sentinel offset for ptrOfs *)
-	MethodEndMarker* = MinPtrOfs;   (* marks the end of the method addresses, used in Info.ModuleDetails *)
+	MethodEndMarker* = -40000000H;   (* marks the end of the method addresses, used in Info.ModuleDetails *)
 
 	ArrayAlignment = 8;
 	HeapBlockOffset* = - 2*AddrSize;
@@ -764,17 +763,18 @@ VAR
 
 	(** Private compiler interface. Do not use. *)
 	PROCEDURE NewArr*( VAR p: ANY;  eltag: ADDRESS;  nofelem, nofdim: SIZE; isRealtime: BOOLEAN );
-	VAR elSize, arrSize, blkSize, dataOffset, ptrOffset: SIZE;  ptr, firstElem: ADDRESS; 
-	BEGIN
-		S.GET( eltag, elSize );
-		arrSize := nofelem*elSize;
+	VAR 
+		sTB: StaticTypeBlock;
+		arrSize, blkSize, dataOffset: SIZE;  ptr, firstElem: ADDRESS;  
+	BEGIN	
+		sTB := S.VAL( StaticTypeBlock, eltag );
+		arrSize := nofelem*sTB.recSize;
 		IF arrSize = 0 THEN
 			NewSys( p, nofdim*4 + 3*AddrSize, isRealtime );
 		ELSE
 			dataOffset := 3*AddrSize + nofdim*AddrSize;
 			INC( dataOffset, (-dataOffset) MOD ArrayAlignment );
-			S.GET( eltag + AddrSize, ptrOffset );
-			IF ptrOffset = -AddrSize THEN
+			IF LEN( sTB.pointerOffsets^ ) = 0 THEN
 				(* no pointers in element type *)
 				NewSys( p, dataOffset + arrSize, isRealtime );
 			ELSE
@@ -783,7 +783,7 @@ VAR
 				ptr := GetBlock( blkSize ) + AddrSize;
 				S.PUT( ptr - AddrSize, S.VAL( SET, eltag ) + {ArrayBit} );
 				firstElem := ptr + dataOffset;
-				S.PUT( ptr, firstElem + arrSize - elSize );  (* last elem *)
+				S.PUT( ptr, firstElem + arrSize - sTB.recSize );  (* last elem *)
 				(* ptr + 4 is reserved for mark phase *)
 				S.PUT( ptr + 2*AddrSize, firstElem );
 				p := S.VAL( ANY, ptr );

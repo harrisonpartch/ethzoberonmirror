@@ -14,7 +14,7 @@ TYPE
 	SigHandler = PROCEDURE ( sig: LONGINT; scp, ucp, dum: ADDRESS );  
 	
 VAR 
-	InstallSignalHandler: PROCEDURE ( h: SigHandler );  
+	InstallSignalHandler: PROCEDURE{C} ( h: SigHandler );  
 	
 	TrapHandlingLevel: INTEGER;  
 	
@@ -248,7 +248,7 @@ VAR
 
 BEGIN 
 	trace := 3 IN Glue.debug; 
-	Unix.Dlsym( 0, "InstallTrap", S.VAL( ADDRESS, InstallSignalHandler ) );
+	Unix.Dlsym( 0, "InstallTrap", ADDRESSOF( InstallSignalHandler ) );
 	InstallSignalHandler( SignalHandler );
 	unix := StdIO.env
 END Traps.

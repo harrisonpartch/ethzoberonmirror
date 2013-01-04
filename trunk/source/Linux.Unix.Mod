@@ -131,6 +131,59 @@ CONST
 	SockAddrSizeV4*	= 16;
 	SockAddrSizeV6*	= 28;
 
+	(*----------------------- seral line, cf Unix.V24.Mod -----------------------*)
+	
+	FIONREAD*	= 541BH;
+	TIOCMGET*		= 5415H;
+	TIOCMBIS*		= 5416H;
+	TIOCMBIC*		= 5417H;
+	TIOCMSET*		= 5418H;
+	
+	(* speeds *)
+	B0*	= 0;
+	B50*	= 1;
+	B75*	= 2; 
+	B110*	= 3; 
+	B134*	= 4; 
+	B150*	= 5; 
+	B200*	= 6; 
+	B300*	= 7; 
+	B600*	= 8; 
+	B1200* 	= 9; 
+	B1800* 	= 10; 
+	B2400* 	= 11; 
+	B4800* 	= 12; 
+	B9600* 	= 13; 
+	B19200*	= 14; 
+	B38400*	= 15; 
+
+	B57600* 	= 1001H; 
+	B115200*	= 1002H; 
+	B230400*	= 1003H; 
+
+
+
+	(* tio.cflag bits *)
+	CSIZE*		= {4,5};
+	   CS5*		= {};
+	   CS6*		= {4};
+	   CS7*		= {5};
+	   CS8*		= {4,5};
+	CSTOPB*	= {6};
+	CREAD*	= {7};
+	PARENB*	= {8};
+	PARODD*	= {9};
+	HUPCL*		= {10};
+	CLOCAL*	= {11};
+	
+TYPE
+	Termios* = RECORD
+		iflags*, oflags*, cflags*, lflags*: SET;
+		line*: CHAR;
+		cc*	: ARRAY 32 OF CHAR;
+		ispeed-, ospeed-: LONGINT
+	END;
+
 	(*------------------------------------------------------------------*)
 
 
@@ -326,17 +379,19 @@ VAR
 	END Perror;
 
 
-	PROCEDURE Dlsym*( lib: LONGINT;  CONST sym: ARRAY OF CHAR;  VAR var: ADDRESS );
+	PROCEDURE Dlsym*( lib: ADDRESS;  CONST sym: ARRAY OF CHAR;  objAddr: ADDRESS );
+	VAR val: LONGINT;
 	BEGIN
-		var := 0;  Glue.dlsym( lib, ADDRESSOF( sym ), ADDRESSOF( var ) );
-		IF var = 0 THEN
+		Glue.dlsym( lib, ADDRESSOF( sym ), objAddr );
+		S.GET( objAddr, val );
+		IF val = 0 THEN
 			Trace.String( "Unix.Dlsym:  entry '" );  Trace.String( sym );  Trace.String( "' not found" );
 			Trace.Ln
 		END
 	END Dlsym;
 
-	PROCEDURE Dlopen*( CONST libname: ARRAY OF CHAR;  mode: LONGINT ): LONGINT;
-	VAR h: LONGINT;  i, j, k: INTEGER;
+	PROCEDURE Dlopen*( CONST libname: ARRAY OF CHAR;  mode: LONGINT ): ADDRESS;
+	VAR h: ADDRESS;  i, j, k: INTEGER;
 		p: ARRAY 256 OF CHAR;
 	BEGIN
 		IF libname[0] = '/' THEN  h := Glue.dlopen( ADDRESSOF( libname ), mode );
@@ -411,8 +466,8 @@ VAR
 	END getSysinfo;
 
 BEGIN
-	Dlsym( 0, "argc", aargc );  S.GET( aargc, argc );
-	Dlsym( 0, "argv", argv );
+	Dlsym( 0, "argc", ADDRESSOF( aargc ) );  S.GET( aargc, argc );
+	Dlsym( 0, "argv", ADDRESSOF( argv ) );
 
 	libraryPaths[0] := "/lib32";
 	libraryPaths[1] := "/usr/lib32";
@@ -426,64 +481,64 @@ BEGIN
 
 	libc := Dlopen( libcname, 2 );
 
-	Dlsym( libc, "read", S.VAL( ADDRESS, read ) );
-	Dlsym( libc, "write", S.VAL( ADDRESS, write ) );
-	Dlsym( libc, "open", S.VAL( ADDRESS, open ) );
-	Dlsym( libc, "close", S.VAL( ADDRESS, close ) );
-	Dlsym( libc, "lseek", S.VAL( ADDRESS, lseek ) );
-	Dlsym( libc, "fsync", S.VAL( ADDRESS, fsync ) );
-	Dlsym( libc, "ioctl", S.VAL( ADDRESS, ioctl ) );
-	Dlsym( libc, "unlink", S.VAL( ADDRESS, unlink ) );
-	Dlsym( libc, "rename", S.VAL( ADDRESS, rename ) );
-	Dlsym( libc, "ftruncate", S.VAL( ADDRESS, ftruncate ) );
-	Dlsym( libc, "chmod", S.VAL( ADDRESS, chmod ) );
-	Dlsym( libc, "utime", S.VAL( ADDRESS, utime ) );
-	Dlsym( libc, "access", S.VAL( ADDRESS, access ) );
-	Dlsym( libc, "select", S.VAL( ADDRESS, select ) );
+	Dlsym( libc, "read",		ADDRESSOF( read ) );
+	Dlsym( libc, "write",		ADDRESSOF( write ) );
+	Dlsym( libc, "open",		ADDRESSOF( open ) );
+	Dlsym( libc, "close",		ADDRESSOF( close ) );
+	Dlsym( libc, "lseek",		ADDRESSOF( lseek ) );
+	Dlsym( libc, "fsync",		ADDRESSOF( fsync ) );
+	Dlsym( libc, "ioctl",		ADDRESSOF( ioctl ) );
+	Dlsym( libc, "unlink",	ADDRESSOF( unlink ) );
+	Dlsym( libc, "rename",	ADDRESSOF( rename ) );
+	Dlsym( libc, "ftruncate",	ADDRESSOF( ftruncate ) );
+	Dlsym( libc, "chmod",	ADDRESSOF( chmod ) );
+	Dlsym( libc, "utime",	ADDRESSOF( utime ) );
+	Dlsym( libc, "access",	ADDRESSOF( access ) );
+	Dlsym( libc, "select",	ADDRESSOF( select ) );
 
-	Dlsym( libc, "chdir", S.VAL( ADDRESS, chdir ) );
-	Dlsym( libc, "mkdir", S.VAL( ADDRESS, mkdir ) );
-	Dlsym( libc, "rmdir", S.VAL( ADDRESS, rmdir ) );
+	Dlsym( libc, "chdir",		ADDRESSOF( chdir ) );
+	Dlsym( libc, "mkdir",		ADDRESSOF( mkdir ) );
+	Dlsym( libc, "rmdir",		ADDRESSOF( rmdir ) );
 
-	Dlsym( libc, "stat", S.VAL( ADDRESS, stat ) );
-	Dlsym( libc, "lstat", S.VAL( ADDRESS, lstat ) );
-	Dlsym( libc, "fstat", S.VAL( ADDRESS, fstat ) );
+	Dlsym( libc, "stat",		ADDRESSOF( stat ) );
+	Dlsym( libc, "lstat",		ADDRESSOF( lstat ) );
+	Dlsym( libc, "fstat",		ADDRESSOF( fstat ) );
 
-	Dlsym( libc, "getpid", S.VAL( ADDRESS, getpid ) );
-	Dlsym( libc, "getuid", S.VAL( ADDRESS, getuid ) );
+	Dlsym( libc, "getpid",	ADDRESSOF( getpid ) );
+	Dlsym( libc, "getuid",	ADDRESSOF( getuid ) );
 
-	Dlsym( libc, "alarm", S.VAL( ADDRESS, alarm ) );
-	Dlsym( libc, "setitimer", S.VAL( ADDRESS, setitimer ) );
-	Dlsym( libc, "getitimer", S.VAL( ADDRESS, getitimer ) );
+	Dlsym( libc, "alarm",	ADDRESSOF( alarm ) );
+	Dlsym( libc, "setitimer",	ADDRESSOF( setitimer ) );
+	Dlsym( libc, "getitimer",	ADDRESSOF( getitimer ) );
 
-	Dlsym( libc, "gettimeofday", S.VAL( ADDRESS, gettimeofday ) );
-	Dlsym( libc, "mktime", S.VAL( ADDRESS, mktime ) );
-	Dlsym( libc, "localtime", S.VAL( ADDRESS, localtime ) );
-	Dlsym( libc, "time", S.VAL( ADDRESS, time ) );
-	Dlsym( libc, "times", S.VAL( ADDRESS, times ) );
+	Dlsym( libc, "gettimeofday", ADDRESSOF( gettimeofday ) );
+	Dlsym( libc, "mktime",	ADDRESSOF( mktime ) );
+	Dlsym( libc, "localtime",	ADDRESSOF( localtime ) );
+	Dlsym( libc, "time",		ADDRESSOF( time ) );
+	Dlsym( libc, "times",		ADDRESSOF( times ) );
 
-	Dlsym( libc, "getcwd", S.VAL( ADDRESS, getcwd ) );
-	Dlsym( libc, "getenv", S.VAL( ADDRESS, getenv ) );
+	Dlsym( libc, "getcwd",	ADDRESSOF( getcwd ) );
+	Dlsym( libc, "getenv",	ADDRESSOF( getenv ) );
 
-	Dlsym( libc, "opendir", S.VAL( ADDRESS, opendir ) );
-	Dlsym( libc, "readdir", S.VAL( ADDRESS, readdir ) );
-	Dlsym( libc, "closedir", S.VAL( ADDRESS, closedir ) );
+	Dlsym( libc, "opendir",	ADDRESSOF( opendir ) );
+	Dlsym( libc, "readdir",	ADDRESSOF( readdir ) );
+	Dlsym( libc, "closedir",	ADDRESSOF( closedir ) );
 
-	Dlsym( libc, "sigsetjmp", S.VAL( ADDRESS, sigsetjmp ) );
-	Dlsym( libc, "siglongjmp", S.VAL( ADDRESS, siglongjmp ) );
+	Dlsym( libc, "sigsetjmp",		ADDRESSOF( sigsetjmp ) );
+	Dlsym( libc, "siglongjmp",	ADDRESSOF( siglongjmp ) );
 
-	Dlsym( libc, "malloc", S.VAL( ADDRESS, malloc ) );
-	Dlsym( libc, "valloc", S.VAL( ADDRESS, valloc ) );
-	Dlsym( libc, "free", S.VAL( ADDRESS, free ) );
-	Dlsym( libc, "mprotect", S.VAL( ADDRESS, mprotect ) );
+	Dlsym( libc, "malloc",	ADDRESSOF( malloc ) );
+	Dlsym( libc, "valloc",	ADDRESSOF( valloc ) );
+	Dlsym( libc, "free",		ADDRESSOF( free ) );
+	Dlsym( libc, "mprotect",	ADDRESSOF( mprotect ) );
 
-	Dlsym( libc, "system", S.VAL( ADDRESS, system ) );
-	Dlsym( libc, "uname", S.VAL( ADDRESS, uname ) );
+	Dlsym( libc, "system",	ADDRESSOF( system ) );
+	Dlsym( libc, "uname",	ADDRESSOF( uname ) );
 
-	Dlsym( libc, "kill", S.VAL( ADDRESS, kill ) );
-	Dlsym( libc, "exit", S.VAL( ADDRESS, exit ) );
-	Dlsym( libc, "perror", S.VAL( ADDRESS, perror ) );
-	Dlsym( libc, "errno", S.VAL( ADDRESS, errno ) );
+	Dlsym( libc, "kill",		ADDRESSOF( kill ) );
+	Dlsym( libc, "exit",		ADDRESSOF( exit ) );
+	Dlsym( libc, "perror",	ADDRESSOF( perror ) );
+	Dlsym( libc, "errno",		ADDRESSOF( errno ) );
 
 
 	getSysinfo;

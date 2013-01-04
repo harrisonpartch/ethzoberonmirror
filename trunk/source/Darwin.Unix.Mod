@@ -120,6 +120,7 @@ CONST
 	(* ioctl *)
 		FioNRead*		= 4004667FH;	(* something to read ? *)
 		
+		
 	(* recv *)
 		MsgPeek*		= 2;
 		MsgDontWait*	= 80H;		(* non blocking read *)
@@ -130,8 +131,58 @@ CONST
 	SockAddrSizeV4*	= 16;
 	SockAddrSizeV6*	= 28;
 	
-	(*------------------------------------------------------------------*)
+	(*-------------------seral line ---------------------------------------*)
+	
+	FIONREAD*	= 4004667FH;
+	TIOCMGET*		= LONGINT( 4004746AH );
+	TIOCMBIC*		= LONGINT( 8004746BH );
+	TIOCMBIS*		= LONGINT( 8004746CH );
+	TIOCMSET*		= LONGINT( 8004746DH );
+	
+	(* speeds *)
+	B0*	= 0;
+	B50*	= 50;
+	B75*	= 75;
+	B110*	= 110;
+	B134*	= 134;
+	B150*	= 150;
+	B200*	= 200;
+	B300*	= 300;
+	B600*	= 600;
+	B1200*		= 1200;
+	B1800*		= 1800;
+	B2400*		= 2400;
+	B4800*		= 4800;
+	B9600*		= 9600;
+	B19200*	= 19200;
+	B38400*	= 38400;
 
+	B57600*	= 57600;
+	B115200*	= 115200;
+	B230400*	= 230400;
+
+
+	(* tio.cflag bits *)
+	CSIZE*		= {8,9};	(* character size mask *)
+	   CS5*		= {};  	(* 5 bits (pseudo) *)
+	   CS6*		= {8}; 	(* 6 bits *)
+	   CS7*		= {9}; 	(* 7 bits *)
+	   CS8*		= {8,9};	(* 8 bits *)
+	CSTOPB*	= {10};	(* send 2 stop bits *)
+	CREAD*	= {11};	(* enable receiver *)
+	PARENB*	= {12};	(* parity enable *)
+	PARODD*	= {13};	(* odd parity, else even *)
+	HUPCL*		= {14};	(* hang up on last close *)
+	CLOCAL*	= {15};	(* ignore modem status lines *)
+	
+TYPE
+	Termios* = RECORD
+		iflags*, oflags*, cflags*, lflags*: SET;
+		cc*: ARRAY 20 OF CHAR;
+		ispeed-, ospeed-: LONGINT
+	END;
+	
+	(*------------------------------------------------------------------*)
 
 TYPE
 	DevT* = LONGINT;
@@ -329,17 +380,19 @@ VAR
 		perror( ADDRESSOF( msg ) )
 	END Perror;
 
-	PROCEDURE Dlsym*( lib: LONGINT;  CONST sym: ARRAY OF CHAR;  VAR var: ADDRESS );
+	PROCEDURE Dlsym*( lib: ADDRESS;  CONST sym: ARRAY OF CHAR;  objAddr: ADDRESS );
+	VAR val: LONGINT;
 	BEGIN
-		var := 0;  Glue.dlsym( lib, ADDRESSOF( sym ), ADDRESSOF( var ) );
-		IF var = 0 THEN
+		Glue.dlsym( lib, ADDRESSOF( sym ), objAddr );
+		S.GET( objAddr, val );
+		IF val = 0 THEN
 			Trace.String( "Unix.Dlsym:  entry '" );  Trace.String( sym );  Trace.String( "' not found" );
 			Trace.Ln
 		END
 	END Dlsym;
 
-	PROCEDURE Dlopen*( CONST libname: ARRAY OF CHAR;  mode: LONGINT ): LONGINT;
-	VAR h: LONGINT;  i, j, k: INTEGER;
+	PROCEDURE Dlopen*( CONST libname: ARRAY OF CHAR;  mode: LONGINT ): ADDRESS;
+	VAR h: ADDRESS;  i, j, k: INTEGER;
 		p: ARRAY 256 OF CHAR;
 	BEGIN
 		IF libname[0] = '/' THEN  h := Glue.dlopen( ADDRESSOF( libname ), mode );
@@ -414,8 +467,8 @@ VAR
 	END getSysinfo;
 
 BEGIN
-	Dlsym( 0, "argc", aargc );  S.GET( aargc, argc );
-	Dlsym( 0, "argv", argv );
+	Dlsym( 0, "argc", ADDRESSOF( aargc ) );  S.GET( aargc, argc );
+	Dlsym( 0, "argv", ADDRESSOF( argv ) );
 
 	libraryPaths[0] := "/lib";
 	libraryPaths[1] := "/usr/lib";
@@ -428,64 +481,64 @@ BEGIN
 
 	libc := Dlopen( libcname, 2 );
 
-	Dlsym( libc, "read", S.VAL( ADDRESS, read ) );
-	Dlsym( libc, "write", S.VAL( ADDRESS, write ) );
-	Dlsym( libc, "open", S.VAL( ADDRESS, open ) );
-	Dlsym( libc, "close", S.VAL( ADDRESS, close ) );
-	Dlsym( libc, "lseek", S.VAL( ADDRESS, lseek ) );
-	Dlsym( libc, "fsync", S.VAL( ADDRESS, fsync ) );
-	Dlsym( libc, "ioctl", S.VAL( ADDRESS, ioctl ) );
-	Dlsym( libc, "unlink", S.VAL( ADDRESS, unlink ) );
-	Dlsym( libc, "rename", S.VAL( ADDRESS, rename ) );
-	Dlsym( libc, "ftruncate", S.VAL( ADDRESS, ftruncate ) );
-	Dlsym( libc, "chmod", S.VAL( ADDRESS, chmod ) );
-	Dlsym( libc, "utime", S.VAL( ADDRESS, utime ) );
-	Dlsym( libc, "access", S.VAL( ADDRESS, access ) );
-	Dlsym( libc, "select", S.VAL( ADDRESS, select ) );
+	Dlsym( libc, "read",		ADDRESSOF( read ) );
+	Dlsym( libc, "write",		ADDRESSOF( write ) );
+	Dlsym( libc, "open",		ADDRESSOF( open ) );
+	Dlsym( libc, "close",		ADDRESSOF( close ) );
+	Dlsym( libc, "lseek",		ADDRESSOF( lseek ) );
+	Dlsym( libc, "fsync",		ADDRESSOF( fsync ) );
+	Dlsym( libc, "ioctl",		ADDRESSOF( ioctl ) );
+	Dlsym( libc, "unlink",	ADDRESSOF( unlink ) );
+	Dlsym( libc, "rename",	ADDRESSOF( rename ) );
+	Dlsym( libc, "ftruncate",	ADDRESSOF( ftruncate ) );
+	Dlsym( libc, "chmod",	ADDRESSOF( chmod ) );
+	Dlsym( libc, "utime",	ADDRESSOF( utime ) );
+	Dlsym( libc, "access",	ADDRESSOF( access ) );
+	Dlsym( libc, "select",	ADDRESSOF( select ) );
 
-	Dlsym( libc, "chdir", S.VAL( ADDRESS, chdir ) );
-	Dlsym( libc, "mkdir", S.VAL( ADDRESS, mkdir ) );
-	Dlsym( libc, "rmdir", S.VAL( ADDRESS, rmdir ) );
+	Dlsym( libc, "chdir",		ADDRESSOF( chdir ) );
+	Dlsym( libc, "mkdir",		ADDRESSOF( mkdir ) );
+	Dlsym( libc, "rmdir",		ADDRESSOF( rmdir ) );
 
-	Dlsym( libc, "stat", S.VAL( ADDRESS, stat ) );
-	Dlsym( libc, "lstat", S.VAL( ADDRESS, lstat ) );
-	Dlsym( libc, "fstat", S.VAL( ADDRESS, fstat ) );
+	Dlsym( libc, "stat",		ADDRESSOF( stat ) );
+	Dlsym( libc, "lstat",		ADDRESSOF( lstat ) );
+	Dlsym( libc, "fstat",		ADDRESSOF( fstat ) );
 
-	Dlsym( libc, "getpid", S.VAL( ADDRESS, getpid ) );
-	Dlsym( libc, "getuid", S.VAL( ADDRESS, getuid ) );
+	Dlsym( libc, "getpid",	ADDRESSOF( getpid ) );
+	Dlsym( libc, "getuid",	ADDRESSOF( getuid ) );
 
-	Dlsym( libc, "alarm", S.VAL( ADDRESS, alarm ) );
-	Dlsym( libc, "setitimer", S.VAL( ADDRESS, setitimer ) );
-	Dlsym( libc, "getitimer", S.VAL( ADDRESS, getitimer ) );
+	Dlsym( libc, "alarm",	ADDRESSOF( alarm ) );
+	Dlsym( libc, "setitimer",	ADDRESSOF( setitimer ) );
+	Dlsym( libc, "getitimer",	ADDRESSOF( getitimer ) );
 
-	Dlsym( libc, "gettimeofday", S.VAL( ADDRESS, gettimeofday ) );
-	Dlsym( libc, "mktime", S.VAL( ADDRESS, mktime ) );
-	Dlsym( libc, "localtime", S.VAL( ADDRESS, localtime ) );
-	Dlsym( libc, "time", S.VAL( ADDRESS, time ) );
-	Dlsym( libc, "times", S.VAL( ADDRESS, times ) );
+	Dlsym( libc, "gettimeofday", ADDRESSOF( gettimeofday ) );
+	Dlsym( libc, "mktime",	ADDRESSOF( mktime ) );
+	Dlsym( libc, "localtime",	ADDRESSOF( localtime ) );
+	Dlsym( libc, "time",		ADDRESSOF( time ) );
+	Dlsym( libc, "times",		ADDRESSOF( times ) );
 
-	Dlsym( libc, "getcwd", S.VAL( ADDRESS, getcwd ) );
-	Dlsym( libc, "getenv", S.VAL( ADDRESS, getenv ) );
+	Dlsym( libc, "getcwd",	ADDRESSOF( getcwd ) );
+	Dlsym( libc, "getenv",	ADDRESSOF( getenv ) );
 
-	Dlsym( libc, "opendir", S.VAL( ADDRESS, opendir ) );
-	Dlsym( libc, "readdir", S.VAL( ADDRESS, readdir ) );
-	Dlsym( libc, "closedir", S.VAL( ADDRESS, closedir ) );
+	Dlsym( libc, "opendir",	ADDRESSOF( opendir ) );
+	Dlsym( libc, "readdir",	ADDRESSOF( readdir ) );
+	Dlsym( libc, "closedir",	ADDRESSOF( closedir ) );
 
-	Dlsym( libc, "sigsetjmp", S.VAL( ADDRESS, sigsetjmp ) );
-	Dlsym( libc, "siglongjmp", S.VAL( ADDRESS, siglongjmp ) );
+	Dlsym( libc, "sigsetjmp",		ADDRESSOF( sigsetjmp ) );
+	Dlsym( libc, "siglongjmp",	ADDRESSOF( siglongjmp ) );
 
-	Dlsym( libc, "malloc", S.VAL( ADDRESS, malloc ) );
-	Dlsym( libc, "valloc", S.VAL( ADDRESS, valloc ) );
-	Dlsym( libc, "free", S.VAL( ADDRESS, free ) );
-	Dlsym( libc, "mprotect", S.VAL( ADDRESS, mprotect ) );
+	Dlsym( libc, "malloc",	ADDRESSOF( malloc ) );
+	Dlsym( libc, "valloc",	ADDRESSOF( valloc ) );
+	Dlsym( libc, "free",		ADDRESSOF( free ) );
+	Dlsym( libc, "mprotect",	ADDRESSOF( mprotect ) );
 
-	Dlsym( libc, "system", S.VAL( ADDRESS, system ) );
-	Dlsym( libc, "uname", S.VAL( ADDRESS, uname ) );
+	Dlsym( libc, "system",	ADDRESSOF( system ) );
+	Dlsym( libc, "uname",	ADDRESSOF( uname ) );
 
-	Dlsym( libc, "kill", S.VAL( ADDRESS, kill ) );
-	Dlsym( libc, "exit", S.VAL( ADDRESS, exit ) );
-	Dlsym( libc, "perror", S.VAL( ADDRESS, perror ) );
-	Dlsym( libc, "errno", S.VAL( ADDRESS, errno ) );
+	Dlsym( libc, "kill",		ADDRESSOF( kill ) );
+	Dlsym( libc, "exit",		ADDRESSOF( exit ) );
+	Dlsym( libc, "perror",	ADDRESSOF( perror ) );
+	Dlsym( libc, "errno",		ADDRESSOF( errno ) );
 
 	getSysinfo;
 END Unix.
