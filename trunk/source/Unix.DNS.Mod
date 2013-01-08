@@ -139,9 +139,9 @@ BEGIN
 			Out.String( "Unix.Dlopen( 'libnsl.so' ) failed" );  Out.Ln  
 		END;
 	END;
-	Unix.Dlsym( nlib, "gethostbyaddr", S.VAL( Address, gethostbyaddr ) );
-	Unix.Dlsym( nlib, "gethostbyname", S.VAL( Address, gethostbyname ) );
-	Unix.Dlsym( nlib, "gethostname", S.VAL( Address, gethostname ) );
+	Unix.Dlsym( nlib, "gethostbyaddr", ADDRESSOF( gethostbyaddr ) );
+	Unix.Dlsym( nlib, "gethostbyname", ADDRESSOF( gethostbyname ) );
+	Unix.Dlsym( nlib, "gethostname", ADDRESSOF( gethostname ) );
 END DNS.
 
 

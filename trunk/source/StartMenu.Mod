@@ -45,33 +45,30 @@ TYPE
 		PROCEDURE & New*;
 		BEGIN
 			NEW(factory);
-			currentPluginName := Strings.NewString(DefaultPlugin);
-			SetPlugin(currentPluginName);
+			currentPluginName := NIL;
+			SetPlugin(Strings.NewString(DefaultPlugin));
 			startIndex := 0;
 		END New;
 
-		PROCEDURE SetOriginator(extView : ANY);
-		VAR name : Strings.String;
+		PROCEDURE Refresh;
 		BEGIN {EXCLUSIVE}
 			IF manager = NIL THEN manager := WM.GetDefaultManager() END;
-			IF plugin # NIL THEN plugin.Close END;
-			name := pluginName.Get();
-			IF (name # NIL) & (name^ # currentPluginName^) THEN
-				currentPluginName := name;
-				SetPlugin(name);
-			ELSE
-				plugin.Open;
-			END;
-		END SetOriginator;
+			SetPlugin(pluginName.Get());
+		END Refresh;
 
 		PROCEDURE SetPlugin(name : String);
 		BEGIN
 			IF plugin # NIL THEN
 				plugin.Close;
 			END;
-			plugin := factory.Get(name);
-			startIndex := 0;
-			plugin.Open;
+			IF (name # NIL) & ((currentPluginName=NIL) OR (name^ # currentPluginName^)) THEN
+				currentPluginName := name;
+				plugin := factory.Get(name);
+				startIndex := 0;
+			END;
+			IF plugin # NIL THEN
+				plugin.Open
+			END
 		END SetPlugin;
 
 		PROCEDURE Close;
@@ -109,9 +106,6 @@ TYPE
 
 		PROCEDURE Close;
 		BEGIN HALT(311) END Close;
-
-		PROCEDURE Refresh(originator : ANY);
-		BEGIN HALT(311) END Refresh;
 
 		PROCEDURE ReopenMenuItemsShifted(upwards : BOOLEAN);
 		BEGIN HALT(311) END ReopenMenuItemsShifted;
@@ -245,17 +239,6 @@ TYPE
 			IF startMenu # NIL THEN startMenu.Close END
 		END Close;
 
-		PROCEDURE Refresh(extView: ANY);
-		VAR view : WM.ViewPort;
-		BEGIN
-			IF (extView # NIL) & (extView IS WM.ViewPort) THEN
-				view := extView(WM.ViewPort)
-			ELSE
-				view := WM.GetDefaultView()
-			END;
-			manager.SetWindowPos(startMenu, ENTIER(view.range.l), ENTIER(view.range.b) - 255);
-		END Refresh;
-
 		PROCEDURE ReplaceMenuButtonsSMO(CONST mb, newmb : MenuButtons; CONST smos, newsmos : SMOArr);
 		VAR i : LONGINT; s : Strings.String;
 		BEGIN
@@ -306,20 +289,13 @@ TYPE
 		PROCEDURE Open;
 		BEGIN
 			NEW(startMenu);
-			startMenu.SetOriginator(NIL);
-			startMenu.LoadPages
+			startMenu.SetOriginator(NIL); (* includes page loading *)
 		END Open;
 
 		PROCEDURE Close;
 		BEGIN
 			IF startMenu # NIL THEN startMenu.Close END
 		END Close;
-
-		PROCEDURE Refresh(extView: ANY);
-		BEGIN
-			startMenu.SetOriginator(extView);
-			startMenu.LoadPages
-		END Refresh;
 
 		PROCEDURE ReopenMenuItemsShifted(upwards : BOOLEAN);
 		END ReopenMenuItemsShifted;
@@ -336,7 +312,7 @@ TYPE
 		END Init;
 
 	BEGIN {ACTIVE}
-		pm.SetOriginator(originator)
+		pm.Refresh
 	END Starter;
 
 

@@ -948,12 +948,21 @@ TYPE
 			Release
 		END SetLayoutManager;
 
+		PROCEDURE AlignEvent(sender, data: ANY);
+		BEGIN
+			AlignSubComponents;
+		END AlignEvent;
+
 		PROCEDURE AlignSubComponents*;
 		VAR c : XML.Content; vc : VisualComponent;
 			r, b, rel : Rectangles.Rectangle;
 		BEGIN
 			Acquire;
+			IF (sequencer # NIL)  & ~IsCallFromSequencer() THEN 	sequencer.ScheduleEvent(SELF.AlignEvent, NIL,NIL); Release; RETURN
+			ELSIF sequencer = NIL THEN Release; RETURN
+			END;
 			IF aligning THEN Release; RETURN END;
+			DisableUpdate;
 			aligning := TRUE;
 			IF layoutManager # NIL THEN layoutManager(SELF)
 			ELSE
@@ -985,6 +994,7 @@ TYPE
 					c := GetNext(c);
 				END;
 			END;
+			EnableUpdate;
 			aligning := FALSE;
 			Release;
 		END AlignSubComponents;
@@ -1411,11 +1421,12 @@ TYPE
 		PROCEDURE InvalidateCommand*(sender, par : ANY);
 		VAR m: Messages.Message; r, b: Rectangles.Rectangle; client: VisualComponent; parent: XML.Element;
 		BEGIN
-			IF ~initialized THEN RETURN END;
+			IF ~initialized OR ~visible.Get() THEN RETURN END;
 			r := GetClientRect();
 			client := SELF;
 			parent := GetParent();
 			WHILE (parent # NIL) & (parent IS VisualComponent) DO
+				IF ~parent(VisualComponent).visible.Get() THEN RETURN END;
 				b := client.bounds.Get();
 				Rectangles.MoveRel(r, b.l, b.t);
 				client := parent(VisualComponent);

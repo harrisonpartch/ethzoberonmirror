@@ -253,7 +253,7 @@ TYPE
 		PROCEDURE Update*(r : Rectangle; top : Window);
 		BEGIN
 			ASSERT(manager.lock.HasWriteLock());
-			Draw(Rect.ResizeRect(r, 1), top.prev) (* assuming the src-domain is only 1 *)
+			Draw(r (*fof: was Rect.ResizeRect(r, 1)*), top.prev) (* assuming the src -domain is only 1 *) (*?fof: what does this mean? For me this makes no sense *)
 		END Update;
 
 		PROCEDURE Refresh*(top : Window);
@@ -293,7 +293,7 @@ TYPE
 							nr := r; Rect.ClipRect(nr, cb);
 							IF (WM.FlagNavigation IN cur.flags) THEN
 								dsr.l := ENTIER((nr.l - range.l) * fx - fx); dsr.t := ENTIER((nr.t - range.t) * fy - fy);
-								dsr.r := ENTIER((nr.r - range.l) * fx + fx) +1; dsr.b := ENTIER((nr.b - range.t) * fy + fy);
+								dsr.r := ENTIER((nr.r - range.l) * fx + fx + 0.5); dsr.b := ENTIER((nr.b - range.t) * fy + fy + 0.5);
 							ELSE
 								dsr.l := ENTIER((nr.l - range.l) * fx) ; dsr.t := ENTIER((nr.t - range.t) * fy);
 								dsr.r := ENTIER((nr.r - range.l) * fx + 0.5); dsr.b := ENTIER((nr.b - range.t) * fy + 0.5);
@@ -1013,9 +1013,9 @@ TYPE
 					top.bounds.b := top.bounds.t
 				END;
 
-				Rect.ExtendRect(rect, top.bounds);
-
+				dirtyQ.Add(top.bounds);
 				dirtyQ.Add(rect);
+				(* the dirty q handling will merge the rectangles if beneficial. Doing it here results in potential large area screen updates *)
 
 				pointerInfo := pi
 			END;
@@ -1655,6 +1655,12 @@ BEGIN
 	Replace(color, noPointer);
 
 END Install;
+
+PROCEDURE TraceChain*;
+BEGIN
+	session.CheckChain(TRUE);
+END TraceChain;
+
 
 BEGIN
 	WMFontManager.Install;

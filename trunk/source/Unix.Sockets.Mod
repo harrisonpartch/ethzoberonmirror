@@ -404,23 +404,23 @@ VAR
 		ELSE
 			slib := Unix.libc
 		END;
-		Unix.Dlsym( slib, "accept", S.VAL( ADDRESS, accept ) );
-		Unix.Dlsym( slib, "bind", S.VAL( ADDRESS, bind ) );
-		Unix.Dlsym( slib, "connect", S.VAL( ADDRESS, connect ) );
-		Unix.Dlsym( slib, "shutdown", S.VAL( ADDRESS, shutdown ) );
-		Unix.Dlsym( slib, "getpeername", S.VAL( ADDRESS, getpeername ) );
-		Unix.Dlsym( slib, "htonl", S.VAL( ADDRESS, htonl ) );
-		Unix.Dlsym( slib, "htons", S.VAL( ADDRESS, htons ) );
-		Unix.Dlsym( slib, "listen", S.VAL( ADDRESS, listen ) );
-		Unix.Dlsym( slib, "ntohl", S.VAL( ADDRESS, ntohl ) );
-		Unix.Dlsym( slib, "ntohs", S.VAL( ADDRESS, ntohs ) );
-		Unix.Dlsym( slib, "recv", S.VAL( ADDRESS, recv ) );
-		Unix.Dlsym( slib, "recvfrom", S.VAL( ADDRESS, recvfrom ) );
-		Unix.Dlsym( slib, "send", S.VAL( ADDRESS, send ) );
-		Unix.Dlsym( slib, "sendto", S.VAL( ADDRESS, sendto ) );
-		Unix.Dlsym( slib, "setsockopt", S.VAL( ADDRESS, setsockopt ) );
-		Unix.Dlsym( slib, "socket", S.VAL( ADDRESS, socket ) );
-		Unix.Dlsym( slib, "getsockname", S.VAL( ADDRESS, getsockname ) );
+		Unix.Dlsym( slib, "accept", ADDRESSOF( accept ) );
+		Unix.Dlsym( slib, "bind", ADDRESSOF( bind ) );
+		Unix.Dlsym( slib, "connect", ADDRESSOF( connect ) );
+		Unix.Dlsym( slib, "shutdown", ADDRESSOF( shutdown ) );
+		Unix.Dlsym( slib, "getpeername", ADDRESSOF( getpeername ) );
+		Unix.Dlsym( slib, "htonl", ADDRESSOF( htonl ) );
+		Unix.Dlsym( slib, "htons", ADDRESSOF( htons ) );
+		Unix.Dlsym( slib, "listen", ADDRESSOF( listen ) );
+		Unix.Dlsym( slib, "ntohl", ADDRESSOF( ntohl ) );
+		Unix.Dlsym( slib, "ntohs", ADDRESSOF( ntohs ) );
+		Unix.Dlsym( slib, "recv", ADDRESSOF( recv ) );
+		Unix.Dlsym( slib, "recvfrom", ADDRESSOF( recvfrom ) );
+		Unix.Dlsym( slib, "send", ADDRESSOF( send ) );
+		Unix.Dlsym( slib, "sendto", ADDRESSOF( sendto ) );
+		Unix.Dlsym( slib, "setsockopt", ADDRESSOF( setsockopt ) );
+		Unix.Dlsym( slib, "socket", ADDRESSOF( socket ) );
+		Unix.Dlsym( slib, "getsockname", ADDRESSOF( getsockname ) );
 	END Init;
 
 BEGIN
