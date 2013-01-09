@@ -538,7 +538,7 @@ PACKAGE ApplicationsMini ARCHIVE "ApplicationsMini.zip" SOURCE "ApplicationsMini
 	I386, WIN, UNIX { I386.Math.Mod I386.MathL.Mod }
 	AMD64 { AMD64.Math.Mod AMD64.MathL.Mod }
 
-	Random.Mod
+	Random.Mod  Drand48.Mod
 
 	SerialsVirtual.Mod # Virtual serial port (implements Serials interface)
 

@@ -112,7 +112,7 @@ BEGIN
 	END;
 	String(suffix)
 END IntSuffix;
-
+(*
 (** Write "x" as a hexadecimal number. The absolute value of "w" is the field width. If "w" is negative, two hex digits are printed (x MOD 100H), otherwise 8 digits are printed. *)
 
 PROCEDURE Hex*(x: HUGEINT; w: LONGINT);
@@ -130,19 +130,38 @@ BEGIN
 	buf[j] := 0X;
 	String(buf)
 END Hex;
+*)
+
+(**	Write an integer in hexadecimal right-justified in a field of at least ABS(w) characters.
+	If w < 0, the w least significant hex digits of x are written (potentially including leading zeros)
+*)
+PROCEDURE Hex*( x: HUGEINT;  w: LONGINT );
+VAR filler: CHAR;  i, maxi, y: LONGINT;  buf: ARRAY 20 OF CHAR; 
+BEGIN
+	IF w < 0 THEN  filler := '0';  w := -w;  maxi := w  ELSE  filler := ' ';  maxi := 16  END;
+	i := 0;
+	REPEAT
+		y := SHORT( x MOD 10H );
+		IF y < 10 THEN  buf[i] := CHR( y + ORD('0') )  ELSE  buf[i] := CHR( y - 10 + ORD('A') )  END;
+		x := x DIV 10H;
+		INC( i );
+	UNTIL (x = 0) OR (i = maxi);
+	WHILE w > i DO  Char( filler );  DEC( w )  END;
+	REPEAT  DEC( i ); Char( buf[i] )  UNTIL i = 0
+END Hex;
 
 (** Write "x" as a hexadecimal address. *)
 
 PROCEDURE Address* (x: ADDRESS);
-BEGIN Hex (x, SIZEOF (ADDRESS) * 2)
+BEGIN 
+	Hex(x, -SIZEOF(ADDRESS)*2)
 END Address;
 
 (** Write "x" as a hexadecimal number.  "w" is the field width.  Always prints 16 digits. *)
 
 PROCEDURE HIntHex*(x: HUGEINT; w: LONGINT);
 BEGIN
-	Hex(SHORT (Machine.ASHH(x, -32)), w-8);
-	Hex(SHORT (x), 8)
+	Hex( x, w )
 END HIntHex;
 
 (** Write a block of memory in hex. *)
