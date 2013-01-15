@@ -410,7 +410,7 @@ BEGIN
 	(* unwind stack *)
 	samples[index][0] := pc;
 	depth := 1;
-	WHILE (bp # 0) & (lowAdr <= bp) & Machine.LessOrEqual(bp, highAdr) & (depth < MaxUnwindingDepth) DO
+	WHILE (bp # 0) & (lowAdr <= bp) & (bp < highAdr) (* Machine.Less(bp, highAdr)*)  & (depth < MaxUnwindingDepth) DO
 		SYSTEM.GET(bp + SIZEOF(ADDRESS), pc);
 		SYSTEM.GET(bp, bp);
 		samples[index][depth] := pc;

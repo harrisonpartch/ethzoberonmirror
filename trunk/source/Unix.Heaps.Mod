@@ -54,6 +54,8 @@ CONST
 	MaxFreeLists = 14; 	(* number of free lists *)
 	FreeListBarrier = 7;
 	
+	MaxCandidates = 1024;
+	
 	ProtOfs = 2*BlockSize + 16;	(*! mod 32 = 16 ! *)
 	ProtTypeBit* = 31;   (** flags in TypeDesc, low bits reserved for extLevel *)
 
@@ -103,10 +105,12 @@ TYPE
 
 	PointerOffsets = POINTER TO ARRAY OF SIZE;
 	
+	CandBuffer = ARRAY MaxCandidates OF ADDRESS;
+	
 VAR
 	freeLists: ARRAY MaxFreeLists + 1 OF FreeList;
 
-	candidates: ARRAY 1024 OF ADDRESS;
+	candidates: CandBuffer;
 	nofcand: LONGINT;
 	
 	deferred: ARRAY 1000 OF ADDRESS;
@@ -268,7 +272,7 @@ VAR
 			rootObject.nextRoot := rootList; rootList := rootObject;	(* link root list *)
 		*)
 		ELSE
-			Mark( rootObject )
+			IF collecting THEN  Mark( rootObject )  END
 		END;
 	END AddRootObject;
 
@@ -503,36 +507,39 @@ VAR
 	END SizeOf;
 	
 	
-	PROCEDURE SortCandidates;
+	PROCEDURE SortCandidates( VAR candbuf: CandBuffer;  nc: LONGINT );
 	VAR i, j, h: LONGINT;  p: ADDRESS;
 	BEGIN
 		(* sort them in increasing order using shellsort *)
 		h := 1;
-		REPEAT  h := h*3 + 1  UNTIL h > nofcand;
+		REPEAT  h := h*3 + 1  UNTIL h > nc;
 		REPEAT
 			h := h DIV 3;  i := h;
-			WHILE i < nofcand DO
-				p := candidates[i];  j := i;
-				WHILE (j >= h) & (candidates[j - h] > p) DO  
-					candidates[j] := candidates[j - h];  j := j - h  
+			WHILE i < nc DO
+				p := candbuf[i];  j := i;
+				WHILE (j >= h) & (candbuf[j - h] > p) DO  
+					candbuf[j] := candbuf[j - h];  j := j - h  
 				END;
-				candidates[j] := p;  INC( i )
+				candbuf[j] := p;  INC( i )
 			END
 		UNTIL h = 1;
 	END SortCandidates;
 
-	PROCEDURE CheckCandidates;  
+	PROCEDURE CheckCandidates( nc: LONGINT );  
 	VAR
 		i: LONGINT; sb: Machine.MemoryBlock;
 		p, tag1, tag2, block, endBlockAdr: ADDRESS;
 		blkSize: SIZE;
+		candbuf: CandBuffer;
 	BEGIN
-		IF nofcand = 0 THEN  RETURN  END;
+		IF nc = 0 THEN  RETURN  END;
 		
-		SortCandidates;
+		candbuf := candidates;  nofcand := 0;
+		
+		SortCandidates( candbuf, nc );
 
 		(* sweep phase *)
-		i := 0;  p := candidates[i];
+		i := 0;  p := candbuf[i];
 
 		sb := Machine.memBlockHead;
 		LOOP
@@ -548,8 +555,8 @@ VAR
 						IF tag1 # p THEN  (* not a free block *) Mark( S.VAL( ANY, p ) )  END
 					END;
 					INC( i );
-					IF i = nofcand THEN  EXIT   END;
-					p := candidates[i]
+					IF i = nc THEN  EXIT   END;
+					p := candbuf[i]
 				ELSIF p = block + AddrSize + 24 THEN  (* system block ? *)
 					S.GET( block, tag1 );
 					S.GET( p - AddrSize, tag2 );
@@ -557,14 +564,14 @@ VAR
 						(* really a sysblock *)  Mark( S.VAL( ANY, p ) );
 					END;
 					INC( i );
-					IF i = nofcand THEN  EXIT   END;
-					p := candidates[i]
+					IF i = nc THEN  EXIT   END;
+					p := candbuf[i]
 				ELSIF (blkSize > AddrSize + ProtOfs) & (p = block + AddrSize + ProtOfs)  THEN  (* prot. obj. ? *)
 					S.GET( block, tag1 );
 					IF tag1 = block + AddrSize THEN  Mark( S.VAL( ANY, p ) )  END;
 					INC( i );
-					IF i = nofcand THEN  EXIT   END;
-					p := candidates[i]
+					IF i = nc THEN  EXIT   END;
+					p := candbuf[i]
 				ELSE
 					block := block + blkSize;
 					IF block >= endBlockAdr THEN  EXIT   END;
@@ -572,11 +579,11 @@ VAR
 				END;
 			END;
 
-			IF i = nofcand THEN  EXIT   END;
+			IF i = nc THEN  EXIT   END;
 			sb := sb.next;
 		END;
-		nofcand := 0
 	END CheckCandidates;
+	
 
 
 	PROCEDURE AddCandidate*( p: ADDRESS );
@@ -596,7 +603,7 @@ VAR
 			S.GET ( p - AddrSize, tag );
 			IF ValidAddress( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ) ) THEN
 				candidates[nofcand] := p;  INC( nofcand );
-				IF nofcand = LEN( candidates ) THEN  CheckCandidates  END
+				IF nofcand = MaxCandidates THEN  CheckCandidates( nofcand )  END
 			END;
 		END
 	END AddCandidate;
@@ -611,10 +618,10 @@ VAR
 			INC( Ngc );
 			time1 := Machine.GetTimer( );
 		END;
-		collecting := TRUE;  markDepth := 0; noDeferred := 0;
+		collecting := TRUE;  markDepth := 0;  noDeferred := 0;  nofcand := 0;
 		
 		Mark( root );
-		CheckCandidates;  CheckFinalizedObjects;
+		CheckCandidates( nofcand );  CheckFinalizedObjects;
 		Sweep;
 
 		collecting := FALSE;  thruput := 0;

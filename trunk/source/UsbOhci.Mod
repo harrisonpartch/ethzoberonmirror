@@ -677,7 +677,7 @@ TYPE
 				(* dword1: current buffer pointer *)
 				SYSTEM.PUT32(td + TdCurrentBufferP, pipe.sgList[idx].adr + offset); (* Adding offset is okay since adr is page aligned or offset is zero *)
 
-				curlen := PageSize - SHORT ((pipe.sgList[idx].adr + offset) MOD PageSize);
+				curlen := PageSize - LONGINT ((pipe.sgList[idx].adr + offset) MOD PageSize);
 				IF curlen >= restlen THEN (* no page crossing, last TD in chain *)
 					curlen := restlen; restlen := 0;
 					SYSTEM.PUT32(td + TdBufferEndP, pipe.sgList[idx].adr + offset + curlen - 1);

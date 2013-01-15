@@ -262,9 +262,10 @@ TYPE
 
 	Mcontext* = POINTER TO McontextDesc;
 	McontextDesc* = RECORD
-				trapno-	: LONGINT;
+				trapno-		: LONGINT;
 				err-		: LONGINT;
-				faultvaddr-	: LONGINT;
+				faultvaddr-	: ADDRESS;
+				
 				eax-		: LONGINT;
 				ebx-		: LONGINT;
 				ecx-		: LONGINT;
@@ -281,6 +282,7 @@ TYPE
 				es-			: LONGINT;
 				fs-			: LONGINT;
 				gs-			: LONGINT;
+				
 				flavor-		: LONGINT;
 				count-		: LONGINT;
 				fpc-		: FPcontextDesc;

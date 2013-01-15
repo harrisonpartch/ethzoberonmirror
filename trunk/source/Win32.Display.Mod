@@ -147,7 +147,7 @@ TYPE
 																					  lParam: User32.LParam ): User32.LResult;
 
 	WinMain = OBJECT
-	VAR create: CreateStruct;
+	VAR create: CreateStruct; process: Objects.Process;
 
 		PROCEDURE & Init*( c: CreateStruct );
 		BEGIN
@@ -155,10 +155,13 @@ TYPE
 		END Init;
 
 		PROCEDURE MsgLoop;
-		VAR msg: User32.Msg;  i: LONGINT;
+		VAR msg: User32.Msg;  i: LONGINT; mode: LONGINT;
 		BEGIN
 			LOOP
+				mode := process.mode;
+				SYSTEM.PUT32(ADDRESS OF process.mode, Objects.AwaitingEvent); (* for the profiler *)
 				i := User32.GetMessage( msg, 0, 0, 0 );
+				SYSTEM.PUT32(ADDRESS OF process.mode, mode); (* for the profiler *)
 				IF i = 0 THEN EXIT
 				ELSIF i # -1 THEN
 					IF ( msg.message = User32.WMKeyDown ) THEN
@@ -174,6 +177,7 @@ TYPE
 		END MsgLoop;
 
 	BEGIN {ACTIVE}
+		process := Objects.CurrentProcess();
 		KernelLog.String( "Display: Initialize message dispatcher..." );  KernelLog.Ln;
 		RegisterClasses();  CreateHWND( create );  create := NIL;
 		KernelLog.String( "Display: Start message dispatching" ); KernelLog.Ln;
@@ -193,7 +197,7 @@ TYPE
 				END;
 			ELSE
 				IF root.bmadr = 0 THEN GetDC( root ) END;
-				InitFrameBuffer( root.bmadr, disp.width * disp.height * format );  Transfer^( buf, ofs, stride, x, y, w, h, op );
+				InitFrameBuffer( root.bmadr, disp.width * disp.height * format, disp.width * disp.format);  Transfer^( buf, ofs, stride, x, y, w, h, op );
 				IF op = Displays.set THEN ToWindow( root, x, y, w, h, root.dx, root.dy );  END;
 			END;
 
@@ -704,15 +708,16 @@ VAR
 	PROCEDURE ToWindow*( win: Window;  x, y, w, h: LONGINT;  dx, dy: LONGINT );
 	VAR ret: Kernel32.BOOL;
 	BEGIN
-
+		IF traceDisplay THEN
+			ret := GDI32.BitBlt( win.hDC (* = destination *) , x + dx, y + dy, w, h, win.bmphdc (* source *) , x, y, GDI32.NotSrcCopy );
+			Kernel32.Sleep(50);
+		END;
 		ret := GDI32.BitBlt( win.hDC (* = destination *) , x + dx, y + dy, w, h, win.bmphdc (* source *) , x, y, GDI32.SrcCopy );
-
 	END ToWindow;
 
 	PROCEDURE GetMinMaxInfo( win: Window;  lParam: User32.LParam ): BOOLEAN;
 	VAR mm: User32.MinMaxInfo;
 	BEGIN
-
 		SYSTEM.MOVE( lParam, ADDRESSOF( mm ), SIZEOF( User32.MinMaxInfo ) );  mm.ptMaxSize.x := disp.width;
 		mm.ptMaxSize.y := disp.height;  mm.ptMaxTrackSize := mm.ptMaxSize;  RETURN TRUE;
 	END GetMinMaxInfo;
@@ -1188,7 +1193,15 @@ VAR
 		DoInstall( w, h, x, y);
 	END Install;
 
+VAR traceDisplay: BOOLEAN;
+	PROCEDURE TraceDisplay*;
+	BEGIN
+		traceDisplay := ~traceDisplay;
+	END TraceDisplay;
+
+
 BEGIN
+	traceDisplay := FALSE;
 	format := Displays.color8888;
 	InitMod();  Modules.InstallTermHandler( Shutdown );  KeyHandled := FALSE;
 END Display.

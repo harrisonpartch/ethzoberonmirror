@@ -79,7 +79,7 @@ BEGIN
 	NEW(d);
 	d.width := w; d.height := h; d.offscreen := mem DIV (w*f) - h;
 	d.format := f; d.unit := 10000;
-	d.InitFrameBuffer(vadr, mem);
+	d.InitFrameBuffer(vadr, mem, w * f);
 	d.desc := "Generic linear framebuffer driver (";
 	Strings.IntToStr(d.width, ts); Strings.Append(d.desc, ts);
 	Strings.Append(d.desc, "x");

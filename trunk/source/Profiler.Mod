@@ -80,7 +80,7 @@ BEGIN
 		n := LEN(range)
 	END;
 	FOR i := 0 TO n-1 DO
-		NEW(a[i].count, (a[i].highAdr-a[i].lowAdr) DIV Divisor);
+		NEW(a[i].count, SIZE(a[i].highAdr-a[i].lowAdr) DIV Divisor);
 		range[i] := a[i]
 	END
 END GetRanges;

@@ -1036,6 +1036,8 @@ VAR
 	format* : Raster.Format;
 
 	nextId : LONGINT;
+	
+	standardCursorImage: Graphics.Image;
 
 (* Get a unique identifier *)
 PROCEDURE GetId() : LONGINT;
@@ -1086,7 +1088,11 @@ PROCEDURE LoadCursor*(CONST name : ARRAY OF CHAR; hx, hy : LONGINT; VAR pi : Poi
 BEGIN
 	IF pi = NIL THEN NEW(pi) END;
 	pi.img := Graphics.LoadImage(name, TRUE); pi.hotX := hx; pi.hotY := hy;
-	IF pi.img = NIL THEN KernelLog.String("Picture not loaded : "); KernelLog.String(name); KernelLog.Ln END
+	IF pi.img = NIL THEN
+		KernelLog.String("Picture not loaded : "); KernelLog.String(name); KernelLog.Ln;
+		IF standardCursorImage = NIL THEN CreateStandardCursorImage END;
+		pi.img := standardCursorImage; pi.hotX := 0; pi.hotY := 0;
+	END
 END LoadCursor;
 
 PROCEDURE GetDefaultManager*() : WindowManager;
@@ -1173,6 +1179,22 @@ BEGIN
 	Plugins.main.Remove(registry)
 END CleanUp;
 
+PROCEDURE CreateStandardCursorImage;
+CONST Width = 32; Height = 32;
+VAR canvas: Graphics.BufferCanvas; rect: Rectangles.Rectangle; points: ARRAY 3 OF Graphics.Point2d;
+BEGIN
+	NEW(standardCursorImage);
+	Raster.Create(standardCursorImage, Width, Height, Raster.BGRA8888);
+	NEW(canvas, standardCursorImage);
+	Rectangles.SetRect (rect, 0, 0, Width, Height);
+	canvas.Fill(rect, 0H, Graphics.ModeCopy);
+	points[0].x := Width; points[0].y := Height DIV 2;
+	points[1].x := 0; points[1].y := 0;
+	points[2].x := Width DIV 2; points[2].y := Height;
+	canvas.FillPolygonFlat(points, 3, Graphics.White - 080H, Graphics.ModeCopy);
+	canvas.PolyLine(points, 3, FALSE, Graphics.Black, Graphics.ModeCopy);
+END CreateStandardCursorImage;
+
 BEGIN
 	Modules.InstallTermHandler(CleanUp);
 	NEW(registry, "WM#", "Window Managers");
@@ -1180,4 +1202,5 @@ BEGIN
 	wTimestamp := 0; oTimestamp := 0;
 	format := Raster.BGRA8888;
 	NEW(pointerNull);
+	standardCursorImage := NIL;
 END WMWindowManager.

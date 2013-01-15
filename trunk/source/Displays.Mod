@@ -36,8 +36,8 @@ TYPE
 			IF w > 0 THEN
 				ASSERT(fbadr # 0);
 				bufadr := ADDRESSOF(buf[ofs]);
-				dispadr := fbadr + ((y*width)+x)*format;
-				ASSERT((dispadr >= fbadr) & ((((y+h-1)*width)+x+ w)*format <=  fbsize));	(* display index check *)
+				dispadr := fbadr + y * fbstride + x * format;
+				ASSERT((dispadr >= fbadr) & ((y+h-1)*fbstride + (x+w-1)*format <=  fbsize));	(* display index check *)
 				w := w * format;	(* convert to bytes *)
 				CASE op OF
 					set:
@@ -134,10 +134,10 @@ TYPE
 		END IndexToColor;
 
 		(** Initialize a linear frame buffer for Transfer. *)
-		PROCEDURE InitFrameBuffer*(adr: ADDRESS; size: LONGINT);
+		PROCEDURE InitFrameBuffer*(adr: ADDRESS; size, stride: LONGINT);
 		BEGIN
-			ASSERT(width*(height+offscreen)*format <= size);
-			fbadr := adr; fbsize := size; fbstride := width*format
+			ASSERT((height+offscreen)*stride <= size);
+			fbadr := adr; fbsize := size; fbstride := stride;
 		END InitFrameBuffer;
 
 (*

@@ -71,6 +71,8 @@ TYPE
 			ticks: LONGINT;
 			hevent: Kernel32.HANDLE;
 			res: Kernel32.BOOL;
+			mode: LONGINT;
+			process: Process;
 
 		PROCEDURE Wakeup;
 		VAR res: Kernel32.BOOL;
@@ -93,8 +95,11 @@ TYPE
 		END Init;
 
 	BEGIN {ACTIVE, SAFE, PRIORITY(High)}
+		process := CurrentProcess();
+		mode := process.mode;
 		LOOP
 			Machine.Acquire(Machine.Objects);
+			process.mode := mode;
 			LOOP
 				h := event.next;  (* event: head of timer event queue *)
 				ticks := Kernel32.GetTickCount();
@@ -105,6 +110,8 @@ TYPE
 				h.handler();   (* assume handler will return promptly *)
 				Machine.Acquire(Machine.Objects)
 			END;
+			mode := process.mode;
+			process.mode := AwaitingEvent;
 			Machine.Release(Machine.Objects);
 			IF h = event THEN (* sentinel head of timer event queue: wait forever until a new event has been entered in queue *)
 				res := Kernel32.WaitForSingleObject(hevent, MAX(LONGINT));
@@ -423,6 +430,7 @@ TYPE
 	FinalizerCaller = OBJECT  (* separate active object that calls finalizers *)
 	VAR n: Heaps.FinalizerNode;
 		event: Kernel32.HANDLE;
+		process: Process;
 
 		PROCEDURE &Init;
 		BEGIN
@@ -431,10 +439,13 @@ TYPE
 		END Init;
 
 		PROCEDURE Wait;
-		VAR res: Kernel32.BOOL;
+		VAR res: Kernel32.BOOL; mode: LONGINT;
 		BEGIN
+			mode := process.mode;
+			process.mode := AwaitingEvent;
 			res := Kernel32.WaitForSingleObject(event, Kernel32.Infinite);
 			ASSERT(res = Kernel32.WaitObject0);
+			process.mode := mode;
 		END Wait;
 
 		PROCEDURE Activate;
@@ -444,6 +455,7 @@ TYPE
 		END Activate;
 
 	BEGIN {ACTIVE, SAFE, PRIORITY(High)}
+		process := CurrentProcess();
 		LOOP
 			Wait;
 			LOOP

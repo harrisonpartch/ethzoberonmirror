@@ -1560,7 +1560,7 @@ BEGIN
 END FillSession;
 
 PROCEDURE Replace*(color: LONGINT; noPointer: BOOLEAN);
-VAR disp : Plugins.Plugin; view : ViewPort; r : Rectangle; res : LONGINT; w: WM.Window;
+VAR disp : Plugins.Plugin; view : ViewPort; r : Rectangle; res : LONGINT;
 BEGIN
 	disp := Displays.registry.Await("");
 	IF (disp(Displays.Display).format = Displays.color8888) THEN
@@ -1588,12 +1588,6 @@ BEGIN
 	WM.registry.Add(session, res);
 	NEW(defaultMouse, 5, 15); defaultMouse.view := view;
 	NEW(defaultKeyboard); defaultKeyboard.view := view;
-
-	w := session.bottom;
-	WHILE w # NIL DO
-		TRACE(w);
-		w := w.next;
-	END;
 END Replace;
 
 PROCEDURE InitCharMaps;

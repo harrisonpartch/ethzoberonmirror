@@ -65,12 +65,12 @@ TYPE
 				process := processes[i];
 
 				Objects.GetCpuCycles(process, cycles, FALSE); (* higher granularity counter, but does not detect suspending of thread *)
-				 times[i] := cycles[0];
+				times[i] := cycles[0];
 				(*
 				Kernel32.GetThreadTimes(process.handle, t0,t1,t2,t3);
 				times[i] := HUGEINT(t2.dwLowDateTime+t3.dwLowDateTime) + 10000000H * HUGEINT(t2.dwHighDateTime+t3.dwHighDateTime) ;
 				*)
-				IF (process # me) & (cycles[0] # 0) (*RanMeanwhile(process, times[i]) *) THEN
+				IF (process # me) & (cycles[0] # 0)  & (process.mode = Objects.Running) (* (process.mode # Objects.AwaitingEvent) & (process.mode # Objects.AwaitingCond)  & (process.mode < Objects.Suspended) & (process.mode >= Objects.Ready)  (*RanMeanwhile(process, times[i]) *) *) THEN
 					HandleProcess(process);
 				END;
 			END;
@@ -101,18 +101,22 @@ VAR
 	state : LONGINT;
 
 PROCEDURE HandleProcess(process : Objects.Process);
-VAR context : Kernel32.Context; handle : Kernel32.HANDLE; res : Kernel32.BOOL;
+VAR context : Kernel32.Context; handle : Kernel32.HANDLE; res : Kernel32.BOOL; stackBottom, sp, bp: ADDRESS;
 BEGIN
 	ASSERT(process # NIL);
 	handle := process.handle;
 	IF (handle # Kernel32.NULL) & (handle # Kernel32.InvalidHandleValue) THEN
 		res := Kernel32.SuspendThread(handle);
-		IF (res # -1) THEN
-			context.ContextFlags := Kernel32.ContextControl;
+		IF (res >= 0) THEN
+			context.ContextFlags := Kernel32.ContextControl+Kernel32.ContextInteger;
 			res := Kernel32.GetThreadContext(handle, context);
 			IF (res = Kernel32.True) THEN
 				IF (context.PC # 0) THEN
-					callback(1, process, context.PC, context.BP, context.SP, LONGINT(0FFFFFFFFH));
+					stackBottom := Objects.GetStackBottom(process);
+					bp := context.BP;
+					sp := context.SP;
+					ASSERT(context.BP <= stackBottom);
+					callback(1, process, context.PC, context.BP, context.SP,  stackBottom(*  LONGINT(0FFFFFFFFH)*)  );
 				END;
 			END;
 			res := Kernel32.ResumeThread(handle);

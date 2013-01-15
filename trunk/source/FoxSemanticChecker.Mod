@@ -5950,7 +5950,7 @@ TYPE
 						expression := parameters.GetExpression(0);
 						type := typeDeclaration.declaredType.resolved;
 						expressionType := BaseType(expression.type); (* type or base type of math array, if applicable *)
-						IF ((type IS SyntaxTree.NumberType) OR (type IS SyntaxTree.AddressType)) &
+						IF ((type IS SyntaxTree.NumberType) OR (type IS SyntaxTree.AddressType) OR (type IS SyntaxTree.SizeType)) &
 							((expressionType IS SyntaxTree.NumberType) OR (expressionType IS SyntaxTree.AddressType) OR (expressionType IS SyntaxTree.SizeType)) THEN
 							result := NewConversion(designator.position,expression,typeDeclaration.declaredType,left)
 						ELSE

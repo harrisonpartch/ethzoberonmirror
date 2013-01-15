@@ -1879,7 +1879,7 @@ BEGIN
 		IF free # {} THEN
 			adr := 0; WHILE ~(adr IN free) DO INC(adr) END;	(* BTW: BSF instruction is not faster *)
 			IF Stats THEN INC(NnewStackInnerLoops, adr+1) END;
-			EXCL(freeStack[freeStackIndex], adr);
+			EXCL(freeStack[freeStackIndex], SIZE (adr));
 			adr := StackAreaAdr + (freeStackIndex*SetSize + adr)*MaxUserStackSize;
 			EXIT
 		END;
@@ -1932,7 +1932,7 @@ BEGIN
 		INC(adr, PS)
 	UNTIL adr = s.high;
 	adr := (adr - MaxUserStackSize - StackAreaAdr) DIV MaxUserStackSize;
-	INCL(freeStack[adr DIV 32], adr MOD 32);
+	INCL(freeStack[adr DIV 32], SIZE(adr MOD 32));
 	Release(Memory)
 END DisposeStack;
 
@@ -2022,7 +2022,7 @@ BEGIN
 	(* stacks *)
 	ASSERT((StackAreaAdr MOD MaxUserStackSize = 0) & (StackAreaSize MOD MaxUserStackSize = 0));
 	FOR i := 0 TO LEN(freeStack)-1 DO freeStack[i] := {0..SetSize-1} END;
-	FOR i := MaxUserStacks TO LEN(freeStack)*SetSize-1 DO EXCL(freeStack[i DIV SetSize], i MOD SetSize) END;
+	FOR i := MaxUserStacks TO LEN(freeStack)*SetSize-1 DO EXCL(freeStack[i DIV SetSize], SIZE (i MOD SetSize)) END;
 	freeStackIndex := 0;
 	(* mappings *)
 	mapTop := MapAreaAdr;
@@ -2769,7 +2769,7 @@ BEGIN
 		IF (i > 31) OR ~(i IN {8, 10..14, 17}) THEN a := ADDRESSOF(glue[i][0])	(* include PUSH 0 *)
 		ELSE a := ADDRESSOF(glue[i][2])	(* skip PUSH 0, processor supplies error code *)
 		END;
-		idt[i].offsetBits0to15 := SHORT(a MOD 10000H);
+		idt[i].offsetBits0to15 := INTEGER (a MOD 10000H);
 		(* IRQ0 must be at level 0 because time slicing in Objects needs to set interrupted process' ESP *)
 		(* all irq's are handled at level 0, because of priority experiment in Objects.FieldIRQ *)
 		IF TRUE (* (i < IRQ0) OR (i > IRQ15) OR (i = IRQ0) OR (i = IRQ0 + 1)*) THEN
@@ -2779,7 +2779,7 @@ BEGIN
 			idt[i].selector := UserCodeSel;	(* gdt[3] -> conformant segment => level 0 or 3 *)
 			idt[i].gateType := SYSTEM.VAL (INTEGER, 08E00H)	(* present, DPL 0, system, 386 interrupt *)
 		END;
-		idt[i].offsetBits16to31 := SHORT(a DIV 10000H)
+		idt[i].offsetBits16to31 := INTEGER(a DIV 10000H)
 	END
 END InitInterrupts;
 

@@ -1099,7 +1099,7 @@ TYPE
 				(* Each qTD has for buffer pointers. Each buffer is 4K. The buffer must be virtually contiguous but may be				*)
 				(* physically non-contiguous. The HC detects crossings of page boundaries and increments the current buffer pointer. 	*)
 				SYSTEM.PUT32(qtd + QtdBufferPtr0, pipe.sgList[idx].adr + offset);
-				curlen := PageSize - SHORT ((pipe.sgList[idx].adr + offset)  MOD PageSize);
+				curlen := PageSize - LONGINT ((pipe.sgList[idx].adr + offset)  MOD PageSize);
 				IF curlen > restlen THEN (* No other buffer pointers needed, fits into the first page *)
 					curlen := restlen;
 				END;
