@@ -333,6 +333,16 @@ CODE{SYSTEM.i386}
 	lshiftdone:
 END RolH;
 
+PROCEDURE CasH*(VAR value: HUGEINT; old, new: HUGEINT): HUGEINT;
+CODE{SYSTEM.Pentium}
+	MOV	EAX, [EBP + old + 0]
+	MOV	EDX, [EBP + old + 4]
+	MOV	EBX, [EBP + new + 0]
+	MOV	ECX, [EBP + new + 4]
+	MOV	EDI, [EBP + value]
+	LOCK CMPXCHG8B [EDI]
+END CasH;
+
 (* compare strings,
 	returns 0 if strings are equal,
 	returns +1 if left is lexicographic greater than right,

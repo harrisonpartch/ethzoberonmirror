@@ -500,6 +500,7 @@ TYPE
 			NEW(img);
 			IF alpha THEN Raster.Create(img, w, h, Raster.BGRA8888) ELSE Raster.Create(img, w, h, format) END;
 			NEW(canvas, img);
+			pointerThreshold := 1; (* invisible pixels are treated as invisble *)
 		END Init;
 
 		PROCEDURE IsHit(x, y  : LONGINT) : BOOLEAN;

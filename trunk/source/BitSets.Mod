@@ -7,7 +7,7 @@ CONST Elements = MAX (SET) - MIN (SET) + 1;
 TYPE Data = POINTER TO ARRAY OF SET;
 
 TYPE BitSet* = OBJECT
-	VAR size: LONGINT;
+	VAR size: SIZE;
 	VAR data: Data;
 
 	PROCEDURE & InitBitSet* (size: LONGINT);
@@ -15,12 +15,12 @@ TYPE BitSet* = OBJECT
 	END InitBitSet;
 
 	PROCEDURE Zero*;
-	VAR i: LONGINT;
+	VAR i: SIZE;
 	BEGIN FOR i := 0 TO LEN(data)-1 DO data[i] := {} END;
 	END Zero;
 
-	PROCEDURE Resize* (size: LONGINT);
-	VAR newData: Data; i: LONGINT;
+	PROCEDURE Resize* (size: SIZE);
+	VAR newData: Data; i: SIZE;
 	BEGIN
 		ASSERT (size >= 0);
 		SELF.size := size;
@@ -36,11 +36,11 @@ TYPE BitSet* = OBJECT
 		data := newData;
 	END Resize;
 
-	PROCEDURE GetSize* (): LONGINT;
+	PROCEDURE GetSize* (): SIZE;
 	BEGIN RETURN size;
 	END GetSize;
 
-	PROCEDURE SetBit* (pos: LONGINT; value: BOOLEAN);
+	PROCEDURE SetBit* (pos: SIZE; value: BOOLEAN);
 	BEGIN
 		ASSERT (pos >= 0); ASSERT (pos < size);
 		IF value THEN
@@ -50,18 +50,18 @@ TYPE BitSet* = OBJECT
 		END;
 	END SetBit;
 
-	PROCEDURE GetBit* (pos: LONGINT): BOOLEAN;
+	PROCEDURE GetBit* (pos: SIZE): BOOLEAN;
 	BEGIN
 		ASSERT (pos >= 0); ASSERT (pos < size);
 		RETURN pos MOD Elements IN data[pos DIV Elements];
 	END GetBit;
 
-	PROCEDURE SetBits* (startPos, bits, value: LONGINT);
+	PROCEDURE SetBits* (startPos: SIZE; bits, value: LONGINT);
 	VAR adr: ADDRESS;
 	BEGIN
 		ASSERT (startPos >= 0); ASSERT (startPos+bits <= size);
 		IF (bits = 8) & (startPos MOD 8 = 0) THEN
-			adr := ADDRESSOF(data[0])+startPos DIV 8;
+			adr := ADDRESS OF data[0] + startPos DIV 8;
 			SYSTEM.PUT(adr, CHR(value));
 		ELSE
 			WHILE bits > 0 DO
@@ -75,12 +75,12 @@ TYPE BitSet* = OBJECT
 		END;
 	END SetBits;
 
-	PROCEDURE GetBits* (startPos, bits: LONGINT): LONGINT;
+	PROCEDURE GetBits* (startPos: SIZE; bits: LONGINT): LONGINT;
 	VAR value: LONGINT; adr: ADDRESS;
 	BEGIN
 		ASSERT (startPos >= 0); ASSERT (startPos+bits <= size);
 		IF (bits = 8) & (startPos MOD 8 =0) THEN
-			adr := ADDRESSOF(data[0])+startPos DIV 8;
+			adr := ADDRESS OF data[0] + startPos DIV 8;
 			value := SYSTEM.GET8(adr)
 		ELSE
 			INC (startPos, bits); value := 0;

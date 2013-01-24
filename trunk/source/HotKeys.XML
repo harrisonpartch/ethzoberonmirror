@@ -45,7 +45,7 @@
 	-->
 	
 	<!-- Example: Screenshot -->
-	<HotKey name="Screenshot" keys="F10" command="WMOSD.Close;WMScreenShot.SnapShotView test.bmp;WMOSD.Open 'Screenshot saved in test.bmp'"/>
+	<HotKey name="Screenshot" keys="F10" command="SEQ WMOSD.Close;WMScreenShot.SnapShotView test.bmp;WMOSD.Open 'Screenshot saved in test.bmp'"/>
 	
 	<!-- Example: Open applications -->
 	<HotKey name="PET" keys="META+P" command="PET.Open"/>

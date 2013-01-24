@@ -58,7 +58,7 @@ CONST
 		Read Write
 		(* global functions *)
 		Abs  Ash  Cap  Chr  Entier  EntierH  Len  Long  Max  Min Odd  Ord  Short  Size
-		Sum Dim First Last Step Re Im Lsl Lsr Asr
+		Sum Dim Cas First Last Step Re Im Lsl Lsr Asr
 		(* system proper procedures *)
 		systemGet  systemPut  systemMove  systemNew systemRef
 		systemIncr Reshape
@@ -80,7 +80,7 @@ CONST
 	Abs*= Send+1; Ash*= Abs+1; Cap*= Ash+1; Chr*= Cap+1; Entier*= Chr+1;
 	EntierH*= Entier+1; Len*= EntierH+1; Long*= Len+1; Max*= Long+1; Min*= Max+1;
 	Odd*= Min+1; Ord*= Odd+1; Short*= Ord+1; systemSizeOf*= Short+1; Sum*= systemSizeOf+1;
-	Dim*= Sum+1; First*= Dim+1; Last*=First+1; Step*=Last+1; Re*=Step+1; Im*=Re+1;
+	Dim*= Sum+1; Cas*= Dim+1; First*= Cas+1; Last*=First+1; Step*=Last+1; Re*=Step+1; Im*=Re+1;
 
 	(* system proper procedures *)
 	systemGet*= Im+1; systemPut*= systemGet+1; systemMove*= systemPut+1;
@@ -641,6 +641,7 @@ TYPE
 		NewBuiltin(Short,"SHORT",system.globalScope,TRUE);
 		NewBuiltin(Sum,"SUM",system.globalScope,TRUE);
 		NewBuiltin(Dim,"DIM",system.globalScope,TRUE);
+		NewBuiltin(Cas,"CAS",system.globalScope,TRUE);
 
 		NewBuiltin(First,"FIRST",system.globalScope,TRUE);
 		NewBuiltin(Last,"LAST",system.globalScope,TRUE);
@@ -1277,6 +1278,7 @@ TYPE
 		NewBuiltinIdentifier(Short,"SHORT");
 		NewBuiltinIdentifier(Sum,"SUM");
 		NewBuiltinIdentifier(Dim,"DIM");
+		NewBuiltinIdentifier(Cas,"CAS");
 		NewBuiltinIdentifier(Dec,"DEC");
 		NewBuiltinIdentifier(Excl,"EXCL");
 		NewBuiltinIdentifier(Inc,"INC");

@@ -57,13 +57,14 @@ CONST
 		br breq brne brge brlt
 		pop push neg not abs
 		mul div  mod sub add and or xor shl shr rol ror
-		copy fill asm data reserve label use NofOpcodes~
+		cas copy fill asm data reserve label special NofOpcodes~
 	*)
-	nop*= 0; mov*= 1; conv*= 2; call*= 3; enter*= 4; exit*= 5; leave*= 6; return*= 7;
-	result*= 8; trap*= 9; br*= 10; breq*= 11; brne*= 12; brge*= 13; brlt*= 14; pop*= 15;
-	push*= 16; neg*= 17; not*= 18; abs*= 19; mul*= 20; div*= 21; mod*= 22; sub*= 23;
-	add*= 24; and*= 25; or*= 26; xor*= 27; shl*= 28; shr*= 29; rol*= 30; ror*= 31;
-	copy*= 32; fill*= 33; asm*= 34; data*= 35; reserve*= 36; label*= 37; special*=38; NofOpcodes*= 39;
+	nop*= 0; mov*= 1; conv*= 2; call*= 3; enter*= 4; exit*= 5; leave*= 6; return*= 7; 
+	result*= 8; trap*= 9; br*= 10; breq*= 11; brne*= 12; brge*= 13; brlt*= 14; pop*= 15; 
+	push*= 16; neg*= 17; not*= 18; abs*= 19; mul*= 20; div*= 21; mod*= 22; sub*= 23; 
+	add*= 24; and*= 25; or*= 26; xor*= 27; shl*= 28; shr*= 29; rol*= 30; ror*= 31; 
+	cas*= 32; copy*= 33; fill*= 34; asm*= 35; data*= 36; reserve*= 37; label*= 38; special*= 39; 
+	NofOpcodes*= 40; 
 
 	NotYetCalculatedSize = -2;
 
@@ -722,6 +723,8 @@ TYPE
 		AddFormat(rol, "rol", RegMem, RegMemImm, RegMemImm,{SameType12,Op1IsDestination});
 		(* ror dest left right - rotate right *)
 		AddFormat(ror, "ror", RegMem, RegMemImm, RegMemImm,{SameType12,Op1IsDestination});
+		(* cas dest old new - compare value at dest with old and store new if equal, previous value in result register *)
+		AddFormat(cas, "cas", RegMemImm, RegMemImm, RegMemImm,{SameType23});
 		(* copy dest src size - move a block of size op3 units of memory from [op2] to [op1] *)
 		AddFormat(copy, "copy", RegMemImm, RegMemImm, RegMemImm,{SameType12,SameType23});
 		(* fill dest val size - fill a block of size op2 units of memory from [op1] with value in op3 *)

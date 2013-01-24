@@ -247,11 +247,11 @@ TYPE
 
 
 			PROCEDURE Emulate(VAR x: IntermediateCode.Instruction; CONST moduleName,procedureName: SyntaxTree.IdentifierString);
-			(*! this emulation procedure emulates instructions with destination operand only *)
 			VAR
 				parSize: LONGINT; sectionName: Basic.SegmentedName; source: Sections.Section; op: IntermediateCode.Operand;
 				instruction: IntermediateCode.Instruction;
 				symbol: SyntaxTree.Symbol; fp: LONGINT;
+				hasDestination: BOOLEAN;
 
 				PROCEDURE Emit(instruction: IntermediateCode.Instruction; CONST str: ARRAY OF CHAR);
 				BEGIN
@@ -289,8 +289,8 @@ TYPE
 
 			BEGIN
 				inEmulation := TRUE;
+				hasDestination := (IntermediateCode.Op1IsDestination IN IntermediateCode.instructionFormat[x.opcode].flags);
 				ASSERT(x.op1.mode # IntermediateCode.Undefined);
-				ASSERT(IntermediateCode.Op1IsDestination IN IntermediateCode.instructionFormat[x.opcode].flags);
 
 				(* 	add import to import list -- raw insert, no check.
 					checks will be performed by loader or linker -- we assume that a low-level runtime system programmer knows what he is doing
@@ -298,6 +298,11 @@ TYPE
 				SaveRegisters;
 				IF ~module.imports.ContainsName(moduleName) THEN module.imports.AddName(moduleName) END;
 				parSize := 0;
+				IF (x.op1.mode # IntermediateCode.Undefined) & ~hasDestination THEN
+					Emit(IntermediateBackend.Push(x.textPosition,x.op1),"par");
+					INC(parSize, x.op1.type.sizeInBits);
+					Basic.Align(parSize, module.system.addressSize);
+				END;				
 				IF x.op2.mode # IntermediateCode.Undefined THEN
 					Emit(IntermediateBackend.Push(x.textPosition,x.op2),"par");
 					INC(parSize, x.op2.type.sizeInBits);
@@ -319,7 +324,9 @@ TYPE
 				IF symbol # NIL THEN fp := symbol.fingerprint.shallow ELSE fp := 0 END;
 				IntermediateCode.InitAddress(op, IntermediateCode.GetType(module.system,module.system.addressType), sectionName , fp, 0);
 				Emit(IntermediateBackend.Call(x.textPosition,op,IntermediateBackend.ToMemoryUnits(module.system,parSize)),"");
-				Emit(IntermediateBackend.Result(x.textPosition,x.op1),"");
+				IF hasDestination THEN
+					Emit(IntermediateBackend.Result(x.textPosition,x.op1),"");
+				END;
 				RestoreRegisters;
 				inEmulation := FALSE;
 			END Emulate;

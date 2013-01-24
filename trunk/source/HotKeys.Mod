@@ -277,15 +277,28 @@ BEGIN
 END GetHotKey;
 
 PROCEDURE ExecuteCommandFor(command : XML.String);
-VAR msg : ARRAY 256 OF CHAR; res : LONGINT;
-BEGIN
-	ASSERT(command # NIL);
-	IF Trace THEN KernelLog.String("HotKeys: Executing "); KernelLog.String(command^); KernelLog.Ln; END;
-	Commands.Call(command^, {}, res, msg);
-	IF res # 0 THEN
-		KernelLog.String("HotKeys: Error when executing command "); KernelLog.String(command^); KernelLog.String(", res: ");
-		KernelLog.Int(res, 0); KernelLog.String(" ("); KernelLog.String(msg); KernelLog.String(")"); KernelLog.Ln;
+VAR
+	caller: OBJECT
+	VAR
+		command: XML.String;
+		msg : ARRAY 256 OF CHAR; res : LONGINT;
+
+		PROCEDURE & Init(c: XML.String);
+		BEGIN
+			command := c
+		END Init;
+
+	BEGIN{ACTIVE}
+		ASSERT(command # NIL);
+		IF Trace THEN KernelLog.String("HotKeys: Executing "); KernelLog.String(command^); KernelLog.Ln; END;
+		Commands.Call(command^, {}, res, msg);
+		IF res # 0 THEN
+			KernelLog.String("HotKeys: Error when executing command "); KernelLog.String(command^); KernelLog.String(", res: ");
+			KernelLog.Int(res, 0); KernelLog.String(" ("); KernelLog.String(msg); KernelLog.String(")"); KernelLog.Ln;
+		END;
 	END;
+BEGIN
+	NEW(caller, command);
 END ExecuteCommandFor;
 
 (* Report errors while parsing *)

@@ -565,6 +565,8 @@ TYPE
 					procedureName := "RorH"; RETURN FALSE;
 				| IntermediateCode.rol :
 					procedureName := "RolH"; RETURN FALSE;
+				| IntermediateCode.cas :
+					procedureName := "CasH"; RETURN FALSE;
 				ELSE RETURN TRUE
 				END;
 			END;
@@ -917,9 +919,25 @@ TYPE
 			IF ticket # NIL THEN
 				TicketToOperand(ticket, tmp);
 				emitter.Emit2(InstructionSet.opMOV, tmp, op);
+				(* should work but does not
+					IF Assembler.IsRegisterOperand(op) THEN ReleaseHint(op.register) END;
+				*)
 				op := tmp;
 			END;
 		END MakeOperand;
+
+		(* make physical register operand from virtual operand *)
+		PROCEDURE MakeRegister(CONST vop: IntermediateCode.Operand; part: LONGINT; VAR op: Assembler.Operand);
+		VAR previous: Assembler.Operand; temp: Ticket;
+		BEGIN
+			MakeOperand(vop,part,op,NIL);
+			IF ~Assembler.IsRegisterOperand(op) THEN
+				previous := op;
+				temp := TemporaryTicket(vop.registerClass,vop.type);
+				TicketToOperand(temp,op);
+				emitter.Emit2(InstructionSet.opMOV,op,previous);
+			END;
+		END MakeRegister;
 
 		(*-------------------  helpers for code generation ----------------------*)
 
@@ -1083,6 +1101,7 @@ TYPE
 			|IntermediateCode.shr: EmitShift(instruction);
 			|IntermediateCode.rol: EmitShift(instruction);
 			|IntermediateCode.ror: EmitShift(instruction);
+			|IntermediateCode.cas: EmitCas(instruction);
 			|IntermediateCode.copy: EmitCopy(instruction);
 			|IntermediateCode.fill: EmitFill(instruction,FALSE);
 			|IntermediateCode.asm: EmitAsm(instruction);
@@ -2186,6 +2205,25 @@ TYPE
 			END;
 		END EmitShift;
 
+		PROCEDURE EmitCas(CONST instruction: IntermediateCode.Instruction);
+		VAR ra: Ticket; op1,op2,op3,mem: Assembler.Operand; register: LONGINT;
+		BEGIN
+			CASE instruction.op2.type.sizeInBits OF
+			| IntermediateCode.Bits8: register := AL;
+			| IntermediateCode.Bits16: register := AX;
+			| IntermediateCode.Bits32: register := EAX;
+			| IntermediateCode.Bits64: register := RAX;
+			END;
+			Spill(physicalRegisters.Mapped(register));
+			ra := ReservePhysicalRegister(IntermediateCode.GeneralPurposeRegister,instruction.op2.type,register,inPC);
+			MakeOperand(instruction.op2,Low,op2,ra);
+			MakeRegister(instruction.op1,Low,op1);
+			Assembler.InitMem(mem,SHORT(instruction.op2.type.sizeInBits DIV 8),op1.register,0);
+			MakeRegister(instruction.op3,Low,op3);
+			emitter.EmitPrefix (InstructionSet.prfLOCK);
+			emitter.Emit2(InstructionSet.opCMPXCHG,mem,op3);
+		END EmitCas;
+		
 		PROCEDURE EmitCopy(CONST instruction: IntermediateCode.Instruction);
 		VAR op1,op2,op3: Assembler.Operand; esi, edi, ecx, t: Ticket; temp,imm: Assembler.Operand; source, dest: IntermediateCode.Operand; size: HUGEINT;
 		BEGIN

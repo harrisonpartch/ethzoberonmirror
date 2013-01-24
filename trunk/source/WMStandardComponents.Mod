@@ -1021,7 +1021,7 @@ TYPE
 			 PROCEDURE Draw(img:WMGraphics.Image; l,t,r,b: LONGINT );
 			 BEGIN
 			 	IF (r>l) & (b>t) & (img # NIL) THEN
-		 			canvas.ScaleImage(img, WMRectangles.MakeRect(0, 0, img.width, img.height),	WMRectangles.MakeRect(l,t,r,b), WMGraphics.ModeSrcOverDst, 10)
+		 			canvas.ScaleImage(img, WMRectangles.MakeRect(0, 0, img.width, img.height),	WMRectangles.MakeRect(l,t,r,b), WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 		 		END;
 			 END Draw;
 
@@ -1079,7 +1079,7 @@ TYPE
 				canvas.ScaleImage(	img,
 				 	WMRectangles.MakeRect(0, 0, img.width, img.height),
 					WMRectangles.MakeRect(0, 0, bounds.GetWidth(), bounds.GetHeight()),
-					WMGraphics.ModeSrcOverDst, 10)
+					WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 			ELSIF imgDefault # NIL THEN
 				down := pressed & (mouseOver OR isToggle.Get() OR keyboardPressed);
 				IF down & (imgPressed # NIL) THEN
@@ -1092,7 +1092,7 @@ TYPE
 				canvas.ScaleImage(	img,
 				 	WMRectangles.MakeRect(0, 0, img.width, img.height),
 					WMRectangles.MakeRect(0, 0, bounds.GetWidth(), bounds.GetHeight()),
-					WMGraphics.ModeSrcOverDst, 10)
+					WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 			ELSE
 				GetHorizontalImages(imgLeft, imgMiddle, imgRight);
 		 		(* left *)
@@ -1101,7 +1101,7 @@ TYPE
 					canvas.ScaleImage(	imgLeft,
 					 	WMRectangles.MakeRect(0, 0, imgLeft.width, imgLeft.height),
 						WMRectangles.MakeRect(0, 0, imgLeft.width, bounds.GetHeight()),
-						WMGraphics.ModeSrcOverDst, 10)
+						WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 				ELSE
 					wLeft := 0
 				END;
@@ -1113,7 +1113,7 @@ TYPE
 					canvas.ScaleImage(	imgRight,
 					 	WMRectangles.MakeRect(0, 0, imgRight.width, imgRight.height),
 						WMRectangles.MakeRect(bounds.GetWidth()-wRight, 0, bounds.GetWidth(), bounds.GetHeight()),
-						WMGraphics.ModeSrcOverDst, 10)
+						WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 				ELSE
 					wRight := 0
 				END;
@@ -1124,7 +1124,7 @@ TYPE
 					ELSE (* scale image *)
 						canvas.ScaleImage(	imgMiddle,
 								 	WMRectangles.MakeRect(0, 0, imgMiddle.width, imgMiddle.height),
-									WMRectangles.MakeRect(wLeft, 0, bounds.GetWidth()-wRight, bounds.GetHeight()), WMGraphics.ModeSrcOverDst, 10)
+									WMRectangles.MakeRect(wLeft, 0, bounds.GetWidth()-wRight, bounds.GetHeight()), WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 					END
 				END
 			END
@@ -1141,7 +1141,7 @@ TYPE
 				canvas.ScaleImage(	imgTop,
 				 	WMRectangles.MakeRect(0, 0, imgTop.width, imgTop.height),
 					WMRectangles.MakeRect(0, 0, bounds.GetWidth(), imgTop.height),
-					WMGraphics.ModeSrcOverDst, 10)
+					WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 			ELSE
 				hTop := 0
 			END;
@@ -1151,7 +1151,7 @@ TYPE
 				canvas.ScaleImage(	imgBottom,
 				 	WMRectangles.MakeRect(0, 0, imgBottom.width, imgBottom.height),
 					WMRectangles.MakeRect(0, bounds.GetHeight()-hBottom, bounds.GetWidth(), bounds.GetHeight()),
-					WMGraphics.ModeSrcOverDst, 10)
+					WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 			ELSE
 				hBottom := 0
 			END;
@@ -1162,7 +1162,7 @@ TYPE
 				ELSE (* scale image *)
 					canvas.ScaleImage(	imgMiddle,
 							 	WMRectangles.MakeRect(0, 0, imgMiddle.width, imgMiddle.height),
-								WMRectangles.MakeRect(0, hTop, bounds.GetWidth(), bounds.GetHeight()-hBottom), WMGraphics.ModeSrcOverDst, 10)
+								WMRectangles.MakeRect(0, hTop, bounds.GetWidth(), bounds.GetHeight()-hBottom), WMGraphics.ModeSrcOverDst, WMGraphics.ScaleBilinear)
 				END
 			END
 		END DrawVerticalBackground;
