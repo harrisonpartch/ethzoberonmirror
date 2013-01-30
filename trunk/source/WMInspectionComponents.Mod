@@ -740,6 +740,7 @@ TYPE
 
 		PROCEDURE Apply(force : BOOLEAN);
 		VAR rectangle : WMProperties.RectangleProperty; rect, r : WMRectangles.Rectangle; string : ARRAY 32 OF CHAR;
+			width, height: LONGINT;
 		BEGIN
 			rectangle := SELF.rectangle;
 			IF (rectangle # NIL) THEN
@@ -747,6 +748,10 @@ TYPE
 				editTop.GetAsString(string); Strings.StrToInt(string, rect.t);
 				editRight.GetAsString(string); Strings.StrToInt(string, rect.r);
 				editBottom.GetAsString(string); Strings.StrToInt(string, rect.b);
+				editWidth.GetAsString(string); Strings.StrToInt(string, width);
+				editHeight.GetAsString(string); Strings.StrToInt(string, height);
+				IF 5 IN outOfDate THEN rect.t := rect.b - height END;
+				IF 4 IN outOfDate THEN rect.r := rect.l + width END;
 				r := rectangle.Get();
 				IF force OR ~WMRectangles.IsEqual(r, rect) THEN
 					rectangle.Set(rect);

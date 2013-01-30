@@ -9,7 +9,7 @@ MODULE FoxSyntaxTree;   (**  AUTHOR "fof & fn"; PURPOSE "Oberon Compiler: Abstra
 **)
 
 IMPORT
-	Basic := FoxBasic, Scanner := FoxScanner, BitSets, Commands, StringPool (* , D := Debugging (* only for debuggging / counting *) *) ;
+	Basic := FoxBasic, Scanner := FoxScanner, BitSets, Commands, StringPool, Strings(* , D := Debugging (* only for debuggging / counting *) *) ;
 
 CONST
 	(** general flags: used in statements, procedure types and symbols
@@ -1696,6 +1696,11 @@ TYPE
 		BEGIN SELF.assignable := assignable
 		END SetAssignable;
 
+		PROCEDURE Clone(): Expression;
+		BEGIN
+			HALT(200); (* abstract *)
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitExpression(SELF)
@@ -1746,6 +1751,15 @@ TYPE
 			END;
 		END Revert;
 
+		PROCEDURE Clone*(VAR list: ExpressionList);
+		VAR i: LONGINT;
+		BEGIN
+			IF list = NIL THEN NEW(list) END;
+			FOR i := 0 TO Length()-1 DO
+				list.AddExpression(CloneExpression(GetExpression(i)));
+			END;
+		END Clone;
+
 	END ExpressionList;
 
 	(** << {elements} >>  **)
@@ -1757,6 +1771,12 @@ TYPE
 			InitExpression( position );
 			elements := NewExpressionList();
 		END InitSet;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: Set;
+		BEGIN
+			NEW(copy, position); elements.Clone(copy.elements); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -1774,6 +1794,12 @@ TYPE
 			InitExpression( position );
 			elements := NewExpressionList();
 		END InitMathArrayExpression;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: MathArrayExpression;
+		BEGIN
+			NEW(copy, position); elements.Clone(copy.elements); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -1796,6 +1822,12 @@ TYPE
 		PROCEDURE SetLeft*(left: Expression);
 		BEGIN SELF.left := left
 		END SetLeft;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: UnaryExpression;
+		BEGIN
+			NEW(copy, position, CloneExpression(left), operator); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -1822,6 +1854,12 @@ TYPE
 		PROCEDURE SetRight*(right: Expression);
 		BEGIN SELF.right := right
 		END SetRight;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: BinaryExpression;
+		BEGIN
+			NEW(copy, position, CloneExpression(left), CloneExpression(right), operator); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -1869,6 +1907,12 @@ TYPE
 			SELF.context := context
 		END SetContext;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: RangeExpression;
+		BEGIN
+			NEW(copy, position, CloneExpression(first), CloneExpression(last), CloneExpression(step)); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitRangeExpression(SELF)
@@ -1883,6 +1927,12 @@ TYPE
 		BEGIN
 			InitExpression(position);
 		END InitTensorRangeExpression;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: TensorRangeExpression;
+		BEGIN
+			NEW(copy, position); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -1905,6 +1955,12 @@ TYPE
 		PROCEDURE SetExpression*(expression: Expression);
 		BEGIN SELF.expression := expression
 		END SetExpression;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: Conversion;
+		BEGIN
+			NEW(copy, position, CloneExpression(expression), type, CloneExpression(typeExpression)); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -1977,6 +2033,12 @@ TYPE
 		BEGIN InitDesignator(position); identifier := id
 		END InitIdentifierDesignator;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: IdentifierDesignator;
+		BEGIN
+			NEW(copy, position, identifier); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitIdentifierDesignator(SELF)
@@ -1993,6 +2055,12 @@ TYPE
 		PROCEDURE & InitSelector(position: LONGINT; left: Designator; identifier: Identifier);
 		BEGIN   InitDesignator(position); SELF.left := left; SELF.identifier := identifier;
 		END InitSelector;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: SelectorDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left), identifier); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2013,6 +2081,12 @@ TYPE
 		BEGIN InitDesignator(position); SELF.left := left; SELF.parameters := parameters
 		END InitParameterDesignator;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: ParameterDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left), CloneExpressionList(parameters)); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitParameterDesignator(SELF)
@@ -2030,6 +2104,12 @@ TYPE
 		BEGIN InitDesignator(position); SELF.left := left;
 		END InitArrowDesignator;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: ArrowDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left(Designator))); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitArrowDesignator(SELF)
@@ -2046,6 +2126,12 @@ TYPE
 		PROCEDURE &InitBracketDesignator(position: LONGINT; left: Designator; parameters: ExpressionList);
 		BEGIN InitDesignator(position); SELF.left := left; SELF.parameters := parameters;
 		END InitBracketDesignator;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: BracketDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left), CloneExpressionList(parameters)); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2073,6 +2159,12 @@ TYPE
 		BEGIN
 			position := SELF.position; v.VisitSymbolDesignator(SELF);
 		END Accept;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: SymbolDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left), symbol); RETURN copy
+		END Clone;
 
 		PROCEDURE SetSymbol*(s: Symbol);
 		BEGIN SELF.symbol := s;
@@ -2106,6 +2198,14 @@ TYPE
 		BEGIN hasTensorRange := TRUE;
 		END HasTensorRange;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: IndexDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left));
+			parameters.Clone(copy.parameters);
+			copy.hasRange := hasRange; copy.hasTensorRange := hasTensorRange ; RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitIndexDesignator(SELF)
@@ -2123,6 +2223,12 @@ TYPE
 		BEGIN
 			InitDesignator(position); SELF.left := left; SELF.parameters := parameters;
 		END InitProcedureCallDesignator;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: ProcedureCallDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left), CloneExpressionList(parameters)); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2143,6 +2249,12 @@ TYPE
 		BEGIN
 			InitDesignator(position); SELF.parameters := parameters; SELF.id := id; SELF.left := left;
 		END InitBuiltinCallDesignator;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: BuiltinCallDesignator;
+		BEGIN
+			NEW(copy, position, id, CloneDesignator(left), CloneExpressionList(parameters)); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2166,6 +2278,12 @@ TYPE
 		BEGIN SELF.typeExpression := typeExpression
 		END SetTypeExpression;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: TypeGuardDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left), type); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitTypeGuardDesignator(SELF)
@@ -2179,6 +2297,12 @@ TYPE
 		PROCEDURE &InitDereferenceDesignator(position: LONGINT; left: Designator);
 		BEGIN InitDesignator(position); SELF.left := left;
 		END InitDereferenceDesignator;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: DereferenceDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left)); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2194,6 +2318,12 @@ TYPE
 		BEGIN InitDesignator(position); SELF.left := left;
 		END InitSupercallDesignator;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: SupercallDesignator;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left)); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitSupercallDesignator(SELF)
@@ -2208,6 +2338,12 @@ TYPE
 		BEGIN InitDesignator(position);
 		END InitSelfDesignator;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: SelfDesignator;
+		BEGIN
+			NEW(copy, position); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitSelfDesignator(SELF)
@@ -2221,6 +2357,12 @@ TYPE
 		PROCEDURE &InitResultDesignator(position: LONGINT);
 		BEGIN InitDesignator(position);
 		END InitResultDesignator;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: ResultDesignator;
+		BEGIN
+			NEW(copy, position); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2267,6 +2409,12 @@ TYPE
 		BEGIN	SELF.value := value
 		END SetValue;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: BooleanValue;
+		BEGIN
+			NEW(copy, position, value); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitBooleanValue(SELF)
@@ -2292,6 +2440,12 @@ TYPE
 		BEGIN	SELF.hvalue := hvalue; SELF.value := SHORT(hvalue);
 		END SetValue;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: IntegerValue;
+		BEGIN
+			NEW(copy, position, hvalue); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitIntegerValue(SELF)
@@ -2316,6 +2470,12 @@ TYPE
 		BEGIN	SELF.value := value
 		END SetValue;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: CharacterValue;
+		BEGIN
+			NEW(copy, position, value); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitCharacterValue(SELF)
@@ -2326,6 +2486,7 @@ TYPE
 
 	END CharacterValue;
 
+	SetValueType = SetValue;
 	(** <<value =  {1,2,3..5}>> **)
 	SetValue* = OBJECT (Value)
 		VAR
@@ -2339,6 +2500,12 @@ TYPE
 		PROCEDURE SetValue*(value: SET);
 		BEGIN	SELF.value := value
 		END SetValue;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: SetValueType;
+		BEGIN
+			NEW(copy, position, value); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2360,6 +2527,14 @@ TYPE
 		PROCEDURE SetArray*(array: MathArrayExpression);
 		BEGIN SELF.array := array
 		END SetArray;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: MathArrayValue;
+		BEGIN
+			NEW(copy, position);
+			IF array # NIL THEN copy.array := array.Clone()(MathArrayExpression) END;
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2386,6 +2561,12 @@ TYPE
 		PROCEDURE SetSubtype*(subtype: LONGINT);
 		BEGIN SELF.subtype := subtype;
 		END SetSubtype;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: RealValue;
+		BEGIN
+			NEW(copy, position, value); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2424,6 +2605,12 @@ TYPE
 		BEGIN SELF.subtype := subtype;
 		END SetSubtype;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: ComplexValue;
+		BEGIN
+			NEW(copy, position, realValue, imagValue); copy.subtype := subtype; RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitComplexValue(SELF)
@@ -2457,6 +2644,12 @@ TYPE
 		BEGIN	SELF.value := value
 		END SetValue;
 
+		PROCEDURE Clone(): Expression;
+		VAR copy: StringValue;
+		BEGIN
+			NEW(copy, position, value); RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitStringValue(SELF)
@@ -2474,6 +2667,12 @@ TYPE
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitNilValue(SELF)
 		END Accept;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: NilValue;
+		BEGIN
+			NEW(copy, position); RETURN copy
+		END Clone;
 
 		PROCEDURE Equals*(v: Value):BOOLEAN;
 		BEGIN RETURN (v IS NilValue); END Equals;
@@ -2493,6 +2692,12 @@ TYPE
 		PROCEDURE SetValue*(value: LONGINT);
 		BEGIN SELF.value := value
 		END SetValue;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: EnumerationValue;
+		BEGIN
+			NEW(copy, position, value); RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2932,7 +3137,6 @@ TYPE
 			direct := d
 		END SetDirect;
 
-
 		PROCEDURE SetModuleName*(moduleName: Identifier);
 		BEGIN SELF.moduleName := moduleName
 		END SetModuleName;
@@ -2993,6 +3197,15 @@ TYPE
 			list.Insert(list.IndexOf(search), new);
 		END InsertBefore;
 
+		PROCEDURE Clone(VAR copy: StatementSequence);
+		VAR i: LONGINT;
+		BEGIN
+			IF copy = NIL THEN NEW(copy) END;
+			FOR i := 0 TO Length()-1 DO
+				copy.AddStatement(CloneStatement(GetStatement(i)))
+			END;
+		END Clone;
+
 	END StatementSequence;
 
 	(**** statements ****)
@@ -3025,6 +3238,11 @@ TYPE
 		BEGIN SELF.comment := comment
 		END SetComment;
 
+		PROCEDURE Clone(): Statement;
+		BEGIN
+			HALT(200) (* abstract *)
+		END Clone;
+
 
 	END Statement;
 
@@ -3039,6 +3257,13 @@ TYPE
 		PROCEDURE SetCall*(call: Designator);
 		BEGIN	SELF.call := call;
 		END SetCall;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: ProcedureCallStatement;
+		BEGIN
+			NEW(copy, position, CloneDesignator(call), outer);
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -3063,6 +3288,13 @@ TYPE
 		PROCEDURE SetRight*(right: Expression);
 		BEGIN SELF.right := right
 		END SetRight;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: Assignment;
+		BEGIN
+			NEW(copy, position, CloneDesignator(left), CloneExpression(right), outer);
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -3095,6 +3327,14 @@ TYPE
 	 	PROCEDURE SetComment*(comment: Comment);
 	 	BEGIN SELF.comment := comment
 	 	END SetComment;
+
+	 	PROCEDURE Clone(): IfPart;
+	 	VAR copy: IfPart;
+	 	BEGIN
+	 		NEW(copy); copy.condition := CloneExpression(condition);
+	 		copy.statements := CloneStatementSequence(statements);
+			RETURN copy
+	 	END Clone;
 
 	 END IfPart;
 
@@ -3130,6 +3370,17 @@ TYPE
 		BEGIN
 			IF elsifParts = NIL THEN RETURN 0 ELSE RETURN elsifParts.Length();  END;
 		END ElsifParts;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: IfStatement; i: LONGINT;
+		BEGIN
+			NEW(copy, position, outer);
+			FOR i := 0 TO ElsifParts()-1 DO
+				copy.AddElsifPart(GetElsifPart(i).Clone());
+			END;
+			copy.SetElsePart(CloneStatementSequence(elsePart));
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -3170,6 +3421,16 @@ TYPE
 		BEGIN SELF.comment := comment
 		END SetComment;
 
+		PROCEDURE Clone(): WithPart;
+		VAR copy: WithPart;
+		BEGIN
+			NEW(copy);
+			copy.SetVariable(CloneDesignator(variable));
+			copy.SetType(type);
+			copy.SetStatements(CloneStatementSequence(statements));
+			RETURN copy
+		END Clone;
+
 	END WithPart;
 
 	(** << WITH variable : type DO statements END >> **)
@@ -3183,7 +3444,6 @@ TYPE
 			InitStatement( position,outer );
 			NEW(withParts,4); elsePart := NIL;
 		END InitWithStatement;
-
 
 		PROCEDURE AddWithPart*( withPart: WithPart );
 		BEGIN withParts.Add( withPart );
@@ -3204,6 +3464,16 @@ TYPE
 			SELF.elsePart := elsePart;
 		END SetElsePart;
 
+		PROCEDURE Clone(): Statement;
+		VAR copy: WithStatement; i: LONGINT;
+		BEGIN
+			NEW(copy, position, outer);
+			FOR i := 0 TO WithParts()-1 DO
+				copy.AddWithPart(GetWithPart(i).Clone());
+			END;
+			copy.SetElsePart(CloneStatementSequence(elsePart));
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -3211,7 +3481,6 @@ TYPE
 		END Accept;
 
 	END WithStatement;
-
 
 	CaseConstant*= POINTER TO RECORD min*,max*: LONGINT; next*: CaseConstant END;
 
@@ -3241,6 +3510,16 @@ TYPE
 		PROCEDURE SetComment*(comment: Comment);
 		BEGIN SELF.comment := comment
 		END SetComment;
+
+		PROCEDURE Clone(): CasePart;
+		VAR copy: CasePart;
+		BEGIN
+			NEW(copy);
+			copy.SetStatements(CloneStatementSequence(statements));
+			copy.firstConstant := firstConstant;
+			elements.Clone(copy.elements);
+			RETURN copy
+		END Clone;
 
 
 	END CasePart;
@@ -3283,6 +3562,19 @@ TYPE
 			IF caseParts = NIL THEN RETURN 0 ELSE RETURN caseParts.Length();  END;
 		END CaseParts;
 
+		PROCEDURE Clone(): Statement;
+		VAR copy: CaseStatement; i: LONGINT;
+		BEGIN
+			NEW(copy, position, outer);
+			copy.SetVariable(CloneExpression(variable));
+			copy.SetElsePart(CloneStatementSequence(elsePart));
+			FOR i := 0 TO CaseParts()-1 DO
+				copy.AddCasePart(GetCasePart(i).Clone());
+			END;
+			copy.min := min; copy.max := max;
+			RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitCaseStatement(SELF)
@@ -3308,7 +3600,6 @@ TYPE
 			SELF.min := min; SELF.max := max;
 		END SetMinMax;
 
-
 	END CaseStatement;
 
 	(** << WHILE condition DO statements END >> **)
@@ -3331,6 +3622,15 @@ TYPE
 		BEGIN
 			SELF.statements := statements;
 		END SetStatements;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: WhileStatement;
+		BEGIN
+			NEW(copy, position, outer);
+			copy.SetCondition(CloneExpression(condition));
+			copy.SetStatements(CloneStatementSequence(statements));
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -3359,6 +3659,15 @@ TYPE
 		BEGIN
 			SELF.statements := statements;
 		END SetStatements;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: RepeatStatement;
+		BEGIN
+			NEW(copy, position, outer);
+			copy.SetCondition(CloneExpression(condition));
+			copy.SetStatements(CloneStatementSequence(statements));
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -3402,6 +3711,18 @@ TYPE
 		BEGIN SELF.statements := statements;
 		END SetStatements;
 
+		PROCEDURE Clone(): Statement;
+		VAR copy: ForStatement;
+		BEGIN
+			NEW(copy, position, outer);
+			copy.SetVariable(CloneDesignator(variable));
+			copy.SetFrom(CloneExpression(from));
+			copy.SetTo(CloneExpression(to));
+			copy.SetBy(CloneExpression(by));
+			copy.SetStatements(CloneStatementSequence(statements));
+			RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitForStatement(SELF)
@@ -3422,6 +3743,14 @@ TYPE
 		BEGIN SELF.statements := statements;
 		END SetStatements;
 
+		PROCEDURE Clone(): Statement;
+		VAR copy: LoopStatement;
+		BEGIN
+			NEW(copy, position, outer);
+			copy.SetStatements(CloneStatementSequence(statements));
+			RETURN copy
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitLoopStatement(SELF)
@@ -3437,6 +3766,13 @@ TYPE
 		BEGIN position := SELF.position; v.VisitExitStatement(SELF)
 		END Accept;
 
+		PROCEDURE Clone(): Statement;
+		VAR copy: ExitStatement;
+		BEGIN
+			NEW(copy, position, outer);
+			RETURN copy
+		END Clone;
+
 	END ExitStatement;
 
 	(** << RETURN returnValue >> **)
@@ -3451,6 +3787,14 @@ TYPE
 		PROCEDURE SetReturnValue*( returnValue: Expression );
 		BEGIN SELF.returnValue := returnValue
 		END SetReturnValue;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: ReturnStatement;
+		BEGIN
+			NEW(copy, position, outer);
+			copy.SetReturnValue(CloneExpression(returnValue));
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -3471,6 +3815,14 @@ TYPE
 		PROCEDURE SetCondition*( condition: Expression );
 		BEGIN SELF.condition := condition
 		END SetCondition;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: AwaitStatement;
+		BEGIN
+			NEW(copy, position, outer);
+			copy.SetCondition(CloneExpression(condition));
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -3547,7 +3899,6 @@ TYPE
 
 	END StatementBlock;
 
-
 	(** << CODE {flags} {character}  END >> **)
 	Code*= OBJECT(Statement)
 	VAR
@@ -3570,6 +3921,16 @@ TYPE
 		BEGIN
 			inlineCode := code;
 		END SetBinaryCode;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: Code; s: Scanner.StringType;
+		BEGIN
+			NEW(copy, position, outer);
+			NEW(s, sourceCodeLength);
+			Strings.Copy(sourceCode^,0,sourceCodeLength,s^);
+			copy.SetSourceCode(s, sourceCodeLength);
+			RETURN copy
+		END Clone;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -4456,6 +4817,12 @@ VAR
 		NEW(expressionList);  RETURN expressionList
 	END NewExpressionList;
 
+	PROCEDURE CloneExpressionList*(l: ExpressionList): ExpressionList;
+	VAR copy: ExpressionList;
+	BEGIN
+		IF l = NIL THEN RETURN NIL ELSE l.Clone(copy); RETURN copy END;
+	END CloneExpressionList;
+
 	PROCEDURE NewDesignator*(): Designator; (* for error handling: invalid Designator *)
 	VAR designator: Designator;
 	BEGIN
@@ -4551,6 +4918,16 @@ VAR
 	BEGIN
 		NEW(expression,-1); RETURN expression;
 	END NewExpression;
+
+	PROCEDURE CloneExpression*(e: Expression): Expression;
+	BEGIN
+		IF e = NIL THEN RETURN NIL ELSE RETURN e.Clone() END;
+	END CloneExpression;
+
+	PROCEDURE CloneDesignator*(e: Expression): Designator;
+	BEGIN
+		IF e = NIL THEN RETURN NIL ELSE RETURN e.Clone()(Designator) END;
+	END CloneDesignator;
 
 	PROCEDURE NewElement*( position: LONGINT;  from,to: Expression ): Expression;
 	BEGIN
@@ -4670,11 +5047,20 @@ VAR
 	BEGIN NEW(statement,-1,outer); RETURN statement;
 	END NewStatement;
 
+	PROCEDURE CloneStatement*(statement: Statement): Statement;
+	BEGIN IF statement = NIL THEN RETURN NIL ELSE RETURN statement.Clone() END
+	END CloneStatement;
+
 	PROCEDURE NewStatementSequence*(): StatementSequence;
 	VAR statementSequence: StatementSequence;
 	BEGIN
 		NEW( statementSequence);  RETURN statementSequence
 	END NewStatementSequence;
+
+	PROCEDURE CloneStatementSequence*(statementSequence: StatementSequence): StatementSequence;
+	VAR copy: StatementSequence;
+	BEGIN IF statementSequence = NIL THEN RETURN NIL ELSE statementSequence.Clone(copy); RETURN copy END
+	END CloneStatementSequence;
 
 	PROCEDURE NewModifier*(position: LONGINT; identifier: Identifier; expression: Expression): Modifier;
 	VAR blockModifier: Modifier;

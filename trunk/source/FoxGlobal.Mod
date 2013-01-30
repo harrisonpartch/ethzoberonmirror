@@ -57,7 +57,7 @@ CONST
 		Assert  Copy  Dec  Excl  Halt  Inc  Incl  New Dispose GetProcedure Connect Delegate
 		Read Write
 		(* global functions *)
-		Abs  Ash  Cap  Chr  Entier  EntierH  Len  Long  Max  Min Odd  Ord  Short  Size
+		Abs  Ash  Cap  Chr  Chr32 Entier  EntierH  Len  Long  Max  Min Odd  Ord  Ord32 Short  Size
 		Sum Dim Cas First Last Step Re Im Lsl Lsr Asr
 		(* system proper procedures *)
 		systemGet  systemPut  systemMove  systemNew systemRef
@@ -77,9 +77,9 @@ CONST
 	Inc*= Halt+1; Incl*= Inc+1; New*= Incl+1; Dispose*= New+1; GetProcedure*= Dispose+1; Connect*=GetProcedure+1; Delegate*=Connect+1;
 	Receive*= Delegate+1; Send* = Receive+1;
 	(* global functions *)
-	Abs*= Send+1; Ash*= Abs+1; Cap*= Ash+1; Chr*= Cap+1; Entier*= Chr+1;
+	Abs*= Send+1; Ash*= Abs+1; Cap*= Ash+1; Chr*= Cap+1; Chr32*= Chr+1; Entier*= Chr32+1;
 	EntierH*= Entier+1; Len*= EntierH+1; Long*= Len+1; Max*= Long+1; Min*= Max+1;
-	Odd*= Min+1; Ord*= Odd+1; Short*= Ord+1; systemSizeOf*= Short+1; Sum*= systemSizeOf+1;
+	Odd*= Min+1; Ord*= Odd+1; Ord32*= Ord+1; Short*= Ord32+1; systemSizeOf*= Short+1; Sum*= systemSizeOf+1;
 	Dim*= Sum+1; Cas*= Dim+1; First*= Cas+1; Last*=First+1; Step*=Last+1; Re*=Step+1; Im*=Re+1;
 
 	(* system proper procedures *)
@@ -630,6 +630,7 @@ TYPE
 		NewBuiltin(Ash,"ASH",system.globalScope,TRUE);
 		NewBuiltin(Cap,"CAP",system.globalScope,TRUE);
 		NewBuiltin(Chr,"CHR",system.globalScope,TRUE);
+		NewBuiltin(Chr32,"CHR32",system.globalScope,TRUE);
 		NewBuiltin(Entier,"ENTIER",system.globalScope,TRUE);
 		NewBuiltin(EntierH,"ENTIERH",system.globalScope,TRUE);
 		NewBuiltin(Len,"LEN",system.globalScope,TRUE);
@@ -638,6 +639,7 @@ TYPE
 		NewBuiltin(Min,"MIN",system.globalScope,TRUE);
 		NewBuiltin(Odd,"ODD",system.globalScope,TRUE);
 		NewBuiltin(Ord,"ORD",system.globalScope,TRUE);
+		NewBuiltin(Ord32,"ORD32",system.globalScope,TRUE);
 		NewBuiltin(Short,"SHORT",system.globalScope,TRUE);
 		NewBuiltin(Sum,"SUM",system.globalScope,TRUE);
 		NewBuiltin(Dim,"DIM",system.globalScope,TRUE);
@@ -1267,6 +1269,7 @@ TYPE
 		NewBuiltinIdentifier(Ash,"ASH");
 		NewBuiltinIdentifier(Cap,"CAP");
 		NewBuiltinIdentifier(Chr,"CHR");
+		NewBuiltinIdentifier(Chr32,"CHR32");
 		NewBuiltinIdentifier(Entier,"ENTIER");
 		NewBuiltinIdentifier(EntierH,"ENTIERH");
 		NewBuiltinIdentifier(Len,"LEN");
@@ -1275,6 +1278,7 @@ TYPE
 		NewBuiltinIdentifier(Min,"MIN");
 		NewBuiltinIdentifier(Odd,"ODD");
 		NewBuiltinIdentifier(Ord,"ORD");
+		NewBuiltinIdentifier(Ord32,"ORD32");
 		NewBuiltinIdentifier(Short,"SHORT");
 		NewBuiltinIdentifier(Sum,"SUM");
 		NewBuiltinIdentifier(Dim,"DIM");

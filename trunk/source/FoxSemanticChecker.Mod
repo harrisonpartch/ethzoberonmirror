@@ -5144,8 +5144,12 @@ TYPE
 						END;
 					END;
 				(* ---- CHR ----- *)
-				ELSIF (id = Global.Chr) & CheckArity(1,1) THEN
-					type := system.characterType;
+				ELSIF ((id = Global.Chr) OR (id = Global.Chr32)) & CheckArity(1,1) THEN
+					IF id = Global.Chr THEN
+						type := system.characterType
+					ELSE
+						type := system.characterType32
+					END;
 					IF CheckIntegerType(parameter0) THEN
 						IF IsIntegerValue(parameter0,i0)  THEN
 							result.SetResolved(SyntaxTree.NewCharacterValue(position,CHR(i0)));
@@ -5351,8 +5355,12 @@ TYPE
 						END;
 					END;
 				(* ---- ORD ----- *)
-				ELSIF (id = Global.Ord) & CheckArity(1,1) THEN
-					type := system.integerType;
+				ELSIF ((id = Global.Ord) OR (id = Global.Ord32)) & CheckArity(1,1) THEN
+					IF id = Global.Ord THEN
+						type := system.integerType;
+					ELSE
+						type := system.longintType;
+					END;
 					IF CompatibleTo(system, parameter0.type, system.characterType) THEN
 						parameter0 := NewConversion(parameter0.position, parameter0, system.characterType,NIL);
 						actualParameters.SetExpression(0,parameter0);
