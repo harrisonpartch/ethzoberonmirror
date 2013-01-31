@@ -88,7 +88,7 @@ VAR
 		RETURN block;
 	END FindBlock;
 
-	PROCEDURE ImportBlock*(CONST identifier: ObjectFile.Identifier): Block;
+	PROCEDURE ImportBlock*(CONST fixup: ObjectFile.Fixup): Block;
 	BEGIN
 		RETURN NIL
 	END ImportBlock;
@@ -152,7 +152,7 @@ VAR
 		VAR reference: Block; str,name: ARRAY 256 OF CHAR;
 		BEGIN
 			reference := FindBlock (fixup.identifier);
-			IF reference = NIL THEN reference := ImportBlock(fixup.identifier) END;
+			IF reference = NIL THEN reference := ImportBlock(fixup) END;
 
 			IF reference = NIL THEN
 				ObjectFile.SegmentedNameToString(fixup.identifier.name,str); Strings.Append(str," in " );
@@ -242,7 +242,7 @@ VAR
 
 		BEGIN
 			reference := FindBlock (fixup.identifier);
-			IF reference = NIL THEN reference := ImportBlock(fixup.identifier) END;
+			IF reference = NIL THEN reference := ImportBlock(fixup) END;
 			ASSERT (reference # NIL);
 			FOR i := 0 TO fixup.patches-1 DO
 				ApplyPatch(fixup.pattern, fixup.patch[i]);
@@ -275,7 +275,7 @@ VAR
 			IF ObjectFile.IsCode(block.type) THEN msg := " code "
 			ELSE msg := " data "
 			END;
-			
+
 			Strings.Append(msg, name);
 
 			IF block.bits # NIL THEN
@@ -355,3 +355,6 @@ BEGIN
 END Process;
 
 END GenericLinker.
+
+
+Compiler.Compile --objectFile=Generic --newObjectFile GenericLinker.Mod   ~~~

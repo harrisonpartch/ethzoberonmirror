@@ -6381,12 +6381,13 @@ TYPE
 		END VisitBooleanValue;
 
 		PROCEDURE GetDataSection*(): IntermediateCode.Section;
-		VAR name: Basic.SegmentedName; section: IntermediateCode.Section;
+		VAR name: Basic.SegmentedName; section: IntermediateCode.Section; s: ARRAY 128 OF CHAR; i: LONGINT;
 		BEGIN
-			Basic.InitSegmentedName(name);
-			name[0] := StringPool.GetIndex1(module.moduleName);
-			name[1] := StringPool.GetIndex1("@Immediates");
-			name[2] := -1;
+			Global.GetModuleSegmentedName(module.module, name);
+			Basic.SuffixSegmentedName(name,Basic.MakeString("@Immediates"));
+			FOR i := 0 TO LEN(name)-1 DO
+				IF name[i] >= 0 THEN StringPool.GetString(name[i], s); TRACE(name[i], s) END;
+			END;
 			section := IntermediateCode.NewSection(module.allSections, Sections.ConstSection, name,NIL,TRUE);
 			RETURN section
 		END GetDataSection;
@@ -7163,7 +7164,6 @@ TYPE
 			UniqueId(name,module.module,"case",caseId);
 			*)
 			string := "@case"; Basic.AppendNumber(string, caseId); INC(caseId);
-			Basic.InitSegmentedName(name);
 			Global.GetModuleSegmentedName(module.module, name);
 			Basic.SuffixSegmentedName(name,Basic.MakeString(string));
 			symbol := SyntaxTree.NewSymbol(name[1]);
@@ -8466,6 +8466,38 @@ TYPE
 			PatchLongint(source,sizePC,numberCommands);
 		END CommandArray;
 
+		(* to prevent from double import of different module aliases *)
+		PROCEDURE IsFirstDirectOccurence(import: SyntaxTree.Import): BOOLEAN; (*! inefficient *)
+		VAR i: SyntaxTree.Import;
+		BEGIN
+			i := module.module.moduleScope.firstImport;
+			WHILE (i # NIL) & ((i.module # import.module) OR ~i.direct) DO
+				i := i.nextImport;
+			END;
+			RETURN i = import
+		END IsFirstDirectOccurence;
+
+		PROCEDURE ImportsArray(source: IntermediateCode.Section);
+		VAR import: SyntaxTree.Import ; pc: LONGINT; moduleSection: IntermediateCode.Section; name: Basic.SegmentedName; numberImports: LONGINT; offset: LONGINT;
+		BEGIN
+			Array(source,pc);
+			Info(source, "import module array data");
+			moduleSection:= ModuleSection(); (* to determine module offset *)
+			offset := moduleSection.pc;
+			import :=  module.module.moduleScope.firstImport;
+			numberImports := 0;
+			WHILE import # NIL DO
+				IF import.direct & ~Global.IsSystemModule(import.module) & IsFirstDirectOccurence(import) THEN
+					Global.GetModuleSegmentedName(import.module,name);
+					Basic.SuffixSegmentedName(name, StringPool.GetIndex1("@Module"));
+					NamedSymbol(source, name, NIL, 0, offset);
+					INC(numberImports);
+				END;
+				import := import.nextImport
+			END;
+			PatchLongint(source,pc,numberImports);
+		END ImportsArray;
+
 		PROCEDURE TypeInfoSection(source: IntermediateCode.Section);
 		VAR
 			p: Sections.Section; sizePC, size, i: LONGINT;
@@ -8614,9 +8646,9 @@ TYPE
 
 		PROCEDURE Module();
 		VAR moduleName: ARRAY 128 OF CHAR;
-		moduleSection, pointerSection, emptyArraySection, exportDescArray, exceptionSection, commandsSection,
+		moduleSection, pointerSection, importSection, emptyArraySection, exportDescArray, exceptionSection, commandsSection,
 			typeInfoSection, procTableSection, ptrTableSection, referenceSection : IntermediateCode.Section;
-			emptyArraySectionOffset, pointerSectionOffset, numberPointers, exportDescArrayOffset, exportDescSize,
+			emptyArraySectionOffset, pointerSectionOffset, importSectionOffset, numberPointers, exportDescArrayOffset, exportDescSize,
 			exceptionSectionOffset, commandsSectionOffset, typeInfoSectionOffset, procTableSectionOffset, ptrTableSectionOffset, maxPointers, numberProcs,temp,
 			referenceSectionOffset	: LONGINT;
 
@@ -8645,6 +8677,8 @@ TYPE
 			ExportDescArray(exportDescArray, exportDescSize);
 			pointerSection := Block("Heaps","SystemBlockDesc",".@PointerArray",pointerSectionOffset);
 			PointerArray(pointerSection,module.module.moduleScope, numberPointers);
+			importSection := Block("Heaps","SystemBlockDesc",".@ImportsArray",importSectionOffset);
+			ImportsArray(importSection);
 			commandsSection := Block("Heaps","SystemBlockDesc",".@CommandArray",commandsSectionOffset);
 			CommandArray(commandsSection);
 			exceptionSection := Block("Heaps","SystemBlockDesc",".@ExceptionArray",exceptionSectionOffset);
@@ -8684,7 +8718,7 @@ TYPE
 			Info(moduleSection, "typeInfo*: POINTER TO ARRAY OF TypeDesc");
 			Symbol(moduleSection,typeInfoSection,typeInfoSectionOffset,0);
 			Info(moduleSection, "module*: POINTER TO ARRAY OF Module");
-			Symbol(moduleSection,emptyArraySection,emptyArraySectionOffset,0);
+			Symbol(moduleSection,importSection,emptyArraySectionOffset,0);
 			Info(moduleSection, "procTable*: ProcTable");
 			Symbol(moduleSection,procTableSection,procTableSectionOffset,0);
 			Info(moduleSection, "ptrTable*: PtrTable");
@@ -8734,6 +8768,9 @@ TYPE
 			END;
 			PatchLongint(source,pc,numberPointers);
 		END PointerArray;
+
+
+
 
 		PROCEDURE CheckTypeDeclaration(x: SyntaxTree.Type);
 		VAR recordType: SyntaxTree.RecordType;
@@ -8798,6 +8835,7 @@ TYPE
 				END;
 				RETURN source
 			END GetSection;
+
 			PROCEDURE NewTypeDescriptor;
 			VAR name: Basic.SegmentedName; op: IntermediateCode.Operand; source: IntermediateCode.Section;
 				i,methods: LONGINT;

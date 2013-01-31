@@ -1841,8 +1841,8 @@ VAR
 		ELSE (* prefix[i] # of[i] *)
 			IF prefix[i] < 0 THEN RETURN TRUE
 			ELSIF of[i] < 0 THEN RETURN FALSE
-			ELSIF (i<LEN(prefix)) THEN RETURN FALSE
-		ELSE
+			ELSIF (i<LEN(prefix)-1) THEN RETURN FALSE
+			ELSE
 				StringPool.GetString(prefix[i], prefixS);
 				StringPool.GetString(of[i], ofS);
 			RETURN Strings.StartsWith(prefixS, 0, ofS)

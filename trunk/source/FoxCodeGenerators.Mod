@@ -1,7 +1,7 @@
 MODULE FoxCodeGenerators; (** AUTHOR ""; PURPOSE ""; *)
 
 IMPORT Diagnostics, Sections := FoxSections, Streams, BinaryCode := FoxBinaryCode, IntermediateCode := FoxIntermediateCode,
-		IntermediateBackend := FoxIntermediateBackend, SyntaxTree := FoxSyntaxTree, Basic := FoxBasic,
+		IntermediateBackend := FoxIntermediateBackend, SyntaxTree := FoxSyntaxTree, Basic := FoxBasic, Global := FoxGlobal,
 		StringPool, Strings, D := Debugging;
 
 CONST
@@ -302,7 +302,7 @@ TYPE
 					Emit(IntermediateBackend.Push(x.textPosition,x.op1),"par");
 					INC(parSize, x.op1.type.sizeInBits);
 					Basic.Align(parSize, module.system.addressSize);
-				END;				
+				END;
 				IF x.op2.mode # IntermediateCode.Undefined THEN
 					Emit(IntermediateBackend.Push(x.textPosition,x.op2),"par");
 					INC(parSize, x.op2.type.sizeInBits);
@@ -427,10 +427,8 @@ TYPE
 		PROCEDURE GetDataSection*(): IntermediateCode.Section;
 		VAR name: Basic.SegmentedName; section: IntermediateCode.Section;
 		BEGIN
-			Basic.InitSegmentedName(name);
-			name[0] := StringPool.GetIndex1(module.moduleName);
-			name[1] := StringPool.GetIndex1("@Immediates");
-			name[2] := -1;
+			Global.GetModuleSegmentedName(module.module, name);
+			Basic.SuffixSegmentedName(name,Basic.MakeString("@Immediates"));
 			section := IntermediateCode.NewSection(module.allSections, Sections.ConstSection, name,NIL,TRUE);
 			RETURN section
 		END GetDataSection;
