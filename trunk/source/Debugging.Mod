@@ -136,7 +136,7 @@ VAR
 
 	PROCEDURE HIntHex*( x: HUGEINT );
 	BEGIN
-		Hex( SHORT( Machine.ASHH( x, -32 ) ),1 );  Hex( SHORT( x ),1 )
+		Hex( SHORT( ASH( x, -32 ) ),1 );  Hex( SHORT( x ),1 )
 	END HIntHex;
 
 	PROCEDURE Char*( c: CHAR );

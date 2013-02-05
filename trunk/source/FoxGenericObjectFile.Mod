@@ -22,7 +22,7 @@ TYPE ObjectFileFormat* = OBJECT (Formats.ObjectFileFormat)
 		VAR fileName: Files.FileName; file: Files.File; writer: Files.Writer; fingerPrinter: FingerPrinter.FingerPrinter; poolMap: ObjectFile.PoolMap;
 
 			PROCEDURE ExportSection (section: IntermediateCode.Section): BOOLEAN;
-			VAR name: ARRAY 128 OF CHAR; (* debugging *)
+			VAR name: ARRAY 256 OF CHAR; (* debugging *)
 			BEGIN
 				(*
 				IF section.IsExternal() OR (section.symbol # NIL) & (section.symbol.scope # NIL) & (section.symbol.scope.ownerModule # module(Sections.Module).module) THEN
@@ -48,7 +48,7 @@ TYPE ObjectFileFormat* = OBJECT (Formats.ObjectFileFormat)
 				section, test: Sections.Section;
 				i, j: LONGINT;
 				name: ObjectFile.SectionName;
-				msg: ARRAY 128 OF CHAR;
+				msg: ARRAY 256 OF CHAR;
 			BEGIN
 				FOR i := 0 TO sections.Length() - 1 DO
 					section := sections.GetSection(i);

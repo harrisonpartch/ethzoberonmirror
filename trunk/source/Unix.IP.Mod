@@ -1,6 +1,6 @@
 (* Aos, Copyright 2001, Pieter Muller, ETH Zurich *)
 
-MODULE IP;   (** AUTHOR "pjm, mvt, eb"; PURPOSE "IP (v4 and v6)"; *)
+MODULE IP;   (** AUTHOR "pjm, mvt, eb, G.F."; PURPOSE "IP (v4 and v6)"; *)
 
 IMPORT S := SYSTEM, KernelLog, Strings, Network;
 
@@ -41,7 +41,7 @@ TYPE
 											size, sendTime, updateTime, updateDate, hash: LONGINT);
 
 	Interface* = OBJECT
-				(* 	unused in UnixAos, included only for interface compatibility
+				(*! 	unused in UnixAos, included only for interface compatibility
 					mostly a dummy, only 'localAdr' contains valid data in UnixAos !! *)
 
 			VAR

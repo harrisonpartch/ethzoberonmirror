@@ -31,6 +31,10 @@
 #	Bootimage
 #	PELinker.Link  --path=../ObjE/ Win32.Aos.Link ~
 #
+# WINAOS generic
+#	Release.Build --path="/temp/obg/" WinAosNewObjectFile ~
+#	StaticLinker.Link --fileFormat=PE32 --fileName=A2.exe --extension=Gof --displacement=401000H --path="/temp/obg/" Runtime Trace Kernel32 Machine Heaps Modules Objects Kernel KernelLog Streams Commands FIles WinFS Clock Dates Reals Strings Diagnostics BitSets StringPool ObjectFile GenericLinker Reflection  GenericLoader  BootConsole ~
+# 
 # Notes:
 #	-	The command PELinker.Link creates the Aos.exe executable file. Per default, it will be created in the Work folder.
 #	-	The configuration file aos.ini specifies from which directory the object files are loaded. If you want to switch between the
@@ -792,7 +796,7 @@ PACKAGE GuiApplicationsMini ARCHIVE "GuiApplicationsMini.zip" SOURCE "GuiApplica
 	cjkfont.bfnt # since used as fallback
 
 	WindowManager.Mod
-	UNIX { Unix.X11.Mod Unix.X11Api.Mod Unix.XDisplay.Mod Unix.Beep.Mod Unix.KbdMouse.Mod }
+	UNIX { Unix.X11.Mod Unix.X11Api.Mod Unix.XDisplay.Mod Unix.Beep.Mod Unix.KbdMouse.Mod Unix.Clipboard.Mod }
 
 
 	# Icons representing applications (don't put icons used by applications inside!)

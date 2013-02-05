@@ -1,4 +1,4 @@
-MODULE Kernel;	(** AUTHOR "pjm"; PURPOSE "Implementation-independent kernel interface"; *)
+MODULE Kernel;	(** AUTHOR "pjm, G.F."; PURPOSE "Implementation-independent kernel interface"; *)
 
 IMPORT Trace, Machine, Heaps, Objects;
 
@@ -201,7 +201,7 @@ BEGIN
 	second := Second;
 	
 	Machine.Acquire(Machine.TraceOutput);
-	Trace.String("Kernel: Initialized and started."); Trace.Ln;
+	Trace.String( Machine.version ); Trace.String(": Kernel: Initialized and started."); Trace.Ln;
 	Machine.Release(Machine.TraceOutput);
 END Kernel.
 

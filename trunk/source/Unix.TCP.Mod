@@ -1,9 +1,9 @@
 (* Aos, Copyright 2001, Pieter Muller, ETH Zurich *)
 
-MODULE TCP;   (** AUTHOR "pjm, mvt"; PURPOSE "TCP protocol"; *)
+MODULE TCP;   (** AUTHOR "pjm, mvt, G.F."; PURPOSE "TCP protocol"; *)
 
 
-IMPORT Out := KernelLog, IP, Streams,  Glue, Unix, Sockets, Objects;
+IMPORT Out := KernelLog, IP, Streams,  Unix, Sockets, Objects;
 
 CONST
 	NilPort* = 0;
@@ -34,16 +34,13 @@ CONST
 VAR
 	trace: BOOLEAN;
 
-	hex: ARRAY 17 OF CHAR;
-
-
 TYPE
 	(** Connection object.
 		NOTE: Only one process should access a Connection!  *)
 
 	Connection* = OBJECT (Streams.Connection)
 			VAR
-				int-	: IP.Interface;	(* Unix port: dummy, only 'int.localAdr' contains valid data *)
+				int-	: IP.Interface;	(*! Unix port: dummy, only 'int.localAdr' contains valid data *)
 				
 				lport-	: LONGINT;
 				fip-		: IP.Adr;  (* foreign protocol address *)
@@ -53,12 +50,11 @@ TYPE
 				socket	: LONGINT;  localAdr, foreignAdr: Sockets.SocketAdr;
 				
 				(* the next variables are for interface compatibility only *)
-				irs-: LONGINT;	(* initial receive sequence number *)
-				rcvnxt-: LONGINT;	(* receive next *)
-				iss-: LONGINT;	(* initial send sequence number *)
-				sndnxt-: LONGINT;	(* send next *)
+				irs-		: LONGINT;	(* initial receive sequence number *)
+				rcvnxt-	: LONGINT;	(* receive next *)
+				iss-		: LONGINT;	(* initial send sequence number *)
+				sndnxt-	: LONGINT;	(* send next *)
 				
-				(* Initialization for internal use only. *)
 
 				PROCEDURE & Init*;
 				BEGIN
@@ -133,7 +129,7 @@ TYPE
 				PROCEDURE Send*( CONST data: ARRAY OF CHAR;  ofs, len: LONGINT;  propagate: BOOLEAN;  VAR res: LONGINT );
 				VAR n: LONGINT;
 				BEGIN {EXCLUSIVE}
-					IF trace THEN  Out.String( "Send: socket=" );  Out.Int( socket, 0 );  ShowBuffer( data, ofs, len )  END;
+					IF trace THEN  Out.String( "Send: socket=" );  Out.Int( socket, 0 )  END;
 					IF state = Established THEN
 						res := Ok;
 						WHILE len > 0 DO
@@ -176,7 +172,6 @@ TYPE
 								IF x > 0 THEN
 									DEC( size, x );  INC( len, x );  INC( ofs, x );
 									IF len >= min THEN  
-										IF trace THEN  ShowBuffer( data, p, len )  END;
 										INC( rcvnxt );
 										RETURN  
 									END
@@ -308,31 +303,6 @@ TYPE
 
 
 
-	PROCEDURE ShowBuffer( CONST buf: ARRAY OF CHAR;  p, l: LONGINT );
-	VAR i, pe: LONGINT;  c: CHAR;  x: LONGINT;
-	BEGIN
-		Out.Ln;  Out.Char( '[' );
-		pe := p + l - 1;  i := 0;
-		WHILE (p < LEN( buf )) & (p <= pe) DO
-			c := buf[p];  INC( p );
-			IF (c >= ' ') & (c <= '~') THEN  Out.Char( c )
-			ELSE
-				x := ORD( c );
-				CASE x OF
-				|10:  Out.String( "\n" )
-				|11:  Out.String( "\t" )
-				|13:  Out.String( "\c" )
-				ELSE
-					Out.Char( '\' );  Out.Char( hex[x DIV 16] );  Out.Char( hex[x MOD 16] );
-				END
-			END;
-			INC( i );
-			IF (p < pe) & ((i >= 80) OR (c = 0AX)) THEN  Out.Ln;  i := 0  END
-		END;
-		Out.Char( ']' );  Out.Ln
-	END ShowBuffer;
-
-
 	(** Aos command - display all errors *)
 	PROCEDURE DisplayErrors*( par: ANY ): ANY;
 	BEGIN
@@ -358,8 +328,5 @@ TYPE
 	END ToggleTrace;
 
 
-BEGIN
-	hex := "0123456789ABCDEF";
-	trace := 7 IN Glue.debug;
 END TCP.
 

@@ -13,7 +13,7 @@ MODULE X11;   (* 1993-95 / rc *)
 									  separated low level Display fumctionality into new module Displays  *)
 (*	2006.07.31	g.f.	X11Ext added *)
 
-IMPORT S := SYSTEM, Trace, Machine, Unix, Modules;
+IMPORT Trace, Machine, Unix, Modules;
 
 TYPE
 	Pixmap* = ADDRESS;
@@ -345,7 +345,7 @@ VAR
 	GetPixel-:				PROCEDURE {C} ( image: Image;  x, y: LONGINT ): LONGINT;
 	AddPixel-:				PROCEDURE {C} ( image: Image;  value: LONGINT );
 	Free-:					PROCEDURE {C} ( data: LONGINT );
-	(*SetErrorHandler-:	procedure {C} ( handler: ErrorHandler );*)
+(*	SetErrorHandler-:		PROCEDURE {C} ( handler: ErrorHandler );	*)
 	GetErrorText-:			PROCEDURE {C} ( d: DisplayPtr;  errcode: LONGINT; VAR buf: Buffer; length: LONGINT );
 	StoreBytes-:			PROCEDURE {C} ( d: DisplayPtr;  bytes, nbytes: LONGINT );
 	FetchBytes-:			PROCEDURE {C} ( d: DisplayPtr;  VAR nbytes: LONGINT ): LONGINT;
@@ -361,7 +361,7 @@ VAR
 	GetWindowProperty-:
 							PROCEDURE {C} ( d: DisplayPtr;  w: Window;  property: Atom;
 											offset, length: LONGINT;  delete: Bool;  reqtype: Atom;  VAR typ: Atom;
-											VAR format, nitems, bytesafter, prop: LONGINT );
+											VAR format, nitems, bytesafter: LONGINT;  VAR prop: ADDRESS );
 	DeleteProperty-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  property: Atom );
 	WarpPointer-:			PROCEDURE {C} ( d: DisplayPtr;  srcwin, dstwin: Window;
 											srcx, srcy, srcw, srch, dstx, dsty: LONGINT );
@@ -371,7 +371,7 @@ VAR
 	ResizeWindow-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  x, y: LONGINT );
 	Synchronize-:			PROCEDURE {C} ( d: DisplayPtr;  onoff: LONGINT );
 	AllocColor-:				PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap;  color: LONGINT ): LONGINT;
-	(*SetIOErrorHandler-:	procedure {C} ( handler: IOErrorHandler ); *)
+(*	SetIOErrorHandler-:		PROCEDURE {C} ( handler: IOErrorHandler );	*)
 
 	(* X11Ext *)
 	ShmQueryVersion-:		PROCEDURE {C} ( d: DisplayPtr;
@@ -494,8 +494,8 @@ VAR
 		Unix.Dlsym( xlib, "XGetPixel", ADDRESSOF( GetPixel ) );
 		Unix.Dlsym( xlib, "XAddPixel", ADDRESSOF( AddPixel ) );
 		Unix.Dlsym( xlib, "XFree", ADDRESSOF( Free ) );
-		(*Unix.Dlsym( xlib, "XSetErrorHandler", ADDRESSOF( SetErrorHandler ) );*)
-		(*Unix.Dlsym( xlib, "XSetIOErrorHandler", ADDRESSOF( SetIOErrorHandler ) );*)
+	(*	Unix.Dlsym( xlib, "XSetErrorHandler", ADDRESSOF( SetErrorHandler ) )	*)
+	(*	Unix.Dlsym( xlib, "XSetIOErrorHandler", ADDRESSOF( SetIOErrorHandler ) );	*)
 		Unix.Dlsym( xlib, "XGetErrorText", ADDRESSOF( GetErrorText ) );
 		Unix.Dlsym( xlib, "XStoreBytes", ADDRESSOF( StoreBytes ) );
 		Unix.Dlsym( xlib, "XFetchBytes", ADDRESSOF( FetchBytes ) );

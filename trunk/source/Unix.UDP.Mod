@@ -1,32 +1,8 @@
 (* Aos, Copyright 2001, Pieter Muller, ETH Zurich *)
 
-MODULE UDP;   (** AUTHOR "pjm, mvt"; PURPOSE "UDP protocol"; *)
+MODULE UDP;   (** AUTHOR "pjm, mvt, G.F."; PURPOSE "UDP protocol"; *)
 
-
-(*
-	UDP Header
-
-	00	16	source port
-	02	16	destination port
-	04	16	UDP length (header and data)
-	06	16	UDP checksum (pseudo-header, header and data)
-	08	--	optional data
-
-	UDP Pseudo-header (for checksum calculation)
-
-	00	32	source address
-	04	32	destination address
-	08	08	zero = 0
-	09	08	protocol = 17
-	10	16	UDP length (duplicate)
-
-	Notes:
-	o Bit numbers above are Intel bit order.
-	o Avoid use of SET because of PPC bit numbering issues.
-	o Always access fields as 8-, 16- or 32-bit values and use DIV, MOD, ASH, ODD for bit access.
-*)
-
-IMPORT IP, Sockets, Unix, Log:=KernelLog;
+IMPORT IP, Sockets, Unix;
 
 CONST
 	(** Error codes *)
@@ -58,12 +34,16 @@ TYPE
 					socket := Sockets.Socket( Unix.AFINET, Unix.SockDGram, Unix.IpProtoUDP );
 					IF socket # 0 THEN
 						IF lport # anyport THEN
+							(* server *)
 							laddr := Sockets.NewSocketAdr( anyIP, lport );
 							IF Sockets.Bind( socket, laddr ) THEN  
 								res := Ok;  open := TRUE  
 							ELSE  
 								Sockets.Close( socket )  
 							END
+						ELSE
+							(* client *)
+							res := Ok;  open := TRUE 
 						END
 					END
 				END Open;
@@ -109,12 +89,12 @@ TYPE
 				VAR 
 					addr: Sockets.SocketAdr; i: LONGINT;
 				BEGIN {EXCLUSIVE}
-					IF ~open THEN  res := Closed;  Log.String("socket is closed"); 
-					ELSE
-					Log.String("socket is open");
+					IF ~open THEN  res := Closed;  RETURN   END;
+					IF (ms >= 0) & ~Sockets.AwaitPacket( socket, ms ) THEN
+						res := Timeout;  RETURN
+					END;
 					IF Sockets.RecvFrom( socket, addr, data, ofs, len ) THEN
-						Log.String(" Sockets.RecvFrom ");
-						fport := Sockets.NetToInt( addr.port );
+						fport := Sockets.GetPortNumber( addr );
 						IF addr IS Sockets.SocketAdrV4 THEN
 							fip.usedProtocol := IP.IPv4;
 							fip.ipv4Adr := addr(Sockets.SocketAdrV4).v4Adr;
@@ -128,13 +108,14 @@ TYPE
 					ELSE  
 						res := Error
 					END
-					END
 				END Receive;
+
+
 
 				(** Close the Socket, freeing its address for re-use. *)
 				PROCEDURE Close*;
-				BEGIN {EXCLUSIVE}
-					Sockets.Close( socket )
+				BEGIN 
+					Sockets.Close( socket );  open := FALSE
 				END Close;
 
 			END Socket;
@@ -144,9 +125,4 @@ BEGIN
 END UDP.
 
 
-(*
-History:
-27.10.2003	mvt	Complete internal redesign for new interfaces of Network and IP.
-22.11.2003	mvt	Changed SocketPool to work with a hash table.
-02.05.2005	eb Works with fragmented packets & IPv6 ready (WritePseudoHdr)
-*)
+

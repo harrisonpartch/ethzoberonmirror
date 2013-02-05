@@ -162,57 +162,48 @@ VAR
 
 	(* Find a procedure in the reference block.  Return index of name, or -1 if not found. *)
 	PROCEDURE FindProc(refs: Modules.Bytes; modpc: ADDRESS; VAR startpc: ADDRESS): LONGINT;
-	VAR i, m, t, tstart, tend, proc: LONGINT; ch: CHAR; newObjectFile: BOOLEAN;
+	VAR pos, len, t, tstart, tend, proc: LONGINT; ch: CHAR; newObjectFile, found: BOOLEAN;
 	BEGIN
 		IF (refs=NIL) OR (LEN(refs) = 0) THEN RETURN -1 END;
 		newObjectFile := NewObjectFile(refs);
-		proc := -1; i := 0; m := LEN(refs^);
-		IF newObjectFile THEN INC(i) END;
-		ch := refs[i]; INC(i); tstart := 0;
-		WHILE (i < m) & ((ch = 0F8X) OR (ch = 0F9X)) DO	(* proc *)
-			startpc := tstart;
-			GetNum(refs, i, tstart);	(* pofs *)
-			IF newObjectFile THEN GetNum(refs,i,tend) END;
-			IF ~newObjectFile & (tstart > modpc) THEN	(* previous procedure was the one *)
-				ch := 0X	(* stop search *)
-			ELSE	(* ~found *)
+		proc := -1; pos := 0; len := LEN(refs^);
+		IF newObjectFile THEN INC(pos) END;
+		ch := refs[pos]; INC(pos); tstart := 0;
+		found := FALSE;
+		WHILE ~found & (pos < len) & ((ch = 0F8X) OR (ch = 0F9X)) DO	(* proc *)
+			GetNum(refs, pos, tstart);	(* procedure offset *)
+			IF newObjectFile THEN
+				GetNum(refs,pos,tend);
+				found := (tstart <=modpc) & (tend  > modpc)
+			ELSE
+				found := tstart > modpc
+			END;
+			IF ~found THEN (* not yet found -- remember startpc and position for next iteration *)
+				startpc := tstart;
+				proc := pos;
 				IF ch = 0F9X THEN
-					GetNum(refs, i, t);	(* nofPars *)
-					INC(i, 3)	(* RetType, procLev, slFlag *);
-					IF newObjectFile THEN INC(i,6) END;
+					GetNum(refs, pos, t);	(* nofPars *)
+					INC(pos, 3)	(* RetType, procLev, slFlag *);
+					IF newObjectFile THEN INC(pos,6) END;
 				END;
-				proc := i;	(* remember this position, just before the name *)
-				REPEAT ch := refs[i]; INC(i) UNTIL ch = 0X;	(* pname *)
-				IF i < m THEN
-					ch := refs[i]; INC(i);	(* 1X | 3X | 0F8X | 0F9X *)
-					WHILE (i < m) & (ch >= 1X) & (ch <= 3X) DO	(* var *)
-						ch := refs[i]; INC(i);	(* type *)
+				proc := pos;	(* remember this position, just before the name *)
+				REPEAT ch := refs[pos]; INC(pos) UNTIL ch = 0X;	(* pname *)
+				IF pos < len THEN
+					ch := refs[pos]; INC(pos);	(* 1X | 3X | 0F8X | 0F9X *)
+					WHILE (pos < len) & (ch >= 1X) & (ch <= 3X) DO	(* var *)
+						ch := refs[pos]; INC(pos);	(* type *)
 						IF (ch >= 81X) OR (ch = 16X) OR (ch = 1DX) THEN
-							GetNum(refs, i, t)	(* dim/tdadr *)
+							GetNum(refs, pos, t)	(* dim/tdadr *)
 						END;
-						GetNum(refs, i, t);	(* vofs *)
-						REPEAT ch := refs[i]; INC(i) UNTIL ch = 0X;	(* vname *)
-						IF i < m THEN ch := refs[i]; INC(i) END	(* 1X | 3X | 0F8X | 0F9X *)
+						GetNum(refs, pos, t);	(* vofs *)
+						REPEAT ch := refs[pos]; INC(pos) UNTIL ch = 0X;	(* vname *)
+						IF pos < len THEN ch := refs[pos]; INC(pos) END	(* 1X | 3X | 0F8X | 0F9X *)
 					END
 				END
 			END;
-			IF newObjectFile THEN
-				IF (tstart <=modpc) & (tend  > modpc) THEN
-					ch := 0X; startpc := tstart;
-
-					(*
-					Trace.Int(modpc,1); Trace.String(" found at "); Trace.Int(tstart,1); Trace.String(" - "); Trace.Int(tend,1);Trace.Ln;
-					*)
-				ELSE
-					(*
-					Trace.Int(modpc,1); Trace.String(" not at"); Trace.Int(tstart,1); Trace.String(" - "); Trace.Int(tend,1);Trace.Ln;
-					*)
-					proc := -1
-				END;
-			END;
 		END;
-		IF ~newObjectFile THEN
-			IF (proc = -1) & (i # 0) THEN proc := i END;	(* first procedure *)
+		IF newObjectFile THEN
+			IF found THEN startpc := tstart; proc := pos ELSE proc := -1 END;
 		END;
 		RETURN proc
 	END FindProc;

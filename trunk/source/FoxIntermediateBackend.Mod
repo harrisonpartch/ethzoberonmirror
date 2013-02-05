@@ -703,7 +703,6 @@ TYPE
 			ASSERT(x # NIL); ASSERT(module # NIL);
 			SELF.module := module;
 
-
 			(* add import names to the generated Sections.Module *)
 			import := x.moduleScope.firstImport;
 			WHILE import # NIL DO
@@ -726,6 +725,7 @@ TYPE
 			implementationVisitor.module := module;
 			implementationVisitor.moduleScope := x.moduleScope;
 			implementationVisitor.moduleSelf := moduleSelf;
+			implementationVisitor.canBeLoaded := TRUE;
 			meta.SetModule(module);
 
 			IF (forceModuleBody OR implementationVisitor.newObjectFile  & ~meta.simple  OR ScopeNeedsInitialization(x.moduleScope)) THEN
@@ -975,6 +975,7 @@ TYPE
 		fingerPrinter: FingerPrinter.FingerPrinter;
 
 		temporaries: Variables;
+		canBeLoaded : BOOLEAN;
 
 		PROCEDURE & Init(system: Global.System; checker: SemanticChecker.Checker; supportedInstructionProcedure: SupportedInstructionProcedure; supportedImmediateProcedure: SupportedImmediateProcedure; emitLabels: BOOLEAN; CONST runtime: SyntaxTree.IdentifierString; backend: IntermediateBackend;
 			newObjectFile: BOOLEAN);
@@ -1785,6 +1786,14 @@ TYPE
 			END;
 		END Error;
 
+		PROCEDURE Warning(position: LONGINT; CONST s: ARRAY OF CHAR);
+		BEGIN
+			backend.diagnostics.Warning(module.module.sourceName,position,Diagnostics.Invalid,s);
+			IF dump # NIL THEN
+				dump.String(s); dump.Ln;
+			END;
+		END Warning;
+
 
 		PROCEDURE AddImport(CONST moduleName: ARRAY OF CHAR; VAR module: SyntaxTree.Module; force: BOOLEAN): BOOLEAN;
 		VAR import: SyntaxTree.Import;
@@ -1796,17 +1805,23 @@ TYPE
 				module := moduleScope.ownerModule
 			ELSE
 				import := moduleScope.ImportByModuleName(SyntaxTree.NewIdentifier(moduleName),SyntaxTree.NewIdentifier("A2"));
+
+
+
 				IF import = NIL THEN
 					import := SyntaxTree.NewImport(-1,SyntaxTree.NewIdentifier(moduleName),SyntaxTree.NewIdentifier(moduleName),TRUE);
 
 					import.SetContext(SyntaxTree.NewIdentifier("A2"));
 					IF ~checker.AddImport(moduleScope.ownerModule,import) THEN
+						s := "Module ";
+						Strings.Append(s,moduleName);
+						Strings.Append(s," cannot be imported.");
 						IF force THEN
-							s := "Module ";
-							Strings.Append(s,moduleName);
-							Strings.Append(s," cannot be imported.");
 							Error(position,s);
-						(* ELSE import could not be resolved, is (allowed) upcall. For low level modules. *)
+						ELSIF canBeLoaded THEN
+							Strings.Append(s, "=> no dynamic linking.");
+							Warning(position, s);
+							canBeLoaded := FALSE;
 						END;
 						RETURN FALSE
 					ELSE
@@ -6381,13 +6396,10 @@ TYPE
 		END VisitBooleanValue;
 
 		PROCEDURE GetDataSection*(): IntermediateCode.Section;
-		VAR name: Basic.SegmentedName; section: IntermediateCode.Section; s: ARRAY 128 OF CHAR; i: LONGINT;
+		VAR name: Basic.SegmentedName; section: IntermediateCode.Section;
 		BEGIN
 			Global.GetModuleSegmentedName(module.module, name);
 			Basic.SuffixSegmentedName(name,Basic.MakeString("@Immediates"));
-			FOR i := 0 TO LEN(name)-1 DO
-				IF name[i] >= 0 THEN StringPool.GetString(name[i], s); TRACE(name[i], s) END;
-			END;
 			section := IntermediateCode.NewSection(module.allSections, Sections.ConstSection, name,NIL,TRUE);
 			RETURN section
 		END GetDataSection;
@@ -8478,12 +8490,11 @@ TYPE
 		END IsFirstDirectOccurence;
 
 		PROCEDURE ImportsArray(source: IntermediateCode.Section);
-		VAR import: SyntaxTree.Import ; pc: LONGINT; moduleSection: IntermediateCode.Section; name: Basic.SegmentedName; numberImports: LONGINT; offset: LONGINT;
+		VAR import: SyntaxTree.Import ; pc: LONGINT;name: Basic.SegmentedName; numberImports: LONGINT; offset: LONGINT;
 		BEGIN
 			Array(source,pc);
 			Info(source, "import module array data");
-			moduleSection:= ModuleSection(); (* to determine module offset *)
-			offset := moduleSection.pc;
+			offset := ToMemoryUnits(module.system, 22* module.system.addressSize) (* Module pointer offset -- cf. ModuleSection(), how to encode generically correct? *);
 			import :=  module.module.moduleScope.firstImport;
 			numberImports := 0;
 			WHILE import # NIL DO
