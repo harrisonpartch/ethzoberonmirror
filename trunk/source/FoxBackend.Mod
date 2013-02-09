@@ -104,6 +104,10 @@ TYPE
 		PROCEDURE GetDescription*(VAR instructionSet: ARRAY OF CHAR);
 		BEGIN instructionSet := "undefined";
 		END GetDescription;
+		
+		PROCEDURE CanPassInRegister*(type: SyntaxTree.Type): BOOLEAN;
+		BEGIN RETURN FALSE
+		END CanPassInRegister;
 
 		PROCEDURE DefineOptions*(options: Options.Options);
 		END DefineOptions;

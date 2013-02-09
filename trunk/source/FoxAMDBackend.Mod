@@ -30,6 +30,8 @@ CONST
 	R12B=InstructionSet.regR12B; 	R13B=InstructionSet.regR13B; 	R14B=InstructionSet.regR14B; 	R15B=InstructionSet.regR15B;
 	AH=InstructionSet.regAH;	CH=InstructionSet.regCH;	DH=InstructionSet.regDH;	BH=InstructionSet.regBH;
 	ST0=InstructionSet.regST0;
+	XMM0 = InstructionSet.regXMM0;
+	XMM7 = InstructionSet.regXMM7;
 
 	Low=0; High=1;
 
@@ -137,6 +139,7 @@ TYPE
 				Assert((toVirtual[index MOD 4 + AX] = free) OR (toVirtual[index MOD 4 + AX] = split),"free register blocked");
 				toVirtual[index MOD 4 + EAX] := split;
 				toVirtual[index MOD 4 + AX] := split;
+			ELSIF (index >= XMM0) & (index <= XMM7) THEN (* vector register *)
 			ELSE Assert( (index >=InstructionSet.regST0) & (index <= InstructionSet.regST7 ),"not a float register"); (* floats *)
 			END;
 		END Allocate;
@@ -193,6 +196,7 @@ TYPE
 					toVirtual[index MOD 4 + EAX] := free;
 					toVirtual[index MOD 4 + AX] := free;
 				END;
+			ELSIF (index >= XMM0) & (index <= XMM7) THEN (* vector register *)
 			ELSE Assert( (index >=InstructionSet.regST0) & (index <= InstructionSet.regST7 ),"not a float register"); (* floats *)
 			END;
 		END Free;
@@ -223,7 +227,13 @@ TYPE
 			END Get;
 
 		BEGIN
-			IF type.form IN IntermediateCode.Integer THEN
+			IF (type.length > 1) THEN
+				IF (type.form = IntermediateCode.Float) & (type.sizeInBits=32) & (type.length =4) THEN
+					i := Get(XMM0, XMM7);
+				ELSE
+					HALT(100)
+				END
+			ELSIF type.form IN IntermediateCode.Integer THEN
 				sizeInBits := type.sizeInBits;
 				IF type.sizeInBits = IntermediateCode.Bits8 THEN
 					i := GetHint(AL);
@@ -815,7 +825,7 @@ TYPE
 				offset := SHORT(virtual.intValue);
 				ASSERT(virtual.offset = 0);
 			END;
-			Assembler.InitMem(physical, SHORT(type.sizeInBits DIV 8) , physicalRegister, offset+4*part);
+			Assembler.InitMem(physical, SHORTINT(type.length * type.sizeInBits DIV 8) , physicalRegister, offset+4*part);
 			IF virtual.symbol.name # "" THEN
 				Assembler.SetSymbol(physical,virtual.symbol.name,virtual.symbol.fingerprint,virtual.symbolOffset,virtual.offset+4*part);
 			END;
@@ -894,7 +904,7 @@ TYPE
 					ticket := NIL;
 				END;
 				IF Assembler.IsRegisterOperand(physical) THEN
-					Assembler.InitMem(physical,SHORT(type.sizeInBits DIV 8) , physical.register, virtual.offset);
+					Assembler.InitMem(physical,SHORTINT(type.length * type.sizeInBits DIV 8) , physical.register, virtual.offset);
 					emitter.Emit2(InstructionSet.opLEA, tmp,physical);
 				ELSE
 					emitter.Emit2(InstructionSet.opMOV,tmp,physical);
@@ -935,7 +945,11 @@ TYPE
 				previous := op;
 				temp := TemporaryTicket(vop.registerClass,vop.type);
 				TicketToOperand(temp,op);
-				emitter.Emit2(InstructionSet.opMOV,op,previous);
+				IF vop.type.length > 1 THEN
+					emitter.Emit2(InstructionSet.opMOVUPS, op, previous);
+				ELSE
+					emitter.Emit2(InstructionSet.opMOV,op,previous);
+				END;
 			END;
 		END MakeRegister;
 
@@ -2223,7 +2237,7 @@ TYPE
 			emitter.EmitPrefix (InstructionSet.prfLOCK);
 			emitter.Emit2(InstructionSet.opCMPXCHG,mem,op3);
 		END EmitCas;
-		
+
 		PROCEDURE EmitCopy(CONST instruction: IntermediateCode.Instruction);
 		VAR op1,op2,op3: Assembler.Operand; esi, edi, ecx, t: Ticket; temp,imm: Assembler.Operand; source, dest: IntermediateCode.Operand; size: HUGEINT;
 		BEGIN
@@ -2708,17 +2722,70 @@ TYPE
 		PROCEDURE EmitAsm(CONST instruction: IntermediateCode.Instruction);
 		VAR reader: Streams.StringReader;  procedure: SyntaxTree.Procedure; scope: SyntaxTree.Scope;
 				len: LONGINT; symbol: SyntaxTree.Symbol; assembler: Assembler.Assembly;
+
+			inr, outr: IntermediateCode.Rules;
+			string: SyntaxTree.SourceCode;
+			i: LONGINT;
+			reg, dest: Assembler.Operand;
+			map: Assembler.RegisterMap;
+			register: LONGINT;
+			ticket: Ticket;
 		BEGIN
-			len := Strings.Length(instruction.op1.string^);
+			IF instruction.op2.mode = IntermediateCode.ModeRule THEN	inr := instruction.op2.rule ELSE inr := NIL END;
+			IF instruction.op3.mode = IntermediateCode.ModeRule THEN outr := instruction.op3.rule ELSE outr := NIL END;
+			string := instruction.op1.string;
+
+			NEW(map);
+
+			IF inr # NIL THEN
+				FOR i := 0 TO LEN(inr)-1 DO
+					MakeRegister(inr[i], 0, reg);
+					ASSERT(map.Find(inr[i].string^) < 0);
+					map.Add(inr[i].string, reg.register)
+				END;
+			END;
+
+			IF outr # NIL THEN
+				FOR i := 0 TO LEN(outr)-1 DO
+					IF (map.Find(outr[i].string^) < 0) THEN
+						GetTemporaryRegister(outr[i].type,reg);
+						map.Add(outr[i].string, reg.register)
+					END;
+				END;
+			END;
+
+			len := Strings.Length(string^);
 			NEW(reader,len);
-			reader.Set(instruction.op1.string^);
+			reader.Set(string^);
 
 			symbol := in.symbol;
 			procedure := symbol(SyntaxTree.Procedure);
 			scope := procedure.procedureScope;
 			NEW(assembler,diagnostics,emitter);
-			assembler.Assemble(reader,SHORT(instruction.op1.intValue),scope,in,in,module,procedure.access * SyntaxTree.Public # {}, procedure.isInline)	;
-			error := error OR assembler.error
+			assembler.Assemble(reader,SHORT(instruction.op1.intValue),scope,in,in,module,procedure.access * SyntaxTree.Public # {}, procedure.isInline, map)	;
+			error := error OR assembler.error;
+
+			IF outr # NIL THEN
+				FOR i := 0 TO LEN(outr)-1 DO
+					IF outr[i].mode # IntermediateCode.Undefined THEN
+						IntermediateCode.DumpOperand(D.Log, outr[i]); D.Ln;
+						register := map.Find(outr[i].string^);
+						ticket := physicalRegisters.Mapped(register);
+						IF ticket.lastuse = inPC THEN UnmapTicket(ticket); physicalRegisters.AllocationHint(register) END; (* try to reuse register here *)
+						Assembler.InitRegister(reg, register);
+						MakeOperand(outr[i], Low, dest, NIL);
+						IF outr[i].type.length > 0 THEN
+							Mov(InstructionSet.opMOVUPS, dest, reg)
+						ELSE
+							Mov(InstructionSet.opMOV, dest, reg)
+						END;
+					END;
+				END;
+			END;
+
+			(*
+			IntermediateCode.SetString(instruction.op1, string);
+			*)
 		END EmitAsm;
 
 	END CodeGeneratorAMD64;
@@ -2800,6 +2867,7 @@ TYPE
 					Global.SetDefaultDeclarations(system,8);
 					Global.SetDefaultOperators(system);
 				END;
+				system.SetRegisterPassCallback(CanPassInRegister);
 				AddRegisters
 			END;
 			RETURN system
@@ -2854,7 +2922,9 @@ TYPE
 			 		out := ResolvedSection(in(IntermediateCode.Section));
 			 		cg.Section(in(IntermediateCode.Section),out);
 			 		procedure := in.symbol(SyntaxTree.Procedure);
-			 		procedure.procedureScope.body.code.SetBinaryCode(out.bits);
+			 		IF procedure.procedureScope.body.code # NIL THEN
+				 		procedure.procedureScope.body.code.SetBinaryCode(out.bits);
+				 	END;
 			 	END
 		 	END;
 
@@ -2996,6 +3066,15 @@ TYPE
 				END;
 			END;
 		END FindPC;
+
+		PROCEDURE CanPassInRegister*(type: SyntaxTree.Type): BOOLEAN;
+		VAR length: LONGINT; baseType: SyntaxTree.Type; b: BOOLEAN;
+		BEGIN
+			b := SemanticChecker.IsStaticMathArray(type, length, baseType) & (baseType IS SyntaxTree.FloatType) & (baseType.sizeInBits = 32) & (length = 4);
+			TRACE(b, length);
+			RETURN b
+		END CanPassInRegister;
+
 
 		PROCEDURE GetDescription*(VAR instructionSet: ARRAY OF CHAR);
 		BEGIN instructionSet := "AMD";

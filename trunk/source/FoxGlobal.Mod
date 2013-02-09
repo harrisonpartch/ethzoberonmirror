@@ -20,6 +20,7 @@ CONST
 	StringAlignStack*="ALIGNSTACK";
 	StringFinal*="FINAL";
 	StringAbstract*="ABSTRACT";
+	StringRegister*= "REGISTER";
 
 	(* block modifier flag names *)
 	StringExclusive* = "EXCLUSIVE";
@@ -117,7 +118,7 @@ VAR
 	NameWinAPI-,NameC-,NameUntraced-,NameDelegate-,NameInterrupt-, NamePcOffset-, NameNoPAF-,NameEntry-, NameExit-, NameFixed-,NameAligned-,NameStackAligned-,
 	NameExclusive-,NameActive-,NamePriority-,NameSafe-,NameRealtime-, NameDynamic-, NameDataMemorySize-, NameCodeMemorySize-
 	, NameChannelWidth-, NameChannelDepth-, NameChannelModule-, NameVector-, NameFloatingPoint-, NameEngine-, NameFinal-, NameAbstract-,
-	NameFrequencyDivider-: SyntaxTree.Identifier;
+	NameFrequencyDivider-, NameRegister-: SyntaxTree.Identifier;
 
 	identifiers: ARRAY 2 OF ARRAY end OF SyntaxTree.Identifier;
 
@@ -135,6 +136,8 @@ TYPE
 	Alignment* = RECORD
 		min, max: LONGINT; (* alignments in bits *)
 	END;
+
+	PassInRegisterProc = PROCEDURE {DELEGATE} (type: SyntaxTree.Type): BOOLEAN;
 
 	System*= OBJECT
 	VAR
@@ -168,6 +171,8 @@ TYPE
 		addressType-, sizeType-, shortintType-, integerType-, longintType-, hugeintType-, characterType-, characterType8-, characterType16-, characterType32-, setType-, booleanType-, anyType-,byteType-,
 		realType-, longrealType-, complexType-, longcomplexType-, objectType-, nilType-, rangeType-: SyntaxTree.Type;
 
+		CanPassInRegister-: PassInRegisterProc;
+
 		PROCEDURE &InitSystem*(codeUnit, dataUnit: LONGINT; addressSize, minVarAlign, maxVarAlign, minParAlign, maxParAlign, offsetFirstPar, registerParameters: LONGINT);
 		VAR i: LONGINT;
 		BEGIN
@@ -190,7 +195,14 @@ TYPE
 			FOR i := 0 TO LEN(operatorDefined)-1 DO
 				operatorDefined[i] := FALSE;
 			END;
+			CanPassInRegister :=NIL
 		END InitSystem;
+
+		PROCEDURE SetRegisterPassCallback*(canPassInRegister: PassInRegisterProc);
+		BEGIN
+			CanPassInRegister := canPassInRegister;
+		END SetRegisterPassCallback;
+
 
 		PROCEDURE AddCapability*(name: SyntaxTree.Identifier);
 		VAR symbol: SyntaxTree.Symbol;
@@ -1356,6 +1368,7 @@ TYPE
 		NameFinal := SyntaxTree.NewIdentifier(StringFinal);
 		NameAbstract := SyntaxTree.NewIdentifier(StringAbstract);
 		NameFrequencyDivider := SyntaxTree.NewIdentifier(StringFrequencyDivider);
+		NameRegister := SyntaxTree.NewIdentifier(StringRegister);
 
 		(* types *)
 		Boolean8 := SyntaxTree.NewBooleanType(8);

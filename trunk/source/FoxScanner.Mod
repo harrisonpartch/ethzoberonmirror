@@ -593,14 +593,14 @@ TYPE
 			symbol.string := stringMaker.GetString(symbol.stringLength);
 		END ReadComment;
 
-		PROCEDURE SkipToNextEnd*(VAR startPos,endPos: LONGINT; VAR symbol: Symbol): BOOLEAN;
+		PROCEDURE SkipToEndOfCode*(VAR startPos,endPos: LONGINT; VAR symbol: Symbol): Token;
 		VAR s: LONGINT;
 		BEGIN
 			ASSERT(case # Unknown);
 			stringMaker.Clear;
 			startPos := symbol.end;
 			s := symbol.token;
-			WHILE (s # EndOfText) & (s # End) DO
+			WHILE (s # EndOfText) & (s # End) & (s # With) DO
 				symbol.start := position;
 				endPos := position;
 				CASE ch OF
@@ -608,6 +608,8 @@ TYPE
 					GetIdentifier(symbol);
 					IF (case=Uppercase) & (symbol.identifierString = "END") OR (case=Lowercase) & (symbol.identifierString = "end") THEN
 						s := End
+					ELSIF (case = Uppercase) & (symbol.identifierString = "WITH") OR (case = Lowercase) & (symbol.identifierString = "with") THEN
+						s := With
 					ELSE
 						stringWriter.String(symbol.identifierString);
 					END;
@@ -625,8 +627,8 @@ TYPE
 				D.String("skip to end: "); D.Int(startPos,1); D.String(","); D.Int(endPos,1); D.Ln;
 				OutSymbol(D.Log,symbol); D.Ln;
 			END;
-			RETURN s=End
-		END SkipToNextEnd;
+			RETURN s
+		END SkipToEndOfCode;
 
 		PROCEDURE SkipBlanks;
 		BEGIN

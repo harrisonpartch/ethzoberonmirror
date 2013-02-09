@@ -698,6 +698,17 @@ TYPE
 			w.String("("); ExpressionList(x.parameters); w.String(")");
 		END VisitProcedureCallDesignator;
 
+		PROCEDURE VisitStatementDesignator(x: SyntaxTree.StatementDesignator);
+		BEGIN
+			Indent; Keyword("STATEMENT-DESIGNATOR ");
+			IF x.result # NIL THEN
+				Keyword("RETURNS ");
+				Expression(x.result)
+			END;
+			Indent; Statement(x.statement);
+		END VisitStatementDesignator;
+
+
 		PROCEDURE VisitBuiltinCallDesignator(x: SyntaxTree.BuiltinCallDesignator);
 		BEGIN
 			IF x.left # NIL THEN
@@ -1561,6 +1572,13 @@ TYPE
 			Indent;  Keyword("END" );
 		END VisitLoopStatement;
 
+		PROCEDURE VisitExitableBlock(x: SyntaxTree.ExitableBlock);
+		BEGIN
+			Keyword("EXITABLE " );
+			w.IncIndent;  StatementSequence(x.statements);  w.DecIndent;
+			Indent;  Keyword("END " );
+		END VisitExitableBlock;
+
 		PROCEDURE VisitExitStatement(x: SyntaxTree.ExitStatement);
 		BEGIN 	Keyword("EXIT" ) END VisitExitStatement;
 
@@ -1615,7 +1633,7 @@ TYPE
 
 		PROCEDURE VisitStatementBlock(x: SyntaxTree.StatementBlock);
 		BEGIN
-			Indent; Keyword("BEGIN"); Modifiers(x.blockModifiers);
+			Keyword("BEGIN"); Modifiers(x.blockModifiers);
 			w.IncIndent;
 			IF x.statements # NIL THEN StatementSequence(x.statements);  END;
 			w.DecIndent;
@@ -1669,9 +1687,21 @@ TYPE
 		END Code;
 
 		PROCEDURE VisitCode(x: SyntaxTree.Code);
+		VAR in, out: BOOLEAN;
 		BEGIN
 			Indent; Keyword("CODE");
 			Code(x);
+			in := x.inRules.Length()>0;
+			out := x.outRules.Length() >0;
+			IF in OR out THEN
+				Indent; Keyword("WITH ");
+				IF in THEN
+					Indent; Keyword("IN "); StatementSequence(x.inRules)
+				END;
+				IF out THEN
+					Indent; Keyword("OUT "); StatementSequence(x.outRules)
+				END;
+			END;
 			Indent; Keyword("END");
 		END VisitCode;
 

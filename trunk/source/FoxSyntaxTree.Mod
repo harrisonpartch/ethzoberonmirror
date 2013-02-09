@@ -193,6 +193,9 @@ TYPE
 		PROCEDURE VisitProcedureCallDesignator*(x: ProcedureCallDesignator);
 		BEGIN HALT(100) (* abstract *) END VisitProcedureCallDesignator;
 
+		PROCEDURE VisitStatementDesignator*(x: StatementDesignator);
+		BEGIN HALT(100) (* abstract *) END VisitStatementDesignator;
+
 		PROCEDURE VisitBuiltinCallDesignator*(x: BuiltinCallDesignator);
 		BEGIN HALT(100) (* abstract *) END VisitBuiltinCallDesignator;
 
@@ -303,6 +306,9 @@ TYPE
 
 		PROCEDURE VisitLoopStatement*(x: LoopStatement);
 		BEGIN HALT(100) (* abstract *) END VisitLoopStatement;
+
+		PROCEDURE VisitExitableBlock*(x: ExitableBlock);
+		BEGIN HALT(100) (* abstract *) END VisitExitableBlock;
 
 		PROCEDURE VisitExitStatement*(x: ExitStatement);
 		BEGIN HALT(100) (* abstract *) END VisitExitStatement;
@@ -1697,9 +1703,12 @@ TYPE
 		END SetAssignable;
 
 		PROCEDURE Clone(): Expression;
+		VAR clone: Expression;
 		BEGIN
-			HALT(200); (* abstract *)
+			(* support cloning here for more robust error reporting -- should not happen normally *)
+			NEW(clone, position); RETURN clone
 		END Clone;
+
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2013,6 +2022,13 @@ TYPE
 		BEGIN modifiers := flags
 		END SetModifiers;
 
+		PROCEDURE Clone(): Expression;
+		VAR clone: Designator;
+		BEGIN
+			(* support cloning here for more robust error reporting -- should not happen normally *)
+			NEW(clone, position); RETURN clone
+		END Clone;
+
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
 		BEGIN position := SELF.position; v.VisitDesignator(SELF)
@@ -2212,6 +2228,35 @@ TYPE
 		END Accept;
 
 	END IndexDesignator;
+
+	StatementDesignator* = OBJECT (Designator)
+	VAR
+		statement-: Statement;
+		result-: Expression;
+
+		PROCEDURE & InitStatementDesignator(position: LONGINT; s: Statement);
+		BEGIN
+			InitDesignator(position); statement := s; result := NIL;
+		END InitStatementDesignator;
+
+		PROCEDURE Clone(): Expression;
+		VAR copy: StatementDesignator;
+		BEGIN
+			NEW(copy, position, CloneStatement(statement)) ;
+			copy.result := CloneExpression(result);
+			RETURN copy
+		END Clone;
+
+		PROCEDURE SetResult*(r: Expression);
+		BEGIN result := r
+		END SetResult;
+
+		PROCEDURE Accept*(v: Visitor);
+		VAR position: LONGINT;
+		BEGIN position := SELF.position; v.VisitStatementDesignator(SELF)
+		END Accept;
+
+	END StatementDesignator;
 
 	(** <<left(parameters)>>
 		procedure call
@@ -2884,6 +2929,7 @@ TYPE
 	VAR
 		nextVariable-: Variable;
 		untraced-: BOOLEAN;
+		useRegister-: BOOLEAN; registerNumber-: LONGINT;
 		modifiers-: Modifier;
 
 		PROCEDURE & InitVariable*( position: LONGINT;  name: Identifier);
@@ -2893,11 +2939,23 @@ TYPE
 			modifiers := NIL;
 			untraced := FALSE;
 			modifiers := NIL;
+			useRegister := FALSE;
+			registerNumber := -1;
 		END InitVariable;
 
 		PROCEDURE SetUntraced*(u: BOOLEAN);
 		BEGIN untraced := u
 		END SetUntraced;
+
+		PROCEDURE SetUseRegister*(u: BOOLEAN);
+		BEGIN
+			useRegister := u
+		END SetUseRegister;
+
+		PROCEDURE SetRegisterNumber*(reg: LONGINT);
+		BEGIN
+			registerNumber := reg
+		END SetRegisterNumber;
 
 
 		PROCEDURE SetModifiers*(flag: Modifier);
@@ -3225,6 +3283,10 @@ TYPE
 			comment := NIL;
 		END InitStatement;
 
+		PROCEDURE SetOuter*(o: Statement);
+		BEGIN outer := o
+		END SetOuter;
+
 		PROCEDURE SetUnreachable*(unreachable: BOOLEAN);
 		BEGIN isUnreachable := unreachable
 		END SetUnreachable;
@@ -3375,6 +3437,7 @@ TYPE
 		VAR copy: IfStatement; i: LONGINT;
 		BEGIN
 			NEW(copy, position, outer);
+			copy.ifPart := ifPart.Clone();
 			FOR i := 0 TO ElsifParts()-1 DO
 				copy.AddElsifPart(GetElsifPart(i).Clone());
 			END;
@@ -3730,18 +3793,35 @@ TYPE
 
 	END ForStatement;
 
-	(** << LOOP statements END >> **)
-	LoopStatement* = OBJECT (Statement)
-		VAR statements-: StatementSequence;
+	ExitableBlock*= OBJECT (Statement)
+	VAR statements-: StatementSequence;
 
-		PROCEDURE & InitLoopStatement( position: LONGINT ; outer: Statement);
+		PROCEDURE & InitExitableBlock( position: LONGINT ; outer: Statement);
 		BEGIN
 			InitStatement( position ,outer);  statements := NIL;
-		END InitLoopStatement;
+		END InitExitableBlock;
 
 		PROCEDURE SetStatements*( statements: StatementSequence );
 		BEGIN SELF.statements := statements;
 		END SetStatements;
+
+		PROCEDURE Clone(): Statement;
+		VAR copy: ExitableBlock;
+		BEGIN
+			NEW(copy, position, outer);
+			copy.SetStatements(CloneStatementSequence(statements));
+			RETURN copy
+		END Clone;
+
+		PROCEDURE Accept*(v: Visitor);
+		VAR position: LONGINT;
+		BEGIN position := SELF.position; v.VisitExitableBlock(SELF)
+		END Accept;
+
+	END ExitableBlock;
+
+	(** << LOOP statements END >> **)
+	LoopStatement* = OBJECT (ExitableBlock)
 
 		PROCEDURE Clone(): Statement;
 		VAR copy: LoopStatement;
@@ -3904,12 +3984,14 @@ TYPE
 	VAR
 		sourceCode-: SourceCode; sourceCodeLength-: LONGINT;
 		inlineCode-: BinaryCode;
+		inRules-, outRules-: StatementSequence;
 
 		PROCEDURE & InitCode(position: LONGINT; outer: Statement);
 		BEGIN
 			InitStatement(position,outer);
 			inlineCode := NIL;
 			sourceCode := NIL; sourceCodeLength := 0;
+			NEW(inRules); NEW(outRules);
 		END InitCode;
 
 		PROCEDURE SetSourceCode*(source: SourceCode; length: LONGINT);
@@ -3929,6 +4011,8 @@ TYPE
 			NEW(s, sourceCodeLength);
 			Strings.Copy(sourceCode^,0,sourceCodeLength,s^);
 			copy.SetSourceCode(s, sourceCodeLength);
+			copy.inRules := CloneStatementSequence(inRules);
+			copy.outRules := CloneStatementSequence(outRules);
 			RETURN copy
 		END Clone;
 
@@ -4555,6 +4639,49 @@ TYPE
 
 	END Module;
 
+	(** <<expression, expression, ...>> **)
+	SymbolList* = OBJECT
+		VAR list: Basic.List;
+
+		PROCEDURE & InitList*;
+		BEGIN NEW( list,8 );
+		END InitList;
+
+		PROCEDURE Length*( ): LONGINT;
+		BEGIN RETURN list.Length();
+		END Length;
+
+		PROCEDURE AddSymbol*( d: Symbol );
+		BEGIN list.Add(d)
+		END AddSymbol;
+
+		PROCEDURE GetSymbol*( index: LONGINT ): Symbol;
+		VAR p: ANY;
+		BEGIN
+			p := list.Get(index); RETURN p(Symbol);
+		END GetSymbol;
+
+		PROCEDURE SetSymbol*(index: LONGINT; expression: Symbol);
+		BEGIN list.Set(index,expression)
+		END SetSymbol;
+
+		PROCEDURE RemoveSymbol*(i: LONGINT);
+		BEGIN list.RemoveByIndex(i);
+		END RemoveSymbol;
+
+		(*
+		PROCEDURE Clone*(VAR list: SymbolList);
+		VAR i: LONGINT;
+		BEGIN
+			IF list = NIL THEN NEW(list) END;
+			FOR i := 0 TO Length()-1 DO
+				list.AddSymbol(CloneSymbol(GetSymbol(i)));
+			END;
+		END Clone;
+		*)
+
+	END SymbolList;
+
 VAR
 	(* invalid items used, for example, by parser and checker *)
 	invalidIdentifier-: Identifier;
@@ -4920,13 +5047,26 @@ VAR
 	END NewExpression;
 
 	PROCEDURE CloneExpression*(e: Expression): Expression;
+	VAR copy: Expression;
 	BEGIN
-		IF e = NIL THEN RETURN NIL ELSE RETURN e.Clone() END;
+		IF e = NIL THEN
+			RETURN NIL
+		ELSE
+			copy := e.Clone();
+			copy.type := e.type;
+			copy.assignable := e.assignable;
+			copy.position := e.position;
+			copy.state := e.state;
+			IF e.resolved = e THEN copy.resolved := copy(Value);
+			ELSIF e.resolved # NIL THEN copy.resolved := CloneExpression(e.resolved)(Value);
+			END;
+			RETURN copy
+		END;
 	END CloneExpression;
 
 	PROCEDURE CloneDesignator*(e: Expression): Designator;
 	BEGIN
-		IF e = NIL THEN RETURN NIL ELSE RETURN e.Clone()(Designator) END;
+		IF e = NIL THEN RETURN NIL ELSE RETURN CloneExpression(e)(Designator) END;
 	END CloneDesignator;
 
 	PROCEDURE NewElement*( position: LONGINT;  from,to: Expression ): Expression;
@@ -5074,6 +5214,13 @@ VAR
 		NEW( statementBlock, position, outer );  RETURN statementBlock
 	END NewStatementBlock;
 
+	PROCEDURE NewStatementDesignator*(position: LONGINT; s: Statement): StatementDesignator;
+	VAR statementDesignator: StatementDesignator;
+	BEGIN
+		NEW( statementDesignator, position, s); RETURN statementDesignator
+	END NewStatementDesignator;
+
+
 	PROCEDURE NewBody*( position: LONGINT ; scope: ProcedureScope): Body;
 	VAR body: Body;
 	BEGIN
@@ -5151,6 +5298,12 @@ VAR
 	BEGIN
 		NEW( loopStatement, position ,outer);  RETURN loopStatement
 	END NewLoopStatement;
+
+	PROCEDURE NewExitableBlock*( position: LONGINT ; outer: Statement): ExitableBlock;
+	VAR loopStatement: ExitableBlock;
+	BEGIN
+		NEW( loopStatement, position ,outer);  RETURN loopStatement
+	END NewExitableBlock;
 
 	PROCEDURE NewExitStatement*( position: LONGINT ; outer: Statement): ExitStatement;
 	VAR exitStatement: ExitStatement;

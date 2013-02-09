@@ -137,7 +137,7 @@ CLC				F8	8086
 						
 CLD				FC	8086	
 						
-CFLUSH	mem8			0F AE /7	SSE2	
+CLFLUSH	mem8			0F AE /7	SSE2	
 						
 CMC				F5	8086	
 						

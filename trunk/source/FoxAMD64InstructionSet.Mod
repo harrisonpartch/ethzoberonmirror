@@ -231,10 +231,10 @@ CONST
 		regST0 regST1 regST2 regST3 regST4 regST5 regST6 regST7
 		regXMM0 regXMM1 regXMM2 regXMM3 regXMM4 regXMM5 regXMM6 regXMM7
 		regXMM8 regXMM9 regXMM10 regXMM11 regXMM12 regXMM13 regXMM14 regXMM15
-		regMMX0 regMMX1 regMMX2 regMMX3 regMMX4 regMMX5 regMMX6 regMMX7  
+		regMMX0 regMMX1 regMMX2 regMMX3 regMMX4 regMMX5 regMMX6 regMMX7
 		regYMM0 regYMM1 regYMM2 regYMM3 regYMM4 regYMM5 regYMM6 regYMM7
 		regYMM8 regYMM9 regYMM10 regYMM11 regYMM12 regYMM13 regYMM14 regYMM15
-		
+
 		numberRegisters
 		~
 	*)
@@ -326,7 +326,7 @@ CONST
 	opCBW* = 28;
 	opCDQ* = 29;
 	opCDQE* = 30;
-	opCFLUSH* = 31;
+	opCLFLUSH* = 31;
 	opCLC* = 32;
 	opCLD* = 33;
 	opCLGI* = 34;
@@ -1324,9 +1324,9 @@ VAR
 		AddInstruction(119, none, none, none, "98", {}, {cpuAMD64});
 		EndMnemonic(opCDQE, 119);
 
-		StartMnemonic(opCFLUSH, "CFLUSH", 120);
+		StartMnemonic(opCLFLUSH, "CLFLUSH", 120);
 		AddInstruction(120, mem8, none, none, "0FAE/7", {}, {cpuSSE2});
-		EndMnemonic(opCFLUSH, 120);
+		EndMnemonic(opCLFLUSH, 120);
 
 		StartMnemonic(opCLC, "CLC", 121);
 		AddInstruction(121, none, none, none, "F8", {}, {cpu8086});

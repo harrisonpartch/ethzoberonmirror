@@ -1157,7 +1157,9 @@ TYPE
 				(*dump.Update;*)
 			END;
 			x.Accept(SELF);
+			(*
 			CheckRegistersFree();
+			*)
 			(*ResetUsedTemporaries(use);*)
 			temporaries.SetUsage(use);
 		END Statement;
@@ -3776,6 +3778,23 @@ TYPE
 			ReleaseOperand(operand);
 			IF Trace THEN TraceExit("PushParameter") END;
 		END PushParameter;
+
+		PROCEDURE VisitStatementDesignator(x: SyntaxTree.StatementDesignator);
+		BEGIN
+
+			IF (x.result # NIL) & ( x.result IS SyntaxTree.SymbolDesignator) & (x.result(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Variable) & (x.result(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Variable).useRegister) THEN
+				Expression(x.result); (* use register *)
+			END;
+
+			Statement(x.statement);
+			IF x.result # NIL THEN Expression(x.result) END;
+
+			IF (x.result # NIL) & (x.result IS SyntaxTree.SymbolDesignator) & (x.result(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Variable) & (x.result(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Variable).useRegister) THEN
+				ReleaseIntermediateOperand(result.op);
+			END;
+
+
+		END VisitStatementDesignator;
 
 		PROCEDURE VisitProcedureCallDesignator(x: SyntaxTree.ProcedureCallDesignator);
 		VAR
@@ -6579,7 +6598,13 @@ TYPE
 		BEGIN
 			IF Trace THEN TraceEnter("VisitVariable");  END;
 			type := x.type.resolved;
-			IF (x.scope IS SyntaxTree.ProcedureScope) THEN (* local variable (potentially via nested procedure) *)
+			IF (x.useRegister) THEN
+				InitOperand(result, ModeValue);
+				IF x.registerNumber < 0 THEN x.SetRegisterNumber(AcquireRegister(IntermediateCode.GetType(system, type),IntermediateCode.GeneralPurposeRegister))
+				ELSE UseRegister(x.registerNumber);
+				END;
+				IntermediateCode.InitRegister(result.op,IntermediateCode.GetType(system, type),IntermediateCode.GeneralPurposeRegister,x.registerNumber);
+			ELSIF (x.scope IS SyntaxTree.ProcedureScope) THEN (* local variable (potentially via nested procedure) *)
 				InitOperand(result,ModeReference);
 				GetBaseRegister(result.op,currentScope,x.scope);
 				IntermediateCode.AddOffset(result.op,ToMemoryUnits(system,x.offsetInBits));
@@ -6807,7 +6832,7 @@ TYPE
 			ELSIF (sectionType = Sections.InlineCodeSection) & (x.procedureScope.body.code.sourceCode # NIL) THEN
 				source := NewSection(module.allSections, sectionType, name,x,commentPrintout # NIL);
 				IF source.pc = 0 THEN (* no code yet *)
-					source.Emit(Asm(position,x.procedureScope.body.code.sourceCode));
+					source.Emit(Asm(position,x.procedureScope.body.code.sourceCode,NIL,NIL));
 				END;
 			ELSIF (sectionType = Sections.InlineCodeSection) & (x.procedureScope.body.code.inlineCode # NIL) THEN
 				bits := x.procedureScope.body.code.inlineCode;
@@ -7014,8 +7039,12 @@ TYPE
 				Evaluate(right,rightO);
 				(* DO NOT REORDER EMISSION OF LEFT AND RIGHT OPERAND *)
 				Designate(left,leftO);
+				IF leftO.mode = ModeReference THEN
 				MakeMemory(mem,leftO.op,IntermediateCode.GetType(system,left.type),0);
 				destination := mem;
+				ELSE
+					destination := leftO.op;
+				END;
 				ReleaseOperand(leftO);
 				IF destination.mode # IntermediateCode.Undefined THEN
 					Emit(Mov(position,destination,rightO.op));
@@ -7089,7 +7118,7 @@ TYPE
 					IF value THEN (* always true *)
 						escape := TRUE;
 						StatementSequence(if.statements);
-						BrL(end);
+						(* no branch necessary -- rest skipped *)
 					END;
 				END;
 			END IfPart;
@@ -7097,8 +7126,8 @@ TYPE
 		BEGIN
 			IF Trace THEN TraceEnter("VisitIfStatement") END;
 			end := NewLabel();
-			IfPart(x.ifPart);
 			elsifs := x.ElsifParts();
+			IfPart(x.ifPart);
 			FOR i := 0 TO elsifs-1 DO
 				IF ~escape THEN
 					elsif := x.GetElsifPart(i);
@@ -7299,6 +7328,18 @@ TYPE
 			IF Trace THEN TraceExit("VisitForStatement") END;
 		END VisitForStatement;
 
+		PROCEDURE VisitExitableBlock(x: SyntaxTree.ExitableBlock);
+		VAR prevLoop: Label;
+		BEGIN
+			IF Trace THEN TraceEnter("VisitExitableBlock") END;
+			prevLoop := currentLoop;
+			currentLoop := NewLabel();
+			StatementSequence(x.statements);
+			SetLabel(currentLoop);
+			currentLoop := prevLoop;
+			IF Trace THEN TraceExit("VisitExitableBlock") END;
+		END VisitExitableBlock;
+
 		PROCEDURE VisitLoopStatement(x: SyntaxTree.LoopStatement);
 		VAR prevLoop,start: Label;
 		BEGIN
@@ -7320,10 +7361,10 @@ TYPE
 			IF Trace THEN TraceEnter("VisitExitStatement") END;
 			IF locked  THEN (* r if we jump out of an exclusive block *)
 				outer := x.outer;
-				WHILE ~(outer IS SyntaxTree.LoopStatement) & ~((outer IS SyntaxTree.StatementBlock) & outer(SyntaxTree.StatementBlock).isExclusive) DO
+				WHILE ~(outer IS SyntaxTree.ExitableBlock) & ~((outer IS SyntaxTree.StatementBlock) & outer(SyntaxTree.StatementBlock).isExclusive) DO
 					outer := outer.outer;
 				END;
-				IF ~(outer IS SyntaxTree.LoopStatement) THEN
+				IF ~(outer IS SyntaxTree.ExitableBlock) THEN
 					Lock(FALSE);
 				END;
 			END;
@@ -7602,9 +7643,63 @@ TYPE
 
 		PROCEDURE VisitCode(x: SyntaxTree.Code);
 		VAR (*  inline: Sections.CellNet; symbol: SyntaxTree.Symbol; *)
+			in, out: IntermediateCode.Rules; statement: SyntaxTree.Statement; i: LONGINT; operand: Operand; str: POINTER TO ARRAY OF CHAR;
+				result: IntermediateCode.Operand;
 		BEGIN
 			IF Trace THEN TraceEnter("VisitCode") END;
-			Emit(Asm(x.position,x.sourceCode));
+			IF (x.inRules # NIL) & (x.inRules.Length()>0) THEN
+				NEW(in, x.inRules.Length());
+				FOR i := 0 TO LEN(in)-1 DO
+					statement := x.inRules.GetStatement(i);
+					WITH statement: SyntaxTree.Assignment DO
+						Evaluate(statement.right, operand);
+						result := operand.op;
+						NEW(str, 64);
+						Basic.GetString(statement.left(SyntaxTree.IdentifierDesignator).identifier, str^);
+						in[i] := result; IntermediateCode.SetString(in[i], str);
+					END;
+				END;
+			ELSE in := NIL
+			END;
+			IF (x.outRules # NIL) & (x.outRules.Length()>0) THEN
+				NEW(out, x.outRules.Length());
+				FOR i := 0 TO LEN(out)-1 DO
+					statement := x.outRules.GetStatement(i);
+					IF statement IS SyntaxTree.StatementBlock THEN statement := statement(SyntaxTree.StatementBlock).statements.GetStatement(0) END;
+					WITH statement: SyntaxTree.Assignment DO
+						Evaluate(statement.left, operand); (*?? or designate *)
+						result := operand.op;
+						NEW(str, 64);
+						Basic.GetString(statement.right(SyntaxTree.IdentifierDesignator).identifier, str^);
+						out[i] := result; IntermediateCode.SetString(out[i], str);
+					|statement: SyntaxTree.ReturnStatement DO
+						NEW(str, 64);
+						Basic.GetString(statement.returnValue(SyntaxTree.IdentifierDesignator).identifier, str^);
+						out[i] := emptyOperand; IntermediateCode.SetString(out[i], str);
+					ELSE
+					END;
+				END;
+			ELSE out := NIL
+			END;
+			Emit(Asm(x.position,x.sourceCode, in, out));
+			IF in # NIL THEN
+				FOR i := 0 TO LEN(in)-1 DO
+					ReleaseIntermediateOperand(in[i]);
+				END;
+			END;
+			IF out # NIL THEN
+				FOR i := 0 TO LEN(out)-1 DO
+					ReleaseIntermediateOperand(out[i]);
+					statement := x.outRules.GetStatement(i);
+					IF statement IS SyntaxTree.StatementBlock THEN
+						statement := statement(SyntaxTree.StatementBlock).statements.GetStatement(1);
+						Statement(statement);
+
+					END;
+
+				END;
+			END;
+
 			IF Trace THEN TraceExit("VisitCode") END;
 		END VisitCode;
 
@@ -9713,12 +9808,14 @@ TYPE
 		RETURN instruction
 	END Copy;
 
-	PROCEDURE Asm(position: LONGINT;s: SyntaxTree.SourceCode): IntermediateCode.Instruction;
-	VAR instruction: IntermediateCode.Instruction; string: IntermediateCode.Operand;
+	PROCEDURE Asm(position: LONGINT;s: SyntaxTree.SourceCode; inRules, outRules: IntermediateCode.Rules): IntermediateCode.Instruction;
+	VAR instruction: IntermediateCode.Instruction; string, o1, o2: IntermediateCode.Operand;
 	BEGIN
 		string := IntermediateCode.String(s);
 		IntermediateCode.SetIntValue(string,position); (* for error reporting *)
-		IntermediateCode.InitInstruction(instruction,position,IntermediateCode.asm,string,emptyOperand,emptyOperand);
+		IF inRules # NIL THEN IntermediateCode.InitRule(o1, inRules) ELSE o1 := emptyOperand END;
+		IF outRules # NIL THEN IntermediateCode.InitRule(o2, outRules) ELSE o2 := emptyOperand END;
+		IntermediateCode.InitInstruction(instruction,position,IntermediateCode.asm,string,o1,o2);
 		RETURN instruction
 	END Asm;
 

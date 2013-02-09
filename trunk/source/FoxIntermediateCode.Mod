@@ -12,6 +12,7 @@ CONST
 	ModeImmediate*=3; (* immediate number with type, may include section implying a fixup of the immediate *)
 	ModeNumber*=4; (* immediate integer number without any type, typically used as meta-information for instructions *)
 	ModeString*=5; (* for inline code *)
+	ModeRule*=6; (* for inline code with replacements *)
 
 	(* operand classes *)
 	Undef* = {Undefined};
@@ -21,6 +22,7 @@ CONST
 	RegMemImm* = {ModeRegister,ModeMemory,ModeImmediate};
 	UndefReg*={Undefined,ModeRegister};
 	UndefRegMem*={Undefined, ModeRegister, ModeMemory};
+	UndefRule*= {Undefined, ModeRule};
 	Num* = {ModeNumber};
 	Str*= {ModeString};
 	Any = {Undefined, ModeRegister, ModeMemory, ModeImmediate};
@@ -59,12 +61,12 @@ CONST
 		mul div  mod sub add and or xor shl shr rol ror
 		cas copy fill asm data reserve label special NofOpcodes~
 	*)
-	nop*= 0; mov*= 1; conv*= 2; call*= 3; enter*= 4; exit*= 5; leave*= 6; return*= 7; 
-	result*= 8; trap*= 9; br*= 10; breq*= 11; brne*= 12; brge*= 13; brlt*= 14; pop*= 15; 
-	push*= 16; neg*= 17; not*= 18; abs*= 19; mul*= 20; div*= 21; mod*= 22; sub*= 23; 
-	add*= 24; and*= 25; or*= 26; xor*= 27; shl*= 28; shr*= 29; rol*= 30; ror*= 31; 
-	cas*= 32; copy*= 33; fill*= 34; asm*= 35; data*= 36; reserve*= 37; label*= 38; special*= 39; 
-	NofOpcodes*= 40; 
+	nop*= 0; mov*= 1; conv*= 2; call*= 3; enter*= 4; exit*= 5; leave*= 6; return*= 7;
+	result*= 8; trap*= 9; br*= 10; breq*= 11; brne*= 12; brge*= 13; brlt*= 14; pop*= 15;
+	push*= 16; neg*= 17; not*= 18; abs*= 19; mul*= 20; div*= 21; mod*= 22; sub*= 23;
+	add*= 24; and*= 25; or*= 26; xor*= 27; shl*= 28; shr*= 29; rol*= 30; ror*= 31;
+	cas*= 32; copy*= 33; fill*= 34; asm*= 35; data*= 36; reserve*= 37; label*= 38; special*= 39;
+	NofOpcodes*= 40;
 
 	NotYetCalculatedSize = -2;
 
@@ -72,12 +74,21 @@ TYPE
 	Type*=RECORD
 		form-: SHORTINT; (* SignedInteger, UnsignedInteger or Float *)
 		sizeInBits-: INTEGER; (* size in bits *)
+		length-: LONGINT; (* vector length, if any. If zero then type is scalar *)
 	END;
 
 	RegisterClass*=RECORD
 		class-: SHORTINT;
 		number-: INTEGER;
 	END;
+
+	Rules*= POINTER TO ARRAY OF Operand;
+
+	RegisterMap*= RECORD register*: LONGINT; name*: SyntaxTree.SourceCode END;
+	BackendRules*= POINTER TO ARRAY OF RegisterMap;
+
+
+
 
 	Operand* = RECORD
 		mode-: SHORTINT; (* Undefined, ModeRegister, ModeImmediate, ModeMemory, ModeNumber or ModeString *)
@@ -93,6 +104,8 @@ TYPE
 		resolved*: Sections.Section; (** only cache ! *)
 
 		string-: SyntaxTree.SourceCode; (* string, if Mode = ModeString *)
+
+		rule-: Rules;
 	END;
 
 	(*
@@ -421,7 +434,7 @@ TYPE
 	VAR mode: LONGINT;
 	BEGIN
 		mode := left.mode;
-		IF (left.type.form =right.type.form) & (left.type.sizeInBits=right.type.sizeInBits) & (mode = right.mode) THEN
+		IF (left.type.form =right.type.form) & (left.type.sizeInBits=right.type.sizeInBits) & (left.type.length = right.type.length) & (mode = right.mode) THEN
 			CASE mode OF
 			ModeRegister: RETURN (left.register = right.register) & (left.offset = right.offset)
 			|ModeMemory: RETURN (left.register = right.register) &(left.offset = right.offset) & (left.symbol = right.symbol) & (left.symbolOffset = right.symbolOffset);
@@ -527,6 +540,9 @@ TYPE
 
 	PROCEDURE DumpType*(w: Streams.Writer; type: Type);
 	BEGIN
+		IF type.length > 1 THEN
+			w.String("v"); w.Int(type.length,0);
+		END;
 		CASE type.form OF
 			| Undefined: w.String("(invalid type)")
 			| UnsignedInteger: w.String("u"); w.Int(type.sizeInBits, 0)
@@ -536,6 +552,7 @@ TYPE
 	END DumpType;
 
 	PROCEDURE DumpOperand*(w: Streams.Writer; CONST operand: Operand );
+	VAR i: LONGINT;
 
 		PROCEDURE DumpString(CONST str: ARRAY OF CHAR);
 		VAR
@@ -620,6 +637,11 @@ TYPE
 		|ModeString:
 			DumpString(operand.string^);
 		|ModeNumber: w.Int(SHORT(operand.intValue),1);
+		|ModeRule:
+			w.String("rules");
+			FOR i := 0 TO LEN(operand.rule)-1 DO
+				w.String(" "); DumpOperand(w,operand.rule[i]);  w.String(" = "); DumpString(operand.rule[i].string^);
+			END;
 		END;
 		(*
 		w.Update();
@@ -628,7 +650,7 @@ TYPE
 	END DumpOperand;
 
 	PROCEDURE TypeEquals*(CONST s1,s2: Type): BOOLEAN;
-	BEGIN RETURN (s1.form = s2.form) & (s1.sizeInBits = s2.sizeInBits);
+	BEGIN RETURN (s1.form = s2.form) & (s1.sizeInBits = s2.sizeInBits) & (s1.length = s2.length);
 	END TypeEquals;
 
 	PROCEDURE OperandEquals*(CONST s1,s2: Operand) : BOOLEAN;
@@ -730,7 +752,7 @@ TYPE
 		(* fill dest val size - fill a block of size op2 units of memory from [op1] with value in op3 *)
 		AddFormat(fill, "fill", RegMemImm, RegMemImm, RegMemImm,{SameType12});
 		(* asm attribute - asm code contained in attribute *)
-		AddFormat(asm, "asm", Str, Undef, Undef,{});
+		AddFormat(asm, "asm", Str, UndefRule, UndefRule,{});
 		(* data imm - instruction to build up constants or (global) variables *)
 		AddFormat(data, "data", Imm, Undef, Undef,{});
 		(* reserve number - instruction to build (global) variables *)
@@ -774,7 +796,8 @@ TYPE
 
 	PROCEDURE InitOperand*(VAR op: Operand);
 	BEGIN
-		op.mode := Undefined; op.type.form := Undefined; op.type.sizeInBits := Undefined;
+		op.mode := Undefined;
+		op.type.form := Undefined; op.type.sizeInBits := Undefined; op.type.length := 1;
 		op.register := None; op.offset := 0; op.registerClass := GeneralPurposeRegister;
 		op.intValue := 0;
 		op.floatValue := 0;
@@ -897,9 +920,18 @@ TYPE
 	BEGIN InitNumber(op,value); RETURN op
 	END Number;
 
+	PROCEDURE InitRule*(VAR op: Operand; rules: Rules);
+	BEGIN
+		InitOperand(op); op.mode := ModeRule; op.rule := rules
+	END InitRule;
+
 	PROCEDURE InitString*(VAR op: Operand; string: SyntaxTree.SourceCode);
 	BEGIN InitOperand(op); op.mode := ModeString; op.string := string;
 	END InitString;
+
+	PROCEDURE SetString*(VAR op: Operand; string: POINTER TO ARRAY OF CHAR);
+	BEGIN op.string := string
+	END SetString;
 
 	PROCEDURE String*(string: SyntaxTree.SourceCode): Operand;
 	VAR op: Operand;
@@ -907,8 +939,12 @@ TYPE
 	END String;
 
 	PROCEDURE InitType*(VAR type: Type; form: SHORTINT; sizeInBits: INTEGER);
-	BEGIN type.form := form; type.sizeInBits := sizeInBits;
+	BEGIN type.form := form; type.sizeInBits := sizeInBits; type.length := 1;
 	END InitType;
+
+	PROCEDURE ToVectorType*(VAR type: Type; length: LONGINT);
+	BEGIN type.length := length
+	END ToVectorType;
 
 	PROCEDURE InitRegisterClass*(VAR registerClass: RegisterClass; class: SHORTINT; number: INTEGER);
 	BEGIN registerClass.class := class; registerClass.number := number
@@ -916,7 +952,7 @@ TYPE
 
 	PROCEDURE NewType*(form: SHORTINT; sizeInBits: INTEGER): Type;
 	VAR type: Type;
-	BEGIN InitType(type,form,sizeInBits); RETURN type
+	BEGIN InitType(type, form, sizeInBits); RETURN type
 	END NewType;
 
 	PROCEDURE SetType*(VAR op: Operand; CONST type: Type);
@@ -1053,6 +1089,7 @@ TYPE
 	END DenotesType;
 
 	PROCEDURE GetType*(system: Global.System; type: SyntaxTree.Type): Type;
+	VAR t: Type;
 	BEGIN
 		type := type.resolved;
 		IF type IS SyntaxTree.CharacterType THEN
@@ -1080,7 +1117,14 @@ TYPE
 		ELSIF type IS SyntaxTree.ProcedureType THEN
 			RETURN GetType(system,system.addressType)
 		ELSIF type IS SyntaxTree.MathArrayType THEN
-
+			WITH type: SyntaxTree.MathArrayType DO
+				IF type.form = SyntaxTree.Static THEN
+					t := GetType(system, type.arrayBase);
+					ASSERT(t.length = 1);
+					ToVectorType(t, type.staticLength);
+					RETURN t
+				END;
+			END;
 			(* TODO: ok to comment out the following assertion?:
 			ASSERT(type(SyntaxTree.MathArrayType).form IN {SyntaxTree.Static, SyntaxTree.Tensor}); *)
 

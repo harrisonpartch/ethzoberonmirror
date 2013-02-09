@@ -391,7 +391,7 @@ TYPE
 
 
 		BEGIN
-			IF dump # NIL THEN
+			IF (dump # NIL) & (lastPass) THEN
 				pc0 := code.pc;
 				DumpInstruction(dump,mnem,operands);
 				dump.Update;
@@ -1030,6 +1030,36 @@ TYPE
 
 	END Emitter;
 
+	RegisterMapEntry*= POINTER TO RECORD
+		name-: Strings.String;
+		register-: LONGINT;
+		next: RegisterMapEntry;
+	END;
+
+	RegisterMap*= OBJECT
+	VAR first: RegisterMapEntry;
+
+		PROCEDURE & Init *;
+		BEGIN
+			first := NIL
+		END Init;
+
+		PROCEDURE Find*(CONST name: ARRAY OF CHAR): LONGINT;
+		VAR map: RegisterMapEntry;
+		BEGIN
+			map := first;
+			WHILE (map # NIL) & (map.name^#name) DO map := map.next END;
+			IF map = NIL THEN RETURN InstructionSet.none ELSE RETURN map.register END;
+		END Find;
+
+		PROCEDURE Add*(name: Strings.String; register: LONGINT);
+		VAR map: RegisterMapEntry;
+		BEGIN
+			NEW(map); map.name := name; map.register := register;
+			map.next := first; first := map;
+		END Add;
+
+	END RegisterMap;
 
 	Assembly* = OBJECT
 	VAR
@@ -1085,7 +1115,9 @@ TYPE
 		END ErrorSS;
 
 
-		PROCEDURE Assemble* (reader: Streams.Reader;  orgPos: LONGINT; scope: SyntaxTree.Scope; in: IntermediateCode.Section; out: IntermediateCode.Section; module: Sections.Module; exported, inlined: BOOLEAN);
+		PROCEDURE Assemble* (reader: Streams.Reader;  orgPos: LONGINT; scope: SyntaxTree.Scope; in: IntermediateCode.Section; out: IntermediateCode.Section; module: Sections.Module; exported, inlined: BOOLEAN;
+			map: RegisterMap
+		);
 		CONST maxPasses = 2;
 		VAR
 			symbol, reg: LONGINT;
@@ -1673,6 +1705,9 @@ TYPE
 
 					IF symbol = symIdent THEN (* register ?, for example EAX *)
 						reg := InstructionSet.FindRegister (ident);
+						IF reg = InstructionSet.none THEN
+							reg := map.Find(ident)
+						END;
 						IF reg # InstructionSet.none THEN
 							IF size # bitsDefault THEN
 								Error ("invalid register size specification"); RETURN FALSE;

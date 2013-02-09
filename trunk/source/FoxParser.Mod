@@ -5,7 +5,7 @@ IMPORT Basic := FoxBasic, Scanner := FoxScanner, D := Debugging, SyntaxTree := F
 
 CONST
 	Trace = FALSE;
-	CascadedWithSupport = FALSE;
+	CascadedWithSupport = TRUE;
 	Lax=FALSE;
 
 	(** the parser reflects the following EBNF:
@@ -1092,13 +1092,29 @@ TYPE
 		(** Code = {  Any \ 'end' } . **)
 		PROCEDURE Code(outer: SyntaxTree.Statement): SyntaxTree.Code;
 		VAR startPos, endPos, i ,len: LONGINT; codeString: Scanner.StringType; code: SyntaxTree.Code;
+			end: Scanner.Token; in, out: BOOLEAN; left, right: SyntaxTree.Identifier;
+			statements, rules: SyntaxTree.StatementSequence;
 		BEGIN
 			startPos := symbol.start;
-			IF scanner.SkipToNextEnd(startPos, endPos, symbol) THEN
+			end := scanner.SkipToEndOfCode(startPos, endPos, symbol);
+			IF (end = Scanner.End) OR (end = Scanner.With) THEN
 				codeString := symbol.string;
 				code := SyntaxTree.NewCode(startPos,outer);
 				i := 0; len := LEN(codeString^);
 				code.SetSourceCode(codeString,len);
+				IF (end = Scanner.With) & Mandatory(Scanner.With) THEN
+					in := Optional(Scanner.In);
+					out := Optional(Scanner.Out);
+					WHILE in OR out DO
+						statements := StatementSequence(code);
+						IF in THEN rules := code.inRules ELSE rules := code.outRules END;
+						FOR i := 0 TO statements.Length()-1 DO
+							rules.AddStatement(statements.GetStatement(i));
+						END;
+						in := Optional(Scanner.In);
+						out := Optional(Scanner.Out);
+					END;
+				END;
 			END;
 			RETURN code;
 		END Code;
@@ -1758,12 +1774,21 @@ TYPE
 			access: SET;
 			i: LONGINT; ch: CHAR; position: LONGINT;
 			modifiers: SyntaxTree.Modifier; (* nopov *)
+			isInline: BOOLEAN;
 		BEGIN
 			IF Trace THEN S( "Operator" ) END;
 			(* symbol operator already consumed *)
 			position := symbol.start;
 
-			IF Optional(Scanner.LeftBrace) THEN modifiers := Flags() END; (* nopov *)
+			isInline := FALSE;
+			IF Optional( Scanner.Minus ) THEN  (* inline *)
+				isInline := TRUE;
+			ELSIF Optional( Scanner.LeftBrace) THEN
+				modifiers := Flags();
+				IF Optional( Scanner.Minus ) THEN  (* inline *)
+					isInline := TRUE
+				END;
+			END;
 
 			IF MandatoryString( string ) THEN
 				(* copy string to name and check for length. LEN(name)>0, LEN(string)>0 can be presumed  *)
@@ -1785,6 +1810,7 @@ TYPE
 			IF Mandatory(Scanner.LeftParenthesis) THEN FormalParameters( procedureType, procedureScope ) END;
 			procedureType.SetModifiers(modifiers); (* nopov *)
 			operator.SetType( procedureType );
+			operator.SetInline(isInline);
 			IF Lax THEN Ignore(Scanner.Semicolon) ELSE Check( Scanner.Semicolon ) END;
 			DeclarationSequence( procedureScope );
 			IF Peek(Scanner.Begin) OR Peek(Scanner.Code) THEN

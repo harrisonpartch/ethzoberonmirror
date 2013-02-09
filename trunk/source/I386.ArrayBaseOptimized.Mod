@@ -1948,7 +1948,7 @@ VAR
 		ADD	EBX, 8	;  now EBX IS 16 byte aligned
 		ADD	EDX, 8	;  now EDX IS 16 byte aligned	;
 		DEC	EAX	;  one element has been processed
-		;  LOOP FOR 8 pieces aligned(no better performance WITH 14 pieces!)
+		;  LOOP FOR 8 pieces aligned(no better performance with 14 pieces!)
 		aligned:
 		MOV	ECX, alignedC	;
 		INC	ECX	;
@@ -2226,7 +2226,7 @@ VAR
 		ADD	EBX, 8	;  now EBX IS 16 byte aligned
 		ADD	EDX, 8	;  now EDX IS 16 byte aligned	;
 		DEC	EAX	;  one element has been processed
-		;  LOOP FOR 8 pieces aligned(no better performance WITH 14 pieces!)
+		;  LOOP FOR 8 pieces aligned(no better performance with 14 pieces!)
 		aligned:
 		MOV	ECX, alignedC	;
 		INC	ECX	;
