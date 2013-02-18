@@ -343,6 +343,47 @@ CODE{SYSTEM.Pentium}
 	LOCK CMPXCHG8B [EDI]
 END CasH;
 
+PROCEDURE EntierXH*(x: LONGREAL): HUGEINT;
+CODE
+	FLD	QWORD [EBP+x]
+	SUB	ESP, 12
+	FNSTCW	[ESP]
+	FWAIT
+	MOV	ESI, [ESP]
+	AND	ESI, 0000F3FFH
+	OR	ESI, 00000400H
+	MOV	[ESP+4], ESI
+	FLDCW	[ESP+4]
+	FISTP	QWORD [ESP+4]
+	FWAIT
+	FLDCW	[ESP]
+	POP	EDI
+	POP	EAX
+	POP	EDX
+END EntierXH;
+
+PROCEDURE EntierRH*(x: REAL): HUGEINT;
+CODE
+	FLD DWORD [EBP+x]
+	SUB	ESP, 12
+	FNSTCW	[ESP]
+	FWAIT
+	MOV	ESI, [ESP]
+	AND	ESI, 0000F3FFH
+	OR	ESI, 00000400H
+	MOV	[ESP+4], ESI
+	FLDCW	[ESP+4]
+	FISTP	QWORD [ESP+4]
+	FWAIT
+	FLDCW	[ESP]
+	POP	EDI
+	POP	EAX
+	POP	EDX
+END EntierRH;
+
+
+
+
 (* compare strings,
 	returns 0 if strings are equal,
 	returns +1 if left is lexicographic greater than right,
@@ -418,3 +459,6 @@ END EnsureAllocatedStack;
 BEGIN
 	(*! assumed that modules = 0, implicit call of InsertModule *)
 END Runtime.
+
+
+Runtime.Obw

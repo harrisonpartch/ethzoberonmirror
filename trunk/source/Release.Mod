@@ -114,7 +114,7 @@ CONST
 
 	MaxBuilds = 16;
 	MaxPrefixes = 16;
-	MaxNofImports = 48; (* Maximum number of entries in a module import section *)
+	MaxNofImports = 64; (* Maximum number of entries in a module import section *)
 
 	Tab = 9X;
 

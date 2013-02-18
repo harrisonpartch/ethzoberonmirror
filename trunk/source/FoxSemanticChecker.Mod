@@ -2139,8 +2139,11 @@ TYPE
 				|Scanner.Size:
 					IF (left.type = SyntaxTree.typeDeclarationType) THEN
 						type := left(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.TypeDeclaration).declaredType;
-						result.SetResolved(SyntaxTree.NewIntegerValue(left.position,system.SizeOf(type.resolved) DIV 8 (* in bytes *) ));
-						type := system.integerType;
+						int := system.SizeOf(type.resolved) DIV 8 (* in bytes *);
+						value := SyntaxTree.NewIntegerValue(left.position, int);
+						result.SetResolved(value);
+						type := Global.GetSignedIntegerType(system,int);
+						value.SetType(type)
 						(* was Int16  in paco but should be systemSize (conflict with current release) *)
 					ELSE
 						(* for variables, system sizeof could represent the physically occupied size
@@ -4495,7 +4498,6 @@ TYPE
 					procedureType := procedure.type(SyntaxTree.ProcedureType);
 					block := SyntaxTree.NewExitableBlock(position, NIL (*! todo *));
 					block.SetStatements(SyntaxTree.CloneStatementSequence(procedure.procedureScope.body.statements));
-					Printout.Info("cloned block", block);
 					IF procedureType.returnType # NIL THEN
 						canPassInRegister := CanPassInRegister(procedureType.returnType);
 						temporary := GetTemporaryVariable(procedureType.returnType, canPassInRegister);
@@ -4523,7 +4525,6 @@ TYPE
 					END;
 
 					ReplaceSymbols(block, resolvedStatement, symbols, expressions, temporaryDesignator);
-					Printout.Info("cloned block with replacement", block);
 					IF ~error THEN
 						block.Accept(SELF);
 					ELSE

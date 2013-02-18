@@ -1045,7 +1045,7 @@ VAR
 				END;
 				StringPool.GetString(l[segment], n);
 				j := 0;
-				WHILE (r[i] = n[j]) & (n[j] # 0X) & (n[i] # 0X) DO
+				WHILE (r[i] = n[j]) & (n[j] # 0X) & (r[i] # 0X) DO
 					INC(i); INC(j);
 				END;
 				IF n[j] # 0X THEN RETURN FALSE END;

@@ -12,6 +12,7 @@ BEGIN
 		w.SetWindowBgColor(WMGraphics.Red);
 		w.SetWindowIcon(WMGraphics.LoadImage("WMIcons.tar://WMTrapWriter.png", TRUE));
 		w.SetFontName("Courier");
+		w.SetFontSize(12);
 		w.SetFontColor(WMGraphics.Yellow);
 		w.window.editor.SetWordWrap(TRUE);
 	END;

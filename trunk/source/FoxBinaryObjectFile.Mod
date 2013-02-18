@@ -203,6 +203,7 @@ TYPE
 		isCaseTable: BOOLEAN;
 		referenced: BOOLEAN;
 
+
 		PROCEDURE SetEntryNumber(num: LONGINT);
 		BEGIN
 			entryNumber := num
@@ -1406,14 +1407,16 @@ TYPE
 					WITH type: SyntaxTree.RecordType DO
 						type.typeDeclaration.GetName(name); (* debugging *)
 						IF type.recordScope.ownerModule = importedModule THEN (* type belongs to currently processed module *)
-							IF Trace THEN D.Str("UseTypeFP:"); D.Str(name); D.Str("?"); D.Ln END;
+							IF Trace  THEN D.Str("UseTypeFP:"); D.Str(name); D.Str("?"); D.Ln END;
 							t := symbols.BySymbol(type.typeDeclaration); (* TODO *)
 							IF (t # NIL) & (t.referenced) (*(t.fixups # NIL)*) THEN
+								t.referenced := FALSE;
+
 								fingerPrint := fingerprinter.TypeFP(type);
 								w.Char(ofEURecord);
 								w.RawNum(-(t.offset ));
 								(* privateFP never set in old compiler *)
-								IF Trace THEN D.Str("UseTypeFP:"); D.Str(name); D.Str(":"); D.Int(fingerPrint.public,1); D.Ln END;
+								IF Trace  THEN D.Str("UseTypeFP:"); D.Str(name); D.Str(":"); D.Int(fingerPrint.public,1); D.Ln END;
 								w.RawNum(fingerPrint.public);
 								w.RawString("@");
 

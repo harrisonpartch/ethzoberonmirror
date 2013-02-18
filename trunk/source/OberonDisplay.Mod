@@ -39,6 +39,10 @@ TYPE
 		fixMM : BOOLEAN;	(* Value TRUE denotes the presence of a 2-button mouse, Ctrl-key acts then as middle button. *)
 		lastCtrl : BOOLEAN;	(* Value TRUE denotes Ctrl-key pressed. *)
 
+		PROCEDURE IsHit(x, y  : LONGINT) : BOOLEAN;
+		BEGIN RETURN TRUE;
+		END IsHit;
+
 		PROCEDURE Mouse(VAR x, y : INTEGER; VAR keys : SET);
 		BEGIN {EXCLUSIVE}
 			keys := {};

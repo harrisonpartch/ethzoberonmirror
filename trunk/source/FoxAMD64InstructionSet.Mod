@@ -326,9 +326,9 @@ CONST
 	opCBW* = 28;
 	opCDQ* = 29;
 	opCDQE* = 30;
-	opCLFLUSH* = 31;
-	opCLC* = 32;
-	opCLD* = 33;
+	opCLC* = 31;
+	opCLD* = 32;
+	opCLFLUSH* = 33;
 	opCLGI* = 34;
 	opCLI* = 35;
 	opCLTS* = 36;
@@ -1110,6 +1110,14 @@ VAR
 			instructions[number].cpuOptions := cpuOptions;
 		END AddInstruction;
 
+
+	(* the following has been generated with
+		FoxProgTools.ParseAMDInstructionSet FoxInstructionSetAMD64TabSeperated.txt ~
+
+		Do not change or re-order. The alphabetical order is of importance
+	*)
+
+
 	BEGIN
 		StartMnemonic(opAAA, "AAA", 0);
 		AddInstruction(0, none, none, none, "37", {optNot64}, {cpu8086});
@@ -1324,17 +1332,17 @@ VAR
 		AddInstruction(119, none, none, none, "98", {}, {cpuAMD64});
 		EndMnemonic(opCDQE, 119);
 
-		StartMnemonic(opCLFLUSH, "CLFLUSH", 120);
-		AddInstruction(120, mem8, none, none, "0FAE/7", {}, {cpuSSE2});
-		EndMnemonic(opCLFLUSH, 120);
+		StartMnemonic(opCLC, "CLC", 120);
+		AddInstruction(120, none, none, none, "F8", {}, {cpu8086});
+		EndMnemonic(opCLC, 120);
 
-		StartMnemonic(opCLC, "CLC", 121);
-		AddInstruction(121, none, none, none, "F8", {}, {cpu8086});
-		EndMnemonic(opCLC, 121);
+		StartMnemonic(opCLD, "CLD", 121);
+		AddInstruction(121, none, none, none, "FC", {}, {cpu8086});
+		EndMnemonic(opCLD, 121);
 
-		StartMnemonic(opCLD, "CLD", 122);
-		AddInstruction(122, none, none, none, "FC", {}, {cpu8086});
-		EndMnemonic(opCLD, 122);
+		StartMnemonic(opCLFLUSH, "CLFLUSH", 122);
+		AddInstruction(122, mem8, none, none, "0FAE/7", {}, {cpuSSE2});
+		EndMnemonic(opCLFLUSH, 122);
 
 		StartMnemonic(opCLGI, "CLGI", 123);
 		AddInstruction(123, none, none, none, "0F01DD", {}, {cpuAMD64});

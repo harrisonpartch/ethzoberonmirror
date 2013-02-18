@@ -346,18 +346,23 @@ BEGIN
 END LoadFont;
 
 PROCEDURE LoadExactFont*(fi : WMFontManager.FontInfo) : WMGraphics.Font;
-VAR exactName : ARRAY 256 OF CHAR; f : WMGraphics.Font;
+VAR exactName : ARRAY 256 OF CHAR; f : WMGraphics.Font; try: LONGINT;
 BEGIN
-	COPY(fi.name^, exactName);
-	(*ALEX 2006.06.05 bold fonts are suffixed with bd; ex.: arialbd.ttf*)
-	IF (WMGraphics.FontBold IN fi.style) & ~(WMGraphics.FontItalic IN fi.style) THEN
-		Strings.Append(exactName, "bd")
-	ELSE
-		IF WMGraphics.FontBold IN fi.style THEN Strings.Append(exactName, "b") END;
-		IF WMGraphics.FontItalic IN fi.style THEN Strings.Append(exactName, "i") END;
-	END;
-	Strings.Append(exactName, ".ttf");
-	f := LoadFont(exactName, fi.size);
+	try := 0;
+	REPEAT
+		COPY(fi.name^, exactName);
+		IF try > 0 THEN  Strings.Append(exactName, "_")  END;
+		(*ALEX 2006.06.05 bold fonts are suffixed with bd; ex.: arialbd.ttf*)
+		IF (WMGraphics.FontBold IN fi.style) & ~(WMGraphics.FontItalic IN fi.style) THEN
+			Strings.Append(exactName, "bd")
+		ELSE
+			IF WMGraphics.FontBold IN fi.style THEN Strings.Append(exactName, "b") END;
+			IF WMGraphics.FontItalic IN fi.style THEN Strings.Append(exactName, "i") END;
+		END;
+		Strings.Append(exactName, ".ttf");
+		f := LoadFont(exactName, fi.size);
+		INC( try )
+	UNTIL (f # NIL) OR (try >= 2);
 	IF f # NIL THEN
 		COPY(fi.name^, f.name);
 		f.size := fi.size;

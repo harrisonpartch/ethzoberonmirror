@@ -384,11 +384,10 @@ TYPE
 			BEGIN code.PutByte (scale MOD 4 * 40H + index MOD 8 * 8H + base MOD 8);
 			END SIB;
 
-			PROCEDURE FPOperation(mnem: LONGINT): BOOLEAN;
+			PROCEDURE FPOrSSEOperation(instr: LONGINT): BOOLEAN;
 			BEGIN
-				RETURN InstructionSet.cpuFPU IN InstructionSet.instructions[InstructionSet.mnemonics[mnem].firstInstruction].cpuOptions
-			END FPOperation;
-
+				RETURN {InstructionSet.cpuFPU, InstructionSet.cpuSSE, InstructionSet.cpuSSE2, InstructionSet.cpuSSE3} * InstructionSet.instructions[instr].cpuOptions # {}
+			END FPOrSSEOperation;
 
 		BEGIN
 			IF (dump # NIL) & (lastPass) THEN
@@ -483,7 +482,7 @@ TYPE
 								INCL (rexPrefix, rexX)
 							END
 						END;
-						IF (operands[i].sizeInBytes = bits64) & ~(InstructionSet.optD64 IN bitwidthOptions) &~ FPOperation(mnem) THEN
+						IF (operands[i].sizeInBytes = bits64) & ~(InstructionSet.optD64 IN bitwidthOptions) & ~FPOrSSEOperation(instr) THEN
 							IF Trace THEN KernelLog.String(" bits64 "); KernelLog.Ln; END;
 							INCL (rexPrefix, rexW)
 						END;
@@ -1955,38 +1954,40 @@ TYPE
 				NextSymbol;
 
 				IF (scope # NIL) THEN
-					emitter.cpuOptions := {};
-					IF ~Ensure (symLBrace, 550) THEN
-						RETURN
-					END;
+					IF symbol #  symLBrace THEN
+						(* treat CPU options as an optional limitation and not vice versa *)
+					ELSE
+						emitter.cpuOptions := {};
+						NextSymbol;
 
-					(* parse code flags such as {SYSTEM.i386 .... } *)
-					LOOP
-						IF ~Ensure (symIdent, 551) THEN
-							RETURN
-						END;
-						IF ident # "SYSTEM" THEN
-							Error("unsupported target identifier");
-							RETURN
-						END;
-						IF symbol # symPeriod THEN
-							Error("identifier expected");
-							RETURN;
-						END;
-						IF ~GetCPU (TRUE) THEN
-							RETURN;
-						END;
+						(* parse code flags such as {SYSTEM.i386 .... } *)
+						LOOP
+							IF ~Ensure (symIdent, 551) THEN
+								RETURN
+							END;
+							IF ident # "SYSTEM" THEN
+								Error("unsupported target identifier");
+								RETURN
+							END;
+							IF symbol # symPeriod THEN
+								Error("identifier expected");
+								RETURN;
+							END;
+							IF ~GetCPU (TRUE) THEN
+								RETURN;
+							END;
 
-						IF symbol = symRBrace THEN
-							EXIT
-						ELSIF symbol = symComma THEN
-							NextSymbol
-						ELSE
-							Error("target specifier expected");
-							RETURN;
+							IF symbol = symRBrace THEN
+								EXIT
+							ELSIF symbol = symComma THEN
+								NextSymbol
+							ELSE
+								Error("target specifier expected");
+								RETURN;
+							END;
 						END;
-					END;
-					NextSymbol;
+						NextSymbol;
+					END
 				END;
 
 				LOOP

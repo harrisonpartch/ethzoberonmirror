@@ -1246,6 +1246,7 @@ BEGIN
 					KernelLog.String("<=");
 					KernelLog.Int(freeAdr,1);
 					KernelLog.String(" at "); KernelLog.Int(i,1); KernelLog.String(":"); KernelLog.Int(relocates,1);
+					KernelLog.String(" Check for fixup duplicates ! "); 
 					KernelLog.Ln;
 				END;
 				(*ASSERT((adr > beginMemBlockAdr) & (adr <= freeAdr));*)

@@ -611,7 +611,9 @@ TYPE
 			ELSE (* force body for procedures *)
 				ir.Emit(Enter(x.position,cc,0,0));
 				ir.EnterValidPAF;
+				implementationVisitor.usedRegisters := NIL;
 				implementationVisitor.Body(scope.body,currentScope,ir,x = module.module.moduleScope.bodyProcedure);
+				IF implementationVisitor.usedRegisters # NIL THEN D.TraceBack END;
 				ir.ExitValidPAF;
 				ir.Emit(Leave(x.position,cc));
 				ir.Emit(Exit(x.position,parSize, procedureType.pcOffset,cc));
@@ -818,11 +820,21 @@ TYPE
 		PROCEDURE IncUse(register: LONGINT);
 		BEGIN
 			INC(used[register].count);
+			(*
+			IF (register = 1) & (count > 30)  THEN
+				D.TraceBack;
+			END;
+			*)
 		END IncUse;
 
 		PROCEDURE DecUse(register: LONGINT);
 		BEGIN
 			DEC(used[register].count);
+			(*
+			IF (register = 1) & (count > 30)  THEN
+				D.TraceBack;
+			END;
+			*)
 		END DecUse;
 
 		PROCEDURE Map(register: LONGINT): LONGINT;
@@ -3678,19 +3690,28 @@ TYPE
 					ELSE HALT(100);
 					END;
 				ELSIF (parameter.type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static) & (parameter.kind = SyntaxTree.ValueParameter) THEN
-					IF type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static THEN
+					ASSERT(type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static);
+					Designate(expression,operand);
+					IF operand.op.type.length > 1 THEN
+						Emit(Push(position, operand.op));
+						ReleaseOperand(operand);
+					ELSE
 						size := system.SizeOf(type);
 						Basic.Align(size,system.AlignmentOf(system.parameterAlignment,type));
 						size := ToMemoryUnits(system,size);
 						Emit(Sub(position,sp,sp,IntermediateCode.Immediate(addressType,size)));
 						arrayDestinationTag := sp;
-						Designate(expression,operand);
 						Emit(Copy(position,arrayDestinationTag,operand.op,IntermediateCode.Immediate(addressType,size)));
-					ELSE HALT(100);
 					END;
 				ELSIF (parameter.type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static) & (parameter.kind IN {SyntaxTree.VarParameter,SyntaxTree.ConstParameter}) THEN
-					IF type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static THEN
-						Designate(expression,operand);
+					Designate(expression,operand);
+					IF operand.op.type.length > 1 THEN (* need temporary to pass register *)
+						variable := GetTemporaryVariable(parameter.type.resolved);
+						Symbol(variable,variableOp);
+						MakeMemory(tmp,variableOp.op,operand.op.type,0);
+						Emit(Mov(position,tmp,operand.op));
+						Emit(Push(position,variableOp.op));
+					ELSIF type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static THEN
 						Pass((operand.op));
 					ELSE Error(position,"Forbidden non-static actual type. Conversion involved?");
 					END;
@@ -7653,10 +7674,12 @@ TYPE
 					statement := x.inRules.GetStatement(i);
 					WITH statement: SyntaxTree.Assignment DO
 						Evaluate(statement.right, operand);
+						Printout.Info("asm statement",statement);
 						result := operand.op;
 						NEW(str, 64);
 						Basic.GetString(statement.left(SyntaxTree.IdentifierDesignator).identifier, str^);
 						in[i] := result; IntermediateCode.SetString(in[i], str);
+						ReleaseIntermediateOperand(operand.tag);
 					END;
 				END;
 			ELSE in := NIL
@@ -7672,10 +7695,12 @@ TYPE
 						NEW(str, 64);
 						Basic.GetString(statement.right(SyntaxTree.IdentifierDesignator).identifier, str^);
 						out[i] := result; IntermediateCode.SetString(out[i], str);
+						ReleaseIntermediateOperand(operand.tag);
 					|statement: SyntaxTree.ReturnStatement DO
 						NEW(str, 64);
 						Basic.GetString(statement.returnValue(SyntaxTree.IdentifierDesignator).identifier, str^);
 						out[i] := emptyOperand; IntermediateCode.SetString(out[i], str);
+						ReleaseIntermediateOperand(operand.tag);
 					ELSE
 					END;
 				END;
@@ -7691,12 +7716,13 @@ TYPE
 				FOR i := 0 TO LEN(out)-1 DO
 					ReleaseIntermediateOperand(out[i]);
 					statement := x.outRules.GetStatement(i);
+					(*? why necessary
 					IF statement IS SyntaxTree.StatementBlock THEN
 						statement := statement(SyntaxTree.StatementBlock).statements.GetStatement(1);
 						Statement(statement);
 
 					END;
-
+					*)
 				END;
 			END;
 
@@ -7733,6 +7759,7 @@ TYPE
 						IntermediateCode.MakeMemory(par,addressType);
 						Emit(Mov(position,par,sp));
 					ELSIF (type IS SyntaxTree.MathArrayType) & (type(SyntaxTree.MathArrayType).form # SyntaxTree.Static) THEN
+						checker.SetCurrentScope(currentScope);
 						parameterDesignator := checker.NewSymbolDesignator(position,NIL,parameter);
 						Assign(parameterDesignator,parameterDesignator);
 					END;

@@ -51,7 +51,7 @@ TYPE
 				
 				Texts.clipboard.AcquireWrite;	
 				Texts.clipboard.Delete( 0, Texts.clipboard.GetLength() );
-				TextUtilities.StrToText( Texts.clipboard, 0, recBuffer2^ );
+				TextUtilities.StrToText( Texts.clipboard, 0, utf8Buffer^ );
 				Texts.clipboard.ReleaseWrite;
 			END;
 			IF terminate THEN  Objects.Terminate  END;
@@ -61,8 +61,8 @@ TYPE
 
 
 VAR
-	sendBuffer, recBuffer, recBuffer2: Buffer;
-	rlen, slen, rlen2	: LONGINT;
+	sendBuffer, recBuffer, utf8Buffer: Buffer;
+	slen, rlen, ulen	: LONGINT;
 	received	: BOOLEAN;
 	
 	grabber		: Grabber;
@@ -70,44 +70,81 @@ VAR
 	myProperty	: X11.Atom;
 	xdisp		: X11.DisplayPtr;
 	primary		: X11.Window;
+	secondary	: X11.Window;
 	
 
 	
-	PROCEDURE A2ToUnix;
-	VAR i, j: LONGINT; c, c2: CHAR;
+	PROCEDURE A2ToUnix;	(* UTF-8 to XA_STRING *)
+	VAR i, newlen, unicode: LONGINT; 
 	BEGIN
-		j := 0;  i := 0;
+		i := 0;  newlen := 0;
 		WHILE i < slen  DO
-			c := sendBuffer[i];  INC( i );
-			IF ORD( c ) < 128 THEN sendBuffer[j] := c; INC( j )
-			ELSE	(* utf-8 to unicode *)
-				c2 := sendBuffer[i];  INC( i );
-				sendBuffer[j] := CHR( ORD( c ) MOD 20H * 40H + ORD( c2 ) MOD 40H );  INC( j )
-			END 
+			unicode := Utf8ToUnicode( sendBuffer^, i );
+			IF unicode >= 100H THEN  unicode := 0B6H  END;
+			sendBuffer[newlen] := CHR( unicode );
+			INC( newlen )
 		END;
-		slen := j
+		slen := newlen
 	END A2ToUnix;
 	
+
 	
 	PROCEDURE UnixToA2;
-	VAR i: LONGINT; c: CHAR;
+	VAR i, d, tag: LONGINT;  unicode, utflen: LONGINT;
 	BEGIN
-		i := 0;  rlen2 := 0;
-		WHILE (i < rlen) & (rlen2 < BufferSize - 3) DO
-			c := recBuffer[i];
-			IF ORD(c) < 129 THEN  recBuffer2[rlen2] := c;  INC( rlen2 )
-			ELSE	(* small unicode to utf-8 *)
-				recBuffer2[rlen2] := CHR( 0C0H + ORD(c) DIV 40H );  INC( rlen2 );
-				recBuffer2[rlen2] := CHR( 80H + ORD(c) MOD 40H );  INC( rlen2 )
+		i := 0;  ulen := 0;
+		WHILE (i < rlen) & (ulen < BufferSize - 5) DO
+			unicode := ORD( recBuffer[i] );  INC( i );
+			IF (unicode = ORD( '\' )) & (recBuffer[i] = 'u') THEN
+				INC( i );
+				unicode := ScanHexDigits( recBuffer^, i );
 			END;
-			INC( i )
+			IF unicode >= 800H THEN  tag := 0E0H; utflen := 3
+			ELSIF unicode >= 80H THEN  tag := 0C0H;  utflen := 2
+			ELSE  tag := 0; utflen := 1
+			END;
+			d := utflen - 1;
+			WHILE d > 0 DO
+				utf8Buffer[ulen + d] := CHR( 80H + unicode MOD 40H ); 
+				unicode := unicode DIV 40H;  DEC( d )
+			END;
+			utf8Buffer[ulen]  := CHR( tag + unicode );
+			INC( ulen, utflen )
 		END;
-		recBuffer2[rlen2] := 0X;  INC( rlen2 )
+		utf8Buffer[ulen] := 0X;  INC( ulen )
 	END UnixToA2;
-	
-	
 
 
+	PROCEDURE ScanHexDigits( CONST buf: ARRAY OF CHAR;  VAR pos: LONGINT ): LONGINT;
+	VAR e, unicode: LONGINT;  c: CHAR;
+	BEGIN
+		e := pos + 4;  unicode := 0;
+		REPEAT
+			c := buf[pos];  INC( pos );;
+			IF (c >= '0') & (c <= '9' ) THEN unicode := unicode*10H + ORD( c ) - ORD( '0' )
+			ELSIF (c >= 'a') & (c <= 'f') THEN unicode := unicode*10H + ORD( c ) - ORD( 'a' ) + 10
+			ELSIF (c >= 'A') & (c <= 'F') THEN unicode := unicode*10H + ORD( c ) - ORD( 'A' ) + 10
+			END;
+		UNTIL pos = e;
+		RETURN unicode
+	END ScanHexDigits;
+
+	PROCEDURE Utf8ToUnicode( CONST buf: ARRAY OF CHAR;  VAR pos: LONGINT ): LONGINT;
+	VAR unicode, tag, next, ch: LONGINT;  ;
+	BEGIN
+		ch := ORD( buf[pos] );  INC( pos );
+		IF ch < 128 THEN  unicode := ch
+		ELSE
+			tag :=  ch DIV 10H;   unicode := ch MOD 10H;  
+			IF tag = 0EH THEN  next := pos + 2
+			ELSE (* tag = 0CH *) next := pos + 1
+			END;
+			REPEAT
+				unicode := unicode*40H + ORD( buf[pos] ) MOD 40H;  INC( pos )
+			UNTIL pos >= next;
+		END;
+		RETURN unicode
+	END Utf8ToUnicode;
 	
 	PROCEDURE ClearSelection;
 	BEGIN 
@@ -146,7 +183,8 @@ VAR
 		IF (event.selection = X11.XAPRIMARY) & (event.target = X11.XASTRING) THEN
 			ev.property := event.property;
 			Machine.Acquire( Machine.X11 );
-			X11.ChangeProperty( xdisp, ev.requestor, ev.property, ev.target, 8, X11.PropModeReplace, ADDRESSOF(sendBuffer[0]), slen );
+			X11.ChangeProperty( xdisp, ev.requestor, ev.property, ev.target, 8, X11.PropModeReplace, 
+								  ADDRESSOF( sendBuffer[0] ), slen );
 			Machine.Release( Machine.X11 );
 		ELSE
 			ev.property := X11.None
@@ -164,7 +202,7 @@ VAR
 		ASSERT((text # NIL) & (text.HasWriteLock()));
 		GetX11Selection;
 		UnixToA2;
-		TextUtilities.StrToText( text, 0, recBuffer2^ );
+		TextUtilities.StrToText( text, 0, utf8Buffer^ );
 	END GetFromClipboard;
 	
 	
@@ -183,7 +221,8 @@ VAR
 		rlen := 0; recBuffer[0] := 0X;
 		IF (event.selection = X11.XAPRIMARY) & (event.property = myProperty) THEN
 			Machine.Acquire( Machine.X11 );
-			X11.GetWindowProperty( xdisp, event.requestor, event.property, 0, BufferSize, X11.False, event.target, type, format, len, after, prop );
+			X11.GetWindowProperty( xdisp, event.requestor, event.property, 0, BufferSize, X11.False, 
+									  event.target, type, format, len, after, prop );
 			Machine.Release( Machine.X11 );
 			adr := prop;
 			IF len >= BufferSize THEN len := BufferSize - 2  END;
@@ -208,6 +247,7 @@ VAR
 		disp := p(XDisplay.Display);
 		xdisp := disp.xdisp;  
 		primary := disp.primary;  
+		secondary := disp.secondary;
 	END GetXDisplay;
 
 	(* set Selection handlers to NIL *)
@@ -223,14 +263,14 @@ VAR
 		Texts.clipboard.onTextChanged.Remove( ClipboardChanged );
 		HostClipboard.SetHandlers( NIL, NIL );
 		
-		Log.Enter; Log.String( "X11Clipboard: Unregistered clipboard at host clipboard interface." );  Log.Exit;
+		Log.Enter; Log.String( "X11 clipboard unregistered at host clipboard interface." );  Log.Exit;
 	END Cleanup;
 
 
 	PROCEDURE Install*;
 	BEGIN
 		IF Unix.Version = "Darwin" THEN
-			Log.String( "X11Clipboard: can't register clipboard in the Darwin port (ABI incompatiblity)" ); Log.Ln
+			Log.String( "Can't register the X11 clipboard in the Darwin port (ABI incompatiblity)" ); Log.Ln
 		ELSE
 			GetXDisplay;  
 			X11Api.SendSelection := SendSelection;
@@ -238,11 +278,11 @@ VAR
 			X11Api.ClearSelection := ClearSelection;
 			
 			Machine.Acquire( Machine.X11 );
-			myProperty := X11.InternAtom( xdisp, ADDRESSOF("UnixAosProperty"), X11.False );
+			myProperty := X11.InternAtom( xdisp, ADDRESSOF("UNICODE"), X11.False );
 			Machine.Release( Machine.X11 );
 			
 			NEW( sendBuffer );  NEW( recBuffer );  slen := 0;  rlen := 0;
-			NEW( recBuffer2 );  rlen2 := 0;
+			NEW( utf8Buffer );  ulen := 0;
 			
 			(* register with AosText clipboard *)
 			Texts.clipboard.onTextChanged.Add( ClipboardChanged );
@@ -251,7 +291,7 @@ VAR
 			NEW( grabber );
 			
 			Modules.InstallTermHandler( Cleanup );
-			Log.Enter; Log.String("X11Clipboard: Registered clipboard at host clipboard interface."); Log.Exit;
+			Log.Enter; Log.String("X11 clipboard registered at host clipboard interface."); Log.Exit;
 		END
 	END Install;
 
@@ -261,8 +301,24 @@ END Clipboard.
 
 
 
-Clipboard.Install ~
+ Clipboard.Install ~
 
 
-SystemTools.Free Clipboard ~
+ SystemTools.Free Clipboard ~
 	
+	
+	  ---------------------------------------------
+	   Cut & paste between X11 applications and UnixAos. 
+	
+	   After performing 'Clipboard.Install ~' the X11 clipboard and the
+	   Aos clipboard get synchronized. Every new X11 selection modifies 
+	   the Aos clipboard and the copy operation with the pie menu in 
+	   Aos alters the primary X11 selection. The selection can then be 
+	   inserted into an X11 application (e.g. the mail tool Thunderbird) 
+	   by clicking the MM button. 
+	   
+	   To stop the clipboard synchronization perform:
+	        'SystemTools.Free Clipboard ~'.
+	        
+	        
+	   ---------------------------------------------

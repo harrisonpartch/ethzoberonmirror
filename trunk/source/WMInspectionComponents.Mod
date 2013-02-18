@@ -748,8 +748,8 @@ TYPE
 				editTop.GetAsString(string); Strings.StrToInt(string, rect.t);
 				editRight.GetAsString(string); Strings.StrToInt(string, rect.r);
 				editBottom.GetAsString(string); Strings.StrToInt(string, rect.b);
-				editWidth.GetAsString(string); Strings.StrToInt(string, width);
-				editHeight.GetAsString(string); Strings.StrToInt(string, height);
+				IF editWidth # NIL THEN editWidth.GetAsString(string); Strings.StrToInt(string, width) ELSE width := rect.r-rect.l END;
+				IF editHeight # NIL THEN editHeight.GetAsString(string); Strings.StrToInt(string, height) ELSE height := rect.t- rect.b END;
 				IF 5 IN outOfDate THEN rect.t := rect.b - height END;
 				IF 4 IN outOfDate THEN rect.r := rect.l + width END;
 				r := rectangle.Get();

@@ -252,7 +252,7 @@ TYPE
 				Assert(TypeEquals(instruction.op1.type,instruction.op2.type),"operands 1 and 2 not of same type");
 			END;
 			IF SameSize12 IN instructionFormat[instruction.opcode].flags THEN
-				Assert(instruction.op1.type.sizeInBits = instruction.op2.type.sizeInBits, "operands 1 and 2 not of same size");
+				Assert(instruction.op1.type.sizeInBits*instruction.op1.type.length = instruction.op2.type.sizeInBits*instruction.op2.type.length, "operands 1 and 2 not of same size");
 			END;
 			IF SameType23 IN instructionFormat[instruction.opcode].flags THEN
 				Assert(TypeEquals(instruction.op2.type,instruction.op3.type),"operands 2 and 3 not of same type");

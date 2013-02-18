@@ -218,7 +218,23 @@ TYPE
 		END GetSummary;
 
 		PROCEDURE Synchronize(VAR entries : ViewEntryArray; VAR nofEntries : LONGINT);
-		VAR i : LONGINT;
+		VAR dest : LONGINT;
+
+			PROCEDURE Insert(type: LONGINT);
+			VAR i: LONGINT;
+			BEGIN
+				FOR i := 0 TO nofEntries - 1 DO
+					IF SELF.entries[i].type = type THEN
+						entries[dest].type := SELF.entries[i].type;
+						entries[dest].position := SELF.entries[i].position;
+						entries[dest].errorCode := SELF.entries[i].errorCode;
+						entries[dest].source := SELF.entries[i].source;
+						entries[dest].message := SELF.entries[i].message;
+						INC(dest);
+					END;
+				END;
+			END Insert;
+
 		BEGIN
 			AcquireRead;
 			IF (SELF.entries = NIL) THEN
@@ -226,13 +242,9 @@ TYPE
 			ELSE
 				IF (entries = NIL) OR (LEN(SELF.entries) > LEN(entries)) THEN NEW(entries, LEN(SELF.entries)); END;
 				nofEntries := SELF.nofEntries;
-				FOR i := 0 TO nofEntries - 1 DO
-					entries[i].type := SELF.entries[i].type;
-					entries[i].position := SELF.entries[i].position;
-					entries[i].errorCode := SELF.entries[i].errorCode;
-					entries[i].source := SELF.entries[i].source;
-					entries[i].message := SELF.entries[i].message;
-				END;
+				Insert(Diagnostics.TypeError);
+				Insert(Diagnostics.TypeWarning);
+				Insert(Diagnostics.TypeInformation);
 			END;
 			ReleaseRead;
 		END Synchronize;

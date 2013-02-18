@@ -1595,7 +1595,8 @@ BEGIN {EXCLUSIVE}
 		ELSE
 			focusIdx := 0; (* set focus to first user window *)
 		END;
-		ASSERT((0 <= focusIdx) & (focusIdx < LEN(windows)) & (windows[focusIdx] # NIL));
+		IF (windows[focusIdx] = NIL) THEN RETURN (* can happen when no window has the focus initially *) END;
+		ASSERT((0 <= focusIdx) & (focusIdx < LEN(windows)));
 		manager.lock.AcquireWrite;
 		manager.ToFront(windows[focusIdx]);
 		manager.SetFocus(windows[focusIdx]);

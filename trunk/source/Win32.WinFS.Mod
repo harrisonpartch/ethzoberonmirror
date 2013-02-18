@@ -570,11 +570,13 @@ TYPE
 		END GetDate;
 
 		PROCEDURE SetDate( t, d: LONGINT );
-		VAR ft, lft: Kernel32.FileTime;  st: Kernel32.SystemTime;  res: Kernel32.BOOL;
+		VAR ft, lft: Kernel32.FileTime;  st: Kernel32.SystemTime;  res: Kernel32.BOOL; err: LONGINT;
 		BEGIN {EXCLUSIVE}
 			st.wDay := SHORT( d MOD 20H );  d := ASH( d, -5 );  st.wMonth := SHORT( d MOD 10H );  d := ASH( d, -4 );  st.wYear := SHORT( d MOD 80H ) + 1900;  st.wMilliseconds := 0;
 			st.wSecond := SHORT( t MOD 40H );  t := ASH( t, -6 );  st.wMinute := SHORT( t MOD 40H );  t := ASH( t, -6 );  st.wHour := SHORT( t MOD 20H );  res := Kernel32.SystemTimeToFileTime( st, lft );
-			res := Kernel32.LocalFileTimeToFileTime( lft, ft );  res := Kernel32.SetFileTime( hfile, NIL , NIL , ft );  ASSERT( res # 0 )
+			res := Kernel32.LocalFileTimeToFileTime( lft, ft );  res := Kernel32.SetFileTime( hfile, NIL , NIL , ft );
+			IF res = 0 THEN err := Kernel32.GetLastError(); DebugFile(SELF) END;
+			ASSERT( res # 0 )
 		END SetDate;
 
 		PROCEDURE GetAttributes(): SET;
@@ -651,8 +653,8 @@ TYPE
 					res := 1;  RETURN;
 					(* HALT( 1242 )*)
 				END;
-				hfile := Kernel32.CreateFile( fname, {Kernel32.GenericRead}, {Kernel32.FileShareRead, Kernel32.FileShareWrite}, NIL , Kernel32.OpenExisting, {Kernel32.FileAttributeNormal}, 0 )
-			ELSE hfile := Kernel32.CreateFile( fname, {Kernel32.GenericRead}, {Kernel32.FileShareRead, Kernel32.FileShareWrite}, NIL , Kernel32.CreateAlways, {Kernel32.FileAttributeNormal}, 0 )
+				hfile := Kernel32.CreateFile( fname, {Kernel32.GenericRead, Kernel32.GenericWrite}, {Kernel32.FileShareRead, Kernel32.FileShareWrite}, NIL , Kernel32.OpenExisting, {Kernel32.FileAttributeNormal}, 0 )
+			ELSE hfile := Kernel32.CreateFile( fname, {Kernel32.GenericRead, Kernel32.GenericWrite}, {Kernel32.FileShareRead, Kernel32.FileShareWrite}, NIL , Kernel32.CreateAlways, {Kernel32.FileAttributeNormal}, 0 )
 			END;
 			IF hfile = Kernel32.InvalidHandleValue THEN res := 1;  RETURN END;
 			ASSERT( hfile # Kernel32.InvalidHandleValue );  winFS.collection.Register( SELF );  res := 0
@@ -694,6 +696,17 @@ TYPE
 	END File;
 VAR
 	winFS: WinFileSystem;   (* must be unique *)
+
+
+	PROCEDURE DebugFile(f: File);
+	BEGIN
+		KernelLog.String("fname = "); KernelLog.String(f.fname); KernelLog.Ln;
+		KernelLog.String("tname = "); IF f.tfname # NIL THEN KernelLog.String(f.tfname^) ELSE KernelLog.String("(NIL)") END; KernelLog.Ln;
+		KernelLog.String("hfile = "); KernelLog.Address(f.hfile); KernelLog.Ln;
+		KernelLog.String("fsize = "); KernelLog.Int(f.fsize, 1); KernelLog.Ln;
+		KernelLog.String("fpos = "); KernelLog.Int(f.fpos, 1); KernelLog.Ln;
+	END DebugFile;
+
 
 	PROCEDURE IsLocalPath(path: ARRAY OF CHAR): BOOLEAN;
 	VAR prefix, name: Files.FileName;
