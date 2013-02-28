@@ -53,59 +53,48 @@ CONST
 	ArrayFormTrap*=10; (* fof: indicates that array cannot be (re-)allocated since shape, type or size does not match *)
 
 	(** builtin procedures **)
-	(* FoxProgTools.Enum -e -s=94
+	(* FoxProgTools.Enum -e -i
 		(* global proper procedures *)
 		Assert  Copy  Dec  Excl  Halt  Inc  Incl  New Dispose GetProcedure Connect Delegate
-		Read Write
+		Read Write Reshape
 		(* global functions *)
-		Abs  Ash  Cap  Chr  Chr32 Entier  EntierH  Len  Long  Max  Min Odd  Ord  Ord32 Short  Size
-		Sum Dim Cas First Last Step Re Im Lsl Lsr Asr
+		Abs   Cap  Chr  Chr32 Entier  EntierH  Incr Len  Long  Max  Min Odd  Ord  Ord32 Short  Size
+		Sum Dim Cas First Last Step Re Im Ash Lsh Rot
 		(* system proper procedures *)
 		systemGet  systemPut  systemMove  systemNew systemRef
-		systemIncr Reshape
 		systemTypeCode systemHalt
 		systemPut8 systemPut16 systemPut32 systemPut64 systemTrace
 		(* system functions *)
-		systemAdr  systemBit  systemGet64  systemGet32  systemGet16  systemGet8
-		systemLsh  systemRot  systemVal systemMsk systemNull
+		systemAdr  systemSize systemBit  systemGet64  systemGet32  systemGet16  systemGet8
+		systemVal systemMsk
+
+		(* for active cells *)
+		Send Receive
+		(* for backend specific extensions *)
+		systemSpecial
+		(* compatibility with Oberon07 -- other mappings: LSL -> LSH, FLOOR -> Entier, Pack und Unpk currently unsupported *)
+		Asr Ror Flt
 
 		Conversion
+		DotTimesPlus AtMulDec AtMulInc DecMul IncMul
 		end
 		~
 	*)
-	(* global proper procedures *)
-	Assert*= Scanner.EndOfText+1; Copy*= Assert+1; Dec*= Copy+1; Excl*= Dec+1; Halt*= Excl+1;
-	Inc*= Halt+1; Incl*= Inc+1; New*= Incl+1; Dispose*= New+1; GetProcedure*= Dispose+1; Connect*=GetProcedure+1; Delegate*=Connect+1;
-	Receive*= Delegate+1; Send* = Receive+1;
-	(* global functions *)
-	Abs*= Send+1; Ash*= Abs+1; Cap*= Ash+1; Chr*= Cap+1; Chr32*= Chr+1; Entier*= Chr32+1;
-	EntierH*= Entier+1; Len*= EntierH+1; Long*= Len+1; Max*= Long+1; Min*= Max+1;
-	Odd*= Min+1; Ord*= Odd+1; Ord32*= Ord+1; Short*= Ord32+1; systemSizeOf*= Short+1; Sum*= systemSizeOf+1;
-	Dim*= Sum+1; Cas*= Dim+1; First*= Cas+1; Last*=First+1; Step*=Last+1; Re*=Step+1; Im*=Re+1;
 
-	(* system proper procedures *)
-	systemGet*= Im+1; systemPut*= systemGet+1; systemMove*= systemPut+1;
-	systemNew*= systemMove+1; systemRef *= systemNew+1;
-	systemIncr*= systemRef+1; Reshape*= systemIncr+1; systemTypeCode*= Reshape+1; systemHalt*= systemTypeCode+1;
-	systemPut8*= systemHalt+1; systemPut16*= systemPut8+1; systemPut32*= systemPut16+1; systemPut64*= systemPut32+1;
-	systemTrace*= systemPut64+1;
-
-	(* system functions *)
-	systemAdr*= systemTrace+1;
-	systemBit*= systemAdr+1; systemGet64*= systemBit+1; systemGet32*= systemGet64+1; systemGet16*= systemGet32+1;
-	systemGet8*= systemGet16+1; systemLsh*= systemGet8+1; systemRot*= systemLsh+1; systemVal*= systemRot+1; Conversion*= systemVal+1;
-	systemHardwareAddress*=systemVal+1; systemMsk*=systemHardwareAddress+1;
-	systemSpecial*=systemMsk+1;
-
-	(* from ERA *)
-	systemNull*=systemSpecial+1; systemXOR*=systemNull+1; systemROR*=systemXOR+1; systemProc*=systemROR+1; systemStop* = systemProc + 1; LSL*=systemStop+1; LSR*=LSL+1; ASR*=LSR+1; Flt*=ASR+1; Floor*=Flt+1; Phi*=Floor+1;
-
-	DotTimesPlus* = Phi + 1;
-	AtMulDec* = DotTimesPlus + 1;
-	AtMulInc* = AtMulDec + 1;
-	DecMul* = AtMulInc + 1;
-	IncMul* = DecMul + 1;
-	end = IncMul + 1;
+(* global proper procedures *)
+Assert*= Scanner.EndOfText+1; Copy*= Assert+1; Dec*= Copy+1; Excl*= Dec+1; Halt*= Excl+1; Inc*= Halt+1; Incl*= Inc+1; New*= Incl+1; Dispose*= New+1; GetProcedure*= Dispose+1; Connect*= GetProcedure+1; Delegate*= Connect+1; Read*= Delegate+1; Write*= Read+1; Reshape*= Write+1;
+(* global functions *)
+Abs*= Reshape+1; Cap*= Abs+1; Chr*= Cap+1; Chr32*= Chr+1; Entier*= Chr32+1; EntierH*= Entier+1; Incr*= EntierH+1; Len*= Incr+1; Long*= Len+1; Max*= Long+1; Min*= Max+1; Odd*= Min+1; Ord*= Odd+1; Ord32*= Ord+1; Short*= Ord32+1; Size*= Short+1; Sum*= Size+1; Dim*= Sum+1; Cas*= Dim+1; First*= Cas+1; Last*= First+1; Step*= Last+1; Re*= Step+1; Im*= Re+1; Ash*= Im+1; Lsh*= Ash+1; Rot*= Lsh+1;
+(* system proper procedures *)
+systemGet*= Rot+1; systemPut*= systemGet+1; systemMove*= systemPut+1; systemNew*= systemMove+1; systemRef*= systemNew+1; systemTypeCode*= systemRef+1; systemHalt*= systemTypeCode+1; systemPut8*= systemHalt+1; systemPut16*= systemPut8+1; systemPut32*= systemPut16+1; systemPut64*= systemPut32+1; systemTrace*= systemPut64+1;
+(* system functions *)
+systemAdr*= systemTrace+1; systemSize*= systemAdr+1; systemBit*= systemSize+1; systemGet64*= systemBit+1; systemGet32*= systemGet64+1; systemGet16*= systemGet32+1; systemGet8*= systemGet16+1; systemVal*= systemGet8+1; systemMsk*= systemVal+1;
+(* for active cells *)
+Send*= systemMsk+1; Receive*= Send+1;
+(* for backend specific extensions *)
+systemSpecial*= Receive+1;
+(* compatibility with Oberon07 -- other mappings: LSL -> LSH, FLOOR -> Entier, Pack und Unpk currently unsupported *)
+Asr*= systemSpecial+1; Ror*= Asr+1; Flt*= Ror+1; Conversion*= Flt+1; DotTimesPlus*= Conversion+1; AtMulDec*= DotTimesPlus+1; AtMulInc*= AtMulDec+1; DecMul*= AtMulInc+1; IncMul*= DecMul+1; end*= IncMul+1;
 
 	VectorCapability* = 0;
 	FloatingPointCapability*= 1;
@@ -597,15 +586,12 @@ TYPE
 		NewBuiltin(systemTypeCode,"TYPECODE",system.systemScope,TRUE);
 		NewBuiltin(systemHalt,"HALT",system.systemScope,TRUE);
 
-		NewBuiltin(Reshape,"RESHAPE",system.globalScope,TRUE);
-		NewBuiltin(systemAdr,"ADDRESSOF",system.globalScope,TRUE);
-		NewBuiltin(systemLsh,"LSH",system.globalScope,TRUE);
-		NewBuiltin(systemRot,"ROT",system.globalScope,TRUE);
-		NewBuiltin(systemIncr,"INCR",system.globalScope,TRUE);
-		NewBuiltin(systemSizeOf,"SIZEOF",system.globalScope,TRUE);
+		NewBuiltin(systemSize,"SIZE",system.systemScope,TRUE);
+		NewBuiltin(systemAdr,"ADR",system.systemScope,TRUE);
 
 		NewBuiltin(systemMsk,"MSK",system.systemScope,TRUE);
 		NewBuiltin(systemBit,"BIT",system.systemScope,TRUE);
+
 
 		(* Set up system types *)
 		DeclareType(system.characterType,"CHAR",system.globalScope);
@@ -640,10 +626,12 @@ TYPE
 		(* global functions *)
 		NewBuiltin(Abs,"ABS",system.globalScope,TRUE);
 		NewBuiltin(Ash,"ASH",system.globalScope,TRUE);
+		NewBuiltin(Asr,"ASR",system.globalScope,TRUE);
 		NewBuiltin(Cap,"CAP",system.globalScope,TRUE);
 		NewBuiltin(Chr,"CHR",system.globalScope,TRUE);
 		NewBuiltin(Chr32,"CHR32",system.globalScope,TRUE);
 		NewBuiltin(Entier,"ENTIER",system.globalScope,TRUE);
+		NewBuiltin(Entier,"FLOOR",system.globalScope,TRUE);
 		NewBuiltin(EntierH,"ENTIERH",system.globalScope,TRUE);
 		NewBuiltin(Len,"LEN",system.globalScope,TRUE);
 		NewBuiltin(Long,"LONG",system.globalScope,TRUE);
@@ -652,6 +640,12 @@ TYPE
 		NewBuiltin(Odd,"ODD",system.globalScope,TRUE);
 		NewBuiltin(Ord,"ORD",system.globalScope,TRUE);
 		NewBuiltin(Ord32,"ORD32",system.globalScope,TRUE);
+		NewBuiltin(Lsh,"LSH",system.globalScope,TRUE);
+		NewBuiltin(Lsh,"LSL",system.globalScope,TRUE);
+		NewBuiltin(Rot,"ROT",system.globalScope,TRUE);
+		NewBuiltin(Ror,"ROR",system.globalScope,TRUE);
+		NewBuiltin(Incr,"INCR",system.globalScope,TRUE);
+
 		NewBuiltin(Short,"SHORT",system.globalScope,TRUE);
 		NewBuiltin(Sum,"SUM",system.globalScope,TRUE);
 		NewBuiltin(Dim,"DIM",system.globalScope,TRUE);
@@ -663,6 +657,9 @@ TYPE
 
 		NewBuiltin(Re,"RE",system.globalScope,TRUE);
 		NewBuiltin(Im,"IM",system.globalScope,TRUE);
+
+		NewBuiltin(systemAdr,"ADDRESSOF",system.globalScope,TRUE);
+		NewBuiltin(systemSize,"SIZEOF",system.globalScope,TRUE);
 
 		(* global proper procedures *)
 		NewBuiltin(Assert,"ASSERT",system.globalScope,TRUE);
@@ -676,6 +673,8 @@ TYPE
 		NewBuiltin(Dispose,"DISPOSE",system.globalScope, FALSE);
 		NewBuiltin(GetProcedure,"GETPROCEDURE",system.globalScope,TRUE);
 		NewBuiltin(systemTrace,"TRACE",system.globalScope,TRUE);
+		NewBuiltin(Reshape,"RESHAPE",system.globalScope,TRUE);
+
 	END SetDefaultDeclarations;
 
 	PROCEDURE OperatorDefined*(system: System; op: LONGINT; defined: BOOLEAN);
@@ -1279,6 +1278,7 @@ TYPE
 		END;
 		NewBuiltinIdentifier(Abs,"ABS");
 		NewBuiltinIdentifier(Ash,"ASH");
+		NewBuiltinIdentifier(Asr,"ASR");
 		NewBuiltinIdentifier(Cap,"CAP");
 		NewBuiltinIdentifier(Chr,"CHR");
 		NewBuiltinIdentifier(Chr32,"CHR32");
@@ -1286,11 +1286,14 @@ TYPE
 		NewBuiltinIdentifier(EntierH,"ENTIERH");
 		NewBuiltinIdentifier(Len,"LEN");
 		NewBuiltinIdentifier(Long,"LONG");
+		NewBuiltinIdentifier(Lsh,"LSH");
 		NewBuiltinIdentifier(Max,"MAX");
 		NewBuiltinIdentifier(Min,"MIN");
 		NewBuiltinIdentifier(Odd,"ODD");
 		NewBuiltinIdentifier(Ord,"ORD");
 		NewBuiltinIdentifier(Ord32,"ORD32");
+		NewBuiltinIdentifier(Ror,"ROR");
+		NewBuiltinIdentifier(Rot,"ROT");
 		NewBuiltinIdentifier(Short,"SHORT");
 		NewBuiltinIdentifier(Sum,"SUM");
 		NewBuiltinIdentifier(Dim,"DIM");
@@ -1299,6 +1302,7 @@ TYPE
 		NewBuiltinIdentifier(Excl,"EXCL");
 		NewBuiltinIdentifier(Inc,"INC");
 		NewBuiltinIdentifier(Incl,"INCL");
+
 
 		(* TODO: check if ok. The operators defined in FoxArrayBase require the following identifiers *)
 		(* TODO: ".*+" should preferably be added as a new token in the scanner *)

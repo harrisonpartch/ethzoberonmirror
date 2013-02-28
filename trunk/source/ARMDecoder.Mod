@@ -122,10 +122,10 @@ CONST
 	RepRelJmp = 10;
 
 	(* immediate reg operations *)
-	LSL = 0;
+	Lsl = 0;
 	LSR = 1;
-	ASR = 2;
-	ROR = 3;
+	Asr = 2;
+	Ror = 3;
 	RRX = 4;
 
 	(* memory access addressing modes *)
@@ -446,10 +446,10 @@ TYPE
 		PROCEDURE WriteShiftSymbol (op : LONGINT; w : Streams.Writer);
 		BEGIN
 			CASE op OF
-				LSL : w.String("LSL ")
+				Lsl : w.String("LSL ")
 				| LSR : w.String("LSR ")
-				| ASR : w.String("ASR ")
-				| ROR : w.String("ROR ")
+				| Asr : w.String("ASR ")
+				| Ror : w.String("ROR ")
 				| RRX : w.String("RRX ")
 			END;
 		END WriteShiftSymbol;
@@ -631,16 +631,16 @@ TYPE
 					shiftImmOrReg := (op MOD 1000H) DIV 80H;
 					IF shiftImmOrReg = 0 THEN argStructure := ArgReg
 					ELSE
-						NEW(shiftArg, LSL, shiftImmOrReg, FALSE); arg2 := shiftArg
+						NEW(shiftArg, Lsl, shiftImmOrReg, FALSE); arg2 := shiftArg
 					END
 				ELSIF ((op MOD 1000H) DIV 10H) = 6 THEN (* rotate right with extend *)
 					NEW(shiftArg, RRX, 0, FALSE); arg2 := shiftArg
 				ELSE
 					CASE mode OF
-						1 : operation := LSL
+						1 : operation := Lsl
 						| 2,3 : operation := LSR
-						| 4,5 : operation := ASR
-						| 6,7 : operation := ROR
+						| 4,5 : operation := Asr
+						| 6,7 : operation := Ror
 					END;
 					IF ODD(mode) THEN
 						regOp := TRUE;

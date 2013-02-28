@@ -172,7 +172,10 @@ TYPE
 					END;
 					i := User32.DispatchMessage( msg )
 				END;
-				Kernel32.Sleep( 1 );   (*ALEX 2005.11.30 this is essential*)
+				mode := process.mode;
+				SYSTEM.PUT32(ADDRESS OF process.mode, Objects.AwaitingEvent); (* for the profiler *)
+				Kernel32.Sleep( 10 );   (*ALEX 2005.11.30 this is essential*)
+				SYSTEM.PUT32(ADDRESS OF process.mode, mode); (* for the profiler *)
 			END
 		END MsgLoop;
 

@@ -185,6 +185,20 @@ TYPE
 			MergePointers = TRUE;
 			MergeInvalidates = TRUE;
 
+			PROCEDURE Merge(VAR x,y,dx,dy: LONGINT; X,Y,dX,dY: LONGINT);
+			VAR nx, ny, ndx, ndy: LONGINT;
+			BEGIN
+				nx := MIN(x,X);
+				ny := MIN(y,Y);
+				ndx := MAX(x+dx, X+dX) - nx;
+				ndy := MAX(y+dy, Y+dY) - ny;
+				x := nx;
+				y := ny;
+				dx := ndx;
+				dy := ndy;
+			END Merge;
+
+
 		BEGIN {EXCLUSIVE}
 			IF debug = SELF THEN
 				KernelLog.String("<----");
@@ -252,6 +266,7 @@ TYPE
 							END;
 							(* keep *)
 							RETURN TRUE;
+
 						END;
 					ELSIF msg.msgSubType = MsgSubAll THEN
 						(* keep *)
@@ -287,6 +302,10 @@ TYPE
 								msg.x := msgQ[pos].x; msg.y := msgQ[pos].y; msg.dx := msgQ[pos].dx; msg.dy := msgQ[pos].dy;
 								msgQ[pos].msgSubType := MsgSubNothing;
 								i := 0;
+							(*ELSE
+								Merge(msg.x, msg.y, msg.dx, msg.dy, msgQ[pos].x, msgQ[pos].y, msgQ[pos].dx, msgQ[pos].dy);
+								msgQ[pos].msgSubType := MsgSubNothing;
+							*)
 							END;
 						ELSIF msgQ[pos].msgSubType = MsgSubAll THEN
 							IF TraceQueue OR (debug = SELF)  THEN

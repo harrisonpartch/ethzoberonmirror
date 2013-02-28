@@ -1167,7 +1167,7 @@ Sufficient (but not necessary) conditions:
 
 	(* copy descriptor of src to that of dest. If not existent then create.*)
 	PROCEDURE ShallowCopy*(VAR dest: Address; src: Address);
-	VAR ptr: ANY;
+	VAR ptr: ANY; flags: SET;
 
 		PROCEDURE UseTypeDescriptor;
 		VAR tag: LONGINT;  ptr: ANY;
@@ -1195,7 +1195,9 @@ Sufficient (but not necessary) conditions:
 				ptr := GetArrayDesc( GetDim( src ) );  dest := SYSTEM.VAL( LONGINT, ptr );  (* ??? *)
 			END;
 			CopyDescriptor();
+			PutFlags(dest, {TensorFlag});
 		ELSIF GetDim( dest ) # GetDim( src ) THEN  (* different dimension *)
+			flags := GetFlags(dest);
 			(* check if re-allocation of descriptor is allowed *)
 			IF ~(TensorFlag IN GetFlags( dest )) & ~(TemporaryFlag IN GetFlags( dest )) THEN  (* no, not allowed*)
 				Halt(DimensionMismatch,src,0,dest);
@@ -1205,12 +1207,15 @@ Sufficient (but not necessary) conditions:
 			ptr := GetArrayDesc( GetDim( src ) );  dest := SYSTEM.VAL( LONGINT, ptr );
 
 			CopyDescriptor();
+			PutFlags(dest, flags);
 		ELSE
+			flags := GetFlags(dest);
 			(* check if re-allocation of array data is allowed *)
 			IF RangeFlag IN GetFlags( dest ) THEN  (* no! not allowed *)
 				Halt(AllocationForbidden,src,0,dest);
 			END;
 			CopyDescriptor();
+			PutFlags(dest, flags);
 		END;
 
 	END ShallowCopy;
@@ -8974,7 +8979,7 @@ Sufficient (but not necessary) conditions:
 			PutFlags(dest,GetFlags(src));
 			PutSize(dest,GetSize(src));
 
-			FOR i := 0 TO srcDim-suffixIndices-suffixRanges-prefixIndices-prefixRanges DO
+			FOR i := 0 TO srcDim-suffixIndices-suffixRanges-prefixIndices-prefixRanges-1 DO
 				srcDim := i + prefixIndices + prefixRanges;
 				destDim := i + prefixRanges;
 				len := GetLen(src,srcDim);

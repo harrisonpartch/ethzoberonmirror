@@ -1,4 +1,5 @@
 # Oberon language test and validation suite
+# options 	--mayTrap --prolog="Compiler.Compile TesterInput.txt" --command="SystemTools.Free Test Dummy B A;SystemTools.Load Test" --logFile="FoxExecutionTest.Log" --result="Oberon.Execution.Test.Diff"
 
 # test halt and assert statements and simple procedure call (basics for the test suite)
 
@@ -7386,7 +7387,7 @@ positive: assignment of extended record type to base type (check destination siz
 
 	BEGIN Test
 	END Test.
-	
+
 positive: return of real number (was: problem in AMD float stack)
 
 	MODULE Test; (** AUTHOR ""; PURPOSE ""; *)
@@ -7455,7 +7456,7 @@ positive: test for correct use of SYSTEM.VAL (without conversion)
 		l := 10;
 		(* trick to store real value in original format in longint variable wihout using SYSTEM.VAL, for testing SYSTEM.VAL ! *)
 		SYSTEM.MOVE(SYSTEM.ADR(l),SYSTEM.ADR(r),SYSTEM.SIZEOF(REAL));
-		RETURN r;	
+		RETURN r;
 	END Longint;
 
 	PROCEDURE Hugeint(): LONGREAL;
@@ -7464,10 +7465,10 @@ positive: test for correct use of SYSTEM.VAL (without conversion)
 		l := 10;
 		(* trick to store real value in original format in longint variable wihout using SYSTEM.VAL, for testing SYSTEM.VAL ! *)
 		SYSTEM.MOVE(SYSTEM.ADR(l),SYSTEM.ADR(r),SYSTEM.SIZEOF(LONGREAL));
-		RETURN r;	
+		RETURN r;
 	END Hugeint;
 
-		
+
 	BEGIN
 		r := SYSTEM.VAL(REAL,Real());
 		ASSERT(r = 10);
@@ -7493,10 +7494,10 @@ positive: correct use of indexers for (static) array of array
 			a[i,3] := i*4;
 		END;
 		x := a[2];
-		ASSERT(x[0] = 2); 
-		ASSERT(x[1] = 2*2); 
-		ASSERT(x[2] = 3*2); 
-		ASSERT(x[3] = 4*2); 
+		ASSERT(x[0] = 2);
+		ASSERT(x[1] = 2*2);
+		ASSERT(x[2] = 3*2);
+		ASSERT(x[3] = 4*2);
 	END P;
 
 	BEGIN P
@@ -7682,7 +7683,7 @@ positive: testing calling convention, in particular return of complex types
 			V(a,10,20,30);
 			V(A(10,20,30),10,20,30);
 			W(A(10,20,30),10,20,30);
-			ma := MA(10,20,30); 
+			ma := MA(10,20,30);
 			WM(ma,10,20,30);
 			WM(MA(1,2,3),1,2,3);
 			WVM(MA(2,3,4),2,3,4);
@@ -7699,13 +7700,13 @@ positive: testing calling convention, in particular return of complex types
 			WTM(RTA(2,3,4),2,3,4);
 			WTVM(RTA(3,4,5),3,4,5);
 		END P;
-	BEGIN P;	
+	BEGIN P;
 	END Test.
 
 
 positive: simple calling convention test (c and winapi returning pointer)
 
-	MODULE Test; 
+	MODULE Test;
 
 	TYPE
 

@@ -45,7 +45,7 @@ CONST
 		NegativeDivisorTrap*=12;
 
 		Trace = FALSE;
-		TraceRegisterUsage=TRUE;
+		TraceRegisterUsageCount=TRUE;
 
 		ArrayAlignment = 8*8;			(* first array element of ArrayBlock and first data element of SystemBlock must be aligned to 0 MOD ArrayAlignment *)
 
@@ -71,6 +71,8 @@ CONST
 		FirstPriority=-3;
 		InitPriority=-2;
 		ExitPriority=-1;
+
+		StrictChecks = FALSE;
 TYPE
 	SupportedInstructionProcedure* = PROCEDURE {DELEGATE} (CONST instr: IntermediateCode.Instruction; VAR moduleName,procedureName: ARRAY OF CHAR): BOOLEAN;
 	SupportedImmediateProcedure* = PROCEDURE {DELEGATE} (CONST op: IntermediateCode.Operand): BOOLEAN;
@@ -782,7 +784,7 @@ TYPE
 
 	UsedArray*=POINTER TO ARRAY OF RECORD count: LONGINT; map: LONGINT; type: IntermediateCode.Type; class: IntermediateCode.RegisterClass END;
 
-	RegisterUsage*=OBJECT
+	RegisterUsageCount*=OBJECT
 	VAR used: UsedArray; count: LONGINT;
 
 		PROCEDURE &Init;
@@ -830,11 +832,6 @@ TYPE
 		PROCEDURE DecUse(register: LONGINT);
 		BEGIN
 			DEC(used[register].count);
-			(*
-			IF (register = 1) & (count > 30)  THEN
-				D.TraceBack;
-			END;
-			*)
 		END DecUse;
 
 		PROCEDURE Map(register: LONGINT): LONGINT;
@@ -849,7 +846,9 @@ TYPE
 
 		PROCEDURE Remap(register: LONGINT; to: LONGINT);
 		BEGIN
-			used[register].map:= to
+			used[register].map:= to;
+			used[to].count := used[register].count;
+			used[register].count := 0;
 		END Remap;
 
 		PROCEDURE Use(register: LONGINT): LONGINT;
@@ -861,7 +860,7 @@ TYPE
 			END
 		END Use;
 
-	END RegisterUsage;
+	END RegisterUsageCount;
 
 	RegisterEntry = POINTER TO RECORD
 		prev,next: RegisterEntry;
@@ -960,7 +959,7 @@ TYPE
 		(*
 		usedRegisters: Registers;
 		*)
-		registerUsage: RegisterUsage;
+		registerUsageCount: RegisterUsageCount;
 		usedRegisters: RegisterEntry;
 
 		(* useful operands and types *)
@@ -1029,7 +1028,7 @@ TYPE
 
 			SELF.newObjectFile := newObjectFile;
 			indexCounter := 0;
-			NEW(registerUsage);
+			NEW(registerUsageCount);
 			usedRegisters := NIL;
 			procedureResultDesignator := NIL;
 			NEW(fingerPrinter, system);
@@ -1048,7 +1047,7 @@ TYPE
 		PROCEDURE AcquireRegister(CONST type: IntermediateCode.Type; class: IntermediateCode.RegisterClass): LONGINT;
 		VAR new: LONGINT;
 		BEGIN
-			new :=  registerUsage.Next(type,class);
+			new :=  registerUsageCount.Next(type,class);
 			UseRegister(new);
 			RETURN new
 		END AcquireRegister;
@@ -1095,8 +1094,15 @@ TYPE
 		VAR moduleName, procedureName: SyntaxTree.IdentifierString;
 
 			PROCEDURE CheckRegister(VAR op: IntermediateCode.Operand);
+			VAR i: LONGINT;
 			BEGIN
-				IF op.register >0 THEN IntermediateCode.SetRegister(op,registerUsage.Map(op.register)) END;
+				IF op.register >0 THEN IntermediateCode.SetRegister(op,registerUsageCount.Map(op.register)) END;
+				IF op.rule # NIL THEN
+					FOR i := 0 TO LEN(op.rule)-1 DO
+						CheckRegister(op.rule[i])
+					END;
+				END;
+
 			END CheckRegister;
 
 		BEGIN
@@ -1239,6 +1245,7 @@ TYPE
 		BEGIN
 			prevConditional := conditional;
 			conditional := FALSE;
+			InitOperand(result, ModeUndefined);
 			Expression(x);
 			op := result;
 			LoadValue(op,x.type.resolved);
@@ -1250,6 +1257,7 @@ TYPE
 		BEGIN
 			prevConditional := conditional;
 			conditional := FALSE;
+			InitOperand(result,ModeUndefined);
 			Expression(x);
 			op := result;
 		(*
@@ -1281,15 +1289,20 @@ TYPE
 		PROCEDURE UnuseRegister(register: LONGINT);
 		BEGIN
 			IF (register > 0) THEN
-				registerUsage.DecUse(register);
-				IF TraceRegisterUsage & (dump# NIL) THEN
-					dump.String("unuse register "); dump.Int(register,1); dump.String(": ");dump.Int(registerUsage.Use(register),1); dump.Ln; dump.Update;
+				register := registerUsageCount.Map(register);
+				registerUsageCount.DecUse(register);
+				IF TraceRegisterUsageCount & (dump# NIL) THEN
+					dump.String("unuse register "); dump.Int(register,1); dump.String(": ");dump.Int(registerUsageCount.Use(register),1); dump.Ln; dump.Update;
 				END;
-				IF registerUsage.Use(register)=0 THEN
-					RemoveRegisterEntry(usedRegisters,register);
-					IF TraceRegisterUsage & (dump# NIL) THEN
+				IF registerUsageCount.Use(register)=0 THEN
+					IF ~RemoveRegisterEntry(usedRegisters,register) THEN
+						Warning(position, "register cannot be removed");
+					END;
+					IF TraceRegisterUsageCount & (dump# NIL) THEN
 						dump.String("remove register from usedRegisters"); dump.Ln; dump.Update;
 					END;
+				ELSIF registerUsageCount.Use(register)<0 THEN
+					D.TraceBack;
 				END;
 			END;
 		END UnuseRegister;
@@ -1297,13 +1310,14 @@ TYPE
 		PROCEDURE UseRegister(register: LONGINT);
 		BEGIN
 			IF (register > 0) THEN
-				registerUsage.IncUse(register);
-				IF TraceRegisterUsage & (dump# NIL) THEN
-					dump.String("use register "); dump.Int(register,1); dump.String(": ");dump.Int(registerUsage.Use(register),1); dump.Ln; dump.Update;
+				register := registerUsageCount.Map(register);
+				registerUsageCount.IncUse(register);
+				IF TraceRegisterUsageCount & (dump# NIL) THEN
+					dump.String("use register "); dump.Int(register,1); dump.String(": ");dump.Int(registerUsageCount.Use(register),1); dump.Ln; dump.Update;
 				END;
-				IF registerUsage.Use(register)=1 THEN
-					AddRegisterEntry(usedRegisters,register, registerUsage.used[register].class, registerUsage.used[register].type);
-					IF TraceRegisterUsage & (dump# NIL) THEN
+				IF registerUsageCount.Use(register)=1 THEN
+					AddRegisterEntry(usedRegisters,register, registerUsageCount.used[register].class, registerUsageCount.used[register].type);
+					IF TraceRegisterUsageCount & (dump# NIL) THEN
 						dump.String("add register to usedRegisters"); dump.Ln; dump.Update;
 					END;
 				END;
@@ -1335,7 +1349,7 @@ TYPE
 		BEGIN
 			entry := usedRegisters;
 			WHILE entry # NIL DO
-				type := registerUsage.used[entry.register].type;
+				type := registerUsageCount.used[entry.register].type;
 				IntermediateCode.InitRegister(op,entry.type,entry.registerClass, entry.register);
 				Emit(Push(position,op));
 				entry := entry.next;
@@ -1356,9 +1370,9 @@ TYPE
 			WHILE entry # NIL DO
 				next := entry.next;
 				IF entry.registerClass.class = IntermediateCode.Parameter THEN
-					registerUsage.DecUse(entry.register);
-					ASSERT(registerUsage.Use(entry.register)=0);
-					IF TraceRegisterUsage & (dump# NIL) THEN
+					registerUsageCount.DecUse(entry.register);
+					ASSERT(registerUsageCount.Use(entry.register)=0);
+					IF TraceRegisterUsageCount & (dump# NIL) THEN
 						dump.String("unuse register "); dump.Int(entry.register,1); dump.Ln; dump.Update;
 					END;
 				ELSIF prev = NIL THEN
@@ -1372,7 +1386,7 @@ TYPE
 
 		(* restore registers from array saved and re-enter into array markedRegisters (recursion possible) *)
 		PROCEDURE RestoreRegisters(CONST saved: RegisterEntry);
-		VAR op: IntermediateCode.Operand; entry,prev: RegisterEntry; type: IntermediateCode.Type; class: IntermediateCode.RegisterClass;
+		VAR op: IntermediateCode.Operand; entry,prev: RegisterEntry; type: IntermediateCode.Type; class: IntermediateCode.RegisterClass; new: LONGINT;
 		BEGIN
 			entry := saved;
 			WHILE (entry # NIL) DO prev := entry; entry := entry.next END;
@@ -1382,7 +1396,15 @@ TYPE
 				type := entry.type;
 				class := entry.registerClass;
 				IntermediateCode.InitRegister(op,type,class,entry.register);
-				registerUsage.Remap(entry.register,registerUsage.Next(type,class));
+				new := registerUsageCount.Next(type,class);
+				registerUsageCount.Remap(entry.register,new);
+				IF TraceRegisterUsageCount & (dump# NIL) THEN
+					dump.String("remap register "); dump.Int(entry.register,1);
+					dump.String("to "); dump.Int(new,1);
+					dump.String("with count "); dump.Int(registerUsageCount.Use(new),1); dump.Ln; dump.Update;
+				END;
+				entry.register := new;
+
 				Emit(Pop(position,op));
 				AddRegisterEntry(usedRegisters,entry.register,entry.registerClass, entry.type);
 				entry := prev;
@@ -1393,15 +1415,30 @@ TYPE
 		END RestoreRegisters;
 
 		PROCEDURE CheckRegistersFree;
-		VAR r: RegisterEntry;
+		VAR r: RegisterEntry; warning: ARRAY 128 OF CHAR; i: LONGINT;
 		BEGIN
 			IF usedRegisters # NIL THEN
 				r := usedRegisters;
 				WHILE r # NIL DO
-					Error(r.register,"not released register");
+					warning := "register ";
+					Strings.AppendInt(warning, r.register);
+					Strings.Append(warning, " not released.");
+					Warning(position,warning);
 					r := r .next;
 				END;
-				Error(position,"register not released");
+			END;
+			FOR i := 0 TO registerUsageCount.count-1 DO
+				IF registerUsageCount.used[i].count < 0 THEN
+					warning := "register ";
+					Strings.AppendInt(warning, i);
+					Strings.Append(warning, " unused too often.");
+					Warning(position,warning);
+				ELSIF registerUsageCount.used[i].count > 0 THEN (* should always coincide with cases above *)
+					warning := "register ";
+					Strings.AppendInt(warning, i);
+					Strings.Append(warning, " not unused often enough.");
+					Warning(position,warning);
+				END;
 			END;
 		END CheckRegistersFree;
 
@@ -1462,15 +1499,25 @@ TYPE
 		BEGIN
 			IF ReusableRegister(src1) THEN
 				IntermediateCode.InitRegister(result,src1.type,src1.registerClass, src1.register);
-				IF (src1.mode # IntermediateCode.ModeRegister) OR (src1.offset # 0) THEN
-					Emit(Mov(position,result,src1));
-				END;
+				ASSERT((src1.mode = IntermediateCode.ModeRegister) & (src1.offset = 0));
 				UseIntermediateOperand(result);
 			ELSE
 				IntermediateCode.InitRegister(result,src1.type,src1.registerClass, AcquireRegister(src1.type, src1.registerClass));
 				Emit(Mov(position,result,src1));
 			END
 		END ReuseCopy;
+
+		PROCEDURE TransferToRegister(VAR result: IntermediateCode.Operand; src: IntermediateCode.Operand);
+		BEGIN
+			IF ReusableRegister(src) THEN
+				IntermediateCode.InitRegister(result,src.type,src.registerClass, src.register);
+			ELSE
+				IntermediateCode.InitRegister(result,src.type,src.registerClass, AcquireRegister(src.type, src.registerClass));
+				Emit(Mov(position,result,src));
+				ReleaseIntermediateOperand(src);
+			END
+		END TransferToRegister;
+
 
 		(** labels and branches **)
 		PROCEDURE NewLabel(): Label;
@@ -1520,6 +1567,7 @@ TYPE
 		PROCEDURE Convert(VAR operand: IntermediateCode.Operand; type: IntermediateCode.Type);
 		VAR new: IntermediateCode.Operand;
 		BEGIN
+			IF Trace THEN TraceEnter("Convert") END;
 			IF IntermediateCode.TypeEquals(type,operand.type) THEN (* nothing to be done *)
 			ELSIF (operand.mode = IntermediateCode.ModeRegister) THEN
 				IF (type.sizeInBits = operand.type.sizeInBits) & (type.form IN IntermediateCode.Integer) & (operand.type.form IN IntermediateCode.Integer)
@@ -1541,6 +1589,7 @@ TYPE
 				ReleaseIntermediateOperand(operand);
 				operand := new;
 			END;
+			IF Trace THEN TraceExit("Convert") END;
 		END Convert;
 
 		PROCEDURE TrapC(br: ConditionalBranch; left,right:IntermediateCode.Operand; trapNo: LONGINT);
@@ -1804,7 +1853,7 @@ TYPE
 		BEGIN
 			backend.diagnostics.Warning(module.module.sourceName,position,Diagnostics.Invalid,s);
 			IF dump # NIL THEN
-				dump.String(s); dump.Ln;
+				dump.String(s); dump.Ln; dump.Update;
 			END;
 		END Warning;
 
@@ -2490,6 +2539,7 @@ TYPE
 					Convert(temp.op,bool);
 					result.mode := ModeValue;
 					result.op := temp.op;
+					result.tag := nil; (* may be left over from calls to evaluate *)
 				END;
 			ELSE
 				HALT(100);
@@ -2615,11 +2665,26 @@ TYPE
 			expression: SyntaxTree.Expression;
 			resultingType, leftType, baseType: SyntaxTree.Type;
 			skipLabel1, skipLabel2: Label;
-			i, indexListSize, indexDim, rangeCount, indexCount, srcDimOffset, destDimOffset, targetArrayDimensionality: LONGINT;
+			i, indexListSize, indexDim, rangeCount, indexCount, tensorRangeCount, srcDimOffset, destDimOffset, targetArrayDimensionality: LONGINT;
 			staticSourceLength, staticSourceIncrement, staticIndex, staticFirstIndex, staticLastIndex, staticStepSize, staticTargetLength: LONGINT;
 			variableOp: Operand;
 			variable: SyntaxTree.Variable;
-			hasTensorRange: BOOLEAN;
+
+			PROCEDURE CountIndices(parameters: SyntaxTree.ExpressionList; VAR indexCount: LONGINT; VAR rangeCount: LONGINT; VAR tensorRangeCount: LONGINT);
+			VAR index: LONGINT; expression: SyntaxTree.Expression;
+			BEGIN
+				(* count the number of indices, ranges and tensorRanges in the index list *)
+				indexCount := 0; rangeCount := 0; tensorRangeCount := 0;
+				FOR i := 0 TO parameters.Length() - 1 DO
+					expression := parameters.GetExpression(i);
+					IF expression IS SyntaxTree.TensorRangeExpression THEN INC(tensorRangeCount)
+					ELSIF (expression.type # NIL) & (expression.type.resolved IS SyntaxTree.RangeType) THEN INC(indexCount)
+					ELSE INC(indexCount)
+					END
+				END;
+			END CountIndices;
+
+
 		BEGIN
 			ASSERT(tagsAvailable);
 
@@ -2628,7 +2693,7 @@ TYPE
 
 			InitOperand(localResult, ModeReference);
 
-			IF resultingType IS SyntaxTree.MathArrayType THEN
+			IF (resultingType IS SyntaxTree.MathArrayType) & (resultingType(SyntaxTree.MathArrayType).form # SyntaxTree.Static) THEN
 				targetArrayDimensionality := resultingType(SyntaxTree.MathArrayType).Dimensionality();
 
 				IF arrayDestinationTag.mode # IntermediateCode.Undefined THEN
@@ -2646,26 +2711,18 @@ TYPE
 
 			indexListSize := x.parameters.Length();
 
-			(* count the number of ranges in the index list *)
-			rangeCount := 0; hasTensorRange := FALSE; indexCount := 0;
-			FOR i := 0 TO indexListSize - 1 DO
-				expression := x.parameters.GetExpression(i);
-				IF expression IS SyntaxTree.TensorRangeExpression THEN hasTensorRange := TRUE
-				ELSIF (expression.type # NIL) & (expression.type.resolved IS SyntaxTree.RangeType) THEN INC(rangeCount)
-				ELSE INC(indexCount)
-				END
-			END;
+			CountIndices(x.parameters, indexCount, rangeCount, tensorRangeCount);
+			ASSERT(tensorRangeCount <= 1);
 
-			(* designate the array  to be indexed over *)
+			(* designate the array to be indexed over, perform tensor range check if known *)
 			Designate(x.left, array);
 
 			IF leftType(SyntaxTree.MathArrayType).form = SyntaxTree.Tensor THEN
 				Dereference(array, leftType);
-				IF ~hasTensorRange THEN
+				IF tensorRangeCount=0 THEN
 					DimensionCheck(array.tag, IntermediateCode.Immediate(int32, rangeCount+indexCount), BreqL)
 				END
 			END;
-
 
 			(* determine source and destination dimension offsets; this depends on if the list starts with a '?' *)
 			IF x.parameters.GetExpression(0) IS SyntaxTree.TensorRangeExpression THEN
@@ -2679,8 +2736,11 @@ TYPE
 			indexDim := 0;
 
 			(* use address of source array as basis *)
+			(*
 			ReuseCopy(localResult.op, array.op);
-			(* Convert(localResult.op, addressType); *)
+			*)
+			localResult.op := array.op;
+			UseIntermediateOperand(localResult.op);
 
 			(* go through the index list *)
 			FOR i := 0 TO indexListSize - 1 DO
@@ -2690,11 +2750,13 @@ TYPE
 					(* nothing to do *)
 				ELSE
 					(* determine which dimension of source array is currently looked at *)
-					IF srcDimOffset < 0 THEN
+					IF srcDimOffset < 0 THEN (* tensor expression or the form a[?,i,j] *)
+						(* get the memory operand pointing to array descriptor dimension *)
 						GetMathArrayField(tmp, array.tag, MathDimOffset);
+						(* make a reusable register from it *)
 						ReuseCopy(srcDim, tmp);
 						ReleaseIntermediateOperand(tmp);
-						Emit(Add(position,srcDim, srcDim, IntermediateCode.Immediate(addressType, i + srcDimOffset)))
+						AddInt(srcDim, srcDim, IntermediateCode.Immediate(addressType, i + srcDimOffset));
 					ELSE
 						srcDim := IntermediateCode.Immediate(int32, i)
 					END;
@@ -2704,11 +2766,14 @@ TYPE
 					Convert(sourceLength.op, sizeType);
 					GetMathArrayIncrement(leftType(SyntaxTree.MathArrayType), array, srcDim, FALSE, sourceIncrement);
 					Convert(sourceIncrement.op, sizeType);
+					(* release the dim operand, if dynamic. No register reuse to decrease register pressure *)
 					ReleaseIntermediateOperand(srcDim);
 
 					IF SemanticChecker.IsIntegerType(expression.type.resolved) THEN
 						(* SINGLE INDEX *)
 						Evaluate(expression, index);
+						ReleaseIntermediateOperand(index.tag);
+						index.tag := emptyOperand;
 						Convert(index.op, sizeType);
 
 						(* lower bound check *)
@@ -2721,7 +2786,7 @@ TYPE
 
 						(* upper bound check *)
 						IF IsIntegerImmediate(index.op, staticIndex) & IsIntegerImmediate(sourceLength.op, staticSourceLength) THEN
-							ASSERT(staticIndex < staticSourceLength)
+							ASSERT(staticIndex < staticSourceLength) (* ensured by checker *)
 						ELSIF backend.noRuntimeChecks THEN (* do nothing *)
 						ELSE
 							TrapC(BrltL, index.op, sourceLength.op, IndexCheckTrap)
@@ -2729,8 +2794,7 @@ TYPE
 
 						ReleaseOperand(sourceLength);
 						Convert(index.op, addressType);
-						ReuseCopy(summand, index.op);
-						ReleaseOperand(index)
+						summand := index.op;
 
 					ELSIF expression.type.resolved IS SyntaxTree.RangeType THEN
 						(* RANGE OF INDICES *)
@@ -2747,9 +2811,7 @@ TYPE
 						(* for dynamic upper bounds: add a runtime check, which repaces the upper bound with the largest valid index
 						if it is 'MAX(LONGINT)' *)
 						IF ~IsIntegerImmediate(lastIndex, staticLastIndex) THEN
-							tmp := lastIndex;
-							ReuseCopy(lastIndex, tmp);
-							ReleaseIntermediateOperand(tmp);
+							TransferToRegister(lastIndex, lastIndex);
 							skipLabel1 := NewLabel();
 							BrneL(skipLabel1, lastIndex, IntermediateCode.Immediate(sizeType, MAX(LONGINT)));
 							Emit(MovReplace(position,lastIndex, sourceLength.op)); (* make sure that no new register is allocated *)
@@ -2794,9 +2856,10 @@ TYPE
 							END;
 							UseIntermediateOperand(targetLength);
 						ELSE
-							(* targetLength := lastIndex + 1 *)
+							(* targetLength := lastIndex + 1
 							Reuse1(targetLength, lastIndex);
-							Emit(Add(position,targetLength, lastIndex, IntermediateCode.Immediate(sizeType, 1)));
+							*)
+							AddInt(targetLength, lastIndex, IntermediateCode.Immediate(sizeType, 1));
 						END;
 						ReleaseOperand(sourceLength);
 						ReleaseIntermediateOperand(lastIndex);
@@ -2808,8 +2871,7 @@ TYPE
 							(* first index = 0: nothing to do *)
 						ELSE
 							(* targetLength := targetLength - firstIndex *)
-							ReleaseIntermediateOperand(targetLength);
-							ReuseCopy(targetLength, targetLength);
+							TransferToRegister(targetLength, targetLength);
 							Emit(Sub(position,targetLength, targetLength, firstIndex))
 						END;
 
@@ -2821,6 +2883,7 @@ TYPE
 						ELSE
 							skipLabel1 := NewLabel();
 							BrgeL(skipLabel1, targetLength, IntermediateCode.Immediate(sizeType, 0));
+							TransferToRegister(targetLength, targetLength);
 							Emit(Mov(position,targetLength, IntermediateCode.Immediate(sizeType, 0)));
 							SetLabel(skipLabel1)
 						END;
@@ -2851,13 +2914,12 @@ TYPE
 							tmp := 	IntermediateCode.Register(sizeType, IntermediateCode.GeneralPurposeRegister,AcquireRegister(sizeType,IntermediateCode.GeneralPurposeRegister));
 							Emit(Mod(position,tmp, targetLength, stepSize));
 							BrneL(skipLabel1, tmp, IntermediateCode.Immediate(sizeType, 0));
-							ReleaseIntermediateOperand(targetLength);
-							ReuseCopy(targetLength, targetLength);
+							TransferToRegister(targetLength, targetLength);
 							Emit(Div(position,targetLength, targetLength, stepSize));
 							BrL(skipLabel2);
 							SetLabel(skipLabel1);
 							Emit(Div(position,targetLength, targetLength, stepSize));
-							Emit(Add(position,targetLength, targetLength, IntermediateCode.Immediate(sizeType, 1)));
+							AddInt(targetLength, targetLength, IntermediateCode.Immediate(sizeType, 1));
 							SetLabel(skipLabel2);
 							ReleaseIntermediateOperand(tmp);
 						END;
@@ -2865,7 +2927,6 @@ TYPE
 						(* determine increment of target array for current dimension *)
 						IF IsIntegerImmediate(sourceIncrement.op, staticSourceIncrement) & IsIntegerImmediate(stepSize, staticStepSize) THEN
 							targetIncrement := IntermediateCode.Immediate(sizeType, staticSourceIncrement * staticStepSize);
-							UseIntermediateOperand(targetIncrement) (* actually not needed *)
 						ELSIF IsIntegerImmediate(stepSize, staticStepSize) & (staticStepSize = 1) THEN
 							(* step size = 1 *)
 							targetIncrement := sourceIncrement.op;
@@ -2874,7 +2935,7 @@ TYPE
 							(* targetIncrement := sourceIncrement * stepSize *)
 							Reuse1(targetIncrement, stepSize);
 							ASSERT((sourceIncrement.op.mode # IntermediateCode.ModeImmediate) OR (stepSize.mode # IntermediateCode.ModeImmediate));
-							Emit(Mul(position,targetIncrement, sourceIncrement.op, stepSize))
+							MulInt(targetIncrement, sourceIncrement.op, stepSize);
 						END;
 						ReleaseIntermediateOperand(stepSize);
 
@@ -2882,9 +2943,8 @@ TYPE
 						IF destDimOffset < 0 THEN
 							(* determine which dimension of target array is currently looked at *)
 							GetMathArrayField(tmp, array.tag, MathDimOffset);
-							ReuseCopy(destDim, tmp);
-							ReleaseIntermediateOperand(tmp);
-							Emit(Add(position,destDim, destDim, IntermediateCode.Immediate(sizeType, indexDim + destDimOffset)));
+							TransferToRegister(destDim, tmp);
+							AddInt(destDim, destDim, IntermediateCode.Immediate(sizeType, indexDim + destDimOffset));
 
 							PutMathArrayLenOrIncr(localResult.tag, targetLength, destDim, FALSE);
 							PutMathArrayLenOrIncr(localResult.tag, targetIncrement, destDim, TRUE);
@@ -2894,25 +2954,24 @@ TYPE
 							PutMathArrayLength(localResult.tag, targetLength, indexDim);
 							PutMathArrayIncrement(localResult.tag , targetIncrement, indexDim)
 						END;
-						ReleaseIntermediateOperand(targetLength);
-						ReleaseIntermediateOperand(targetIncrement);
+						ReleaseIntermediateOperand(targetLength); targetLength := nil;
+						ReleaseIntermediateOperand(targetIncrement); targetIncrement := nil;
 
 						INC(indexDim);
 
 						Convert(firstIndex, addressType);
-						ReuseCopy(summand, firstIndex);
-						ReleaseIntermediateOperand(firstIndex)
+						TransferToRegister(summand, firstIndex);
 					ELSE HALT(100);
 					END;
 
+					(*
 					ASSERT((summand.mode # IntermediateCode.ModeImmediate) OR (sourceIncrement.op.mode # IntermediateCode.ModeImmediate));
+					*)
 					Convert(sourceIncrement.op, addressType);
 					Convert(summand, addressType);
-					Emit(Mul(position,summand, summand, sourceIncrement.op));
-
-					ReleaseOperand(sourceIncrement);
-
-					Emit(Add(position,localResult.op, localResult.op, summand));
+					MulInt(summand, summand, sourceIncrement.op);
+					ReleaseIntermediateOperand(sourceIncrement.op);
+					AddInt(localResult.op, localResult.op, summand);
 					ReleaseIntermediateOperand(summand);
 				END
 			END;
@@ -2938,18 +2997,17 @@ TYPE
 			ELSIF (resultingType IS SyntaxTree.ArrayType) THEN
 				result.tag := array.tag; UseIntermediateOperand(result.tag); result.dimOffset := array.dimOffset+indexListSize-1;
 
-			ELSIF (resultingType IS SyntaxTree.MathArrayType) THEN
+			ELSIF (resultingType IS SyntaxTree.MathArrayType) & (resultingType(SyntaxTree.MathArrayType).form # SyntaxTree.Static) THEN
 				(* finalize target array descriptor *)
 				ASSERT(result.tag.mode # IntermediateCode.Undefined); (* tag has been already set in the beginning *)
 
 				(* write lengths and increments of target array for remaining dimensions *)
 				i := indexListSize;
 				WHILE indexDim < targetArrayDimensionality DO
-					srcDim := IntermediateCode.Immediate(int32, i);
-					GetMathArrayLength(leftType(SyntaxTree.MathArrayType),array,srcDim,FALSE, sourceLength);
+					GetMathArrayLengthAt(leftType(SyntaxTree.MathArrayType),array,i,FALSE, sourceLength);
 					PutMathArrayLength(result.tag, sourceLength.op,indexDim);
 					ReleaseOperand(sourceLength);
-					GetMathArrayIncrement(leftType(SyntaxTree.MathArrayType),array,srcDim,FALSE,sourceIncrement);
+					GetMathArrayIncrementAt(leftType(SyntaxTree.MathArrayType),array,i,FALSE,sourceIncrement);
 					PutMathArrayIncrement(result.tag, sourceIncrement.op,indexDim);
 					ReleaseOperand(sourceIncrement);
 					INC(i); INC(indexDim);
@@ -3005,96 +3063,88 @@ TYPE
 			D.Log.Update
 		END DumpOperand;
 
+		(* get the length of an array , trying to make use of static information *)
+		PROCEDURE ArrayLength(type: SyntaxTree.Type; dim: LONGINT; tag: IntermediateCode.Operand): IntermediateCode.Operand;
+		VAR res: IntermediateCode.Operand; size: LONGINT;
+		BEGIN
+			type := type.resolved;
+			IF type IS SyntaxTree.ArrayType THEN
+				WITH type: SyntaxTree.ArrayType DO
+					IF type.form = SyntaxTree.Static THEN
+						RETURN IntermediateCode.Immediate(addressType,type.staticLength);
+					ELSE
+						res := tag;
+						IntermediateCode.AddOffset(res,ToMemoryUnits(system,addressType.sizeInBits*(DynamicDim(type)-1)));
+						IntermediateCode.MakeMemory(res,addressType);
+						UseIntermediateOperand(res);
+						RETURN res
+					END
+				END;
+			ELSE
+				size := ToMemoryUnits(system,system.AlignedSizeOf(type));
+				RETURN IntermediateCode.Immediate(addressType,size);
+			END;
+		END ArrayLength;
+
+		PROCEDURE AddInt(VAR res: IntermediateCode.Operand; x,y: IntermediateCode.Operand);
+		VAR oldReg: LONGINT;
+		BEGIN
+			ReleaseIntermediateOperand(res);
+			IF IsImmediate(x) & IsImmediate(y) THEN
+				IntermediateCode.InitImmediate(res,x.type,x.intValue+y.intValue);
+			ELSIF IsAddress(x) & IsImmediate(y) THEN
+				IntermediateCode.InitAddress(res,x.type,x.symbol.name, x.symbol.fingerprint, x.symbolOffset);
+				IntermediateCode.AddOffset(res, LONGINT(y.intValue)+x.offset);
+			ELSIF IsAddress(y) & IsImmediate(x) THEN
+				IntermediateCode.InitAddress(res,y.type,y.symbol.name, y.symbol.fingerprint, y.symbolOffset);
+				IntermediateCode.AddOffset(res, LONGINT(x.intValue)+y.offset);
+			ELSIF IsRegister(x) & IsImmediate(y) THEN
+				IntermediateCode.InitRegister(res, x.type, x.registerClass, x.register);
+				IntermediateCode.AddOffset(res, x.offset + LONGINT(y.intValue));
+				UseIntermediateOperand(res);
+			ELSIF IsRegister(y) & IsImmediate(x) THEN
+				IntermediateCode.InitRegister(res, y.type, y.registerClass, y.register);
+				IntermediateCode.AddOffset(res, y.offset + LONGINT(x.intValue));
+				UseIntermediateOperand(res);
+			ELSE
+				IF ~ReusableRegister(res) THEN
+					IntermediateCode.InitRegister(res,x.type,IntermediateCode.GeneralPurposeRegister,AcquireRegister(x.type,IntermediateCode.GeneralPurposeRegister));
+				ELSE
+					UseIntermediateOperand(res);
+				END;
+				IF IsImmediate(x) & (x.intValue = 0) THEN
+					Emit(Mov(position,res,y))
+				ELSIF IsImmediate(y) & (y.intValue=0) THEN
+					Emit(Mov(position,res,x))
+				ELSE
+					Emit(Add(position,res, x, y));
+				END;
+			END;
+		END AddInt;
+
+		PROCEDURE MulInt(VAR res: IntermediateCode.Operand; x,y: IntermediateCode.Operand);
+		BEGIN
+			ReleaseIntermediateOperand(res);
+			IF IsImmediate(x) & IsImmediate(y) THEN
+				IntermediateCode.InitImmediate(res,x.type,x.intValue*y.intValue);
+			ELSE
+				IF ~ReusableRegister(res) THEN
+					IntermediateCode.InitRegister(res,x.type,IntermediateCode.GeneralPurposeRegister,AcquireRegister(x.type,IntermediateCode.GeneralPurposeRegister));
+				ELSE UseIntermediateOperand(res);
+				END;
+				IF IsImmediate(x) & (x.intValue = 1) THEN
+					Emit(Mov(position,res,y))
+				ELSIF IsImmediate(y) & (y.intValue=1) THEN
+					Emit(Mov(position,res,x))
+				ELSE
+					Emit(Mul(position,res, x, y));
+				END;
+			END;
+		END MulInt;
 
 		PROCEDURE IndexDesignator(x: SyntaxTree.IndexDesignator);
 		VAR length,res: IntermediateCode.Operand; type: SyntaxTree.Type; maxDim: LONGINT; array:Operand;
 			index: Operand; e: SyntaxTree.Expression;i: LONGINT; size: LONGINT; atype: SyntaxTree.ArrayType;
-
-			PROCEDURE Length(type: SyntaxTree.Type; dim: LONGINT; tag: IntermediateCode.Operand): IntermediateCode.Operand;
-			VAR res: IntermediateCode.Operand; size: LONGINT;
-			BEGIN
-				type := type.resolved;
-				IF type IS SyntaxTree.ArrayType THEN
-					IF type(SyntaxTree.ArrayType).form = SyntaxTree.Static THEN
-						RETURN IntermediateCode.Immediate(addressType,type(SyntaxTree.ArrayType).staticLength);
-					ELSE
-						res := tag;
-						IntermediateCode.AddOffset(res,ToMemoryUnits(system,addressType.sizeInBits*(DynamicDim(type(SyntaxTree.ArrayType))-1)));
-						IntermediateCode.MakeMemory(res,addressType);
-						RETURN res
-					END
-				ELSE
-					size := ToMemoryUnits(system,system.AlignedSizeOf(type));
-					RETURN IntermediateCode.Immediate(addressType,size);
-				END;
-			END Length;
-
-			PROCEDURE StaticSize(type: SyntaxTree.Type): LONGINT;
-			BEGIN
-				WHILE (type IS SyntaxTree.ArrayType) & (type(SyntaxTree.ArrayType).form # SyntaxTree.Static) DO
-					type := type(SyntaxTree.ArrayType).arrayBase;
-				END;
-				WHILE (type IS SyntaxTree.MathArrayType) & (type(SyntaxTree.MathArrayType).form # SyntaxTree.Static) DO
-					type := type(SyntaxTree.MathArrayType).arrayBase;
-				END;
-				RETURN ToMemoryUnits(system,system.AlignedSizeOf(type));
-			END StaticSize;
-
-			PROCEDURE IsImmediate(x: IntermediateCode.Operand): BOOLEAN;
-			BEGIN
-				RETURN (x.mode = IntermediateCode.ModeImmediate)  & (x.symbol.name = "");
-			END IsImmediate;
-
-			PROCEDURE IsAddress(x: IntermediateCode.Operand): BOOLEAN;
-			BEGIN
-				RETURN (x.mode = IntermediateCode.ModeImmediate) & (x.symbol.name # "")
-			END IsAddress;
-
-
-
-			PROCEDURE AddInt(VAR res: IntermediateCode.Operand; x,y: IntermediateCode.Operand);
-			BEGIN
-				IF IsImmediate(x) & IsImmediate(y) THEN
-					IntermediateCode.InitImmediate(res,x.type,x.intValue+y.intValue);
-				ELSIF IsAddress(x) & IsImmediate(y) THEN
-					IntermediateCode.InitAddress(res,x.type,x.symbol.name, x.symbol.fingerprint, x.symbolOffset);
-					IntermediateCode.AddOffset(res, LONGINT(y.intValue));
-				ELSIF IsAddress(y) & IsImmediate(x) THEN
-					IntermediateCode.InitAddress(res,y.type,y.symbol.name, y.symbol.fingerprint, y.symbolOffset);
-					IntermediateCode.AddOffset(res, LONGINT(x.intValue));
-				ELSE
-					IF res.mode # IntermediateCode.ModeRegister THEN
-						IntermediateCode.InitRegister(res,x.type,IntermediateCode.GeneralPurposeRegister,AcquireRegister(x.type,IntermediateCode.GeneralPurposeRegister));
-					END;
-					IF IsImmediate(x) & (x.intValue = 0) THEN
-						Emit(Mov(position,res,y))
-					ELSIF IsImmediate(y) & (y.intValue=0) THEN
-						Emit(Mov(position,res,x))
-					ELSE
-						Emit(Add(position,res, x, y));
-					END;
-				END;
-			END AddInt;
-
-			PROCEDURE MulInt(VAR res: IntermediateCode.Operand; x,y: IntermediateCode.Operand);
-			BEGIN
-				IF IsImmediate(x) & IsImmediate(y) THEN
-					IntermediateCode.InitImmediate(res,x.type,x.intValue*y.intValue);
-				ELSE
-					IF res.mode # IntermediateCode.ModeRegister THEN
-						IntermediateCode.InitRegister(res,x.type,IntermediateCode.GeneralPurposeRegister,AcquireRegister(x.type,IntermediateCode.GeneralPurposeRegister));
-					END;
-					IF IsImmediate(x) & (x.intValue = 1) THEN
-						Emit(Mov(position,res,y))
-					ELSIF IsImmediate(y) & (y.intValue=1) THEN
-						Emit(Mov(position,res,x))
-					ELSE
-						Emit(Mul(position,res, x, y));
-					END;
-				END;
-			END MulInt;
-
-
 		BEGIN
 			type := x.left.type.resolved;
 			IF type IS SyntaxTree.StringType THEN
@@ -3105,39 +3155,48 @@ TYPE
 				x.left.SetType(type);
 			END;
 
+			IntermediateCode.InitImmediate(res,addressType,0);
 			maxDim := x.parameters.Length()-1;
 			FOR i := 0 TO maxDim DO
 				e := x.parameters.GetExpression(i);
 				Evaluate(e,index);
 				Convert(index.op,addressType);
 
+				AddInt(res, res, index.op);
+
 				IF i = 0 THEN
+					(*
 					ReuseCopy(res, index.op);
+					*)
 					Designate(x.left,array);
 					type := x.left.type.resolved;
+				(*
 				ELSE AddInt(res, res, index.op);
+				*)
 				END;
 
-				length := Length(type(SyntaxTree.ArrayType),array.dimOffset+i,array.tag);
+				length := ArrayLength(type(SyntaxTree.ArrayType),array.dimOffset+i,array.tag);
 				IF ((length.mode # IntermediateCode.ModeImmediate) OR (index.op.mode # IntermediateCode.ModeImmediate)) & tagsAvailable THEN
 					BoundCheck(index.op, length);
 				END;
+				ReleaseIntermediateOperand(length);
 				ReleaseOperand(index);
 				type := type(SyntaxTree.ArrayType).arrayBase.resolved;
-				length := Length(type,array.dimOffset+i-1,array.tag);
+				length := ArrayLength(type,array.dimOffset+i-1,array.tag);
 				IF (length.mode # IntermediateCode.ModeImmediate) OR (length.intValue # 1) THEN
 					MulInt(res,res,length);
 				END;
+				ReleaseIntermediateOperand(length);
 			END;
 			IF (type IS SyntaxTree.ArrayType) THEN
 				IF (type(SyntaxTree.ArrayType).form # SyntaxTree.Static) THEN
-					size := StaticSize(type);
+					size := StaticSize(system, type);
 					IF size # 1 THEN
 						length := IntermediateCode.Immediate(addressType,size);
 						MulInt(res,res,length);
 					END;
 				ELSE
-					size := StaticSize(type(SyntaxTree.ArrayType).arrayBase);
+					size := StaticSize(system, type(SyntaxTree.ArrayType).arrayBase);
 					IF size # 1 THEN
 						length := IntermediateCode.Immediate(addressType,size);
 						MulInt(res,res,length);
@@ -3252,9 +3311,9 @@ TYPE
 		PROCEDURE PushParameter(expression: SyntaxTree.Expression; parameter: SyntaxTree.Parameter; callingConvention: LONGINT; needsParameterBackup: BOOLEAN; VAR parameterBackup: IntermediateCode.Operand; numberRegister: LONGINT);
 		VAR
 			type, descriptorType, baseType: SyntaxTree.Type;
-			operand, tmpOperand, variableOp: Operand;
+			operand, tmpOperand, variableOp, variable2Op: Operand;
 			baseReg, tmp, dimOp: IntermediateCode.Operand;
-			variable: SyntaxTree.Variable;
+			variable, variable2: SyntaxTree.Variable;
 			dim, i, size: LONGINT;
 
 			(* TODO: needed? *)
@@ -3366,11 +3425,10 @@ TYPE
 						END;
 						type := expression.type.resolved;
 						WHILE (i<dim) DO (* remaining static dimensions *)
-							dimOp := IntermediateCode.Immediate(addressType,i);
-							GetMathArrayLength(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayLengthAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayLength(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
-							GetMathArrayIncrement(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayIncrementAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayIncrement(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
 							INC(i);
@@ -3389,11 +3447,10 @@ TYPE
 					ELSIF type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static THEN
 						Designate(expression,operand);
 						FOR i := 0 TO dim-1 DO
-							dimOp := IntermediateCode.Immediate(addressType,i);
-							GetMathArrayLength(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayLengthAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayLength(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
-							GetMathArrayIncrement(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayIncrementAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayIncrement(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
 						END;
@@ -3436,11 +3493,10 @@ TYPE
 							arrayDestinationTag := variableOp.op;
 							Designate(expression,operand);
 							FOR i := 0 TO dim-1 DO
-								dimOp := IntermediateCode.Immediate(addressType,i);
-								GetMathArrayLength(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+								GetMathArrayLengthAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 								PutMathArrayLength(arrayDestinationTag,tmpOperand.op,i);
 								ReleaseOperand(tmpOperand);
-								GetMathArrayIncrement(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+								GetMathArrayIncrementAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 								PutMathArrayIncrement(arrayDestinationTag,tmpOperand.op,i);
 								ReleaseOperand(tmpOperand);
 							END;
@@ -3468,11 +3524,10 @@ TYPE
 						arrayDestinationTag := variableOp.op;
 						Designate(expression,operand);
 						FOR i := 0 TO dim-1 DO
-							dimOp := IntermediateCode.Immediate(addressType,i);
-							GetMathArrayLength(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayLengthAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayLength(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
-							GetMathArrayIncrement(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayIncrementAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayIncrement(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
 						END;
@@ -3490,7 +3545,7 @@ TYPE
 				ELSIF (parameter.type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Tensor) & (parameter.kind IN {SyntaxTree.ConstParameter,SyntaxTree.ValueParameter}) THEN
 					dim := SemanticChecker.Dimension(type,{SyntaxTree.Open,SyntaxTree.Static});
 					(* case 3b *)
-					IF expression IS SyntaxTree.IndexDesignator THEN
+					IF (expression IS SyntaxTree.IndexDesignator) & (type.resolved(SyntaxTree.MathArrayType).form # SyntaxTree.Static) THEN
 						IF type(SyntaxTree.MathArrayType).form = SyntaxTree.Tensor THEN (* indexer of form a[e,....,?] *)
 							variable := PrepareTensorDescriptor(expression(SyntaxTree.IndexDesignator));
 							Symbol(variable,variableOp);
@@ -3523,11 +3578,10 @@ TYPE
 							arrayDestinationTag := variableOp.op;
 							Designate(expression,operand);
 							FOR i := 0 TO dim-1 DO
-								dimOp := IntermediateCode.Immediate(addressType,i);
-								GetMathArrayLength(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+								GetMathArrayLengthAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 								PutMathArrayLength(arrayDestinationTag,tmpOperand.op,i);
 								ReleaseOperand(tmpOperand);
-								GetMathArrayIncrement(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+								GetMathArrayIncrementAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 								PutMathArrayIncrement(arrayDestinationTag,tmpOperand.op,i);
 								ReleaseOperand(tmpOperand);
 							END;
@@ -3556,12 +3610,20 @@ TYPE
 						Symbol(variable,variableOp);
 						arrayDestinationTag := variableOp.op;
 						Designate(expression,operand);
+						IF operand.op.type.length >1 THEN (* vector register *)
+							variable2 := GetTemporaryVariable(type);
+							Symbol(variable2, variable2Op);
+							MakeMemory(tmp,variable2Op.op,operand.op.type,0);
+							Emit(Mov(position,tmp, operand.op));
+							ReleaseOperand(operand);
+							Symbol(variable2, operand);
+						END;
+
 						FOR i := 0 TO dim-1 DO
-							dimOp := IntermediateCode.Immediate(addressType,i);
-							GetMathArrayLength(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayLengthAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayLength(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
-							GetMathArrayIncrement(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayIncrementAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayIncrement(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
 						END;
@@ -3579,7 +3641,7 @@ TYPE
 				ELSIF (parameter.type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Tensor) & (parameter.kind = SyntaxTree.VarParameter) THEN
 					dim := SemanticChecker.Dimension(type,{SyntaxTree.Open,SyntaxTree.Static});
 					(* case 4b *)
-					IF expression IS SyntaxTree.IndexDesignator THEN
+					IF (expression IS SyntaxTree.IndexDesignator) & (type(SyntaxTree.MathArrayType).form # SyntaxTree.Static) THEN
 						IF type(SyntaxTree.MathArrayType).form = SyntaxTree.Tensor THEN (* indexer of form a[e,....,?] *)
 							variable := PrepareTensorDescriptor(expression(SyntaxTree.IndexDesignator));
 							Symbol(variable,variableOp);
@@ -3622,11 +3684,10 @@ TYPE
 							arrayDestinationTag := variableOp.op;
 							Designate(expression,operand);
 							FOR i := 0 TO dim-1 DO
-								dimOp := IntermediateCode.Immediate(addressType,i);
-								GetMathArrayLength(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+								GetMathArrayLengthAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 								PutMathArrayLength(arrayDestinationTag,tmpOperand.op,i);
 								ReleaseOperand(tmpOperand);
-								GetMathArrayIncrement(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+								GetMathArrayIncrementAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 								PutMathArrayIncrement(arrayDestinationTag,tmpOperand.op,i);
 								ReleaseOperand(tmpOperand);
 							END;
@@ -3664,11 +3725,10 @@ TYPE
 						arrayDestinationTag := variableOp.op;
 						Designate(expression,operand);
 						FOR i := 0 TO dim-1 DO
-							dimOp := IntermediateCode.Immediate(addressType,i);
-							GetMathArrayLength(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayLengthAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayLength(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
-							GetMathArrayIncrement(type.resolved(SyntaxTree.MathArrayType),operand,dimOp,FALSE,tmpOperand);
+							GetMathArrayIncrementAt(type.resolved(SyntaxTree.MathArrayType),operand,i,FALSE,tmpOperand);
 							PutMathArrayIncrement(arrayDestinationTag,tmpOperand.op,i);
 							ReleaseOperand(tmpOperand);
 						END;
@@ -3801,13 +3861,17 @@ TYPE
 		END PushParameter;
 
 		PROCEDURE VisitStatementDesignator(x: SyntaxTree.StatementDesignator);
+		VAR prevConditional: BOOLEAN;
 		BEGIN
+			prevConditional := conditional;
+			conditional := FALSE;
 
 			IF (x.result # NIL) & ( x.result IS SyntaxTree.SymbolDesignator) & (x.result(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Variable) & (x.result(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Variable).useRegister) THEN
 				Expression(x.result); (* use register *)
 			END;
 
 			Statement(x.statement);
+			conditional := prevConditional;
 			IF x.result # NIL THEN Expression(x.result) END;
 
 			IF (x.result # NIL) & (x.result IS SyntaxTree.SymbolDesignator) & (x.result(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Variable) & (x.result(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Variable).useRegister) THEN
@@ -4906,6 +4970,20 @@ TYPE
 			MathArrayLenOrIncr(type,operand,dim,FALSE,check,result);
 		END GetMathArrayLength;
 
+		PROCEDURE GetMathArrayLengthAt(type: SyntaxTree.MathArrayType; CONST operand: Operand; dim: LONGINT; check: BOOLEAN; VAR result: Operand);
+		VAR dimOp: IntermediateCode.Operand;
+		BEGIN
+			dimOp := IntermediateCode.Immediate(int32, dim);
+			GetMathArrayLength(type, operand, dimOp, check, result);
+		END GetMathArrayLengthAt;
+
+		PROCEDURE GetMathArrayIncrementAt(type: SyntaxTree.MathArrayType; CONST operand: Operand; dim: LONGINT; check: BOOLEAN; VAR result: Operand);
+		VAR dimOp: IntermediateCode.Operand;
+		BEGIN
+			dimOp := IntermediateCode.Immediate(int32, dim);
+			GetMathArrayIncrement(type, operand, dimOp, check, result);
+		END GetMathArrayIncrementAt;
+
 		PROCEDURE MathArrayLenOrIncr(type: SyntaxTree.MathArrayType; CONST operand: Operand; VAR dim: IntermediateCode.Operand; increment: BOOLEAN; check: BOOLEAN; VAR result: Operand );
 		VAR val: LONGINT; res,res2: IntermediateCode.Operand; end,next: Label; t: SyntaxTree.Type; imm: IntermediateCode.Operand; hasDynamicPart: BOOLEAN;
 			offset: LONGINT;
@@ -4919,6 +4997,7 @@ TYPE
 			IF check & (type.form = SyntaxTree.Tensor) &  ~backend.noRuntimeChecks THEN
 				TrapC(BrneL,operand.tag,IntermediateCode.Immediate(addressType,0),IndexCheckTrap);
 			END;
+			(* static dimension *)
 			IF  dim.mode = IntermediateCode.ModeImmediate THEN
 				IF check & (type.form = SyntaxTree.Tensor) THEN
 					DimensionCheck(operand.tag,dim,BrltL);
@@ -5212,7 +5291,7 @@ TYPE
 			PROCEDURE CallBodies(self: IntermediateCode.Operand; type: SyntaxTree.Type);
 			VAR recordScope: SyntaxTree.RecordScope; procedure: SyntaxTree.Procedure; body: SyntaxTree.Body; flags: LONGINT;
 				priority: IntermediateCode.Operand;
-				op: Operand;
+				op,callop: Operand;
 			BEGIN
 				IF type = NIL THEN RETURN END;
 				type := type.resolved;
@@ -5227,8 +5306,8 @@ TYPE
 					body := procedure.procedureScope.body;
 					Emit(Push(position,self));
 					IF body.isActive THEN
-						StaticCallOperand(result,procedure);
-						Emit(Push(position,result.op));
+						StaticCallOperand(callop,procedure);
+						Emit(Push(position,callop.op));
 						IF body.priority # NIL THEN Evaluate(body.priority,op); priority := op.op;
 							Convert(priority,int32);
 						ELSE priority := IntermediateCode.Immediate(int32,0)
@@ -5244,8 +5323,8 @@ TYPE
 						CallThis("Objects","CreateProcess",4)
 					ELSE
 						Emit(Push(position,self));
-						StaticCallOperand(result,procedure);
-						Emit(Call(position,result.op,ProcedureParametersSize(system,procedure)));
+						StaticCallOperand(callop,procedure);
+						Emit(Call(position,callop.op,ProcedureParametersSize(system,procedure)));
 					END;
 					Emit(Pop(position,self));
 				END;
@@ -5339,9 +5418,10 @@ TYPE
 				ReleaseOperand(s0); ReleaseOperand(s1); ReleaseOperand(s2);
 				CallThis("Modules","GetProcedure", 7);
 			(* ---- ASH, LSH, ROT ----- *)
-			|Global.Ash, Global.systemLsh, Global.systemRot:
+			|Global.Ash, Global.Asr, Global.Lsh, Global.Rot, Global.Ror:
 				Evaluate(p0,s0);
-				IF (x.id = Global.systemLsh) OR (x.id = Global.systemRot) THEN
+				IF (x.id = Global.Lsh) OR (x.id = Global.Rot) OR (x.id = Global.Ror)THEN
+					(* make unsigned arguments in order to produced a logical shift *)
 					IF s0.op.type.form = IntermediateCode.SignedInteger THEN
 						convert:= TRUE;
 						itype := s0.op.type;
@@ -5357,14 +5437,18 @@ TYPE
 					IF hint  > 0 THEN
 						IntermediateCode.InitImmediate(s1.op,s1.op.type,hint);
 						IF x.id = Global.Ash THEN Emit(Shl(position,reg,s0.op,s1.op))
-						ELSIF x.id = Global.systemLsh THEN Emit(Shl(position,reg,s0.op,s1.op))
-						ELSIF x.id = Global.systemRot THEN Emit(Rol(position,reg,s0.op,s1.op))
+						ELSIF x.id = Global.Lsh THEN Emit(Shl(position,reg,s0.op,s1.op))
+						ELSIF x.id = Global.Rot THEN Emit(Rol(position,reg,s0.op,s1.op))
+						ELSIF x.id = Global.Ror THEN Emit(Ror(position,reg,s0.op,s1.op))
+						ELSIF x.id = Global.Asr THEN Emit(Shr(position,reg,s0.op,s1.op))
 						END;
 					ELSIF hint < 0 THEN
 						IntermediateCode.InitImmediate(s1.op,s1.op.type,-hint);
 						IF x.id = Global.Ash THEN Emit(Shr(position,reg,s0.op,s1.op));
-						ELSIF x.id = Global.systemLsh THEN Emit(Shr(position,reg,s0.op,s1.op));
-						ELSIF x.id = Global.systemRot THEN Emit(Ror(position,reg,s0.op,s1.op));
+						ELSIF x.id = Global.Lsh THEN Emit(Shr(position,reg,s0.op,s1.op));
+						ELSIF x.id = Global.Rot THEN Emit(Ror(position,reg,s0.op,s1.op));
+						ELSIF x.id = Global.Ror THEN Emit(Rol(position,reg,s0.op,s1.op))
+						ELSIF x.id = Global.Asr THEN Emit(Shl(position,reg,s0.op,s1.op))
 						END;
 					END;
 					ReleaseOperand(s0); ReleaseOperand(s1);
@@ -5377,18 +5461,21 @@ TYPE
 					Emit(Neg(position,tmp,s1.op));
 					Convert(tmp,s1.op.type);
 					IF x.id = Global.Ash THEN Emit(Shr(position,reg,reg,tmp))
-					ELSIF x.id = Global.systemLsh THEN Emit(Shr(position,reg,reg,tmp))
-					ELSIF x.id = Global.systemRot THEN Emit(Ror(position,reg,reg,tmp))
+					ELSIF x.id = Global.Lsh THEN Emit(Shr(position,reg,reg,tmp))
+					ELSIF x.id = Global.Rot THEN Emit(Ror(position,reg,reg,tmp))
+					ELSIF x.id = Global.Ror THEN Emit(Rol(position,reg,reg,tmp))
+					ELSIF x.id = Global.Asr THEN Emit(Shl(position,reg,reg,tmp))
 					END;
 					ReleaseIntermediateOperand(tmp);
-					(*!!!!! distinction arithmetic / logical shift *)
 					BrL(end);
 					SetLabel(exit);
 					ReuseCopy(tmp,s1.op);
 					Convert(tmp,s1.op.type);
 					IF x.id = Global.Ash THEN Emit(Shl(position,reg,reg,tmp))
-					ELSIF x.id = Global.systemLsh THEN Emit(Shl(position,reg,reg,tmp))
-					ELSIF x.id = Global.systemRot THEN Emit(Rol(position,reg,reg,tmp))
+					ELSIF x.id = Global.Lsh THEN Emit(Shl(position,reg,reg,tmp))
+					ELSIF x.id = Global.Rot THEN Emit(Rol(position,reg,reg,tmp))
+					ELSIF x.id = Global.Ror THEN Emit(Ror(position,reg,reg,tmp))
+					ELSIF x.id = Global.Asr THEN Emit(Shr(position,reg,reg,tmp))
 					END;
 					ReleaseIntermediateOperand(tmp);
 					SetLabel(end);
@@ -5629,7 +5716,8 @@ TYPE
 					IntermediateCode.InitRegister(pointer,addressType,IntermediateCode.GeneralPurposeRegister,AcquireRegister(addressType,IntermediateCode.GeneralPurposeRegister));
 					Emit(Pop(position,pointer));
 					MakeMemory(reg,pointer,addressType,0);
-					ReleaseIntermediateOperand(pointer); pointer := reg;
+					ReleaseIntermediateOperand(pointer);
+					pointer := reg;
 					exit := NewLabel();
 					BreqL(exit,pointer,nil);
 					Emit(Push(position,pointer));
@@ -5669,6 +5757,7 @@ TYPE
 						ToMemory(l.op,addressType,0);
 						Emit(Mov(position,l.op,pointer));
 						ReleaseOperand(l);
+						result.tag := emptyOperand;
 					END;
 
 					(* call bodies *)
@@ -6148,8 +6237,8 @@ TYPE
 				s0.mode := ModeValue;
 				IntermediateCode.InitAddress(s0.op, addressType, callsection.name, 0, 0);
 				result := s0
-			(* ---- SYSTEM.INCR ----- *)
-			|Global.systemIncr:
+			(* ---- INCR ----- *)
+			|Global.Incr:
 				Designate(p0,operand);
 				IF p0.type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Tensor THEN
 					Dereference(operand,p0.type.resolved);
@@ -6171,6 +6260,11 @@ TYPE
 				ReleaseOperand(s0); ReleaseOperand(s1); ReleaseOperand(s2);
 				res := NewRegisterOperand(IntermediateCode.GetType(system, p0.type));
 				Emit(Result(position, res)); result.op := res; result.mode := ModeValue;
+				IF conditional THEN
+					BreqL(trueLabel,IntermediateCode.Immediate(res.type,1),res);
+					BrL(falseLabel);
+					ReleaseIntermediateOperand(res);
+				END;
 			(* ---- DIM ----- *)
 			|Global.Dim:
 				ASSERT(~SemanticChecker.IsArrayStructuredObjectType(p0.type));
@@ -6368,10 +6462,13 @@ TYPE
 			dest := destination; destination := emptyOperand;
 			Designate(x.left(SyntaxTree.SymbolDesignator).left,result);
 			tag := result.op;
-			ReleaseIntermediateOperand(result.tag);
+			(*ReleaseIntermediateOperand(result.tag); not necessary -- done in StaticCallOperand *)
 			procedure := x.left(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Procedure);
 			StaticCallOperand(result,procedure.super);
+
 			ReleaseIntermediateOperand(result.tag);
+			UseIntermediateOperand(tag); (* necessary ? *)
+
 			result.tag := tag;
 			destination := dest;
 			IF Trace THEN TraceExit("VisitSupercallDesignator") END;
@@ -6615,16 +6712,20 @@ TYPE
 		END GetBaseRegister;
 
 		PROCEDURE VisitVariable(x: SyntaxTree.Variable);
-		VAR symbol: Sections.Section;  type: SyntaxTree.Type; name: Basic.SegmentedName; temp: IntermediateCode.Operand;
+		VAR symbol: Sections.Section;  type: SyntaxTree.Type; name: Basic.SegmentedName; temp: IntermediateCode.Operand; reg: LONGINT;
 		BEGIN
 			IF Trace THEN TraceEnter("VisitVariable");  END;
 			type := x.type.resolved;
 			IF (x.useRegister) THEN
 				InitOperand(result, ModeValue);
-				IF x.registerNumber < 0 THEN x.SetRegisterNumber(AcquireRegister(IntermediateCode.GetType(system, type),IntermediateCode.GeneralPurposeRegister))
-				ELSE UseRegister(x.registerNumber);
+				IF x.registerNumber < 0 THEN
+					x.SetRegisterNumber(AcquireRegister(IntermediateCode.GetType(system, type),IntermediateCode.GeneralPurposeRegister));
+					reg := x.registerNumber;
+				ELSE
+					reg := registerUsageCount.Map(x.registerNumber);
+					UseRegister(reg);
 				END;
-				IntermediateCode.InitRegister(result.op,IntermediateCode.GetType(system, type),IntermediateCode.GeneralPurposeRegister,x.registerNumber);
+				IntermediateCode.InitRegister(result.op,IntermediateCode.GetType(system, type),IntermediateCode.GeneralPurposeRegister,reg);
 			ELSIF (x.scope IS SyntaxTree.ProcedureScope) THEN (* local variable (potentially via nested procedure) *)
 				InitOperand(result,ModeReference);
 				GetBaseRegister(result.op,currentScope,x.scope);
@@ -6981,7 +7082,7 @@ TYPE
 			PROCEDURE CanPassAsResultParameter(right: SyntaxTree.Expression): BOOLEAN;
 			VAR procedureType: SyntaxTree.ProcedureType;
 			BEGIN
-				IF ReturnedAsParameter(right.type) THEN
+				IF ReturnedAsParameter(right.type)  THEN
 					IF right IS SyntaxTree.ProcedureCallDesignator THEN
 						procedureType := right(SyntaxTree.ProcedureCallDesignator).left.type.resolved(SyntaxTree.ProcedureType);
 						RETURN procedureType.callingConvention = SyntaxTree.OberonCallingConvention
@@ -7665,8 +7766,16 @@ TYPE
 		PROCEDURE VisitCode(x: SyntaxTree.Code);
 		VAR (*  inline: Sections.CellNet; symbol: SyntaxTree.Symbol; *)
 			in, out: IntermediateCode.Rules; statement: SyntaxTree.Statement; i: LONGINT; operand: Operand; str: POINTER TO ARRAY OF CHAR;
-				result: IntermediateCode.Operand;
+				result: IntermediateCode.Operand; scope: SyntaxTree.Scope; procedureType: SyntaxTree.ProcedureType; return: IntermediateCode.Operand;
+				parSize: LONGINT;
+				procedure: SyntaxTree.Procedure;
 		BEGIN
+			scope := currentScope;
+			WHILE ~(scope IS SyntaxTree.ProcedureScope) DO scope := scope.outerScope END;
+			procedure :=  scope(SyntaxTree.ProcedureScope).ownerProcedure;
+			procedureType := procedure.type(SyntaxTree.ProcedureType);
+			return := emptyOperand;
+
 			IF Trace THEN TraceEnter("VisitCode") END;
 			IF (x.inRules # NIL) & (x.inRules.Length()>0) THEN
 				NEW(in, x.inRules.Length());
@@ -7674,7 +7783,6 @@ TYPE
 					statement := x.inRules.GetStatement(i);
 					WITH statement: SyntaxTree.Assignment DO
 						Evaluate(statement.right, operand);
-						Printout.Info("asm statement",statement);
 						result := operand.op;
 						NEW(str, 64);
 						Basic.GetString(statement.left(SyntaxTree.IdentifierDesignator).identifier, str^);
@@ -7699,8 +7807,10 @@ TYPE
 					|statement: SyntaxTree.ReturnStatement DO
 						NEW(str, 64);
 						Basic.GetString(statement.returnValue(SyntaxTree.IdentifierDesignator).identifier, str^);
-						out[i] := emptyOperand; IntermediateCode.SetString(out[i], str);
+						out[i] :=NewRegisterOperand(IntermediateCode.GetType(system, procedureType.returnType));
+						IntermediateCode.SetString(out[i], str);
 						ReleaseIntermediateOperand(operand.tag);
+						return := out[i];
 					ELSE
 					END;
 				END;
@@ -7714,16 +7824,21 @@ TYPE
 			END;
 			IF out # NIL THEN
 				FOR i := 0 TO LEN(out)-1 DO
-					ReleaseIntermediateOperand(out[i]);
-					statement := x.outRules.GetStatement(i);
-					(*? why necessary
-					IF statement IS SyntaxTree.StatementBlock THEN
-						statement := statement(SyntaxTree.StatementBlock).statements.GetStatement(1);
-						Statement(statement);
-
+					WITH statement: SyntaxTree.Assignment DO
+						ReleaseIntermediateOperand(out[i]);
+					ELSE
 					END;
-					*)
+					statement := x.outRules.GetStatement(i);
 				END;
+			END;
+			IF return.mode # IntermediateCode.Undefined THEN
+				Emit(Return(position,return));
+				Emit(Leave(position,procedureType(SyntaxTree.ProcedureType).callingConvention));
+				IF procedureType.callingConvention = SyntaxTree.CCallingConvention THEN parSize := 0
+				ELSE parSize := ProcedureParametersSize(system,procedure);
+				END;
+				Emit(Exit(position,parSize, procedureType(SyntaxTree.ProcedureType).pcOffset,procedureType(SyntaxTree.ProcedureType).callingConvention));
+				ReleaseIntermediateOperand(return);
 			END;
 
 			IF Trace THEN TraceExit("VisitCode") END;
@@ -7792,8 +7907,10 @@ TYPE
 		PROCEDURE Body(x: SyntaxTree.Body; scope: SyntaxTree.Scope; ir: IntermediateCode.Section; moduleBody: BOOLEAN);
 		VAR prevScope: SyntaxTree.Scope; procedureType: SyntaxTree.ProcedureType; procedure: SyntaxTree.Procedure;
 			end: Label;res: IntermediateCode.Operand; cellScope: SyntaxTree.CellScope; op: Operand; string: SyntaxTree.IdentifierString;
+			saved: RegisterEntry;
 		BEGIN
 			IF Trace THEN TraceEnter("Body") END;
+			ReleaseUsedRegisters(saved); (* just in case ... *)
 			section := ir;
 			IF ir.comments # NIL THEN
 				commentPrintout := Printout.NewPrinter(ir.comments,Printout.SourceCode,FALSE);
@@ -7803,7 +7920,7 @@ TYPE
 				commentPrintout := NIL;
 				dump := NIL;
 			END;
-			registerUsage.Init;
+			registerUsageCount.Init;
 
 			prevScope := currentScope;
 			currentScope := scope;
@@ -7877,7 +7994,10 @@ TYPE
 				CallThis("Modules","SetInitialized",1);
 				SetLabel(end);
 			END;
-
+			IF x # NIL THEN
+				SELF.position := x.position;
+			END;
+			CheckRegistersFree();
 			currentScope := prevScope;
 			IF Trace THEN TraceExit("Body") END;
 		END Body;
@@ -9302,17 +9422,21 @@ TYPE
 		END;
 	END AddRegisterEntry;
 
-	PROCEDURE RemoveRegisterEntry(VAR queue: RegisterEntry; register: LONGINT);
+	PROCEDURE RemoveRegisterEntry(VAR queue: RegisterEntry; register: LONGINT): BOOLEAN;
 	VAR this: RegisterEntry;
 	BEGIN
 		this := queue;
 		WHILE (this # NIL) & (this.register # register) DO
 			this := this.next;
 		END;
+		IF this = NIL THEN
+			RETURN FALSE
+		END;
 		ASSERT(this # NIL);
 		IF this = queue THEN queue := queue.next END;
 		IF this.prev # NIL THEN this.prev.next := this.next END;
 		IF this.next # NIL THEN this.next.prev := this.prev END;
+		RETURN TRUE
 	END RemoveRegisterEntry;
 
 	PROCEDURE Assert(cond: BOOLEAN; CONST reason: ARRAY OF CHAR);
@@ -9510,6 +9634,37 @@ TYPE
 		END;
 		RETURN i
 	END DynamicDim;
+
+
+
+	PROCEDURE StaticSize(system: Global.System; type: SyntaxTree.Type): LONGINT;
+	BEGIN
+		WHILE (type IS SyntaxTree.ArrayType) & (type(SyntaxTree.ArrayType).form # SyntaxTree.Static) DO
+			type := type(SyntaxTree.ArrayType).arrayBase;
+		END;
+		WHILE (type IS SyntaxTree.MathArrayType) & (type(SyntaxTree.MathArrayType).form # SyntaxTree.Static) DO
+			type := type(SyntaxTree.MathArrayType).arrayBase;
+		END;
+		RETURN ToMemoryUnits(system,system.AlignedSizeOf(type));
+	END StaticSize;
+
+	PROCEDURE IsImmediate(x: IntermediateCode.Operand): BOOLEAN;
+	BEGIN
+		RETURN (x.mode = IntermediateCode.ModeImmediate)  & (x.symbol.name = "");
+	END IsImmediate;
+
+	PROCEDURE IsAddress(x: IntermediateCode.Operand): BOOLEAN;
+	BEGIN
+		RETURN (x.mode = IntermediateCode.ModeImmediate) & (x.symbol.name # "")
+	END IsAddress;
+
+	PROCEDURE IsRegister(x: IntermediateCode.Operand): BOOLEAN;
+	BEGIN
+		RETURN (x.mode = IntermediateCode.ModeRegister);
+	END IsRegister;
+
+
+
 
 	PROCEDURE ParametersSize(system: Global.System; procedureType: SyntaxTree.ProcedureType; isNested: BOOLEAN): LONGINT;
 	VAR parSize: LONGINT; parameter: SyntaxTree.Parameter;

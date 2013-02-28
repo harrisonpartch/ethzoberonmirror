@@ -130,7 +130,6 @@ TYPE
 			Global.NewBuiltin(Global.Receive,"RECEIVE",system.globalScope,FALSE);
 			Global.NewBuiltin(Global.Send,"SEND",system.globalScope,FALSE);
 			Global.NewBuiltin(Global.Delegate,"DELEGATE",system.globalScope,FALSE);
-			Global.NewBuiltin(Global.systemHardwareAddress,"HWADR",system.systemScope,FALSE);
 			IF options.activeCellsBackend = NIL THEN FinalMessage(TRUE,"could not install activeCells backend"); RETURN FALSE END;
 		END;
 		parser := Parser.NewParser( scanner, diagnostics );

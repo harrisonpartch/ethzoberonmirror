@@ -1721,13 +1721,13 @@ BEGIN
 	c.stack[c.tos] := -c.stack[c.tos]; INC(c.pc)
 END NEG;
 
-PROCEDURE FLOOR (VAR c: Context);
+PROCEDURE Floor (VAR c: Context);
 	VAR x: F26D6;
 BEGIN
 	x := c.stack[c.tos];
 	c.stack[c.tos] := x - x MOD 40H;
 	INC(c.pc)
-END FLOOR;
+END Floor;
 
 PROCEDURE CEILING (VAR c: Context);
 	VAR x: F26D6;
@@ -1946,7 +1946,7 @@ BEGIN
 
 	(* arithmetic and math instructions *)
 	Builtin[60H] := ADD; Builtin[61H] := SUB; Builtin[62H] := dIV; Builtin[63H] := MUL;
-	Builtin[64H] := aBS; Builtin[65H] := NEG; Builtin[66H] := FLOOR; Builtin[67H] := CEILING;
+	Builtin[64H] := aBS; Builtin[65H] := NEG; Builtin[66H] := Floor; Builtin[67H] := CEILING;
 	Builtin[8BH] := mAX; Builtin[8CH] := mIN;
 
 	(* compensating for the engine characteristics *)

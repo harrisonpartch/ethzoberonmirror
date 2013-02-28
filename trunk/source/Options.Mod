@@ -92,6 +92,8 @@ TYPE
 			Reset;
 		END Init;
 
+
+
 		(**	Add option declaration.
 			- Duplicate names are not allowed!
 			- Numbers are not allowed as option character or as first character of an option name *)
@@ -574,6 +576,26 @@ TYPE
 		END Show;
 
 	END Options;
+
+(** merge base options into options -- replacing only options that had not been set previously *)
+PROCEDURE Merge*(VAR this: Options;  base: Options);
+VAR i,index: LONGINT;
+BEGIN
+	IF (base # NIL) THEN
+		IF this = NIL THEN
+			this := base
+		ELSE
+			FOR i := 0 TO base.nofOptions-1 DO
+				IF (base.options[i].isSet) THEN
+					index := this.FindOption(base.options[i].name);
+					IF ~this.options[i].isSet THEN
+						this.options[index] := base.options[i]
+					END
+				END;
+			END;
+		END
+	END;
+END Merge;
 
 PROCEDURE IsValidChar(ch : CHAR) : BOOLEAN;
 BEGIN

@@ -1,5 +1,5 @@
 # Oberon language test and validation suite
-
+# options --command="Compiler.Compile  TesterInput.txt"  --result="Oberon.Compilation.Test.Diff"
 
 # Syntax tests
 # =====================================
@@ -39412,7 +39412,7 @@ positive: long jumps (backend test for TRM)
 		END;
 	END LongJumpForwards;
 	END Test.
-	
+
 positive: expressions of type real with longint divisions
 	MODULE Test;
 	    PROCEDURE Do*(x: REAL): REAL;
@@ -39424,9 +39424,9 @@ positive: expressions of type real with longint divisions
 	END Test.
 
 negative: invalid arrow designator
+	MODULE Test;
+	VAR s: ARRAY 128 OF CHAR;
+	BEGIN
+		COPY("WMClock.Open~", s)^;
+	END Test.
 
-MODULE Test;
-VAR s: ARRAY 128 OF CHAR;
-BEGIN
-	COPY("WMClock.Open~", s)^; 
-END Test.

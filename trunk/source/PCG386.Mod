@@ -3149,7 +3149,7 @@ END Done;
 		ShiftOpcode[PCLIR.bsh-PCLIR.ash, left] := PCO.SHL;
 		ShiftOpcode[PCLIR.bsh-PCLIR.ash, right] := PCO.SHR;
 		ShiftOpcode[PCLIR.rot-PCLIR.ash, left] := PCO.ROL;
-		ShiftOpcode[PCLIR.rot-PCLIR.ash, right] := PCO.ROR;
+		ShiftOpcode[PCLIR.rot-PCLIR.ash, right] := PCO.Ror;
 
 		FOR i := 0 TO 6 DO  FPSize[i] := -1  END;
 		FPSize[PCLIR.Int16] := PCO.wInt;

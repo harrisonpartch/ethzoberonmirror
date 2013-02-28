@@ -558,18 +558,18 @@ BEGIN
 				*)
 				PCO.CMP(AL, PCO.A1Imm, rB.Low, imm);
 				PCO.B(PCO.GE, 1);
-				PCO.TST(PCO.LT, PCO.A1Reg, rA.Low, PCO.MakeA1RegSHIFTReg(rT, rB.Low, PCO.LSL));
+				PCO.TST(PCO.LT, PCO.A1Reg, rA.Low, PCO.MakeA1RegSHIFTReg(rT, rB.Low, PCO.Lsl));
 				PCO.B(AL, 1);
 				(* (1) *)
 				PCO.SUB(PCO.GE, PCO.A1Imm, rBx, rB.Low, imm, {});
-				PCO.TST(PCO.GE, PCO.A1Reg, rA.High, PCO.MakeA1RegSHIFTReg(rT, rBx, PCO.LSL));
+				PCO.TST(PCO.GE, PCO.A1Reg, rA.High, PCO.MakeA1RegSHIFTReg(rT, rBx, PCO.Lsl));
 				(* end *)
 				regs.FreeReg(rBx)
 			ELSE	(* # HUGEINT *)
 				(*
 					cc <- rA.Low & (1 << rB.Low)
 				*)
-				PCO.TST(AL, PCO.A1Reg, rA.Low, PCO.MakeA1RegSHIFTReg(rT, rB.Low, PCO.LSL))
+				PCO.TST(AL, PCO.A1Reg, rA.Low, PCO.MakeA1RegSHIFTReg(rT, rB.Low, PCO.Lsl))
 			END;
 			regs.FreeReg(rT)
 		ELSE
@@ -769,9 +769,9 @@ BEGIN
 		*)
 		size := PCLIR.SizeOf(code, instr.src1);
 		IF (size = PCLIR.Int8) THEN (* SHL instr.src1 by 24 *)
-			PCO.MOV(AL, addrMode, rS.Low,  PCO.MakeA1RegSHIFTImm(rS.Low, 24, PCO.LSL), {});
+			PCO.MOV(AL, addrMode, rS.Low,  PCO.MakeA1RegSHIFTImm(rS.Low, 24, PCO.Lsl), {});
 		ELSIF (size = PCLIR.Int16) THEN (* SHL intr.src1 by 16 *)
-			PCO.MOV(AL, addrMode, rS.Low,  PCO.MakeA1RegSHIFTImm(rS.Low, 16, PCO.LSL), {});
+			PCO.MOV(AL, addrMode, rS.Low,  PCO.MakeA1RegSHIFTImm(rS.Low, 16, PCO.Lsl), {});
 		END;
 	END;
 
@@ -1621,7 +1621,7 @@ BEGIN
 	END;
 
 	IF (InstructionType(code, instr) IN RegularIntSize) THEN
-		so := PCO.MakeA1RegSHIFTReg(rT, rB.Low, PCO.LSL);
+		so := PCO.MakeA1RegSHIFTReg(rT, rB.Low, PCO.Lsl);
 		CASE instr.op OF
 		| PCLIR.bts: PCO.ORR(AL, addrMode, rD.Low, rA.Low, so, {})
 		| PCLIR.btc: PCO.BIC(AL, addrMode, rD.Low, rA.Low, so, {})
@@ -1646,7 +1646,7 @@ BEGIN
 		*)
 		PCO.CMP(AL, PCO.A1Imm, rB.Low, imm);
 		PCO.B(PCO.GE, 1);
-		so := PCO.MakeA1RegSHIFTReg(rT, rB.Low, PCO.LSL);
+		so := PCO.MakeA1RegSHIFTReg(rT, rB.Low, PCO.Lsl);
 		CASE instr.op OF
 		| PCLIR.bts: PCO.ORR(AL, addrMode, rD.Low, rA.Low, so, {})
 		| PCLIR.btc: PCO.BIC(AL, addrMode, rD.Low, rA.Low, so, {})
@@ -1654,7 +1654,7 @@ BEGIN
 		PCO.B(AL, 1);
 		(* (1) *)
 		PCO.SUB(PCO.GE, PCO.A1Imm, rBx, rB.Low, imm, {});
-		so := PCO.MakeA1RegSHIFTReg(rT, rBx, PCO.LSL);
+		so := PCO.MakeA1RegSHIFTReg(rT, rBx, PCO.Lsl);
 		CASE instr.op OF
 		| PCLIR.bts: PCO.ORR(AL, addrMode, rD.High, rA.High, so, {})
 		| PCLIR.btc: PCO.BIC(AL, addrMode, rD.High, rA.High, so, {})
@@ -1946,12 +1946,12 @@ BEGIN
 				PCO.AND(AL, PCO.A1Imm, rC.Low, rC.Low, PCO.A1Immediate31, {});
 
 				CASE xop OF
-				| PCLIR.bsh: sol := sol + PCO.LSL; sor := sor + PCO.LSR
-				| PCLIR.ash: sol := sol + PCO.LSL; IF sC THEN sor := sor + PCO.ASR ELSE sor := sor + PCO.LSR END;
+				| PCLIR.bsh: sol := sol + PCO.Lsl; sor := sor + PCO.LSR
+				| PCLIR.ash: sol := sol + PCO.Lsl; IF sC THEN sor := sor + PCO.Asr ELSE sor := sor + PCO.LSR END;
 				END;
 				regs.SetRegisterContent(rC.Low, NIL)
 			ELSIF (xop = PCLIR.rot) THEN
-				conl := AL; sol := sol + PCO.ROR;
+				conl := AL; sol := sol + PCO.Ror;
 
 				(* prepare ROT register *)
 				(*
@@ -1968,14 +1968,14 @@ BEGIN
 			mode := PCO.A1ShiftImm; sol := PCO.MakeA1RegSHIFTImm(rB.Low, ABS(val) MOD 32, {});
 			IF (val > 0) THEN
 				CASE xop OF
-				| PCLIR.bsh, PCLIR.ash: sol := sol + PCO.LSL
-				| PCLIR.rot: sol := PCO.MakeA1RegSHIFTImm(rB.Low, 32-(ABS(val) MOD 32), PCO.ROR)
+				| PCLIR.bsh, PCLIR.ash: sol := sol + PCO.Lsl
+				| PCLIR.rot: sol := PCO.MakeA1RegSHIFTImm(rB.Low, 32-(ABS(val) MOD 32), PCO.Ror)
 				END
 			ELSIF (val < 0) THEN
 				CASE xop OF
 				| PCLIR.bsh: sol := sol + PCO.LSR
-				| PCLIR.ash: sol := sol + PCO.ASR
-				| PCLIR.rot: sol := sol + PCO.ROR
+				| PCLIR.ash: sol := sol + PCO.Asr
+				| PCLIR.rot: sol := sol + PCO.Ror
 				END
 			ELSE (* val = 0 -> do not shift *)
 				ASSERT(FSrc2 IN flags, INTERNALERROR);
@@ -2031,8 +2031,8 @@ BEGIN
 	END;
 	shifter := GetROTShifter(size);
 	(* PCO.ORR(AL, PCO.A1ShiftImm, rD, rD, PCO.MakeA1RegSHIFTImm(rD, shifter, PCO.LSR), {}); *)
-	PCO.MOV(AL, PCO.A1ShiftImm, rD, PCO.MakeA1RegSHIFTImm(rD, shifter, PCO.LSL), {});
-	IF signed THEN sm := PCO.ASR ELSE sm := PCO.LSR END;
+	PCO.MOV(AL, PCO.A1ShiftImm, rD, PCO.MakeA1RegSHIFTImm(rD, shifter, PCO.Lsl), {});
+	IF signed THEN sm := PCO.Asr ELSE sm := PCO.LSR END;
 	PCO.MOV(AL, PCO.A1ShiftImm, rD, PCO.MakeA1RegSHIFTImm(rD, shifter, sm), {})
 END ROTEpilogue;
 
@@ -2299,7 +2299,7 @@ BEGIN
 	(* load address of case label into PC *)
 	rBase := regs.AllocReg(NIL, dummy, 1);
 	LoadAddress(rBase, adr);
-	PCO.LDR(AL, PCO.A2WRegOffset + PCO.IdxAdd, PC, rBase, PCO.MakeA2ScaledRegister(rIdx, PCO.LSL, 2));
+	PCO.LDR(AL, PCO.A2WRegOffset + PCO.IdxAdd, PC, rBase, PCO.MakeA2ScaledRegister(rIdx, PCO.Lsl, 2));
 
 	regs.FreeReg(rIdx); regs.FreeReg(rBase); regs.SetRegisterContent(rIdx, NIL); regs.SetRegisterContent(rBase, NIL);
 	PCO.Unlock

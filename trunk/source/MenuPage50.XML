@@ -31,7 +31,7 @@
 			<Standard:SystemCommand>
 				<Properties>
 					<ID>X</ID>
-					<CommandString>OberonDisplay.Install Oberon 0x0;Oberon.Call System.Init Oberon</CommandString>
+					<CommandString>Oberon.Start Oberon 0x0</CommandString>
 				</Properties>
 			</Standard:SystemCommand>
 		</Standard:Button>

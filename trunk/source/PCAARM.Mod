@@ -2012,10 +2012,10 @@ BEGIN
 	s.Enter("s", stStateRegisterFlag, PCOARM.PSRs, FALSE);
 	s.Enter("f", stStateRegisterFlag, PCOARM.PSRf, FALSE);
 	s.Enter("_", stStateRegisterFlagSeparator, {}, FALSE);
-	s.Enter("LSL", stShift, PCOARM.LSL, FALSE);
+	s.Enter("LSL", stShift, PCOARM.Lsl, FALSE);
 	s.Enter("LSR", stShift, PCOARM.LSR, FALSE);
-	s.Enter("ASR", stShift, PCOARM.ASR, FALSE);
-	s.Enter("ROR", stShift, PCOARM.ROR, FALSE);
+	s.Enter("ASR", stShift, PCOARM.Asr, FALSE);
+	s.Enter("ROR", stShift, PCOARM.Ror, FALSE);
 	s.Enter("RRX", stShift, PCOARM.RRX, FALSE);
 	s.Enter("B", stLoad, PCOARM.opLDR + PCOARM.A2Byte, FALSE);
 	s.Enter("BT", stLoad, PCOARM.opLDR + PCOARM.A2Byte + PCOARM.PostIdxd, FALSE);

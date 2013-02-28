@@ -72,6 +72,7 @@ TYPE
 
 		PROCEDURE & InitList*(initialSize: LONGINT) ;
 		BEGIN
+			IF initialSize <= 0 THEN initialSize := 8 END;
 			INC( lists );  NEW( list, initialSize );  count := 0;  multipleAllowed := FALSE;  nilAllowed := FALSE
 		END InitList;
 
@@ -83,7 +84,7 @@ TYPE
 		PROCEDURE Grow;
 		VAR old: ObjectArray;  i: LONGINT;
 		BEGIN
-			INC( enlarged );  old := list;  NEW( list, LEN( list ) * 3 DIV 2 (* more optimal for first-fit memory allocators *) ) ;
+			INC( enlarged );  old := list;  NEW( list, (LEN( list ) * 3+1) DIV 2 (* more optimal for first-fit memory allocators *) ) ;
 			FOR i := 0 TO count - 1 DO list[i] := old[i] END
 		END Grow;
 

@@ -1644,11 +1644,13 @@ BEGIN {EXCLUSIVE}
 			manager.SetWindowPos(window, window.normalBounds.l, window.normalBounds.t);
 			newWidth := window.normalBounds.r - window.normalBounds.l;
 			newHeight := window.normalBounds.b - window.normalBounds.t;
+			SetIsVisibleNavigation(~navigationIsHidden);
 		ELSE
 			window.normalBounds := window.bounds;
 			manager.SetWindowPos(window, ENTIER(viewport.range.l), ENTIER(viewport.range.t));
 			newWidth := width;
 			newHeight := height;
+			SetIsVisibleNavigation(FALSE);
 		END;
 		manager.SetWindowSize(window, newWidth, newHeight);
 		window.Resized(newWidth, newHeight);
