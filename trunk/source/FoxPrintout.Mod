@@ -1423,6 +1423,18 @@ TYPE
 			Expression(x.left); w.String( " := " );  Expression(x.right);
 		END VisitAssignment;
 
+		PROCEDURE VisitCommunicationStatement(x: SyntaxTree.CommunicationStatement);
+		BEGIN
+			Expression(x.left);
+			IF x.send THEN
+				w.String(" ! ");
+			ELSE
+				w.String(" ? ");
+			END;
+			 Expression(x.right);
+		END VisitCommunicationStatement;
+
+
 		PROCEDURE IfPart(x: SyntaxTree.IfPart);
 		BEGIN
 			Comments(x.comment, x, FALSE);

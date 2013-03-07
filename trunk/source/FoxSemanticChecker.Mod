@@ -7235,6 +7235,59 @@ TYPE
 			END
 		END VisitAssignment;
 
+
+		(** check and resolve assignment LHS := RHS
+			- resolve LHS and RHS
+			- check if assignment operator is found. if yes, return operator call instead of assignment instruction
+			- check if assignment is compatible
+			- check if LHS is variable (i.e. assignable)
+			- convert RHS if necessary
+			- for the following two cases, return index write operator call on ASOT instead of assignment instruction:
+				- assignment between different ASOTs
+					asot := asot2; -> asot^."[]"( *, *, ..., *, asot2);
+				- assignment to ASOT elements:
+					asot[indexList] := rhs; -> asot^."[]"(indexList, rhs);
+		**)
+		PROCEDURE VisitCommunicationStatement(communication: SyntaxTree.CommunicationStatement);
+		VAR
+			left: SyntaxTree.Designator;
+			right, expression: SyntaxTree.Expression;
+			designator: SyntaxTree.Designator;
+			procedureCallDesignator: SyntaxTree.ProcedureCallDesignator;
+			type: SyntaxTree.Type;
+			procedureType: SyntaxTree.ProcedureType;
+			mathArrayType: SyntaxTree.MathArrayType;
+			dimensionality: LONGINT;
+			inPort, outPort: SyntaxTree.PortType;
+		BEGIN
+			right := ResolveExpression(communication.right);
+			left := ResolveDesignator(communication.left);
+			communication.SetLeft(left);
+			communication.SetRight(right);
+			ImportModule(Global.NameChannelModule,communication.position);
+
+			IF (left = SyntaxTree.invalidDesignator) OR (right = SyntaxTree.invalidExpression) THEN
+				(* error already handled *)
+			ELSIF communication.send & CheckPortType(left,outPort)  THEN
+				IF outPort.direction # SyntaxTree.OutPort THEN
+					Error(left.position,Diagnostics.Invalid,"not an out-port")
+				ELSIF outPort.sizeInBits # system.SizeOf(right.type) THEN
+					Error(left.position,Diagnostics.Invalid,"incompatible to port type");
+				ELSE
+					right := NewConversion(communication.position,right,left.type.resolved,NIL);
+					communication.SetRight(right)
+				END;
+			ELSIF ~communication.send & CheckPortType(left,inPort) THEN
+				IF CheckVariable(right) THEN
+					IF inPort.direction # SyntaxTree.InPort THEN
+						Error(left.position,Diagnostics.Invalid,"not an in-port")
+					ELSIF inPort.sizeInBits # system.SizeOf(right.type) THEN
+						Error(right.position,Diagnostics.Invalid,"incompatible to port type");
+					END;
+				END;
+			END
+		END VisitCommunicationStatement;
+
 		(** check and resolve if/eslif part
 			- check condition
 			- check statement sequence

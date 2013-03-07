@@ -286,6 +286,9 @@ TYPE
 		PROCEDURE VisitAssignment*(x: Assignment);
 		BEGIN HALT(100) (* abstract *) END VisitAssignment;
 
+		PROCEDURE VisitCommunicationStatement*(x: CommunicationStatement);
+		BEGIN HALT(100) (* abstract *) END VisitCommunicationStatement;
+
 		PROCEDURE VisitIfStatement*(x: IfStatement);
 		BEGIN HALT(100) (* abstract *) END VisitIfStatement;
 
@@ -3365,6 +3368,31 @@ TYPE
 
 	END Assignment;
 
+	(** << left ('!' | '?') right >> **)
+	CommunicationStatement* = OBJECT (Statement)
+	VAR left-: Designator; right-: Expression; send-: BOOLEAN;
+
+		PROCEDURE & InitAssignment*( position: LONGINT;  send: BOOLEAN; left: Designator;  right: Expression; outer: Statement );
+		BEGIN
+			InitStatement( position,outer );  SELF.send := send; SELF.left := left;  SELF.right := right;
+		END InitAssignment;
+
+		PROCEDURE SetLeft*(left: Designator);
+		BEGIN SELF.left := left
+		END SetLeft;
+
+		PROCEDURE SetRight*(right: Expression);
+		BEGIN SELF.right := right
+		END SetRight;
+
+		PROCEDURE Accept*(v: Visitor);
+		VAR position: LONGINT;
+		BEGIN position := SELF.position; v.VisitCommunicationStatement(SELF)
+		END Accept;
+
+	END CommunicationStatement;
+
+
 	(** << ... condition THEN statements ... >> **)
 	IfPart*= OBJECT
 	VAR
@@ -5244,6 +5272,12 @@ VAR
 	BEGIN
 		NEW( assignment, position, left, right,outer );  RETURN assignment
 	END NewAssignment;
+
+	PROCEDURE NewCommunicationStatement*( position: LONGINT;  send: BOOLEAN; left: Designator; right: Expression; outer: Statement): CommunicationStatement;
+	VAR communication: CommunicationStatement;
+	BEGIN
+		NEW( communication, position, send, left, right,outer );  RETURN communication
+	END NewCommunicationStatement;
 
 	PROCEDURE NewProcedureCallStatement*(position: LONGINT; call: Designator; outer: Statement): ProcedureCallStatement;
 	VAR caller: ProcedureCallStatement;

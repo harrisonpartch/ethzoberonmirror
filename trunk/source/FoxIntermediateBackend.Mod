@@ -7221,6 +7221,42 @@ TYPE
 			IF Trace THEN TraceExit("VisitAssignment") END;
 		END VisitAssignment;
 
+		PROCEDURE VisitCommunicationStatement(communication: SyntaxTree.CommunicationStatement);
+		VAR p0,p1: SyntaxTree.Expression; len,val: LONGINT; l,r: Operand; res,adr,reg: IntermediateCode.Operand; type, componentType: SyntaxTree.Type;
+			constructor: SyntaxTree.Procedure; s0,s1: Operand; hint: HUGEINT; size: LONGINT;
+		BEGIN
+			p0 := communication.left; p1 := communication.right;
+			IF communication.send THEN
+				Evaluate(p0,s0);
+				Evaluate(p1,s1);
+				size := ToMemoryUnits(system,system.SizeOf(p1.type));
+				Emit(Push(position,s0.op));
+				Emit(Push(position,s1.op));
+				(*
+				Emit(Push(position,IntermediateCode.Immediate(addressType,size)));
+				*)
+				IF size # 1 THEN Error(p1.position,"send not implemented for complex data types") END;
+				ReleaseOperand(s0);
+				ReleaseOperand(s1);
+				CallThis(ChannelModuleName,"Send",-1);
+			(* ----- RECEIVE ------*)
+			ELSE
+				Evaluate(p0,s0);
+				Emit(Push(position,s0.op));
+				Designate(p1,s1);
+				size := ToMemoryUnits(system,system.SizeOf(p1.type));
+				Emit(Push(position,s1.op));
+				(*
+				Emit(Push(position,IntermediateCode.Immediate(addressType,size)));
+				*)
+				IF size # 1 THEN Error(p1.position,"receive not implemented for complex data types") END;
+				ReleaseOperand(s0);
+				ReleaseOperand(s1);
+				CallThis(ChannelModuleName,"Receive",-1)
+			END;
+		END VisitCommunicationStatement;
+
+
 		PROCEDURE VisitIfStatement(x: SyntaxTree.IfStatement);
 		VAR end: Label; i,elsifs: LONGINT; elsif: SyntaxTree.IfPart; escape: BOOLEAN;
 
@@ -7765,8 +7801,8 @@ TYPE
 
 		PROCEDURE VisitCode(x: SyntaxTree.Code);
 		VAR (*  inline: Sections.CellNet; symbol: SyntaxTree.Symbol; *)
-			in, out: IntermediateCode.Rules; statement: SyntaxTree.Statement; i: LONGINT; operand: Operand; str: POINTER TO ARRAY OF CHAR;
-				result: IntermediateCode.Operand; scope: SyntaxTree.Scope; procedureType: SyntaxTree.ProcedureType; return: IntermediateCode.Operand;
+			in, out: IntermediateCode.Rules; statement: SyntaxTree.Statement; i: LONGINT; operand,par: Operand; str: POINTER TO ARRAY OF CHAR;
+				result, mem: IntermediateCode.Operand; scope: SyntaxTree.Scope; procedureType: SyntaxTree.ProcedureType; return: IntermediateCode.Operand;
 				parSize: LONGINT;
 				procedure: SyntaxTree.Procedure;
 		BEGIN
@@ -7832,7 +7868,15 @@ TYPE
 				END;
 			END;
 			IF return.mode # IntermediateCode.Undefined THEN
-				Emit(Return(position,return));
+				IF ReturnedAsParameter(procedureType.returnType) THEN
+					Symbol(procedureType.returnParameter, par);
+					MakeMemory(mem, par.op, return.type, 0);
+					ReleaseOperand(par);
+					Emit(Mov(position, mem, return));
+					ReleaseIntermediateOperand(mem);
+				ELSE
+					Emit(Return(position,return));
+				END;
 				Emit(Leave(position,procedureType(SyntaxTree.ProcedureType).callingConvention));
 				IF procedureType.callingConvention = SyntaxTree.CCallingConvention THEN parSize := 0
 				ELSE parSize := ProcedureParametersSize(system,procedure);

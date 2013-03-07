@@ -46,7 +46,7 @@ CONST
 	(* statementy may start with Self ... Begin *)
 	If Case While Repeat For Loop With Exit Await Return Begin
 	(* symbols, expressions and statements cannot start with *)
-	Semicolon Transpose RightBrace RightBracket RightParenthesis Questionmark ExclamationMark Upto
+	Semicolon Transpose RightBrace RightBracket RightParenthesis Questionmark Questionmarks ExclamationMark ExclamationMarks Upto
     	Arrow Period Comma Colon Of Then Do To By Becomes Bar End Else Elsif Until Finally
 	(* declaration elements *)
 	Code Const Type Var Out Procedure Operator Import Definition Module Cell CellNet
@@ -81,20 +81,21 @@ CONST
 	With*= 48; Exit*= 49; Await*= 50; Return*= 51; Begin*= 52;
 	(* symbols, expressions and statements cannot start with *)
 	Semicolon*= 53; Transpose*= 54; RightBrace*= 55; RightBracket*= 56; RightParenthesis*= 57; Questionmark*= 58;
-	ExclamationMark*= 59; Upto*= 60; Arrow*= 61; Period*= 62; Comma*= 63; Colon*= 64;
-	Of*= 65; Then*= 66; Do*= 67; To*= 68; By*= 69; Becomes*= 70;
-	Bar*= 71; End*= 72; Else*= 73; Elsif*= 74; Until*= 75; Finally*= 76;
+	Questionmarks*= 59; ExclamationMark*= 60; ExclamationMarks*= 61; Upto*= 62; Arrow*= 63; Period*= 64;
+	Comma*= 65; Colon*= 66; Of*= 67; Then*= 68; Do*= 69; To*= 70;
+	By*= 71; Becomes*= 72; Bar*= 73; End*= 74; Else*= 75; Elsif*= 76;
+	Until*= 77; Finally*= 78;
 	(* declaration elements *)
-	Code*= 77; Const*= 78; Type*= 79; Var*= 80; Out*= 81; Procedure*= 82;
-	Operator*= 83; Import*= 84; Definition*= 85; Module*= 86; Cell*= 87; CellNet*= 88;
+	Code*= 79; Const*= 80; Type*= 81; Var*= 82; Out*= 83; Procedure*= 84;
+	Operator*= 85; Import*= 86; Definition*= 87; Module*= 88; Cell*= 89; CellNet*= 90;
 	(* composite type symbols *)
-	Array*= 89; Object*= 90; Record*= 91; Pointer*= 92; Enum*= 93; Port*= 94;
-	Address*= 95; Size*= 96; Alias*= 97;
+	Array*= 91; Object*= 92; Record*= 93; Pointer*= 94; Enum*= 95; Port*= 96;
+	Address*= 97; Size*= 98; Alias*= 99;
 	(* assembler constants *)
-	Ln*= 98; PC*= 99; PCOffset*= 100;
+	Ln*= 100; PC*= 101; PCOffset*= 102;
 	(* number types *)
-	Shortint*= 101; Integer*= 102; Longint*= 103; Hugeint*= 104; Real*= 105; Longreal*= 106;
-	Comment*= 107; EndOfText*= 108;
+	Shortint*= 103; Integer*= 104; Longint*= 105; Hugeint*= 106; Real*= 107; Longreal*= 108;
+	Comment*= 109; EndOfText*= 110;
 
 	SingleQuote = 27X;  DoubleQuote* = 22X;
 	Ellipsis = 7FX;   (* used in Scanner.GetNumber to return with ".." when reading an interval like 3..5 *)
@@ -704,7 +705,8 @@ TYPE
 			| '\':     s := Backslash;  GetNextCharacter;
 					IF ch = DoubleQuote THEN s := String; GetString(symbol, TRUE, TRUE, TRUE) END;
 			| '`':	s := Transpose; GetNextCharacter
-			| '?': 	s := Questionmark; GetNextCharacter
+			| '?': 	s := Questionmark; GetNextCharacter; IF ch = '?' THEN s := Questionmarks; GetNextCharacter END;
+			| '!':     s := ExclamationMark; GetNextCharacter; IF ch = '!' THEN s := ExclamationMarks; GetNextCharacter END;
 			| Ellipsis:
 					s := Upto;  GetNextCharacter
 			| 'A'..'Z': s := Identifier; GetIdentifier( symbol );
@@ -916,7 +918,7 @@ TYPE
 				| '{':     s := LeftBrace;  GetNextCharacter
 				| '}':     s := RightBrace;  GetNextCharacter
 
-				| '!':     s := ExclamationMark; GetNextCharacter (* for the ARM assembler *)
+
 				| 'A'..'Z': s := Identifier; GetIdentifier( symbol );
 				| 'a'..'z': s := Identifier; GetIdentifier( symbol);
 				| '@':     s := Identifier; GetIdentifier( symbol); (* the '@'-symbol initiates an assembly scanner identifier *)
@@ -1078,6 +1080,8 @@ TYPE
 		tokens[RightParenthesis] := "RightParenthesis";
 		tokens[Questionmark] := "Questionmark";
 		tokens[ExclamationMark] := "ExclamationMark";
+		tokens[Questionmarks] := "Questionmarks";
+		tokens[ExclamationMarks] := "ExclamationMarks";
 		tokens[Upto] := "Upto";
 		tokens[Arrow] := "Arrow";
 		tokens[Period] := "Period";

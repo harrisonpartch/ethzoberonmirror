@@ -74,7 +74,7 @@ CONST
 
 		Statement            =
 		                     [
-		                     Designator [':=' Expression]
+		                     Designator [':=' Expression | '!' Expression | '?' Expression]
 		                     | 'if' Expression 'then' StatementSequence
 		                        {'elsif' Expression 'then' StatementSequence} 'end'
 		                     | 'with' Identifier ':' QualifiedIdentifier 'do'
@@ -759,7 +759,7 @@ TYPE
 			IF Trace THEN S( "Term" ) END;
 			position := symbol.start;
 			term := Factor();
-			WHILE (symbol.token >= Scanner.Times) & (symbol.token <= Scanner.And) DO
+			WHILE (symbol.token >= Scanner.Times) & (symbol.token <= Scanner.And) OR (symbol.token = Scanner.ExclamationMarks) OR (symbol.token = Scanner.Questionmarks) DO
 				operator := symbol.token;
 				NextSymbol;
 				factor := Factor();
@@ -875,6 +875,14 @@ TYPE
 					IF Optional( Scanner.Becomes ) THEN
 						expression := Expression();
 						statement := SyntaxTree.NewAssignment( position, designator, expression,outer );
+						CommentStatement(statement);
+					ELSIF Optional(Scanner.ExclamationMark) THEN
+						expression := Expression();
+						statement := SyntaxTree.NewCommunicationStatement(position, TRUE, designator, expression, outer);
+						CommentStatement(statement);
+					ELSIF Optional(Scanner.Questionmark) THEN
+						expression := Expression();
+						statement := SyntaxTree.NewCommunicationStatement(position, FALSE, designator, expression, outer);
 						CommentStatement(statement);
 					ELSE
 						caller := SyntaxTree.NewProcedureCallStatement(designator.position, designator,outer);

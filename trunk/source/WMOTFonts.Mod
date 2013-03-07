@@ -1,13 +1,14 @@
 MODULE WMOTFonts;	(** AUTHOR "PL"; PURPOSE "OpenType Support" *)
 
 IMPORT
-	SYSTEM, KernelLog, WMGraphics, Raster, WMFontManager, Strings, WMRectangles,
-	Files, OpenTypeFonts, OpenType, OpenTypeInt, OpenTypeScan;
+	KernelLog, WMGraphics, Raster, WMFontManager, Strings, WMRectangles,
+	Files, OpenTypeFonts, OpenType, OpenTypeInt, OpenTypeScan, Zip;
 
 CONST
 	ScreenDPI = 71;
-
 	Debug = FALSE;
+	PersistentFontCache=TRUE;
+
 TYPE
 	Glyph*  = RECORD
 		img- : WMGraphics.Image;
@@ -95,22 +96,153 @@ TYPE
 			END
 		END GetGlyphSpacings;
 
+		PROCEDURE GetCacheFileName(gri: LONGINT; VAR name: ARRAY OF CHAR);
+		BEGIN
+			COPY(fname,name);
+			Strings.Append(name, "_");
+			Strings.AppendInt(name, size);
+			Strings.Append(name, "_");
+			Strings.AppendInt(name, gri);
+			Strings.Append(name,".fontCache");
+		END GetCacheFileName;
+
+
+		PROCEDURE TryCacheFile(gri: LONGINT): BOOLEAN;
+		VAR y,w,h: LONGINT; mode: Raster.Mode;
+			reader: Files.Reader;
+			file: Files.File;
+			fileName: Files.FileName;
+			i: LONGINT;
+			archive: Zip.Archive;
+			res: LONGINT;
+			entry: Zip.Entry;
+			rider: Files.Rider;
+
+			PROCEDURE ReadGlyph(VAR g: Glyph);
+			VAR len: LONGINT;
+			BEGIN
+				reader.RawNum(g.dx);
+				reader.RawNum(g.x);
+				reader.RawNum(g.y);
+				reader.RawNum(g.w);
+				reader.RawNum(g.h);
+				reader.RawNum(w);
+				reader.RawNum(h);
+				IF (w>0) & (h>0) THEN
+					NEW(g.img); Raster.Create(g.img, w, h, Raster.A8);
+					IF (inCache = NIL) OR (LEN(inCache) < h*w) THEN NEW(inCache, h*w) END;
+
+					reader.Bytes(inCache^, 0, h*w, len);
+					ASSERT(len = h*w);
+					(* copy data to char array for faster access *)
+					Raster.InitMode(mode, Raster.srcCopy);
+					FOR y := 0 TO h-1 DO
+						Raster.PutPixels(g.img, 0,y,w,Raster.A8, inCache^, y*w,mode);
+					END;
+				END;
+
+			END ReadGlyph;
+
+		BEGIN
+			GetCacheFileName(gri, fileName);
+			(* first try direct -- if not in zip file it is faster *)
+			file := Files.Old(fileName);
+			(* then try in zip file *)
+			IF (file = NIL) THEN
+				archive := Zip.OpenArchive("FontCache.zip", res);
+				IF res # Zip.Ok THEN
+					RETURN FALSE
+				ELSE
+					entry := Zip.GetEntry(archive, fileName, res);
+					IF res # Zip.Ok THEN RETURN FALSE END;
+					file := Files.New("");
+					file.Set(rider,0);
+					Zip.ExtractEntry(archive, entry, rider, res);
+				END;
+			END;
+			(* if file is still not here then the cache is not yet created *)
+			IF file = NIL THEN
+				RETURN FALSE
+			ELSE
+				Files.OpenReader(reader, file, 0);
+				FOR i := glyphRanges[gri].firstCode TO glyphRanges[gri].lastCode DO
+					ReadGlyph(glyphRanges[gri].glyphs[i - glyphRanges[gri].firstCode])
+				END;
+				glyphRanges[gri].loaded := TRUE;
+				RETURN TRUE
+			END;
+		END TryCacheFile;
+
+		PROCEDURE ToCacheFile(gri: LONGINT);
+		VAR y,w,h: LONGINT; mode: Raster.Mode;
+			writer: Files.Writer;
+			file: Files.File;
+			fileName: Files.FileName;
+			i,res: LONGINT;
+			archive: Zip.Archive;
+			r: Files.Rider;
+
+			PROCEDURE WriteGlyph(CONST g: Glyph);
+			BEGIN
+				writer.RawNum(g.dx);
+				writer.RawNum(g.x);
+				writer.RawNum(g.y);
+				writer.RawNum(g.w);
+				writer.RawNum(g.h);
+				IF g.img # NIL THEN
+					w := g.img.width; h := g.img.height;
+				ELSE
+					w := 0; h := 0;
+				END;
+				writer.RawNum(w);
+				writer.RawNum(h);
+
+				IF (w>0) & (h>0) THEN
+					IF (inCache = NIL) OR (LEN(inCache) < h*w) THEN NEW(inCache, h*w) END;
+					(* copy data to char array for faster access *)
+					Raster.InitMode(mode, Raster.srcCopy);
+					FOR y := 0 TO h-1 DO
+						Raster.GetPixels(g.img, 0,y,w,Raster.A8, inCache^, y*w,mode);
+					END;
+					writer.Bytes(inCache^, 0, h*w);
+				END;
+
+			END WriteGlyph;
+
+		BEGIN
+			GetCacheFileName(gri, fileName);
+			file := Files.New("");
+
+			Files.OpenWriter(writer, file, 0);
+			FOR i := glyphRanges[gri].firstCode TO glyphRanges[gri].lastCode DO
+				WriteGlyph(glyphRanges[gri].glyphs[i - glyphRanges[gri].firstCode])
+			END;
+			writer.Update;
+			Files.Register(file);
+			archive := Zip.OpenArchive("FontCache.zip", res);
+			IF res # Zip.Ok THEN
+				archive := Zip.CreateArchive("FontCache.zip",res);
+			END;
+			file.Set(r, 0);
+			Zip.AddEntry(archive, fileName, r, file.Length(), 9, 2, res);
+		END ToCacheFile;
+
 		PROCEDURE LoadGlyphRange(gri : LONGINT);
-		VAR i : LONGINT;
+		VAR i: LONGINT;
 		BEGIN
 			IF glyphRanges[gri].glyphs = NIL THEN
 				NEW(glyphRanges[gri].glyphs, glyphRanges[gri].lastCode - glyphRanges[gri].firstCode + 1)
 			END;
-			(*
-			KernelLog.String("OT: Loading range: "); KernelLog.Hex(glyphRanges[gri].firstCode, 6); KernelLog.String(".."); KernelLog.Hex(glyphRanges[gri].lastCode, 6);
-			*)
-			FOR i := glyphRanges[gri].firstCode TO glyphRanges[gri].lastCode DO
-				ReadGlyph(i, glyphRanges[gri].glyphs[i - glyphRanges[gri].firstCode])
+
+			IF ~PersistentFontCache OR ~TryCacheFile(gri) THEN
+				FOR i := glyphRanges[gri].firstCode TO glyphRanges[gri].lastCode DO
+					ReadGlyph(i, glyphRanges[gri].glyphs[i - glyphRanges[gri].firstCode])
+				END;
+				glyphRanges[gri].loaded := TRUE;
+				IF PersistentFontCache THEN
+					ToCacheFile(gri)
+				END;
 			END;
-			(*
-			KernelLog.String("  done"); KernelLog.Ln;
-			*)
-			glyphRanges[gri].loaded := TRUE
 		END LoadGlyphRange;
 
 		PROCEDURE FindGlyphRange(code : LONGINT; VAR gri : LONGINT) : BOOLEAN;
