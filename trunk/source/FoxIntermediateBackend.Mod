@@ -239,6 +239,22 @@ TYPE
 		PROCEDURE VisitCellType(x: SyntaxTree.CellType);
 		VAR name:Basic.SegmentedName; td: SyntaxTree.TypeDeclaration; type: SyntaxTree.Type; len,port,adr: LONGINT;
 			parameter: SyntaxTree.Parameter; symbol: IntermediateCode.Section; op: IntermediateCode.Operand; capabilities: SET;
+
+			PROCEDURE CreatePortArray(type: SyntaxTree.Type; len: LONGINT);
+			VAR i,len2: LONGINT; baseType: SyntaxTree.Type;
+			BEGIN
+				FOR i := 0 TO len-1 DO
+					IF SemanticChecker.IsStaticArray(type, baseType, len2) THEN
+						CreatePortArray(baseType, len2);
+					ELSE
+						adr := backend.activeCellsSpecification.GetPortAddress(port);
+						IntermediateCode.InitImmediate(op,addressType,adr);
+						symbol.Emit(Data(-1,op));
+						INC(port);
+					END;
+				END;
+			END CreatePortArray;
+
 		BEGIN
 			meta.CheckTypeDeclaration(x);
 			IF (x.cellScope.ownerModule = module.module)  THEN
@@ -256,12 +272,15 @@ TYPE
 				ELSIF SemanticChecker.IsStaticArray(type,type,len) THEN
 					Global.GetSymbolSegmentedName(parameter,name);
 					symbol := implementationVisitor.NewSection(module.allSections, Sections.ConstSection, name,parameter,dump);
+					CreatePortArray(type, len);
+					(*
 					WHILE len > 0 DO
 						adr := backend.activeCellsSpecification.GetPortAddress(port);
 						IntermediateCode.InitImmediate(op,addressType,adr);
 						symbol.Emit(Data(-1,op));
 						DEC(len); INC(port);
 					END;
+					*)
 				ELSE
 					Error(parameter.position,"should never happen, check semantic checker!");
 				END;
@@ -6785,7 +6804,7 @@ TYPE
 
 		PROCEDURE VisitParameter(x: SyntaxTree.Parameter);
 		VAR type: SyntaxTree.Type; basereg, mem: IntermediateCode.Operand; parameter: SyntaxTree.Parameter;adr: LONGINT; symbol: Sections.Section;
-			name: Basic.SegmentedName; parameterType: SyntaxTree.Type; len: LONGINT;
+			name: Basic.SegmentedName; parameterType: SyntaxTree.Type; len,inc: LONGINT;
 		BEGIN
 			type := x.type.resolved;
 			IF Trace THEN TraceEnter("VisitParameter") END;
@@ -6803,7 +6822,9 @@ TYPE
 					adr := 0;
 					WHILE parameter # x DO
 						parameterType := parameter.type;
-						IF SemanticChecker.IsStaticArray(parameterType,parameterType,len) THEN INC(adr,len) ELSE INC(adr) END;
+						inc := 1;
+						WHILE SemanticChecker.IsStaticArray(parameterType, parameterType, len) DO inc := inc * len END;
+						INC(adr, inc);
 						parameter := parameter.nextParameter
 					END;
 					adr := backend.activeCellsSpecification.GetPortAddress(adr);

@@ -1085,8 +1085,11 @@ TYPE
 					VisitParameter(parameter);
 					type := parameter.type.resolved;
 					IF ~(type IS SyntaxTree.PortType) THEN
-						IF ~IsStaticArray(type,type,len) OR ~(type IS SyntaxTree.PortType) THEN
-						Error(parameter.position, Diagnostics.Invalid, "invalid type, must be port or static array of port ");
+						WHILE IsStaticArray(type, type, len) DO
+
+						END;
+						IF (* ~IsStaticArray(type,type,len) OR*)  ~(type IS SyntaxTree.PortType) THEN
+							Error(parameter.position, Diagnostics.Invalid, "invalid type, must be port or static array of port ");
 						END;
 					END;
 					parameter := parameter.nextParameter;
@@ -5926,7 +5929,7 @@ TYPE
 
 					IF CheckPortType(parameter0, outPort) & CheckPortType(parameter1, inPort) THEN
 						IF (outPort.direction # SyntaxTree.OutPort) THEN Error(parameter0.position,Diagnostics.Invalid,"not an out-port") END;
-						IF (inPort.direction # SyntaxTree.InPort) THEN Error(parameter0.position,Diagnostics.Invalid,"not an in-port") END;
+						IF (inPort.direction # SyntaxTree.InPort) THEN Error(parameter1.position,Diagnostics.Invalid,"not an in-port") END;
 					END;
 
 					IF numberActualParameters = 3 THEN
