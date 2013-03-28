@@ -23,7 +23,7 @@ CONST
 		MathLenOffset=5;
 		MathIncrOffset=6;
 
-		SysDataArrayOffset* = 0; (* array offset in system block, for 32 byte alignment *)
+		SysDataArrayOffset* = 0; (* array offset in system bl	ock, for 32 byte alignment *)
 		ArrDataArrayOffset*= 16*8; (* 16 bytes array offset in array block, to be compatible with the GC scheme of POINTER TO ARRAY OF ... *)
 
 		TensorFlag* = 0;   (* flag indicating a tensor array *)
@@ -492,7 +492,7 @@ TYPE
 			implementationVisitor.temporaries.Init;
 
 			implementationVisitor.GetCodeSectionNameForSymbol(x, name);
-			IF (scope.body # NIL) & (x.isInline) THEN
+			IF (scope.body # NIL) & (x.isInline)  THEN
 				inline := TRUE;
 				ir := implementationVisitor.NewSection(module.allSections, Sections.InlineCodeSection, name,x,dump);
 			ELSIF (x.scope # NIL) & (x.scope IS SyntaxTree.CellScope) & (x.scope(SyntaxTree.CellScope).ownerCell.isCellNet)
@@ -891,13 +891,16 @@ TYPE
 	VariableUse= ARRAY 32 OF SET; (* upper bound of 1024 temporary variables in a procedure .. should be enough for all times *)
 
 	Variables = OBJECT (Basic.List)
-	VAR inUse: VariableUse;
+	VAR
+		inUse: VariableUse;
+		registerIndex: LONGINT;
 
 		PROCEDURE & Init;
 		VAR i: LONGINT;
 		BEGIN
 			InitList(16);
 			FOR i := 0 TO LEN(inUse)-1 DO inUse[i] := {} END;
+			registerIndex := 1024;
 		END Init;
 
 		PROCEDURE GetUsage(VAR use: VariableUse);
@@ -944,6 +947,36 @@ TYPE
 		END GetFreeVariable;
 
 	END Variables;
+
+	SymbolMap = POINTER TO RECORD this: SyntaxTree.Symbol; to, tag: SyntaxTree.Expression; next: SymbolMap; END;
+
+	SymbolMapper = OBJECT
+	VAR
+		first: SymbolMap;
+
+		PROCEDURE & Init;
+		BEGIN
+			first := NIL;
+		END Init;
+
+		PROCEDURE Add(this: SyntaxTree.Symbol; to, tag: SyntaxTree.Expression);
+		VAR new: SymbolMap;
+		BEGIN
+			NEW(new); new.this := this; new.to := to; new.tag := tag;
+			new.next := first;	first := new;
+		END Add;
+
+		PROCEDURE Get(this: SyntaxTree.Symbol): SymbolMap;
+		VAR s: SymbolMap;
+		BEGIN
+			s := first;
+			WHILE (s # NIL) & (s.this # this) DO
+				s := s.next
+			END;
+			RETURN s
+		END Get;
+
+	END SymbolMapper;
 
 
 	ImplementationVisitor =OBJECT(SyntaxTree.Visitor)
@@ -1007,6 +1040,10 @@ TYPE
 		temporaries: Variables;
 		canBeLoaded : BOOLEAN;
 
+		currentIsInline: BOOLEAN;
+		currentMapper: SymbolMapper;
+		currentInlineExit: Label;
+
 		PROCEDURE & Init(system: Global.System; checker: SemanticChecker.Checker; supportedInstructionProcedure: SupportedInstructionProcedure; supportedImmediateProcedure: SupportedImmediateProcedure; emitLabels: BOOLEAN; CONST runtime: SyntaxTree.IdentifierString; backend: IntermediateBackend;
 			newObjectFile: BOOLEAN);
 		BEGIN
@@ -1052,6 +1089,7 @@ TYPE
 			procedureResultDesignator := NIL;
 			NEW(fingerPrinter, system);
 			NEW(temporaries);
+			currentIsInline := FALSE;
 		END Init;
 
 		PROCEDURE NewSection(list: Sections.SectionList; type: SHORTINT; CONST name: Basic.SegmentedName; syntaxTreeSymbol: SyntaxTree.Symbol; dump: BOOLEAN): IntermediateCode.Section;
@@ -1136,8 +1174,27 @@ TYPE
 		END Emit;
 
 		PROCEDURE Symbol(x: SyntaxTree.Symbol; VAR op: Operand);
+		VAR m: SymbolMap; e: SyntaxTree.Expression; o, t: IntermediateCode.Operand;
 		BEGIN
 			position := x.position;
+			IF currentIsInline THEN
+				m  := currentMapper.Get(x);
+				IF m # NIL THEN
+					(*
+					Printout.Info("mapping from", x);
+					Printout.Info("mapping to ", m.to);
+					*)
+					m.to.Accept(SELF);
+					op := result;
+					IF m.tag # NIL THEN
+						ReleaseIntermediateOperand(result.tag);
+						m.tag.Accept(SELF);
+						op.tag := result.op;
+						ReleaseIntermediateOperand(result.tag);
+					END;
+					RETURN
+				END;
+			END;
 			x.Accept(SELF);
 			op := result;
 		END Symbol;
@@ -1321,6 +1378,7 @@ TYPE
 						dump.String("remove register from usedRegisters"); dump.Ln; dump.Update;
 					END;
 				ELSIF registerUsageCount.Use(register)<0 THEN
+					Warning(position, "register removed too often");
 					D.TraceBack;
 				END;
 			END;
@@ -1763,7 +1821,7 @@ TYPE
 			END RecursiveAssignment;
 
 		BEGIN
-			variable := GetTemporaryVariable(x.type);
+			variable := GetTemporaryVariable(x.type, FALSE);
 			designator := SyntaxTree.NewSymbolDesignator(-1,NIL,variable);
 			designator.SetType(variable.type);
 			dim := SemanticChecker.Dimension(x.type,{SyntaxTree.Static});
@@ -2721,7 +2779,7 @@ TYPE
 					IntermediateCode.InitOperand(arrayDestinationTag)
 				ELSE
 					(* otherwise, create a temporary variable and use it to store the array destination tag *)
-					variable := GetTemporaryVariable(GetMathArrayDescriptorType(targetArrayDimensionality));
+					variable := GetTemporaryVariable(GetMathArrayDescriptorType(targetArrayDimensionality), FALSE);
 					Symbol(variable, variableOp);
 					ReuseCopy(localResult.tag, variableOp.op);
 					ReleaseOperand(variableOp);
@@ -3271,7 +3329,7 @@ TYPE
 			parameters: SyntaxTree.ExpressionList; e: SyntaxTree.Expression;
 			prefixIndices, prefixRanges, suffixIndices, suffixRanges,i : LONGINT; tensorFound: BOOLEAN;
 		BEGIN
-			variable := GetTemporaryVariable(expression.left.type);
+			variable := GetTemporaryVariable(expression.left.type, FALSE);
 			parameters := expression.parameters;
 
 			moduleName := "FoxArrayBase";
@@ -3488,7 +3546,7 @@ TYPE
 					(* case 2b *)
 					IF expression IS SyntaxTree.IndexDesignator THEN
 						descriptorType := GetMathArrayDescriptorType(dim);
-						variable := GetTemporaryVariable(descriptorType);
+						variable := GetTemporaryVariable(descriptorType, FALSE);
 						Symbol(variable,variableOp);
 						arrayDestinationTag := variableOp.op;
 						ReuseCopy(arrayDestinationTag,arrayDestinationTag);
@@ -3507,7 +3565,7 @@ TYPE
 						ELSE (* open-static *)
 							type := expression.type.resolved;
 							descriptorType := GetMathArrayDescriptorType(dim);
-							variable := GetTemporaryVariable(descriptorType);
+							variable := GetTemporaryVariable(descriptorType, FALSE);
 							Symbol(variable,variableOp);
 							arrayDestinationTag := variableOp.op;
 							Designate(expression,operand);
@@ -3538,7 +3596,7 @@ TYPE
 					(* case 2f *)
 					ELSIF type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static THEN
 						descriptorType := GetMathArrayDescriptorType(dim);
-						variable := GetTemporaryVariable(descriptorType);
+						variable := GetTemporaryVariable(descriptorType, FALSE);
 						Symbol(variable,variableOp);
 						arrayDestinationTag := variableOp.op;
 						Designate(expression,operand);
@@ -3571,7 +3629,7 @@ TYPE
 							LoadValue(variableOp,system.addressType);
 						ELSE
 							descriptorType := GetMathArrayDescriptorType(dim);
-							variable := GetTemporaryVariable(descriptorType);
+							variable := GetTemporaryVariable(descriptorType, FALSE);
 							Symbol(variable,variableOp);
 						END;
 						arrayDestinationTag := variableOp.op;
@@ -3592,7 +3650,7 @@ TYPE
 						ELSE (* open-static *)
 							type := expression.type.resolved;
 							descriptorType := GetMathArrayDescriptorType(dim);
-							variable := GetTemporaryVariable(descriptorType);
+							variable := GetTemporaryVariable(descriptorType, FALSE);
 							Symbol(variable,variableOp);
 							arrayDestinationTag := variableOp.op;
 							Designate(expression,operand);
@@ -3625,12 +3683,12 @@ TYPE
 					(* case 3f *)
 					ELSIF type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static THEN
 						descriptorType := GetMathArrayDescriptorType(dim);
-						variable := GetTemporaryVariable(descriptorType);
+						variable := GetTemporaryVariable(descriptorType, FALSE);
 						Symbol(variable,variableOp);
 						arrayDestinationTag := variableOp.op;
 						Designate(expression,operand);
 						IF operand.op.type.length >1 THEN (* vector register *)
-							variable2 := GetTemporaryVariable(type);
+							variable2 := GetTemporaryVariable(type, FALSE);
 							Symbol(variable2, variable2Op);
 							MakeMemory(tmp,variable2Op.op,operand.op.type,0);
 							Emit(Mov(position,tmp, operand.op));
@@ -3667,7 +3725,7 @@ TYPE
 							LoadValue(variableOp,system.addressType);
 						ELSE
 							descriptorType := GetMathArrayDescriptorType(dim);
-							variable := GetTemporaryVariable(descriptorType);
+							variable := GetTemporaryVariable(descriptorType, FALSE);
 							Symbol(variable,variableOp);
 						END;
 						arrayDestinationTag := variableOp.op;
@@ -3677,7 +3735,7 @@ TYPE
 						IF type(SyntaxTree.MathArrayType).form = SyntaxTree.Tensor THEN
 							Symbol(variable,variableOp);
 						ELSE
-							variable := GetTemporaryVariable(parameter.type.resolved);
+							variable := GetTemporaryVariable(parameter.type.resolved, FALSE);
 							Symbol(variable,variableOp);
 							MakeMemory(tmp,variableOp.op,addressType,0);
 							Emit(Mov(position,tmp,operand.tag));
@@ -3698,7 +3756,7 @@ TYPE
 						ELSE (* open-static *)
 							type := expression.type.resolved;
 							descriptorType := GetMathArrayDescriptorType(dim);
-							variable := GetTemporaryVariable(descriptorType);
+							variable := GetTemporaryVariable(descriptorType, FALSE);
 							Symbol(variable,variableOp);
 							arrayDestinationTag := variableOp.op;
 							Designate(expression,operand);
@@ -3719,7 +3777,7 @@ TYPE
 							tmp := IntermediateCode.Immediate(addressType,ToMemoryUnits(system,system.AlignedSizeOf(baseType)));
 							PutMathArrayField(arrayDestinationTag,tmp,MathElementSizeOffset);
 						END;
-						variable := GetTemporaryVariable(parameter.type.resolved);
+						variable := GetTemporaryVariable(parameter.type.resolved, FALSE);
 						Symbol(variable,variableOp);
 						MakeMemory(tmp,variableOp.op,addressType,0);
 						Emit(Mov(position,tmp,arrayDestinationTag));
@@ -3739,7 +3797,7 @@ TYPE
 					(* case 4f *)
 					ELSIF type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static THEN
 						descriptorType := GetMathArrayDescriptorType(dim);
-						variable := GetTemporaryVariable(descriptorType);
+						variable := GetTemporaryVariable(descriptorType, FALSE);
 						Symbol(variable,variableOp);
 						arrayDestinationTag := variableOp.op;
 						Designate(expression,operand);
@@ -3759,7 +3817,7 @@ TYPE
 						baseType := SemanticChecker.ArrayBase(type,dim);
 						tmp := IntermediateCode.Immediate(addressType,ToMemoryUnits(system,system.AlignedSizeOf(baseType)));
 						PutMathArrayField(arrayDestinationTag,tmp,MathElementSizeOffset);
-						variable := GetTemporaryVariable(parameter.type.resolved);
+						variable := GetTemporaryVariable(parameter.type.resolved, FALSE);
 						Symbol(variable,variableOp);
 						MakeMemory(tmp,variableOp.op,addressType,0);
 						Emit(Mov(position,tmp,arrayDestinationTag));
@@ -3785,7 +3843,7 @@ TYPE
 				ELSIF (parameter.type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Static) & (parameter.kind IN {SyntaxTree.VarParameter,SyntaxTree.ConstParameter}) THEN
 					Designate(expression,operand);
 					IF operand.op.type.length > 1 THEN (* need temporary to pass register *)
-						variable := GetTemporaryVariable(parameter.type.resolved);
+						variable := GetTemporaryVariable(parameter.type.resolved, FALSE);
 						Symbol(variable,variableOp);
 						MakeMemory(tmp,variableOp.op,operand.op.type,0);
 						Emit(Mov(position,tmp,operand.op));
@@ -3900,6 +3958,157 @@ TYPE
 
 		END VisitStatementDesignator;
 
+		PROCEDURE InlineProcedureCall(x: SyntaxTree.ProcedureCallDesignator): BOOLEAN;
+		VAR
+			procedure: SyntaxTree.Procedure;
+			procedureType: SyntaxTree.ProcedureType;
+			wasInline: BOOLEAN;
+			actualParameters: SyntaxTree.ExpressionList;
+			formalParameter: SyntaxTree.Parameter;
+			actualParameter: SyntaxTree.Expression;
+			i: LONGINT;
+			variable, localVariable: SyntaxTree.Variable;
+			variableDesignator, tagDesignator, returnDesignator: SyntaxTree.Expression;
+			src, dest: Operand;
+			prevInlineExit : Label;
+			prevMapper: SymbolMapper;
+			tooComplex: BOOLEAN;
+
+			PROCEDURE SimpleExpression(e: SyntaxTree.Expression): BOOLEAN;
+			BEGIN
+				IF e = NIL THEN RETURN TRUE
+				ELSIF (e IS SyntaxTree.SymbolDesignator) THEN RETURN SimpleExpression(e(SyntaxTree.SymbolDesignator).left)
+				ELSIF (e IS SyntaxTree.Value) THEN RETURN TRUE
+				ELSIF (e IS SyntaxTree.SelfDesignator) THEN RETURN TRUE
+				ELSIF (e IS SyntaxTree.ResultDesignator) THEN RETURN TRUE
+				ELSIF (e IS SyntaxTree.DereferenceDesignator) THEN RETURN SimpleExpression(e(SyntaxTree.DereferenceDesignator).left)
+				ELSE RETURN FALSE
+				END;
+			END SimpleExpression;
+
+			PROCEDURE FitsInRegister(type: SyntaxTree.Type): BOOLEAN;
+			BEGIN
+				RETURN checker.CanPassInRegister(type)
+			END FitsInRegister;
+
+			PROCEDURE GetTemp(type: SyntaxTree.Type; tryRegister: BOOLEAN): SyntaxTree.Expression;
+			VAR
+				variable: SyntaxTree.Variable;
+				variableDesignator: SyntaxTree.Designator;
+			BEGIN
+				variable :=  GetTemporaryVariable(type, tryRegister & FitsInRegister(type));
+				variableDesignator := SyntaxTree.NewSymbolDesignator(SemanticChecker.InvalidPosition, NIL, variable);
+				variableDesignator.SetType(type);
+				RETURN variableDesignator
+			END GetTemp;
+
+
+
+		BEGIN
+			wasInline := currentIsInline;
+			prevInlineExit := currentInlineExit;
+			prevMapper := currentMapper;
+			currentInlineExit := NewLabel();
+			tooComplex := FALSE;
+			NEW(currentMapper);
+			currentIsInline := TRUE;
+			procedure := x.left(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Procedure);
+			procedureType := procedure.type(SyntaxTree.ProcedureType);
+
+			formalParameter := procedureType.firstParameter;
+			actualParameters := x.parameters;
+
+			i := 0;
+			WHILE (i < actualParameters.Length()) & ~tooComplex DO
+				actualParameter := actualParameters.GetExpression(i);
+				IF actualParameter.resolved # NIL THEN
+					actualParameter := actualParameter.resolved
+				END;
+
+				(*
+					if expression is simple and can be passed immediately
+					or if type fits in register then we can proceed
+					otherwise we escape to ordinary procedure call.
+				*)
+
+				(* cases where the expression can be mapped identically *)
+				IF SimpleExpression(actualParameter) & (formalParameter.kind IN {SyntaxTree.ConstParameter, SyntaxTree.VarParameter})  THEN
+					currentMapper.Add(formalParameter, actualParameter, NIL);
+				ELSIF FitsInRegister(actualParameter.type) & (formalParameter.kind IN {SyntaxTree.ConstParameter, SyntaxTree.ValueParameter}) THEN
+					variableDesignator := GetTemp(formalParameter.type, TRUE);
+					(*
+					Assign(variableDesignator, actualParameter);
+					*)
+
+					Evaluate(actualParameter, src);
+					Designate(variableDesignator, dest);
+					Emit(Mov(x.position, dest.op, src.op));
+					ReleaseOperand(dest);
+					ReleaseOperand(src);
+
+					currentMapper.Add(formalParameter, variableDesignator, NIL);
+				ELSE tooComplex := TRUE
+				END;
+
+				(*
+				ELSIF (formalParameter.kind = SyntaxTree.ConstParameter) & IsSimple(actualParameter) THEN
+					currentMapper.Add(formalParameter, actualParameter, NIL);
+				ELSIF (formalParameter.kind = SyntaxTree.VarParameter) OR formalParameter.type.IsComposite() & (formalParameter.kind = SyntaxTree.ConstParameter) THEN
+					variableDesignator := GetTemp(system.addressType, FALSE);
+					Designate(actualParameter, src);
+					Designate(variableDesignator, dest);
+					IntermediateCode.MakeMemory(dest.op,addressType);
+					Emit(Mov(x.position, dest.op, src.op));
+					ReleaseOperand(dest);
+					IF src.tag.mode # IntermediateCode.Undefined THEN
+						tagDesignator := GetTemp(system.addressType, FALSE);
+						Designate(tagDesignator, dest);
+						IntermediateCode.MakeMemory(dest.op,addressType);
+						Emit(Mov(x.position, dest.op, src.op));
+					END;
+
+					ReleaseOperand(dest); ReleaseOperand(src);
+					currentMapper.Add(formalParameter, variableDesignator, tagDesignator);
+				END;
+				*)
+				formalParameter := formalParameter.nextParameter;
+				INC(i);
+			END;
+
+
+			IF ~tooComplex & (procedureType.returnType # NIL) THEN
+				returnDesignator := GetTemp(procedureType.returnType, TRUE);
+				currentMapper.Add(NIL, returnDesignator, NIL);
+			END;
+
+			localVariable := procedure.procedureScope.firstVariable;
+			WHILE ~tooComplex & (localVariable # NIL) DO
+				variableDesignator := GetTemp(localVariable.type, FALSE);
+				currentMapper.Add(localVariable, variableDesignator, NIL);
+				localVariable := localVariable.nextVariable;
+			END;
+
+			IF ~tooComplex THEN
+				VisitStatementBlock(procedure.procedureScope.body);
+
+				SetLabel(currentInlineExit);
+
+				IF procedureType.returnType # NIL THEN
+					Designate(returnDesignator, result);
+					IF conditional THEN
+						ASSERT (procedureType.returnType.resolved IS SyntaxTree.BooleanType);
+						ValueToCondition(result)
+					END;
+				END;
+			END;
+
+			currentMapper := prevMapper;
+			currentInlineExit := prevInlineExit;
+			currentIsInline := wasInline;
+			RETURN ~tooComplex
+		END InlineProcedureCall;
+
+
 		PROCEDURE VisitProcedureCallDesignator(x: SyntaxTree.ProcedureCallDesignator);
 		VAR
 			parameters: SyntaxTree.ExpressionList;
@@ -3945,6 +4154,7 @@ TYPE
 			identifierNumber: LONGINT;
 
 			passByRegister: BOOLEAN; registerNumber,stackSize: LONGINT;
+			procedure: SyntaxTree.Procedure;
 
 			PROCEDURE BackupGlobalState;
 			BEGIN
@@ -4000,7 +4210,7 @@ TYPE
 						(* allocate temporary variable *)
 						ASSERT(actualParameter.type # NIL);
 						ASSERT(actualParameter.type.resolved IS SyntaxTree.MathArrayType);
-						variable := GetTemporaryVariable(actualParameter.type.resolved);
+						variable := GetTemporaryVariable(actualParameter.type.resolved, FALSE);
 						tempVariableDesignator := SyntaxTree.NewSymbolDesignator(SemanticChecker.InvalidPosition, NIL, variable);
 						tempVariableDesignator.SetType(actualParameter.type.resolved);
 						ASSERT(tempVariableDesignator IS SyntaxTree.SymbolDesignator);
@@ -4030,7 +4240,7 @@ TYPE
 						currentWriteBackCall.call := expression(SyntaxTree.ProcedureCallDesignator);
 					ELSIF (formalParameter.kind = SyntaxTree.VarParameter) & (designator.relatedAsot # NIL)  THEN
 						(* prepare writeback for any other "normal" indexer *)
-						variable := GetTemporaryVariable(actualParameter.type.resolved);
+						variable := GetTemporaryVariable(actualParameter.type.resolved, FALSE);
 						tempVariableDesignator := SyntaxTree.NewSymbolDesignator(SemanticChecker.InvalidPosition, NIL, variable);
 						tempVariableDesignator.SetType(actualParameter.type.resolved);
 						Assign(tempVariableDesignator, actualParameter);
@@ -4051,11 +4261,26 @@ TYPE
 
 		BEGIN
 			IF Trace THEN TraceEnter("VisitProcedureCallDesignator") END;
+
+			IF (x.left IS SyntaxTree.SymbolDesignator) & (x.left(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Procedure) THEN
+				procedure := x.left(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Procedure);
+				IF procedure.isOberonInline & (procedure.scope.ownerModule = module.module) THEN
+					IF  InlineProcedureCall(x) THEN
+						RETURN
+					ELSE
+						Warning(x.position, "Inline call with complex parameters not yet implemented. Emitting ordinary procedure call.")
+					END
+				END;
+			END;
+
+
 			resultDesignator := procedureResultDesignator; procedureResultDesignator := NIL;
+			procedureType := x.left.type.resolved(SyntaxTree.ProcedureType);
+
+
 			dest := destination; destination := emptyOperand;
 			SaveRegisters();ReleaseUsedRegisters(saved);
 
-			procedureType := x.left.type.resolved(SyntaxTree.ProcedureType);
 			parameters := x.parameters;
 
 			IF (x.left IS SyntaxTree.SymbolDesignator) & (x.left(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Operator) THEN
@@ -4104,7 +4329,7 @@ TYPE
 				IF resultDesignator  # NIL THEN
 					d := resultDesignator;
 				ELSE
-					variable := GetTemporaryVariable(procedureType.returnType);
+					variable := GetTemporaryVariable(procedureType.returnType, FALSE);
 					d := SyntaxTree.NewSymbolDesignator(-1,NIL,variable);
 					d.SetType(variable.type);
 				END;
@@ -4288,7 +4513,9 @@ TYPE
 				size := IntermediateCode.Immediate(addressType,parametersSize);
 				Emit(Add(position,sp,sp,size));
 			END;
+
 			IF (resultDesignator = NIL) & (procedureType.returnType # NIL) THEN
+
 				IF structuredReturnType THEN
 					(* stack pointer rewinding done by callee
 					size := IntermediateCode.Immediate(addressType,ToMemoryUnits(system,system.SizeOfParameter(procedureType.returnParameter)));
@@ -5169,19 +5396,16 @@ TYPE
 		(**
 			create a temporary variable in current scope
 		**)
-		PROCEDURE GetTemporaryVariable(type: SyntaxTree.Type): SyntaxTree.Variable;
+		PROCEDURE GetTemporaryVariable(type: SyntaxTree.Type; register: BOOLEAN): SyntaxTree.Variable;
 		VAR name: SyntaxTree.Identifier; string: SyntaxTree.IdentifierString ; variable: SyntaxTree.Variable;
 		scope: SyntaxTree.Scope; duplicate: BOOLEAN; offset, index: LONGINT;
 		BEGIN
-			variable := temporaries.GetFreeVariable(type, index);
-			(*
-			COPY("@hiddenIRVar",string);
-			Basic.AppendNumber(string,GetIndex());
-			name := SyntaxTree.NewIdentifier(string);
-			*)
+			IF ~register THEN
+				variable := temporaries.GetFreeVariable(type, index);
+			ELSE
+				index := temporaries.registerIndex; INC(temporaries.registerIndex);
+			END;
 			scope := currentScope;
-			(*
-			variable := currentScope.FindVariable(name);*)
 
 			IF variable = NIL THEN
 				COPY("@hiddenIRVar",string);
@@ -5191,21 +5415,26 @@ TYPE
 				variable := SyntaxTree.NewVariable(Diagnostics.Invalid,name);
 				variable.SetType(type);
 				variable.SetAccess(SyntaxTree.Hidden);
-				temporaries.AddVariable(variable);
+				IF ~register THEN
+					temporaries.AddVariable(variable);
 
-				IF scope.lastVariable # NIL THEN
-					offset := scope.lastVariable.offsetInBits;
+					IF scope.lastVariable # NIL THEN
+						offset := scope.lastVariable.offsetInBits;
+					ELSE
+						offset := 0;
+					END;
+					DEC(offset,system.SizeOf(variable.type));
+					Basic.Align(offset,-system.AlignmentOf(system.variableAlignment,variable.type));
+					variable(SyntaxTree.Variable).SetOffset(offset);
+
+					scope.AddVariable(variable(SyntaxTree.Variable));
+					scope.EnterSymbol(variable, duplicate);
+					ASSERT(~duplicate);
+					InitVariable(variable(SyntaxTree.Variable));
 				ELSE
-					offset := 0;
+					variable.SetUseRegister(TRUE);
+					variable(SyntaxTree.Variable).SetOffset(0);
 				END;
-				DEC(offset,system.SizeOf(variable.type));
-				Basic.Align(offset,-system.AlignmentOf(system.variableAlignment,variable.type));
-				variable(SyntaxTree.Variable).SetOffset(offset);
-				scope.AddVariable(variable(SyntaxTree.Variable));
-				scope.EnterSymbol(variable, duplicate);
-				ASSERT(~duplicate);
-
-				InitVariable(variable(SyntaxTree.Variable));
 			ELSE
 				InitVariable(variable(SyntaxTree.Variable));
 				(*
@@ -5241,6 +5470,7 @@ TYPE
 				type := typeDeclaration.declaredType;
 			ELSE
 				typeDeclaration := SyntaxTree.NewTypeDeclaration(-1,SyntaxTree.NewIdentifier(name));
+				typeDeclaration.SetAccess(SyntaxTree.Hidden);
 				recordScope := SyntaxTree.NewRecordScope(parentScope);
 				recordType := SyntaxTree.NewRecordType( -1, parentScope, recordScope);
 				recordType.SetTypeDeclaration(typeDeclaration);
@@ -5706,7 +5936,7 @@ TYPE
 				type := p0.type.resolved;
 				IF (type IS SyntaxTree.PointerType) & (type(SyntaxTree.PointerType).pointerBase.resolved IS SyntaxTree.RecordType)
 				THEN
-					temporaryVariable := GetTemporaryVariable(type);
+					temporaryVariable := GetTemporaryVariable(type, FALSE);
 					IF temporaryVariable # NIL THEN
 						Symbol(temporaryVariable,l); (*Designate(temporaryVariable,l)*)
 					ELSE
@@ -6965,7 +7195,7 @@ TYPE
 			ELSE tag := nil
 			END;
 			GetCodeSectionNameForSymbol(x, name);
-			IF x.isInline THEN
+			IF x.isInline  THEN
 				sectionType := Sections.InlineCodeSection;
 			ELSE
 				sectionType := Sections.CodeSection;
@@ -7124,6 +7354,7 @@ TYPE
 			IF CanPassAsResultParameter(right) THEN
 				procedureResultDesignator := left(SyntaxTree.Designator);
 				Expression(right);
+				procedureResultDesignator := NIL;
 			ELSIF (right IS SyntaxTree.UnaryExpression) & (right(SyntaxTree.UnaryExpression).operator = Scanner.Alias) THEN
 				(* left <-- ALIAS OF right: zerocopy *)
 				IF GetRuntimeProcedure("FoxArrayBase","ZeroCopy",procedure,TRUE) THEN
@@ -7183,8 +7414,8 @@ TYPE
 				(* DO NOT REORDER EMISSION OF LEFT AND RIGHT OPERAND *)
 				Designate(left,leftO);
 				IF leftO.mode = ModeReference THEN
-				MakeMemory(mem,leftO.op,IntermediateCode.GetType(system,left.type),0);
-				destination := mem;
+					MakeMemory(mem,leftO.op,IntermediateCode.GetType(system,left.type),0);
+					destination := mem;
 				ELSE
 					destination := leftO.op;
 				END;
@@ -7475,7 +7706,7 @@ TYPE
 			start := NewLabel();
 
 			Assign(x.variable,x.from);
-			temporaryVariable := GetTemporaryVariable(x.variable.type);
+			temporaryVariable := GetTemporaryVariable(x.variable.type, FALSE);
 			temporaryVariableDesignator := SyntaxTree.NewSymbolDesignator(SemanticChecker.InvalidPosition, NIL, temporaryVariable);
 			temporaryVariableDesignator.SetType(x.variable.type.resolved);
 
@@ -7562,11 +7793,24 @@ TYPE
 			procedureType: SyntaxTree.ProcedureType;
 			parSize, returnTypeOffset: LONGINT;
 			delegate: BOOLEAN;
+			map: SymbolMap;
 		BEGIN
 			IF Trace THEN TraceEnter("VisitReturnStatement") END;
 			expression := x.returnValue;
 			procedure := currentScope(SyntaxTree.ProcedureScope).ownerProcedure;
 			procedureType := procedure.type(SyntaxTree.ProcedureType);
+
+			IF currentIsInline THEN
+				IF expression # NIL THEN
+					map := currentMapper.Get(NIL);
+					IF map # NIL THEN
+						Assign(map.to, expression);
+					END;
+				END;
+				BrL(currentInlineExit);
+				RETURN;
+			END;
+
 			IF expression # NIL THEN
 				type := expression.type.resolved;
 				IF (expression IS SyntaxTree.ResultDesignator) THEN
@@ -7826,6 +8070,7 @@ TYPE
 				result, mem: IntermediateCode.Operand; scope: SyntaxTree.Scope; procedureType: SyntaxTree.ProcedureType; return: IntermediateCode.Operand;
 				parSize: LONGINT;
 				procedure: SyntaxTree.Procedure;
+				map: SymbolMap;
 		BEGIN
 			scope := currentScope;
 			WHILE ~(scope IS SyntaxTree.ProcedureScope) DO scope := scope.outerScope END;
@@ -7864,7 +8109,13 @@ TYPE
 					|statement: SyntaxTree.ReturnStatement DO
 						NEW(str, 64);
 						Basic.GetString(statement.returnValue(SyntaxTree.IdentifierDesignator).identifier, str^);
-						out[i] :=NewRegisterOperand(IntermediateCode.GetType(system, procedureType.returnType));
+						IF currentIsInline THEN
+							map := currentMapper.Get(NIL);
+							Evaluate(map.to, operand);
+							out[i] := operand.op;
+						ELSE
+							out[i] :=NewRegisterOperand(IntermediateCode.GetType(system, procedureType.returnType));
+						END;
 						IntermediateCode.SetString(out[i], str);
 						ReleaseIntermediateOperand(operand.tag);
 						return := out[i];
@@ -7884,12 +8135,17 @@ TYPE
 					WITH statement: SyntaxTree.Assignment DO
 						ReleaseIntermediateOperand(out[i]);
 					ELSE
+						IF currentIsInline THEN
+							ReleaseIntermediateOperand(out[i]);
+						END;
 					END;
 					statement := x.outRules.GetStatement(i);
 				END;
 			END;
 			IF return.mode # IntermediateCode.Undefined THEN
-				IF ReturnedAsParameter(procedureType.returnType) THEN
+
+				IF currentIsInline THEN
+				ELSIF ReturnedAsParameter(procedureType.returnType) THEN
 					Symbol(procedureType.returnParameter, par);
 					MakeMemory(mem, par.op, return.type, 0);
 					ReleaseOperand(par);
@@ -7898,6 +8154,8 @@ TYPE
 				ELSE
 					Emit(Return(position,return));
 				END;
+				IF currentIsInline THEN RETURN END;
+
 				Emit(Leave(position,procedureType(SyntaxTree.ProcedureType).callingConvention));
 				IF procedureType.callingConvention = SyntaxTree.CCallingConvention THEN parSize := 0
 				ELSE parSize := ProcedureParametersSize(system,procedure);
@@ -9311,6 +9569,7 @@ TYPE
 		noRuntimeChecks: BOOLEAN;
 		simpleMetaData-: BOOLEAN;
 		noAsserts: BOOLEAN;
+		optimize-: BOOLEAN;
 
 		PROCEDURE &InitIntermediateBackend*;
 		BEGIN
@@ -9414,6 +9673,7 @@ TYPE
 			options.Add(0X,"noRuntimeChecks",Options.Flag);
 			options.Add(0X,"noAsserts",Options.Flag);
 			options.Add(0X,"metaData",Options.String);
+			options.Add('o',"optimize", Options.Flag);
 		END DefineOptions;
 
 		PROCEDURE GetOptions(options: Options.Options);
@@ -9432,6 +9692,7 @@ TYPE
 			END;
 			IF options.GetString("runtime",name) THEN SetRuntimeModuleName(name) END;
 			IF options.GetString("traceModule",name) THEN SetTraceModuleName(name) END;
+			optimize := options.GetFlag("optimize");
 		END GetOptions;
 
 		PROCEDURE DefaultSymbolFileFormat(): Formats.SymbolFileFormat;

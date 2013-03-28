@@ -241,7 +241,7 @@ TYPE
 			sizeInBits := type.sizeInBits;
 			form := type.form;
 			IF (type.length > 1) THEN
-				IF (type.form = IntermediateCode.Float) & (type.sizeInBits=32) & (type.length =4) THEN
+				IF (* (type.form = IntermediateCode.Float) &*)  (type.sizeInBits=32) & (type.length =4) THEN
 					i := Get(XMM7, XMM0);
 				ELSE
 					HALT(100)
@@ -540,7 +540,7 @@ TYPE
 			END;
 
 			fpStackPointer := 0;
-			InitTicketGenerator(diagnostics,2,physicalRegisters);
+			InitTicketGenerator(diagnostics,backend.optimize,2,physicalRegisters);
 		END InitGeneratorAMD64;
 
 		(*------------------- overwritten methods ----------------------*)
@@ -628,11 +628,13 @@ TYPE
 		BEGIN
 			IF type.length > 1 THEN
 				IF type.length = 4 THEN
-					ASSERT(type.form = IntermediateCode.Float);
+					(*ASSERT(type.form = IntermediateCode.Float);*)
 					ASSERT(type.sizeInBits = 32);
 					SpecialMove(InstructionSet.opMOVUPS, InstructionSet.opMOVUPS, dest, src, type);
 				ELSE
+					(*
 					ASSERT(type.form = IntermediateCode.Float);
+					*)
 					ASSERT(type.sizeInBits = 64);
 					SpecialMove(InstructionSet.opMOVUPD, InstructionSet.opMOVUPS, dest, src, type);
 				END;
@@ -1490,6 +1492,7 @@ TYPE
 		PROCEDURE EmitMov(CONST vdest,vsrc: IntermediateCode.Operand; part: LONGINT);
 		VAR op1,op2: Assembler.Operand; tmp: IntermediateCode.Operand;
 			t: CodeGenerators.Ticket;
+			type: IntermediateCode.Type;
 		BEGIN
 			IF (vdest.mode = IntermediateCode.ModeRegister) & (vsrc.mode = IntermediateCode.ModeRegister) & (vsrc.offset # 0) THEN
 				(* MOV R1, R2+offset => LEA EAX, [EBX+offset] *)
@@ -1511,7 +1514,8 @@ TYPE
 			ELSE
 				MakeOperand(vsrc,part,op2,NIL);
 				MakeOperand(vdest,part,op1,NIL);
-				Move(op1,op2, PhysicalOperandType(op1));
+				GetPartType(vsrc.type, part, type);
+				Move(op1,op2, type);
 			END;
 		END EmitMov;
 

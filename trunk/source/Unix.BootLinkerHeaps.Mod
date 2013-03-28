@@ -121,7 +121,7 @@ VAR
 	END NewBlock;
 
 
-	PROCEDURE NewSys*( size: LONGINT ): ADDRESS;   (* implementation of S.NEW(ptr, size) *)
+	PROCEDURE NewSys*( size: SIZE ): ADDRESS;   (* implementation of S.NEW(ptr, size) *)
 	VAR ptr: ADDRESS;
 	BEGIN
 		INC( size, AddrSize + 24 );  INC( size, (-size) MOD BlockSize );
@@ -169,19 +169,33 @@ VAR
 		
 		p := S.VAL( ANY, ptr );
 	END NewProtRec;
+	
+	
+	PROCEDURE ArraySize*( numElems: LONGINT; elemSize: SIZE; numDims: LONGINT ): SIZE;
+	VAR arrSize, arrayDataOffset: SIZE;
+	BEGIN
+		arrSize := numElems * elemSize;
+		arrayDataOffset := numDims*AddrSize + 3*AddrSize;
+		INC( arrayDataOffset, (-arrayDataOffset) MOD ArrayAlignment ); (* align to multiple of ArrayAlignment *)
+		RETURN arrayDataOffset + arrSize
+	END ArraySize;
 
 
 	PROCEDURE NewArr*( VAR ptr: ANY; eltag: ADDRESS;  nofelem, nofdim: LONGINT );
 	(* implementation of NEW(ptr, dim0,  ...) *)
-	VAR size, elSize, arrSize, ptrOffset, dataOffset: SIZE;  firstElem, p: ADDRESS;
+	VAR 
+	(*	sTB: StaticTypeBlock;	*)
+		size, elSize, arrSize, ptrOffset, dataOffset: SIZE;  firstElem, p: ADDRESS;
 	BEGIN
 		ASSERT( nofdim = 1 );   (* bootloader limit *)
-		IF eltag = 0 THEN  elSize := AddrSize  ELSE  S.GET( eltag, elSize )  END;
-		arrSize := nofelem*elSize;
+		S.GET( eltag, elSize );
+		arrSize := nofelem*elSize;	
+	(*	sTB := S.VAL( StaticTypeBlock, eltag );
+		arrSize := nofelem*sTB.recSize;	*)
 		dataOffset := 3*AddrSize + nofdim*AddrSize;
 		INC( dataOffset, (-dataOffset) MOD ArrayAlignment );  (* -> ADR(firstElem) MOD 8 = 0 *)
 		IF arrSize = 0 THEN
-			p := NewSys( nofdim*4 + 3*AddrSize );
+			p := NewSys( nofdim*AddrSize + 3*AddrSize );
 		ELSE
 			S.GET( eltag + AddrSize, ptrOffset );
 			IF ptrOffset = -AddrSize THEN  (* no pointers in element type *)

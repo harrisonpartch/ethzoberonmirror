@@ -195,55 +195,47 @@ VAR
 
 
 	PROCEDURE AllocateModule( m: Modules.Module; h: ObjHeader );
-	CONST ArrHdrSize = 16;   (* {MOD 8 = 0} *)
-		LenOfs = 12;   (* offset of dimension 0 in array header *)
-		Align = ArrHdrSize + 4 + 15;   (* 4 for tag of next block, 15 for rounding up to 16 *)
+	CONST 
+		LenOfs = 3*AddrSize;   (* offset of dimension 0 in array header *)
+	VAR 
+		dataSize: LONGINT;
 
-	VAR adr, adr0, size, tag, dataSize: LONGINT;
-
-		PROCEDURE ArrSize( elements, elemSize: LONGINT ): LONGINT;
+		
+		PROCEDURE NewSysArray( VAR ptr: ANY; elements, elemSize: SIZE );
+		VAR adr: ADDRESS;
 		BEGIN
-			RETURN (elements*elemSize + Align) DIV 16*16 (* size rounded up for header and alignment *)
-		END ArrSize;
+			adr := Heaps.NewSys( Heaps.ArraySize( elements, elemSize, 1 ) );
+			S.PUT( adr + LenOfs, elements );   (* dimension *)
+			ptr := S.VAL( ANY, adr );  Heaps.Relocate( ADDRESSOF( ptr ) )
+		END NewSysArray;
 
-		PROCEDURE SubObjArray( VAR ptr: ANY;  elements, elemSize: LONGINT );
-		VAR a: ADDRESS; s: SIZE;
+		PROCEDURE NewPtrArray( VAR ptr: ANY; elements: LONGINT );
+		VAR adr: ADDRESS;
 		BEGIN
-			ASSERT( adr MOD 16 = 8 );   (* => adr MOD 8 = 0 *)
-			a := adr;  s := ArrSize( elements, elemSize );
-			INC( adr, s );  DEC( size, s );   (* allocate *)
-			(* array header *)
-			S.PUT( a - AddrSize, tag );   (* indirect tag *) 
-			IF a # adr0 THEN  Heaps.Relocate( a - AddrSize )  END;
-			S.PUT( a + LenOfs, elements );   (* dimension *)
-			ptr := S.VAL( ANY, a );  Heaps.Relocate( ADDRESSOF( ptr ) );
-		END SubObjArray;
+			IF elements = 0 THEN (* case of empty array is mapped to a SystemBlock *)
+				NewSysArray( ptr, elements, AddrSize )
+			ELSE
+				Heaps.NewArr( ptr, Modules.ptrElemTag, elements, 1 );
+				Heaps.Relocate( ADDRESSOF( ptr ) );
+				adr := S.VAL( ADDRESS, ptr );
+				S.PUT( adr + LenOfs, elements )  (* dimension *)
+			END
+		END NewPtrArray;
+
 
 	BEGIN
 		dataSize := h.dataSize + (-h.dataSize) MOD 8;   (* round up to 8 to align constant block *)
 
-		size :=	ArrSize( h.entries, AddrSize ) +
-				ArrSize( h.commands, SIZEOF( Modules.Command ) ) +
-				ArrSize( h.pointers, AddrSize ) +
-				ArrSize( h.modules, SIZEOF( Modules.Module ) ) +
-				ArrSize( dataSize + h.constSize, 1 ) +
-				ArrSize( h.codeSize, 1 ) +
-				ArrSize( h.staticTdSize, 1 ) +
-				ArrSize( h.exTableLen, SIZEOF( Modules.ExceptionTableEntry ) ) +
-				ArrSize( h.refSize, 1 );
-
-		adr := Heaps.NewSys( size );  S.GET( adr - AddrSize, tag );  adr0 := adr;
-
-		SubObjArray( S.VAL( ANY, m.entry ), h.entries, AddrSize );
-		SubObjArray( S.VAL( ANY, m.command ), h.commands, SIZEOF( Modules.Command ) );
-		SubObjArray( S.VAL( ANY, m.ptrAdr ), h.pointers, AddrSize );
-		Heaps.NewArr( S.VAL( ANY, m.typeInfo ), Modules.ptrElemTag, h.types, 1 );  Heaps.Relocate( ADDRESSOF( m.typeInfo ) );
-		SubObjArray( S.VAL( ANY, m.module ), h.modules, SIZEOF( Modules.Module ) );
-		SubObjArray( S.VAL( ANY, m.data ), dataSize + h.constSize, 1 );
-		SubObjArray( S.VAL( ANY, m.code ), h.codeSize, 1 );
-		SubObjArray( S.VAL( ANY, m.staticTypeDescs ), h.staticTdSize, 1 );
-		SubObjArray( S.VAL( ANY, m.exTable ), h.exTableLen, SIZEOF( Modules.ExceptionTableEntry ) );
-		SubObjArray( S.VAL( ANY, m.refs ), h.refSize, 1 );
+		NewSysArray( S.VAL( ANY, m.entry ), h.entries, AddrSize );
+		NewSysArray( S.VAL( ANY, m.command ), h.commands, SIZEOF( Modules.Command ) );
+		NewSysArray( S.VAL( ANY, m.ptrAdr ), h.pointers, AddrSize );
+		NewPtrArray( S.VAL( ANY, m.typeInfo ), h.types );
+		NewPtrArray( S.VAL( ANY, m.module ), h.modules );	
+		NewSysArray( S.VAL( ANY, m.data ), dataSize + h.constSize, 1 );	
+		NewSysArray( S.VAL( ANY, m.code ), h.codeSize, 1 );
+		NewSysArray( S.VAL( ANY, m.staticTypeDescs ), h.staticTdSize, 1 );
+		NewSysArray( S.VAL( ANY, m.refs ), h.refSize, 1 );
+		NewSysArray( S.VAL( ANY, m.exTable ), h.exTableLen, SIZEOF( Modules.ExceptionTableEntry ) );
 
 		m.sb := ADDRESSOF( m.data[0] ) + dataSize;   (* constants positive, data negative *)
 		Heaps.Relocate( ADDRESSOF( m.sb ) );

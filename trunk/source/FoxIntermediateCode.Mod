@@ -379,9 +379,10 @@ TYPE
 		instructionFormat-: ARRAY NofOpcodes OF InstructionFormat;
 		int8-, int16-, int32-, int64-, uint8-, uint16-, uint32-, uint64-, float32-, float64-, undef-: Type;
 		GeneralPurposeRegister-: RegisterClass;
+		empty: Operand;
 
 	PROCEDURE Assert(condition: BOOLEAN; CONST reason: ARRAY OF CHAR);
-	BEGIN ASSERT(condition);
+	BEGIN (*ASSERT(condition);*) IF ~condition THEN D.TraceBack END;
 	END Assert;
 
 	(** create a new section in a given section list
@@ -788,6 +789,21 @@ TYPE
 		instr.textPosition := textPosition;
 	END InitInstruction;
 
+	PROCEDURE InitInstruction2*(VAR instr: Instruction; textPosition: LONGINT; opcode: SHORTINT; op1,op2: Operand);
+	BEGIN
+		InitInstruction(instr, textPosition, opcode, op1, op2, empty);
+	END InitInstruction2;
+
+	PROCEDURE InitInstruction1*(VAR instr: Instruction; textPosition: LONGINT; opcode: SHORTINT; op1: Operand);
+	BEGIN
+		InitInstruction(instr, textPosition, opcode, op1, empty, empty);
+	END InitInstruction1;
+
+	PROCEDURE InitInstruction0*(VAR instr: Instruction; textPosition: LONGINT; opcode: SHORTINT);
+	BEGIN
+		InitInstruction(instr, textPosition, opcode, empty, empty, empty);
+	END InitInstruction0;
+
 	PROCEDURE SetSubType*(VAR instr: Instruction; subType: SHORTINT);
 	BEGIN
 		instr.subtype := subType
@@ -849,7 +865,7 @@ TYPE
 
 	PROCEDURE MakeMemory*(VAR op: Operand; type: Type);
 	BEGIN
-		Assert((op.mode = ModeRegister) OR (op.mode = ModeMemory) OR (op.mode = ModeImmediate) & (op.type.form = UnsignedInteger) ,"operand mode not of register or unsigned integer immediate");
+		Assert((op.mode = ModeRegister) & (op.type.length < 2) OR (op.mode = ModeMemory) OR (op.mode = ModeImmediate) & (op.type.form = UnsignedInteger) ,"operand mode not of register or unsigned integer immediate");
 		op.type := type;
 		op.mode := ModeMemory;
 		ASSERT(op.register # 0);
@@ -1149,4 +1165,5 @@ BEGIN
 	InitType(float32, Float,32);
 	InitType(float64, Float,64);
 	InitType(undef, Undefined,0);
+	InitOperand(empty);
 END FoxIntermediateCode.

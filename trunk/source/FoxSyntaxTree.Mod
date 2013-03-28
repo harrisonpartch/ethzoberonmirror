@@ -3031,7 +3031,7 @@ TYPE
 			procedureScope- : ProcedureScope;
 			super-: Procedure;
 			level-, methodNumber-: LONGINT;
-			isBodyProcedure-, isConstructor-, isInline-,isEntry-, isExit-,isFinal-,isAbstract-,isOverwritten-: BOOLEAN;
+			isBodyProcedure-, isConstructor-, isInline-,isOberonInline-, isEntry-, isExit-,isFinal-,isAbstract-,isOverwritten-: BOOLEAN;
 
 		PROCEDURE & InitProcedure( position: LONGINT;  name: Identifier; scope: ProcedureScope);
 		BEGIN
@@ -3046,6 +3046,7 @@ TYPE
 			isBodyProcedure := FALSE;
 			isConstructor := FALSE;
 			isInline := FALSE;
+			isOberonInline := FALSE;
 			isEntry := FALSE;
 			isExit := FALSE;
 			isFinal := FALSE;
@@ -3069,6 +3070,10 @@ TYPE
 		PROCEDURE SetInline*(isInline: BOOLEAN);
 		BEGIN SELF.isInline := isInline
 		END SetInline;
+
+		PROCEDURE SetOberonInline*(isInline: BOOLEAN);
+		BEGIN SELF.isOberonInline := isInline
+		END SetOberonInline;
 
 		PROCEDURE SetEntry*(entry: BOOLEAN);
 		BEGIN SELF.isEntry := entry

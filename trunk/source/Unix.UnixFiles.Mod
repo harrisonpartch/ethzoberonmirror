@@ -12,13 +12,15 @@ CONST
 
 	Open = 0;  Create = 1;  Closed = 2;	(* file states *)
 	
+	NoKey = -1;
+	
 VAR
-	searchPath: ARRAY 1024 OF CHAR;
-	cwd: ARRAY 256 OF CHAR;
-
-	fileTab: ARRAY FileTabSize OF ADDRESS;
+	fileTab: ARRAY FileTabSize OF RECORD  f {UNTRACED}: File  END;
 	tempno: INTEGER;
 	openfiles: INTEGER;
+	
+	searchPath: ARRAY 1024 OF CHAR;
+	cwd: ARRAY 256 OF CHAR;
 	
 	unixFS: UnixFileSystem;
 
@@ -128,7 +130,7 @@ TYPE
 					f.workName := "";  COPY( name, f.registerName );
 					f.fd := NoDesc;  f.state := Create;  f.fsize := 0;  f.fpos := 0;
 					f.swapper := -1;   (*all f.buf[i] = NIL*)
-					f.key := S.VAL( LONGINT, f );  f.fs := SELF;
+					f.key := NoKey;  f.fs := SELF;
 					RETURN f
 				END New0;
 				
@@ -137,7 +139,7 @@ TYPE
 				VAR mode: LONGINT;
 				BEGIN
 					mode := stat.mode;
-					RETURN  (S.VAL( SET, mode )*S.VAL( SET, 0F000H )) = S.VAL( SET, 4000H )
+					RETURN ODD( mode DIV 4000H )
 				END IsDirectory;
 
 
@@ -186,8 +188,8 @@ TYPE
 									ELSIF oflags = Unix.rdonly THEN
 										f.flags := {Files.ReadOnly}
 									END;
-									f.key := S.VAL( LONGINT, f );  f.fs := SELF;
-									fileTab[fd] := S.VAL( ADDRESS, f );  (* cache file *)
+									f.key := NoKey;  f.fs := SELF;
+									fileTab[fd].f := f;  (* cache file *)
 									INC( openfiles );  RegisterFinalizer( f, Cleanup );
 									EXIT
 								ELSE  
@@ -317,7 +319,7 @@ TYPE
 							ent := Unix.readdir( dir );
 							WHILE ent # NIL DO
 								COPY( dirName, fullName );  
-								GetEntryName;  Append( fullName, fileName );
+								GetEntryName;  AppendName( fullName, fileName );
 								IF (fileName[0] # '.')  & Match( fileName, filemask, 0, 0 ) THEN
 									IF checkSet.Add( fileName ) THEN  (* not a covered name *)
 										r := Unix.stat( ADDRESSOF( fullName ), stat );
@@ -372,7 +374,7 @@ TYPE
 			VAR
 				chg: BOOLEAN;
 				org, size: LONGINT;
-				data: ARRAY Bufsize OF S.BYTE;
+				data: ARRAY Bufsize OF CHAR;
 				
 				PROCEDURE &Init;
 				BEGIN 
@@ -432,7 +434,7 @@ TYPE
 							r := Unix.fstat( fd, stat );  
 							dev := stat.dev;  ino := stat.ino;  mtime := stat.mtime.sec;
 							state := Open;  fpos := 0;
-							fileTab[fd] := S.VAL( ADDRESS, SELF );
+							fileTab[fd].f := SELF;
 							INC( openfiles );  RegisterFinalizer( SELF, Cleanup );
 						END
 					ELSE  
@@ -671,11 +673,11 @@ TYPE
 				PROCEDURE Close*;
 				VAR r: LONGINT;
 				BEGIN {EXCLUSIVE}
-					IF fileTab[fd] # 0 THEN
+					IF fileTab[fd].f # NIL THEN
 						IF tempFile THEN  r := Unix.unlink( ADDRESSOF( workName ) )  
 						ELSE  FlushBuffers;
 						END;
-						fileTab[fd] := 0;
+						fileTab[fd].f := NIL;
 						r := Unix.close( fd );
 						DEC( openfiles );  state := Closed
 					END;
@@ -702,16 +704,16 @@ TYPE
 	
 	(** Change to directory path. *)	
 	PROCEDURE ChangeDirectory*( CONST path: ARRAY OF CHAR;  VAR done: BOOLEAN );
-	VAR r: LONGINT;  epath: Filename;
+	VAR r: LONGINT;  newdir: Filename;
 	BEGIN
 		IF path[0] # '/' THEN  
-			COPY( cwd, epath );  Append( epath, path );
-			CleanPath( epath )  
+			COPY( cwd, newdir );  AppendName( newdir, path );
+			CleanPath( newdir )  
 		ELSE
-			COPY( path, epath );
+			COPY( path, newdir );
 		END;
-		r := Unix.chdir( ADDRESSOF( epath ) );
-		IF r = 0 THEN  COPY( epath, cwd );  done := TRUE   ELSE  done := FALSE   END
+		r := Unix.chdir( ADDRESSOF( newdir ) );
+		IF r = 0 THEN  COPY( newdir, cwd );  done := TRUE   ELSE  done := FALSE   END
 	END ChangeDirectory;
 
 (*===================================================================*)
@@ -741,7 +743,7 @@ TYPE
 		PROCEDURE prependCWD;
 		VAR tmp: ARRAY 256 OF CHAR;
 		BEGIN
-			COPY( cwd, tmp ); Append( tmp, path );  COPY( tmp, path )
+			COPY( cwd, tmp ); AppendName( tmp, path );  COPY( tmp, path )
 		END prependCWD;
 	
 		PROCEDURE restart;
@@ -797,15 +799,34 @@ TYPE
 	END Match;
 	
 	
-	PROCEDURE Append( VAR path: ARRAY OF CHAR;  CONST filename: ARRAY OF CHAR );
+	PROCEDURE Append( VAR a: ARRAY OF CHAR;  CONST this: ARRAY OF CHAR );
+	VAR i, j: LONGINT; 
+	BEGIN
+		i := 0;  j := 0;  
+		WHILE a[i] # 0X DO  INC( i )  END;
+		WHILE (i < LEN( a ) - 1) & (this[j] # 0X) DO  a[i] := this[j];  INC( i );  INC( j )  END;
+		a[i] := 0X
+	END Append;
+
+	PROCEDURE AppendName( VAR path: ARRAY OF CHAR;  CONST filename: ARRAY OF CHAR );
 	VAR i, j, max: LONGINT;
 	BEGIN
 		i := 0;  j := 0;  max := LEN( path ) - 1;
 		WHILE path[i] # 0X DO  INC( i )  END;
 		IF (i > 0) & (path[i - 1] # "/") THEN  path[i] := "/";  INC( i )  END;
-		WHILE (i < max) & (filename[j] # 0X) DO  path[i] := filename[j];  INC( i );  INC( j )  END;
-		path[i] := 0X;
-	END Append;
+		Append( path, filename );
+	END AppendName;
+	
+	
+	PROCEDURE AppendInt( VAR str: ARRAY OF CHAR; n: LONGINT );
+	VAR i: LONGINT;
+	BEGIN
+		i := 0;
+		WHILE str[i] # 0X DO  INC(i)  END;
+		WHILE n > 0 DO  str[i] := CHR( n MOD 10 + ORD('0') );  n := n DIV 10;  INC(i)  END;
+		str[i] := 0X
+	END AppendInt;
+
 
 	PROCEDURE IsFullName( CONST name: ARRAY OF CHAR ): BOOLEAN;
 	VAR i: INTEGER;  ch: CHAR;
@@ -863,7 +884,7 @@ TYPE
 	VAR f: File;  i: INTEGER;
 	BEGIN
 		FOR i := 0 TO FileTabSize - 1 DO
-			f := S.VAL( File, fileTab[i] );
+			f := fileTab[i].f;
 			IF (f # NIL ) & (stat.ino = f.ino) & (stat.dev = f.dev) THEN
 				(* possible different name but same file! *)
 				ResetBuffers( f, stat );
@@ -893,28 +914,26 @@ TYPE
 		WHILE ch > " " DO  dir[i] := ch;  INC( i );  INC( pos );  ch := searchPath[pos]  END;
 		dir[i] := 0X
 	END ScanPath;
-	
 
-	PROCEDURE GetTempName( CONST finalName: ARRAY OF CHAR;  VAR name: ARRAY OF CHAR );
-	VAR n, i, j: LONGINT;
+
+	PROCEDURE GetTempName( CONST finalName: ARRAY OF CHAR;  VAR tempName: ARRAY OF CHAR );
+	VAR n, i, j, pe: LONGINT; 
 	BEGIN
-		INC( tempno );  n := tempno;  i := 0;  j := 0;
-		WHILE finalName[j] = ' ' DO  INC( j )  END;   (* skip leading spaces *)
+		INC(tempno);  n := tempno;  i := 0;  j := 0; pe := 1;
+		WHILE finalName[j] = ' ' DO  INC(j)  END;   (* skip leading spaces *)
 		IF finalName[j] # "/" THEN  (* relative pathname *)
-			WHILE cwd[i] # 0X DO  name[i] := cwd[i];  INC( i )  END;
-			IF name[i - 1] # "/" THEN  name[i] := "/";  INC( i )  END
+			WHILE cwd[i] # 0X DO  tempName[i] := cwd[i];  INC(i)  END;
+			IF tempName[i - 1] # '/' THEN  tempName[i] := '/';  INC(i)  END;
+			pe := i - 1
 		END;
-		WHILE finalName[j] # 0X DO  name[i] := finalName[j];  INC( i );  INC( j )  END;
-		DEC( i );
-		WHILE name[i] # "/" DO  DEC( i )  END;
-		name[i + 1] := ".";  name[i + 2] := "t";  name[i + 3] := "m";  name[i + 4] := "p";  name[i + 5] := ".";  INC( i, 6 );
-		WHILE n > 0 DO  name[i] := CHR( n MOD 10 + ORD( "0" ) );  n := n DIV 10;  INC( i )  END;
-		name[i] := ".";  INC( i );
-		n := SHORT( Unix.getpid() );
-		WHILE n > 0 DO  name[i] := CHR( n MOD 10 + ORD( "0" ) );  n := n DIV 10;  INC( i )  END;
-		name[i] := 0X;
+		WHILE finalName[j] # 0X DO  tempName[i] := finalName[j];  INC(i);  INC(j)  END;
+		WHILE (i > pe) & (tempName[i-1] # '/') DO  DEC(i)  END;  (* remove filename *)
+		tempName[i] := 0X;
+		Append( tempName, ".tmp." );  
+		AppendInt( tempName, n );  Append( tempName, "." );
+		AppendInt( tempName, Unix.getpid() )
 	END GetTempName;
-	
+
 	
 
 	
@@ -930,7 +949,7 @@ TYPE
 	BEGIN
 		i := 0;
 		WHILE i < FileTabSize DO
-			f := S.VAL( File, fileTab[i] );
+			f := fileTab[i].f;
 			IF f # NIL THEN  f.Close  END;
 			INC( i )
 		END;
@@ -944,6 +963,7 @@ TYPE
 		NEW( unixFS );  (*  Files.Add( unixFS, "" );	*)
 		NEW( aliasFS, unixFS );  Files.Add( aliasFS, "searcher" )
 	END Install;
+
 
 	
 	PROCEDURE Initialize;
@@ -976,7 +996,7 @@ TYPE
 			UNTIL ch = 0X;
 		END;
 		i := 0;
-		WHILE i < FileTabSize DO  fileTab[i] := 0;  INC( i )  END;
+		WHILE i < FileTabSize DO  fileTab[i].f := NIL;  INC( i )  END;
 		tempno := 1;  openfiles := 0;  
 		Modules.InstallTermHandler( CloseFiles )	
 	END Initialize;

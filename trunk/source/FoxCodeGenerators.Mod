@@ -6,6 +6,7 @@ IMPORT Diagnostics, Sections := FoxSections, Streams, BinaryCode := FoxBinaryCod
 
 CONST
 		None=-1;
+		OptimizeRegisterTransfer*=0;
 TYPE
 	(* ----------------------------------- register allocation ------------------------------------- *)
 
@@ -114,14 +115,16 @@ TYPE
 		allocation: RegisterAllocation;
 		liveRegisters: LiveRegisters;
 		inEmulation-: BOOLEAN;
+		optimize: SET;
 
 		(* generic *)
-		PROCEDURE & InitGenerator*(diagnostics: Diagnostics.Diagnostics);
+		PROCEDURE & InitGenerator*(diagnostics: Diagnostics.Diagnostics; optimize: BOOLEAN);
 		BEGIN
 			SELF.module := NIL;
 			SELF.diagnostics := diagnostics;
 			error := FALSE;
 			NEW(allocation); NEW(liveRegisters);
+			IF optimize THEN SELF.optimize := {0..31} ELSE SELF.optimize := {} END;
 		END InitGenerator;
 
 		PROCEDURE SetModule*(module: Sections.Module); (* needed for inline code for symbol reference *)
@@ -233,6 +236,77 @@ TYPE
 					RegisterUsage(in.instructions[pc]);
 				END;
 			END GetRegisterAllocation;
+
+			PROCEDURE Optimize;
+			TYPE
+				Entry= POINTER TO RECORD src, dest: LONGINT; next: Entry END;
+			VAR
+				pc: LONGINT;
+				first: Entry;
+
+				PROCEDURE AddMap(src, dest: LONGINT);
+				VAR entry: Entry;
+				BEGIN
+					NEW(entry); entry.src := src; entry.dest := dest;
+					entry.next := first;
+					first := entry;
+				END AddMap;
+
+				PROCEDURE CheckMapped(VAR instruction: IntermediateCode.Instruction);
+				VAR op1, op2, op3: IntermediateCode.Operand;
+
+					PROCEDURE Map(CONST op: IntermediateCode.Operand): IntermediateCode.Operand;
+					VAR entry: Entry; res: IntermediateCode.Operand; i: LONGINT;
+					BEGIN
+						res := op;
+						entry := first;
+						WHILE entry # NIL DO
+							IF op.register = entry.src THEN
+								IntermediateCode.SetRegister(res, entry.dest);
+							END;
+							entry := entry.next;
+						END;
+						IF op.rule # NIL THEN
+							FOR i := 0 TO LEN(op.rule)-1 DO
+								op.rule[i] := Map(op.rule[i]);
+							END;
+						END;
+						RETURN res
+					END Map;
+
+				BEGIN
+					op1 := Map(instruction.op1);
+					op2 := Map(instruction.op2);
+					op3 := Map(instruction.op3);
+					IntermediateCode.InitInstruction(instruction, instruction.textPosition, instruction.opcode, op1, op2, op3);
+				END CheckMapped;
+
+				PROCEDURE CheckMov(VAR instruction: IntermediateCode.Instruction);
+				VAR i: LONGINT; srcReg, destReg: LONGINT;
+				BEGIN
+					IF (instruction.opcode = IntermediateCode.mov) & (instruction.op1.mode = IntermediateCode.ModeRegister)
+						& (instruction.op2.mode = IntermediateCode.ModeRegister) & IntermediateCode.TypeEquals(instruction.op1.type, instruction.op2.type) THEN
+						destReg := instruction.op1.register;
+						srcReg := instruction.op2.register;
+						IF (destReg >= 0) & (allocation.table[destReg].first = pc) & (srcReg >= 0) & (allocation.table[srcReg].last = pc)  THEN
+							AddMap(destReg, srcReg);
+							allocation.table[srcReg].last := allocation.table[destReg].last;
+							IntermediateCode.InitInstruction0(instruction, instruction.textPosition, IntermediateCode.nop);
+						END;
+					END;
+				END CheckMov;
+
+			BEGIN
+
+
+				first := NIL;
+				FOR pc := 0 TO in.pc-1 DO
+					IF OptimizeRegisterTransfer IN optimize THEN
+						CheckMapped(in.instructions[pc]);
+						CheckMov(in.instructions[pc]);
+					END;
+				END;
+			END Optimize;
 
 			PROCEDURE DumpInstruction(CONST instruction: IntermediateCode.Instruction);
 				PROCEDURE Use(CONST operand: IntermediateCode.Operand);
@@ -375,6 +449,7 @@ TYPE
 			dump := out.comments;
 
 			GetRegisterAllocation;
+			IF optimize # {} THEN Optimize END;
 			Prepare;
 
 			FOR pc := 0 TO in.pc-1 DO
@@ -791,9 +866,9 @@ TYPE
 		spillStack-: SpillStack; (* spill stack offset <-> ticket *)
 
 		(* generic *)
-		PROCEDURE & InitTicketGenerator*(diagnostics: Diagnostics.Diagnostics; numberRegisterParts: LONGINT; physicalRegisters: PhysicalRegisters);
+		PROCEDURE & InitTicketGenerator*(diagnostics: Diagnostics.Diagnostics; optimize: BOOLEAN; numberRegisterParts: LONGINT; physicalRegisters: PhysicalRegisters);
 		BEGIN
-			InitGenerator(diagnostics);
+			InitGenerator(diagnostics, optimize);
 			NEW(tickets);
 			NEW(virtualRegisters,numberRegisterParts);
 			NEW(spillStack);

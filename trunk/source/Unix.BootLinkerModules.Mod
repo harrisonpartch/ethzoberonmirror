@@ -130,12 +130,21 @@ VAR
 
 	error: Streams.Writer;
 
-
+(*	PROCEDURE ShowTag( a: ADDRESS; name: ARRAY OF CHAR );
+	VAR i: LONGINT; v: LONGINT;
+	BEGIN
+		error.String( name ); error.Ln;
+		FOR i := 0 TO 6 DO
+			S.GET( a, v ); INC( a, 4 );  error.Hex( a, 8);  error.String(": ");  error.Hex( v, -8 );  error.Ln
+		END;
+		error.Ln;  error.Update
+	END ShowTag;
+	*)
 	
 	PROCEDURE MakeTD;
 		(* create temporary type tags which are needed for loading the  *)
 		(* first modules (up to module Modules). When Modules has been  *)
-		(* loaded they got replaced by the proper type tags (TreatModule) *)
+		(* loaded they got replaced by the proper type tags (cf. TreatModules) *)
 	VAR 
 		exp: ExportPtr;  mod: Module;
 		ptr: POINTER TO RECORD a: ANY  END; 
@@ -143,12 +152,12 @@ VAR
 		td: TypeDesc;  pTab: PtrTable;
 	BEGIN
 		NEW( exp );  S.GET( S.VAL( ADDRESS, exp ) - AdrSize, expTag );		
-		NEW( td );  S.GET( S.VAL( ADDRESS, td ) - AdrSize, tdTag );			
-		NEW( mod );  S.GET( S.VAL( ADDRESS, mod ) - AdrSize, modTag );		
+		NEW( td );  S.GET( S.VAL( ADDRESS, td ) - AdrSize, tdTag );		
+		NEW( mod );  S.GET( S.VAL( ADDRESS, mod ) - AdrSize, modTag );	
 		NEW( ptr );  S.GET( S.VAL( ADDRESS, ptr ) - AdrSize, ptrElemTag );
-		NEW( proc, 1 );  S.GET( S.VAL( ADDRESS, proc ) - AdrSize, procTableEntryTag );		
+		NEW( proc, 1 );  S.GET( S.VAL( ADDRESS, proc ) - AdrSize, procTableEntryTag );
 		NEW( procOfs, 1 );  S.GET( S.VAL( ADDRESS, procOfs ) - AdrSize, procOffsetEntryTag );		
-		NEW( pTab, 1 );  S.GET( S.VAL( ADDRESS, pTab ) - AdrSize, ptrTableTag );			
+		NEW( pTab, 1 );  S.GET( S.VAL( ADDRESS, pTab ) - AdrSize, ptrTableTag );		
 	END MakeTD;
 
 
@@ -172,6 +181,10 @@ VAR
 		S.PUT( S.VAL( ADDRESS, m.typeInfo ) - AdrSize, S.VAL( SET, ptrElemTag ) + Heaps.ArrayMask );
 		FOR i := 0 TO LEN( m.typeInfo ) -1 DO
 			S.PUT( S.VAL( ADDRESS, m.typeInfo[i] ) - AdrSize, tdTag );
+		END;
+		S.PUT( S.VAL( ADDRESS, m.module ) - AdrSize, S.VAL( SET, ptrElemTag ) + Heaps.ArrayMask );
+		FOR i := 0 TO LEN( m.module ) -1 DO
+			S.PUT( S.VAL( ADDRESS, m.module[i] ) - AdrSize, modTag );
 		END;
 		S.PUT( S.VAL( ADDRESS, m ) - AdrSize,  modTag );
 		PatchExport( m.export, S.VAL( ADDRESS, S.VAL( SET, expTag ) + Heaps.ArrayMask ) );
