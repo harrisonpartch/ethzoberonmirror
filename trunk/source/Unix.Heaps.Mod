@@ -56,7 +56,8 @@ CONST
 	
 	MaxCandidates = 1024;
 	
-	ProtOfs = 2*BlockSize + 16;	(*! mod 32 = 16 ! *)
+	ProtOfs = 2*BlockSize + 16;	(*! p mod 32 = 16 ! *)
+	SysOfs = 24;  	(*! p mod 16 = 8 ! *)
 	ProtTypeBit* = 31;   (** flags in TypeDesc, low bits reserved for extLevel *)
 
 	MarkBit* = 0;  ArrayBit* = 1;  FreeBit* = 2;  SubObjBit* = 3;  ProtObjBit* = 4;
@@ -151,12 +152,12 @@ VAR
 	BEGIN
 		n.objWeak := obj;  n.objStrong := NIL;  n.finalizerStrong := NIL;
 		adr := S.VAL( ADDRESS, obj );
-		IF SubObjBit IN S.VAL( SET, obj ) THEN  (* indirect tag *)
-			n.markAdr := S.GET32( adr - AddrSize ) - AddrSize
-		ELSIF ProtObjBit IN S.VAL( SET, obj ) THEN  (* protected object *)
-			n.markAdr := adr - ProtOfs - AddrSize
-		ELSE  n.markAdr := adr - AddrSize
-		END;
+		IF ODD( adr DIV 8 ) THEN 	(* indirect tag *)
+			S.GET( adr - AddrSize, adr );  
+		ELSIF ODD( adr DIV 16 ) THEN  (* protected object *)
+			adr := adr - ProtOfs 
+		END; 
+		n.markAdr := adr - AddrSize;
 		Machine.Acquire( Machine.Heaps );
 		n.nextFin := checkRoot;  checkRoot := n;
 		Machine.Release( Machine.Heaps )
@@ -164,7 +165,7 @@ VAR
 
 	(* Check reachability of finalized objects. *)
 	PROCEDURE CheckFinalizedObjects;
-	VAR n, p, t: FinalizerNode;  
+	VAR n, p, t: FinalizerNode;  tag: ADDRESS;
 
 		PROCEDURE MarkDelegate( p: Finalizer );
 		VAR pointer: ANY;
@@ -176,7 +177,8 @@ VAR
 	BEGIN
 		n := checkRoot;
 		WHILE n # NIL DO  (* move unmarked checked objects to finalize list *)
-			IF ~(MarkBit IN S.VAL( SET, S.GET32( n.markAdr ) )) THEN
+			S.GET( n.markAdr, tag );
+			IF ~ODD( tag ) THEN	(* not marked *)
 				IF n = checkRoot THEN  checkRoot := n.nextFin  ELSE  p.nextFin := n.nextFin  END;
 				n.objStrong := n.objWeak;		(* anchor the object for finalization *)
 				n.finalizerStrong := n.finalizer;	(* anchor the finalizer for finalization *)
@@ -281,34 +283,29 @@ VAR
 	(* ------------------------- garbage collector ----------------------- *)
 
 
-	PROCEDURE UnmarkedObject( ptr: ANY ): BOOLEAN; (* FALSE: alredy marked or sysblock or subobj *)
-	VAR taddr, haddr, block: ADDRESS;  hval, tag: SET;  sysblock: BOOLEAN;
+	PROCEDURE UnmarkedObject( ptr: ANY ): BOOLEAN; (* FALSE: alredy marked or sysblock *)
+	VAR addr, taddr: ADDRESS;  tag: ADDRESS;  sysblock: BOOLEAN;
 	BEGIN
 		IF ptr = NIL THEN  RETURN FALSE  END;
-		block := S.VAL( ADDRESS, ptr );
-		IF ~ValidPointer( block ) THEN  RETURN FALSE  END;	
-		sysblock := FALSE;  taddr := block - AddrSize;
-		IF SubObjBit IN S.VAL( SET, block ) THEN
-			(* Subobject or sysblock *)
-			S.GET( taddr, tag );
-			haddr := S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ) - AddrSize;
-			IF taddr - haddr # 24 THEN
-				(* subobject! don't mark it *)  RETURN FALSE
-			END;
-			sysblock := TRUE
-		ELSIF ProtObjBit IN S.VAL( SET, block ) THEN  haddr := taddr - ProtOfs;
-		ELSE  haddr := taddr;
+		addr := S.VAL( ADDRESS, ptr );
+		IF ~ValidPointer( addr ) THEN  RETURN FALSE  END;	
+		
+		sysblock := FALSE;  taddr := addr - AddrSize;
+		IF ODD( addr DIV 8 ) THEN  (* sysblock *)
+			taddr := taddr - SysOfs;  sysblock := TRUE
+		ELSIF ODD( addr DIV 16 ) THEN  (* protected object *)
+			taddr := taddr - ProtOfs;
 		END;
 
-		S.GET( haddr, hval );
-		IF ~(MarkBit IN hval) THEN
-			S.PUT( haddr, hval + {MarkBit} );   (* mark this block *)  INC( Nmarked );
-			IF ~sysblock THEN  
-				IF ptr IS RootObject THEN  ptr(RootObject).FindRoots  END;	
-				RETURN TRUE  
-			END
+		S.GET( taddr, tag );
+		IF ODD( tag ) THEN
+			(* already marked *) RETURN FALSE
+		ELSE
+			S.PUT( taddr, tag + 1 );   (* mark this block *)  INC( Nmarked );
+			IF sysblock THEN   RETURN FALSE  END;
+			IF ptr IS RootObject THEN  ptr(RootObject).FindRoots  END;	
+			RETURN TRUE  
 		END;
-		RETURN FALSE
 	END UnmarkedObject;
 
 	PROCEDURE MarkRecordFields( rec: ADDRESS; sTB: StaticTypeBlock );
@@ -324,8 +321,8 @@ VAR
 	
 	PROCEDURE Mark*( ptr: ANY );
 	VAR 
-		block, cur, lastElem: ADDRESS;  
-		tag: SET;  sTB{UNTRACED}: StaticTypeBlock;
+		block, cur, lastElem, tag: ADDRESS;  
+		sTB{UNTRACED}: StaticTypeBlock;
 	BEGIN
 		IF Stats THEN  INC(Nmark)  END;
 		INC( markDepth );  
@@ -333,8 +330,8 @@ VAR
 		IF UnmarkedObject( ptr ) THEN
 			block := S.VAL( ADDRESS, ptr );
 			S.GET( block - AddrSize, tag );
-			sTB := S.VAL( StaticTypeBlock, tag - {ArrayBit, MarkBit} );
-			IF ArrayBit IN tag THEN
+			sTB := S.VAL( StaticTypeBlock, tag DIV 4 * 4 );
+			IF ODD( tag DIV 2 )THEN
 				IF markDepth <= MaxMarkDepth - 10 THEN
 					 S.GET( block, lastElem );
 					 S.GET( block + 2*AddrSize, cur );   
@@ -359,16 +356,16 @@ VAR
 
 	PROCEDURE MarkDeferred;
 	VAR 
-		block, cur, lastElem: ADDRESS;  
-		tag: SET;  sTB{UNTRACED}: StaticTypeBlock;
+		block, cur, lastElem, tag: ADDRESS;  
+		sTB{UNTRACED}: StaticTypeBlock;
 	BEGIN
 		markDepth := 1;
 		WHILE noDeferred > 0 DO
 			DEC( noDeferred );  
 			block := deferred[noDeferred];  
 			S.GET( block - AddrSize, tag );
-			sTB := S.VAL( StaticTypeBlock, tag - {ArrayBit, MarkBit} );
-			IF ArrayBit IN tag THEN
+			sTB := S.VAL( StaticTypeBlock, tag DIV 4 * 4 );
+			IF ODD( tag DIV 2 )THEN
 				 S.GET( block, lastElem );
 				 S.GET( block + 2*AddrSize, cur );   
 				 REPEAT
@@ -447,7 +444,7 @@ VAR
 
 	PROCEDURE Sweep;
 	VAR
-		block, freeBlock, endBlockAdr: ADDRESS;  tag: SET;  
+		block, freeBlock, endBlockAdr, tag: ADDRESS;  
 		blockSize, freeSize: SIZE;
 		memBlock, nextMemBlock: Machine.MemoryBlock;
 	BEGIN
@@ -462,12 +459,12 @@ VAR
 			WHILE block < endBlockAdr DO
 				blockSize := SizeOf( block );
 				S.GET( block, tag );
-				IF ~(MarkBit IN tag) THEN
+				IF ~ODD( tag) THEN
 					(* collect *)
 					IF freeSize = 0 THEN  freeBlock := block  END;
 					INC( freeSize, blockSize );
 				ELSE
-					S.PUT( block, tag - {MarkBit} );	(* remove mark bit *)
+					S.PUT( block, tag - 1 );	(* remove mark bit *)
 					IF freeSize > 0 THEN
 						Recycle( freeBlock, freeSize );
 						freeSize := 0
@@ -492,11 +489,11 @@ VAR
 
 
 	PROCEDURE SizeOf( block: ADDRESS ): SIZE;
-	VAR tag: SET;  lastElem: ADDRESS;  recSize, blockSize: SIZE;
+	VAR tag, lastElem: ADDRESS;  recSize, blockSize: SIZE;
 	BEGIN
 		S.GET( block, tag );
-		S.GET( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ), recSize );
-		IF ArrayBit IN tag THEN
+		S.GET( tag DIV 4 * 4, recSize );
+		IF ODD( tag DIV 2 ) THEN
 			S.GET( block + AddrSize, lastElem );
 			blockSize := lastElem + recSize - block
 		ELSE
@@ -560,10 +557,10 @@ VAR
 							IF tag1 # p THEN  (* not a free block *) Mark( S.VAL( ANY, p ) )  END
 						END;
 						p := NextCandidate();  
-					ELSIF p = block + AddrSize + 24 THEN  (* system block ? *)
+					ELSIF p = block + AddrSize + SysOfs THEN  (* system block ? *)
 						S.GET( block, tag1 );
 						S.GET( p - AddrSize, tag2 );
-						IF (tag2 = p - 24) & (tag2 = tag1)  THEN
+						IF (tag2 = p - SysOfs) & (tag2 = tag1)  THEN
 							(* really a sysblock *)  Mark( S.VAL( ANY, p ) );
 						END;
 						p := NextCandidate();  
@@ -583,14 +580,14 @@ VAR
 	
 
 	PROCEDURE AddCandidate*( p: ADDRESS );
-	VAR tag0Addr, tag0: ADDRESS;  tag: SET;  i: LONGINT;
+	VAR tag0Addr, tag0, tag: ADDRESS;  i: LONGINT;
 	BEGIN
 		IF p MOD 32 = 0 THEN
 			tag0Addr := p - AddrSize (* RecBlk, ArrBlk *)
 		ELSIF p MOD 32 = 16 THEN
 			tag0Addr := p - ProtOfs - AddrSize (* ProtObj *)
 		ELSIF p MOD 16 = 8 THEN
-			tag0Addr := p - 24 - AddrSize (* SysBlk *)
+			tag0Addr := p - SysOfs - AddrSize (* SysBlk *)
 		ELSE  RETURN
 		END;
 		
@@ -602,7 +599,7 @@ VAR
 			S.GET( tag0Addr, tag0 );
 			IF ODD( tag0 ) THEN  RETURN  END;  (* already marked *)
 			S.GET ( p - AddrSize, tag );
-			IF ValidAddress( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ) ) THEN
+			IF ValidAddress( tag DIV 4 * 4 ) THEN
 				candidates[nofcand] := p;  INC( nofcand );
 				IF nofcand = MaxCandidates THEN  CheckCandidates  END
 			END;
@@ -669,7 +666,8 @@ VAR
 	PROCEDURE GetBlock( size: SIZE ): ADDRESS;   (* size MOD B = 0 *)
 	VAR 
 		block: FreeBlock;  blkSize: SIZE;  blkAdr, adr2: ADDRESS;
-	BEGIN
+	BEGIN 
+		Machine.Acquire( Machine.Allocator );
 		IF ((thruput > ThruputBarrier) OR (heapAvailable < size)) & (Machine.lock[Machine.GC] = 'N') THEN
 			thruput := 0;
 			Machine.Release( Machine.Heaps );
@@ -707,6 +705,7 @@ VAR
 		INC( thruput, size );
 		IF Stats THEN  INC(Nnew); INC(NnewBytes, size)  END;
 		Machine.Fill32( blkAdr, size, 0 );
+		Machine.Release( Machine.Allocator );
 		RETURN blkAdr
 	END GetBlock;
 
@@ -758,15 +757,15 @@ VAR
 	PROCEDURE NewSys*( VAR p: ANY;  size: SIZE; isRealtime: BOOLEAN );   (* implementation of S.NEW(ptr, size) *)
 	VAR ptr: ADDRESS;
 	BEGIN
-		size := size + AddrSize + 24;  INC( size, (-size) MOD BlockSize );
+		size := size + AddrSize + SysOfs;  INC( size, (-size) MOD BlockSize );
 		Machine.Acquire( Machine.Heaps );
 		ptr := GetBlock( size ) + AddrSize;  
 		S.PUT( ptr - AddrSize, ptr );		(* tag used by Sweep *)
 		S.PUT( ptr, size - AddrSize );		(* size, needed by SizeOf(blk) in Sweep *)
 		S.PUT( ptr + AddrSize, S.VAL( ADDRESS, -AddrSize ) );	
 		
-		S.PUT( ptr + 24 - AddrSize, ptr );	(* tag *)
-		p := S.VAL( ANY, ptr + 24 );		(* mod 16 = 8 ! *)
+		S.PUT( ptr + SysOfs - AddrSize, ptr );	(* tag *)
+		p := S.VAL( ANY, ptr + SysOfs );		(* mod 16 = 8 ! *)
 		Machine.Release( Machine.Heaps )
 	END NewSys;
 
@@ -790,7 +789,7 @@ VAR
 				blkSize := dataOffset + arrSize + AddrSize; INC( blkSize, (-blkSize) MOD BlockSize );
 				Machine.Acquire( Machine.Heaps );
 				ptr := GetBlock( blkSize ) + AddrSize;
-				S.PUT( ptr - AddrSize, S.VAL( SET, eltag ) + {ArrayBit} );
+				S.PUT( ptr - AddrSize, eltag + 2 (*ArrayBit*) );
 				firstElem := ptr + dataOffset;
 				S.PUT( ptr, firstElem + arrSize - sTB.recSize );  (* last elem *)
 				(* ptr + 4 is reserved for mark phase *)
@@ -877,20 +876,20 @@ VAR
 	END ValidAddress;
 
 	PROCEDURE ValidPointer( p: ADDRESS ): BOOLEAN;   (* check if p is a valid pointer into the Heap *)
-	VAR tag: SET;  ok: BOOLEAN;
+	VAR tag: ADDRESS;  ok: BOOLEAN;
 	BEGIN
-		ok := FALSE;  tag := {};
+		ok := FALSE;  tag := 0;
 		IF (p MOD 8 = 0) & ValidAddress( p ) THEN
 			IF p MOD 16 = 8 THEN  ok := TRUE (* subobject or sysblock *)
 			ELSE
 				S.GET( p - AddrSize, tag );
-				ok := ValidAddress( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ) )
+				ok := ValidAddress( tag DIV 4 * 4 ) 
 			END
 		END;
 		IF ~ok THEN
 			Trace.String( "illegal pointer value: " ); Trace.Hex( p, -8 );
-			IF tag # {} THEN  
-				Trace.String( " (bad tag: " );  Trace.Hex( S.VAL( ADDRESS, tag ), -8 );  Trace.Char( ')' )  
+			IF tag # 0 THEN  
+				Trace.String( " (bad tag: " );  Trace.Hex( tag, -8 );  Trace.Char( ')' )  
 			END;
 			Trace.Ln
 		END;
@@ -984,7 +983,7 @@ VAR
 			IF tag0 # block + AddrSize THEN  
 				WriteType( tag0 )
 			ELSE
-				S.GET( block + 24, ttag );
+				S.GET( block + SysOfs, ttag );
 				IF ttag = tag0 THEN  Trace.String( "sysblock" )
 				ELSE
 					S.GET( block + ProtOfs - AddrSize, ttag );

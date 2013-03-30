@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5165)";
+	Version = "Aos (rev.5287)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -32,7 +32,8 @@ CONST
 	X11* = 8;			(* XWindows I/O *)
 	Trap* = 9;
 	GC* = 10;
-	MaxLocks* = 11;   (* { <= 32 } *)
+	Allocator* = 11;		(* Heap block allocation *)
+	MaxLocks* = 12;   (* { <= 32 } *)
 	
 	MaxCPU* = 4;
 	
