@@ -418,7 +418,7 @@ VAR
 		block.next := NIL;
 		
 		i := 0;
-		WHILE (freeLists[i].minSize < blkSize) & (i < MaxFreeLists) DO  INC( i )  END;
+		WHILE (i < MaxFreeLists) & (freeLists[i+1].minSize < blkSize) DO  INC( i )  END;
 		
 		IF i < FreeListBarrier THEN	
 			AppendFree( freeLists[i], block )
@@ -441,6 +441,35 @@ VAR
 		END;
 		heapAvailable := 0
 	END ClearFreeLists;
+	
+	
+	PROCEDURE ShowFreeLists( CONST msg: ARRAY OF CHAR );
+	VAR i, n, m: LONGINT;  b: FreeBlock;  bad: BOOLEAN;
+	BEGIN
+		Trace.Ln;
+		Trace.String( "==== FreeLists " ); Trace.String( msg ); Trace.Ln;
+		FOR i := 0 TO MaxFreeLists DO
+			Trace.Int( i, 2 );  Trace.Int( freeLists[i].minSize, 6 );  Trace.String( ": " );
+			b := freeLists[i].first;  n := 0;  m := 0;  bad := FALSE;
+			IF i < FreeListBarrier THEN
+				WHILE b # NIL DO  INC( n );  b := b.next END;
+			ELSE
+				WHILE b # NIL DO  
+					INC( n );
+					IF n < 20 THEN  
+						Trace.Int( b.size, 1 );  Trace.Char( ',' );
+						IF n MOD 8 = 0 THEN  Trace.Ln;  Trace.String( "          " )  END;  
+					END;
+					IF b.size < m THEN  bad := TRUE  ELSE  m := b.size  END;
+					b := b.next  
+				END;
+				IF n > 0 THEN  Trace.String( "  largest=" );  Trace.Int( m, 0 )  END;
+				IF bad THEN  Trace.String( ",  bad ordered" )  END
+			END;
+			Trace.String( " [" );  Trace.Int( n, 0 );  Trace.StringLn( "]" )
+		END;
+		Trace.Ln
+	END ShowFreeLists;
 	
 
 	PROCEDURE Sweep;
@@ -485,7 +514,8 @@ VAR
 			END;
 			
 			memBlock := nextMemBlock;
-		END
+		END;
+	(*	ShowFreeLists( "after Sweep" )	*)
 	END Sweep;
 
 
@@ -684,6 +714,7 @@ VAR
 					GC;
 					Machine.Acquire( Machine.Heaps );
 				ELSE	
+				(*	ShowFreeLists( "befor ExpandHeap" );	*)
 					Machine.ExpandHeap( 0, size, S.VAL( ADDRESS, block ), adr2 );
 					IF block # NIL  THEN  
 						heapSize := GetHeapSize();
@@ -918,6 +949,13 @@ VAR
 		RETURN heapSize;
 	END HeapSize;
 	
+	(** none portable, only for debugging *)
+	PROCEDURE InspectFreeLists*;
+	BEGIN
+		Machine.Acquire( Machine.Heaps );
+		ShowFreeLists( "" );
+		Machine.Release( Machine.Heaps );
+	END InspectFreeLists;
 	
 	PROCEDURE GetHeapInfo*( VAR total, free, largest: SIZE );
 	VAR i: LONGINT;  block: FreeBlock;
