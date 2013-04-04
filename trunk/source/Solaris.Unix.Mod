@@ -330,7 +330,7 @@ VAR
 	getuid-			: PROCEDURE {C} ( ): LONGINT;
 
 	malloc-			: PROCEDURE {C} ( size: SIZE ): ADDRESS;
-	valloc-			: PROCEDURE {C} ( size: SIZE ): ADDRESS;
+	posix_memalign-	: PROCEDURE {C} ( VAR p: ADDRESS; alignment, size: SIZE ): LONGINT;
 	free-			: PROCEDURE {C} ( p: ADDRESS );
 	mprotect-		: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
 
@@ -345,10 +345,10 @@ VAR
 	times-			: PROCEDURE {C} ( VAR tms: Tms ): LONGINT;
 
 	system-			: PROCEDURE {C} ( cmd: ADDRESS );
-	uname-		: PROCEDURE {C} ( utsname: ADDRESS ): LONGINT;
+	uname-			: PROCEDURE {C} ( utsname: ADDRESS ): LONGINT;
 
 	getcwd-		: PROCEDURE {C} ( buf: ADDRESS;  len: SIZE ): LONGINT;
-	getenv-		: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
+	getenv-			: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
 
 	opendir-		: PROCEDURE {C} ( name: ADDRESS ): ADDRESS;
 	readdir-		: PROCEDURE {C} ( dir: ADDRESS ): Dirent;
@@ -529,10 +529,10 @@ BEGIN
 	Dlsym( libc, "sigsetjmp",		ADDRESSOF( sigsetjmp ) );
 	Dlsym( libc, "siglongjmp",	ADDRESSOF( siglongjmp ) );
 
-	Dlsym( libc, "malloc",	ADDRESSOF( malloc ) );
-	Dlsym( libc, "valloc",	ADDRESSOF( valloc ) );
-	Dlsym( libc, "free",		ADDRESSOF( free ) );
-	Dlsym( libc, "mprotect",	ADDRESSOF( mprotect ) );
+	Dlsym( libc, "malloc",			ADDRESSOF( malloc ) );
+	Dlsym( libc, "posix_memalign",	ADDRESSOF( posix_memalign ) );
+	Dlsym( libc, "free",				ADDRESSOF( free ) );
+	Dlsym( libc, "mprotect",			ADDRESSOF( mprotect ) );
 
 	Dlsym( libc, "system",	ADDRESSOF( system ) );
 	Dlsym( libc, "uname",	ADDRESSOF( uname ) );

@@ -90,7 +90,7 @@ o_thr_t o_thrStart( oberon_proc p, int len ) {
         len =  16*1024;
     }
 
-    err = thr_create( NULL, len, starter, p, THR_BOUND|THR_DETACHED, &id );
+    err = thr_create( NULL, len, (void *(*)(void *))starter, p, THR_BOUND|THR_DETACHED, &id );
     if (err != 0)
         return 0;
     return id;

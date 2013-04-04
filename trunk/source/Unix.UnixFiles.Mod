@@ -25,7 +25,7 @@ VAR
 	unixFS: UnixFileSystem;
 
 TYPE	
-	Filename = Files.FileName;
+	Filename = ARRAY 256 OF CHAR;
 	
 	NameSet = OBJECT
 			VAR
@@ -210,7 +210,7 @@ TYPE
 				PROCEDURE FileKey*( name: ARRAY OF CHAR ): LONGINT;
 				(* 	Can not be used for Unix files as LONGINT is too small. 
 					In the Unix filesystem a file is identified by
-					- dev	(64 bit (Linux), 32 bit (Solaris, Darwin))
+					- dev	(64 bit (Linux), 32 bit (Solaris, Darwin))	+
 					- ino	(32 bit)
 				*)
 				BEGIN
@@ -799,7 +799,7 @@ TYPE
 	END Match;
 	
 	
-	PROCEDURE Append( VAR a: ARRAY OF CHAR;  CONST this: ARRAY OF CHAR );
+	PROCEDURE Append( VAR a: Filename;  CONST this: ARRAY OF CHAR );
 	VAR i, j: LONGINT; 
 	BEGIN
 		i := 0;  j := 0;  
@@ -808,7 +808,7 @@ TYPE
 		a[i] := 0X
 	END Append;
 
-	PROCEDURE AppendName( VAR path: ARRAY OF CHAR;  CONST filename: ARRAY OF CHAR );
+	PROCEDURE AppendName( VAR path: Filename;  CONST filename: ARRAY OF CHAR );
 	VAR i, j, max: LONGINT;
 	BEGIN
 		i := 0;  j := 0;  max := LEN( path ) - 1;
@@ -818,7 +818,7 @@ TYPE
 	END AppendName;
 	
 	
-	PROCEDURE AppendInt( VAR str: ARRAY OF CHAR; n: LONGINT );
+	PROCEDURE AppendInt( VAR str: Filename; n: LONGINT );
 	VAR i: LONGINT;
 	BEGIN
 		i := 0;
@@ -916,8 +916,8 @@ TYPE
 	END ScanPath;
 
 
-	PROCEDURE GetTempName( CONST finalName: ARRAY OF CHAR;  VAR tempName: ARRAY OF CHAR );
-	VAR n, i, j, pe: LONGINT; 
+	PROCEDURE GetTempName( CONST finalName: ARRAY OF CHAR;  VAR tempName: Filename );
+	VAR n, i, j, pe, pid: LONGINT; 
 	BEGIN
 		INC(tempno);  n := tempno;  i := 0;  j := 0; pe := 1;
 		WHILE finalName[j] = ' ' DO  INC(j)  END;   (* skip leading spaces *)
@@ -931,7 +931,8 @@ TYPE
 		tempName[i] := 0X;
 		Append( tempName, ".tmp." );  
 		AppendInt( tempName, n );  Append( tempName, "." );
-		AppendInt( tempName, Unix.getpid() )
+		pid := Unix.getpid();
+		AppendInt( tempName, pid )
 	END GetTempName;
 
 	

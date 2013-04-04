@@ -71,7 +71,7 @@ TYPE
 			END;
 	
 	FreeList = RECORD 
-				minSize: LONGINT;  
+				minSize: SIZE;  
 				first{UNTRACED}: FreeBlock;
 				last{UNTRACED}: FreeBlock
 			END;
@@ -411,6 +411,7 @@ VAR
 	PROCEDURE Recycle( blkAdr: ADDRESS; blkSize: SIZE );
 	VAR i: LONGINT;  block: FreeBlock;
 	BEGIN
+	(*	ASSERT( blkSize MOD BlockSize = 0 );	*)
 		block := S.VAL( FreeBlock, blkAdr );
 		block.tag := blkAdr + AddrSize;
 		block.size := blkSize - AddrSize;
@@ -667,7 +668,6 @@ VAR
 	VAR 
 		block: FreeBlock;  blkSize: SIZE;  blkAdr, adr2: ADDRESS;
 	BEGIN 
-		Machine.Acquire( Machine.Allocator );
 		IF ((thruput > ThruputBarrier) OR (heapAvailable < size)) & (Machine.lock[Machine.GC] = 'N') THEN
 			thruput := 0;
 			Machine.Release( Machine.Heaps );
@@ -696,7 +696,7 @@ VAR
 				END
 			END
 		UNTIL block # NIL;
-
+		
 		blkSize := block.size + AddrSize;
 		blkAdr := S.VAL( ADDRESS, block );
 		DEC( heapAvailable, blkSize );
@@ -705,7 +705,6 @@ VAR
 		INC( thruput, size );
 		IF Stats THEN  INC(Nnew); INC(NnewBytes, size)  END;
 		Machine.Fill32( blkAdr, size, 0 );
-		Machine.Release( Machine.Allocator );
 		RETURN blkAdr
 	END GetBlock;
 
@@ -939,7 +938,7 @@ VAR
 	END GetHeapInfo;
 
 	PROCEDURE Used*( ): SIZE;
-	VAR used: LONGINT;
+	VAR used: SIZE;
 	BEGIN
 		Machine.Acquire( Machine.Heaps );
 		used := heapSize - heapAvailable;

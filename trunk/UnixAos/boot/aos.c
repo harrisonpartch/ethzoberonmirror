@@ -40,10 +40,13 @@
 #include "Threads.h"
 #include <sys/mman.h>
 #include <X11/Xlib.h>
+/*
+#include <AL/al.h>
+#include <AL/alc.h>
+*/
 
 
 typedef unsigned long	u_long;
-typedef void * 	Address;
 
 typedef void (*OberonProc)();
 
@@ -65,7 +68,7 @@ char defaultpath[] = ".:/usr/aos/obj:/usr/aos/system";
 #endif
 size_t heapSize;
 size_t codeSize;
-Address heapAdr;
+caddr_t heapAdr;
 int Argc;
 char **Argv;
 int debug;
@@ -195,12 +198,8 @@ void *o_malloc( long size ) {
 	return malloc( size );
 }
 
-void *o_memalign( long alignment, long size ) {
-	return calloc( (size + alignment - 1)/alignment, alignment );
-}
-
-void *o_calloc( long nelem, long elsize ) {
-	return calloc( nelem, elsize );
+int o_posix_memalign(void** buf, long alignment, long size ) {
+	return posix_memalign( buf, alignment, size );
 }
 
 int o_mprotect( void* addr, long len, int prot ) {
@@ -264,8 +263,7 @@ void o_dlsym(void* handle, char* symbol, void** adr)
   else if (strcmp("lseek",		symbol) == 0) *adr = o_lseek;
 
   else if (strcmp("malloc",		symbol) == 0) *adr = o_malloc;
-  else if (strcmp("calloc",		symbol) == 0) *adr = o_calloc;
-  else if (strcmp("memalign",		symbol) == 0) *adr = o_memalign;
+  else if (strcmp("posix_memalign",	symbol) == 0) *adr = o_posix_memalign;
   else if (strcmp("mprotect",		symbol) == 0) *adr = o_mprotect;
 
   else if (strcmp("InstallTrap",	symbol) == 0) *adr = InstallTrap;
@@ -342,14 +340,14 @@ void Assert( caddr_t x ) {
 }
 
 	
-void Relocate(Address heapAdr, size_t shift) {
-  int len; Address adr; 
+void Relocate(caddr_t heapAdr, size_t shift) {
+  int len; caddr_t adr; 
   
   len = RNum(); 
   while (len != 0) { 
-    adr = RNum(); 
+    adr = (caddr_t)RNum(); 
     adr += (u_long)heapAdr; 
-    *((Address*)adr) += shift; 
+    *((caddr_t*)adr) += shift; 
     Assert( adr );
     len--; 
   } 
@@ -357,8 +355,8 @@ void Relocate(Address heapAdr, size_t shift) {
 
 
 void Boot() {
-  u_long adr, len, fileHeapAdr, dlsymAdr;
-  size_t shift, fileHeapSize;
+  caddr_t adr, fileHeapAdr, dlsymAdr;
+  size_t shift, len, fileHeapSize;
   int d, notfound;  
   OberonProc body;
 
@@ -372,7 +370,7 @@ void Boot() {
     printf("Aos BootLoader: boot file %s not found\n", bootname);  
     exit(-1);
   }
-  fileHeapAdr = Rint(); fileHeapSize = Rint();
+  fileHeapAdr = (caddr_t)Rint(); fileHeapSize = Rint();
   if (fileHeapSize >= heapSize) {
     printf("Aos BootLoader: heap too small\n");  
     exit(-1);
@@ -383,18 +381,18 @@ void Boot() {
     len -= 4; adr += 4; 
   } 
   shift = heapAdr - fileHeapAdr;
-  adr = Rint(); len = Rint();
+  adr = (caddr_t)Rint(); len = Rint();
   while (len != 0) {
     adr += shift;
-    len += adr;
+    len += (u_long)adr;
     codeSize = len - (u_long)heapAdr;
-    while (adr != len) { *((int*)adr) = Rint(); adr += 4; }
-    adr = Rint(); len = Rint();
+    while (adr != (caddr_t)len) { *((int*)adr) = Rint(); adr += 4; }
+    adr = (caddr_t)Rint(); len = Rint();
   }
   body = (OberonProc)(adr + shift);
   Relocate(heapAdr, shift);
-  dlsymAdr = Rint();
-  *((int *)(heapAdr + dlsymAdr)) = (int)o_dlsym;
+  dlsymAdr = (caddr_t)Rint();
+  *((int *)(heapAdr + (u_long)dlsymAdr)) = (int)o_dlsym;
   fclose(fd);
   if(mprotect((void*)heapAdr, heapSize, PROT_READ|PROT_WRITE|PROT_EXEC) != 0)
      perror("mprotect");
@@ -445,9 +443,9 @@ int main(int argc, char *argv[])
 
   heapSize = 0x200000;
 #ifdef DARWIN
-  heapAdr = (Address)calloc(0x200, 0x1000);
+  heapAdr = (caddr_t)calloc(0x200, 0x1000);
 #else
-  heapAdr = (Address)memalign(4096, heapSize);
+  heapAdr = (caddr_t)memalign(4096, heapSize);
 #endif
   if (heapAdr == 0) {
     printf("Aos BootLoader: cannot allocate initial heap space\n");  

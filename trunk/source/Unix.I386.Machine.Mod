@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5287)";
+	Version = "Aos (rev.5289)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -32,8 +32,7 @@ CONST
 	X11* = 8;			(* XWindows I/O *)
 	Trap* = 9;
 	GC* = 10;
-	Allocator* = 11;		(* Heap block allocation *)
-	MaxLocks* = 12;   (* { <= 32 } *)
+	MaxLocks* = 11;   (* { <= 32 } *)
 	
 	MaxCPU* = 4;
 	
@@ -105,7 +104,8 @@ VAR
 	conSignal	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
 	
 	thrSleep-	: PROCEDURE {REALTIME, C} ( ms: LONGINT );
-
+	thrThis-		: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Thread_t;
+	
 	saveSP*	: PROCEDURE;		(* save SP for usage by GC *)
 
 	
@@ -177,14 +177,17 @@ VAR
 		IF size < (MemBlockSize - BlockSize)  THEN  alloc := MemBlockSize  
 		ELSE  alloc := size + BlockSize;
 		END;  
-		
 		INC( alloc, (-alloc) MOD Unix.PageSize );
-		adr := Unix.valloc( alloc );  
-		IF Unix.mprotect( adr, alloc, 7 (* READ WRITE EXEC *) ) # 0 THEN
-			Unix.Perror( "Machine.ExpandHeap: mprotect:" )
-		END;
 		
-		IF adr # 0 THEN  
+		IF Unix.posix_memalign( adr, Unix.PageSize, alloc ) # 0 THEN
+			Unix.Perror( "Machine.ExpandHeap: posix_memalign" );
+			beginBlockAdr := 0;
+			endBlockAdr := 0
+		ELSE
+			IF Unix.mprotect( adr, alloc, 7 (* READ WRITE EXEC *) ) # 0 THEN
+				Unix.Perror( "Machine.ExpandHeap: mprotect" )
+			END;
+			
 			mBlock := S.VAL( MemoryBlock, adr );  
 			mBlock.next := NIL;  
 			mBlock.startAdr := adr;
@@ -208,9 +211,6 @@ VAR
 			
 			beginBlockAdr := mBlock.beginBlockAdr;
 			endBlockAdr := mBlock.endBlockAdr;
-		ELSE
-			beginBlockAdr := 0;
-			endBlockAdr := 0
 		END  
 	END ExpandHeap;
 	
@@ -1000,6 +1000,7 @@ END ChangeByteOrder;
 		Unix.Dlsym( 0, "conSignal",		ADDRESSOF( conSignal ) );
 			
 		Unix.Dlsym( 0, "thrSleep",		ADDRESSOF( thrSleep ) );
+		Unix.Dlsym( 0, "thrThis",			ADDRESSOF( thrThis ) );
 		
 		standaloneAppl := FALSE;
 		

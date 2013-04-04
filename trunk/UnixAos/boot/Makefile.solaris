@@ -1,7 +1,7 @@
 #
 
 CC=gcc 
-CFLAGS  = -DSOLARIS -threads
+CFLAGS  = -m32 -DSOLARIS -threads
 LDFLAGS = -lthread -L/usr/openwin/lib -lX11 -ldl -lrt -lm
 
 

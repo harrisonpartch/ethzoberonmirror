@@ -326,10 +326,10 @@ VAR
 	getpid-			: PROCEDURE {C} ( ): LONGINT;
 	getuid-			: PROCEDURE {C} ( ): LONGINT;
 
-	malloc-			: PROCEDURE {C} ( size: SIZE ): ADDRESS;
-	valloc-			: PROCEDURE {C} ( size: SIZE ): ADDRESS;
-	free-			: PROCEDURE {C} ( p: ADDRESS );
-	mprotect-		: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
+	malloc-				: PROCEDURE {C} ( size: SIZE ): ADDRESS;
+	posix_memalign-	: PROCEDURE {C} ( VAR p: ADDRESS;  alignment, size: SIZE ): LONGINT;
+	free-				: PROCEDURE {C} ( p: ADDRESS );
+	mprotect-			: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
 
 	alarm-			: PROCEDURE {C} ( ms: LONGINT ): LONGINT;
 	setitimer-		: PROCEDURE {C} ( which: LONGINT;  VAR value, ovalue: Itimerval ): LONGINT;
@@ -512,10 +512,10 @@ BEGIN
 	Dlsym( libc, "getitimer",	ADDRESSOF( getitimer ) );
 
 	Dlsym( libc, "gettimeofday", ADDRESSOF( gettimeofday ) );
-	Dlsym( libc, "mktime",	ADDRESSOF( mktime ) );
-	Dlsym( libc, "localtime",	ADDRESSOF( localtime ) );
-	Dlsym( libc, "time",		ADDRESSOF( time ) );
-	Dlsym( libc, "times",		ADDRESSOF( times ) );
+	Dlsym( libc, "mktime",		ADDRESSOF( mktime ) );
+	Dlsym( libc, "localtime",		ADDRESSOF( localtime ) );
+	Dlsym( libc, "time",			ADDRESSOF( time ) );
+	Dlsym( libc, "times",			ADDRESSOF( times ) );
 
 	Dlsym( libc, "getcwd",	ADDRESSOF( getcwd ) );
 	Dlsym( libc, "getenv",	ADDRESSOF( getenv ) );
@@ -527,10 +527,10 @@ BEGIN
 	Dlsym( libc, "sigsetjmp",		ADDRESSOF( sigsetjmp ) );
 	Dlsym( libc, "siglongjmp",	ADDRESSOF( siglongjmp ) );
 
-	Dlsym( libc, "malloc",	ADDRESSOF( malloc ) );
-	Dlsym( libc, "valloc",	ADDRESSOF( valloc ) );
-	Dlsym( libc, "free",		ADDRESSOF( free ) );
-	Dlsym( libc, "mprotect",	ADDRESSOF( mprotect ) );
+	Dlsym( libc, "malloc",			ADDRESSOF( malloc ) );
+	Dlsym( libc, "posix_memalign",	ADDRESSOF( posix_memalign ) );
+	Dlsym( libc, "free",				ADDRESSOF( free ) );
+	Dlsym( libc, "mprotect",			ADDRESSOF( mprotect ) );
 
 	Dlsym( libc, "system",	ADDRESSOF( system ) );
 	Dlsym( libc, "uname",	ADDRESSOF( uname ) );
