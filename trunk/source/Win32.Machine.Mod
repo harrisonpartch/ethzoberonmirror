@@ -681,6 +681,22 @@ BEGIN
 	END;
 END RemoveTraceFile;
 
+PROCEDURE ToExecutablePath(CONST name: ARRAY OF CHAR; VAR fullName: ARRAY OF CHAR);
+VAR i,j: LONGINT;
+BEGIN
+	Kernel32.GetModuleFileName(hInstance, fullName, LEN( fullName ) );
+	j := -1; i := 0;
+	WHILE fullName[i] # 0X DO
+		IF fullName[i] = '\' THEN j := i END;
+		INC( i )
+	END;
+	i := 0; INC(j);
+	WHILE name[i] # 0X DO
+		fullName[j] := name[i]; INC(i); INC(j);
+	END;
+	fullName[j] := 0X;
+END ToExecutablePath;
+
 PROCEDURE Init;
 VAR vendor: Vendor; ver: LONGINT;
 BEGIN
@@ -697,11 +713,15 @@ BEGIN
 
 	ReadCommandLine(commandLine);
 
-	defaultConfigFile[Kernel32.GetFullPathName (DefaultConfigFile, Kernel32.MaxPath, defaultConfigFile, 0)] := 0X;
-	userConfigFile := UserConfigFile;
+	ToExecutablePath(DefaultConfigFile, defaultConfigFile);
+	ToExecutablePath(UserConfigFile, userConfigFile);
+
+	(* ever used ? *)
 	ParseLine(commandLine, userConfigFile);
 	userConfigFile[Kernel32.GetFullPathName (userConfigFile, Kernel32.MaxPath, userConfigFile, 0)] := 0X;
-	Trace.String("config file = "); Trace.String(userConfigFile); Trace.Ln;
+
+	Trace.String("config file = "); Trace.String(defaultConfigFile); Trace.Ln;
+	Trace.String("user config file = "); Trace.String(userConfigFile); Trace.Ln;
 
 	traceName[0] := 0X;
 	GetConfig("Trace",traceName);
@@ -740,7 +760,7 @@ END Init;
 		END;
 		lock[level] := "Y";
 	END Acquire;
-	
+
 (** Release a spin-lock. *)
 	PROCEDURE Release*( level: LONGINT );   (* release lock *)
 	BEGIN

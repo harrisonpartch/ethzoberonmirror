@@ -813,7 +813,7 @@ TYPE
 	BEGIN
 		i := 0;  j := 0;  max := LEN( path ) - 1;
 		WHILE path[i] # 0X DO  INC( i )  END;
-		IF (i > 0) & (path[i - 1] # "/") THEN  path[i] := "/";  INC( i )  END;
+		IF (i > 0) & (path[i - 1] # "/") THEN  path[i] := "/";  INC( i );  path[i] := 0X  END;
 		Append( path, filename );
 	END AppendName;
 	

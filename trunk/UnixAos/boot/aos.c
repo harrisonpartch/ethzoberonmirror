@@ -45,10 +45,15 @@
 #include <AL/alc.h>
 */
 
+#ifdef LINUX
+#  define _use_valloc /* use the obsolete valloc function instead of posix_memalign */
+#endif
 
 typedef unsigned long	u_long;
 
 typedef void (*OberonProc)();
+
+typedef void*	address;
 
 FILE *fd;
 char *AOSPATH;
@@ -56,7 +61,7 @@ char path[4096];
 char *dirs[255];
 char fullname[512];
 int nofdir;
-char defaultpath[] = ".:/usr/aos/obj:/usr/aos/system";
+char defaultpath[] = ".:/usr/aos/obj:/usr/aos/system:/usr/aos/fonts";
 #ifdef SOLARIS
   char bootname[64] = "SolarisAosCore";
 #endif
@@ -68,7 +73,7 @@ char defaultpath[] = ".:/usr/aos/obj:/usr/aos/system";
 #endif
 size_t heapSize;
 size_t codeSize;
-caddr_t heapAdr;
+address heapAdr;
 int Argc;
 char **Argv;
 int debug;
@@ -199,7 +204,12 @@ void *o_malloc( long size ) {
 }
 
 int o_posix_memalign(void** buf, long alignment, long size ) {
+#ifdef _use_valloc
+	*buf = valloc( size );
+	if (*buf != NULL) return 0; else return -1;
+#else
 	return posix_memalign( buf, alignment, size );
+#endif
 }
 
 int o_mprotect( void* addr, long len, int prot ) {
@@ -325,14 +335,14 @@ int RNum() {
   return n + (((x & 0x3f) - ((x >> 6) << 6)) << shift);
 }
 
-void Assert( caddr_t x ) {
-  caddr_t y;
+void Assert( address x ) {
+  address y;
 
   if((x < heapAdr) | (x >= heapAdr + heapSize)) {
     printf("bad reloc. pos %x [%x, %x]\n", x, heapAdr, heapAdr+heapSize);
   }
   if (x > heapAdr+codeSize) {
-    y = *(caddr_t*)x;
+    y = *(address*)x;
     if((y < heapAdr) | (y >= heapAdr+heapSize)) {
       printf("bad reloc. value %x [%x, %x]\n", y, heapAdr, heapAdr+heapSize);
     }
@@ -340,14 +350,14 @@ void Assert( caddr_t x ) {
 }
 
 	
-void Relocate(caddr_t heapAdr, size_t shift) {
-  int len; caddr_t adr; 
+void Relocate(address heapAdr, size_t shift) {
+  int len; address adr; 
   
   len = RNum(); 
   while (len != 0) { 
-    adr = (caddr_t)RNum(); 
+    adr = (address)RNum(); 
     adr += (u_long)heapAdr; 
-    *((caddr_t*)adr) += shift; 
+    *((address*)adr) += shift; 
     Assert( adr );
     len--; 
   } 
@@ -355,7 +365,7 @@ void Relocate(caddr_t heapAdr, size_t shift) {
 
 
 void Boot() {
-  caddr_t adr, fileHeapAdr, dlsymAdr;
+  address adr, fileHeapAdr, dlsymAdr;
   size_t shift, len, fileHeapSize;
   int d, notfound;  
   OberonProc body;
@@ -370,7 +380,7 @@ void Boot() {
     printf("Aos BootLoader: boot file %s not found\n", bootname);  
     exit(-1);
   }
-  fileHeapAdr = (caddr_t)Rint(); fileHeapSize = Rint();
+  fileHeapAdr = (address)Rint(); fileHeapSize = Rint();
   if (fileHeapSize >= heapSize) {
     printf("Aos BootLoader: heap too small\n");  
     exit(-1);
@@ -381,17 +391,17 @@ void Boot() {
     len -= 4; adr += 4; 
   } 
   shift = heapAdr - fileHeapAdr;
-  adr = (caddr_t)Rint(); len = Rint();
+  adr = (address)Rint(); len = Rint();
   while (len != 0) {
     adr += shift;
     len += (u_long)adr;
     codeSize = len - (u_long)heapAdr;
-    while (adr != (caddr_t)len) { *((int*)adr) = Rint(); adr += 4; }
-    adr = (caddr_t)Rint(); len = Rint();
+    while (adr != (address)len) { *((int*)adr) = Rint(); adr += 4; }
+    adr = (address)Rint(); len = Rint();
   }
   body = (OberonProc)(adr + shift);
   Relocate(heapAdr, shift);
-  dlsymAdr = (caddr_t)Rint();
+  dlsymAdr = (address)Rint();
   *((int *)(heapAdr + (u_long)dlsymAdr)) = (int)o_dlsym;
   fclose(fd);
   if(mprotect((void*)heapAdr, heapSize, PROT_READ|PROT_WRITE|PROT_EXEC) != 0)
@@ -437,17 +447,17 @@ int main(int argc, char *argv[])
   if (p != NULL) debug = atoi(p);
 
   if (debug) {
-     printf( "UnixAos Boot Loader 16.06.2011\n" );
+     printf( "UnixAos Boot Loader 09.04.2013\n" );
      printf( "debug = %d\n", debug );
   }
 
   heapSize = 0x200000;
-#ifdef DARWIN
-  heapAdr = (caddr_t)calloc(0x200, 0x1000);
-#else
-  heapAdr = (caddr_t)memalign(4096, heapSize);
-#endif
+#ifdef _use_valloc
+  heapAdr = valloc( heapSize );
   if (heapAdr == 0) {
+#else
+  if (posix_memalign(&heapAdr, 4096, heapSize) != 0) {
+#endif
     printf("Aos BootLoader: cannot allocate initial heap space\n");  
     exit(-1);
   }
