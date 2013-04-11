@@ -60,8 +60,9 @@ void o_conSignal( o_con_t c ) {
    cond_signal( c );
 }
 
-void starter( oberon_proc p ) {
+void* starter( void* p ) {
     sigset_t orig, new;
+    oberon_proc body = (oberon_proc)p;
 
     SetSigaltstack();
     sigfillset( &new );
@@ -77,7 +78,7 @@ void starter( oberon_proc p ) {
     thr_sigsetmask( SIG_SETMASK, &new, &orig );
     pthread_setcancelstate( PTHREAD_CANCEL_ENABLE, NULL );
     pthread_setcanceltype( PTHREAD_CANCEL_ASYNCHRONOUS, NULL );
-    p(NULL);
+    body();
     thr_exit( 0 );
 }
 
@@ -90,7 +91,7 @@ o_thr_t o_thrStart( oberon_proc p, int len ) {
         len =  16*1024;
     }
 
-    err = thr_create( NULL, len, (void *(*)(void *))starter, p, THR_BOUND|THR_DETACHED, &id );
+    err = thr_create( NULL, len, starter, p, THR_BOUND|THR_DETACHED, &id );
     if (err != 0)
         return 0;
     return id;

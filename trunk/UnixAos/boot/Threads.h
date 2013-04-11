@@ -5,16 +5,15 @@
   typedef mutex_t *	o_mtx_t;
   typedef cond_t *	o_con_t;
   typedef thread_t	o_thr_t;
-  typedef void (*oberon_proc)(void *);
 #else
   /*** Linux | Darwin ***/
 # include <pthread.h>
   typedef pthread_mutex_t *	o_mtx_t;
   typedef pthread_cond_t *	o_con_t;
   typedef pthread_t		o_thr_t;
-  typedef int (*oberon_proc)();
 #endif
 
+typedef void (*oberon_proc)();  /* Oberon procedure to be started as a new thread */
 
 extern o_mtx_t	o_mtxInit( );
 extern void	o_mtxDestroy( o_mtx_t mtx );
@@ -33,7 +32,6 @@ extern o_thr_t	o_thrThis( );
 extern void	o_thrSleep( int ms );
 extern void	o_thrYield( );
 extern void	o_thrExit( );
-extern void	o_thrSendsig( o_thr_t thr, int sig );
 extern void	o_thrSuspend( o_thr_t thr );
 extern void	o_thrResume(  o_thr_t thr );
 extern void	o_thrSetprio( o_thr_t thr, int prio );

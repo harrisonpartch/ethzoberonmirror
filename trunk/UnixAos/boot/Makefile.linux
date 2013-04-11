@@ -5,8 +5,9 @@ CFLAGS  = -DLINUX
 LDFLAGS = -lpthread -lX11 -ldl -lrt -lm
 
 
-aos.linux:	clean aos.o Threads.linux.o
+aos.linux:	aos.o Threads.linux.o
 	$(CC) -s -o aos.linux aos.o Threads.linux.o $(LDFLAGS)
+	rm -f *.o 
 
 aos.o:	aos.c
 	$(CC) -c $(CFLAGS) aos.c
@@ -14,9 +15,4 @@ aos.o:	aos.c
 Threads.linux.o:	Threads.h Threads.linux.c
 	$(CC) -c $(CFLAGS) Threads.linux.c 
 
-clean:
-	rm -f *.o 
-
-distclean:
-	rm -f *.o aos.linux*
 

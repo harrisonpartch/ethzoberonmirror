@@ -1,6 +1,6 @@
 MODULE Reflection; (** AUTHOR "fof"; PURPOSE "tools for module, stack and process reflection"; *)
 
-IMPORT Modules,Streams,Machine,Heaps,Objects,SYSTEM, Trace;
+IMPORT Modules,Streams,Machine,Heaps,Objects,SYSTEM;
 
 CONST
 	ShowAllProcs = TRUE;
@@ -178,14 +178,13 @@ VAR
 			ELSE
 				found := tstart > modpc
 			END;
-			IF ~found THEN (* not yet found -- remember startpc and position for next iteration *)
-				startpc := tstart;
-				proc := pos;
 				IF ch = 0F9X THEN
 					GetNum(refs, pos, t);	(* nofPars *)
 					INC(pos, 3)	(* RetType, procLev, slFlag *);
 					IF newObjectFile THEN INC(pos,6) END;
 				END;
+			IF ~found THEN (* not yet found -- remember startpc and position for next iteration *)
+				startpc := tstart;
 				proc := pos;	(* remember this position, just before the name *)
 				REPEAT ch := refs[pos]; INC(pos) UNTIL ch = 0X;	(* pname *)
 				IF pos < len THEN
@@ -203,7 +202,10 @@ VAR
 			END;
 		END;
 		IF newObjectFile THEN
-			IF found THEN startpc := tstart; proc := pos ELSE proc := -1 END;
+			IF found THEN
+				startpc := tstart; proc := pos;
+			ELSE proc := -1 
+			END;
 		END;
 		RETURN proc
 	END FindProc;

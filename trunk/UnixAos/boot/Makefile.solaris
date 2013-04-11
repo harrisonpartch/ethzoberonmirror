@@ -6,8 +6,9 @@ LDFLAGS = -lthread -L/usr/openwin/lib -lX11 -ldl -lrt -lm
 
 
 
-aos.solaris:	clean aos.o Threads.solaris.o
+aos.solaris:	aos.o Threads.solaris.o
 	$(CC) -s -o aos.solaris aos.o Threads.solaris.o $(LDFLAGS)
+	rm -f *.o 
 
 aos.o:	aos.c
 	$(CC) -c $(CFLAGS) aos.c
@@ -15,9 +16,4 @@ aos.o:	aos.c
 Threads.solaris.o:	Threads.h Threads.solaris.c
 	$(CC) -c $(CFLAGS) Threads.solaris.c 
 
-clean:
-	rm -f *.o 
-
-distclean:
-	rm -f *.o aos.solaris*
 
