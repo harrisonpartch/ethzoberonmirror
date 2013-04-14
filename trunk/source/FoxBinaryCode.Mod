@@ -13,6 +13,64 @@ TYPE
 
 	FixupPatterns*=ObjectFile.FixupPatterns;
 
+	Alias*=OBJECT
+	VAR
+		nextAlias-: Alias;
+		identifier-: ObjectFile.Identifier;
+		offset-: LONGINT;
+
+		PROCEDURE & InitAlias*(identifier: ObjectFile.Identifier; offset: LONGINT);
+		BEGIN
+			nextAlias := NIL;
+			SELF.identifier := identifier;
+			SELF.offset := offset;
+		END InitAlias;
+
+		PROCEDURE Dump*(w: Streams.Writer);
+		VAR i: LONGINT;
+		BEGIN
+			Basic.WriteSegmentedName(w, identifier.name);
+			IF identifier.fingerprint # 0 THEN w.String("["); w.Hex(identifier.fingerprint,-8); w.String("]") END;
+			w.String(" "); w.Int(offset,1);
+		END Dump;
+
+	END Alias;
+
+	AliasList*=OBJECT
+	VAR
+		firstAlias-, lastAlias-: Alias; aliases-: LONGINT;
+
+		PROCEDURE &InitAliasList*;
+		BEGIN
+			firstAlias := NIL; lastAlias := NIL;
+			aliases := 0;
+		END InitAliasList;
+
+		PROCEDURE AddAlias*(alias: Alias);
+		BEGIN
+			IF firstAlias = NIL THEN
+				firstAlias := alias;
+			ELSE
+				lastAlias.nextAlias := alias;
+			END;
+			lastAlias := alias; alias.nextAlias := NIL;
+			INC(aliases);
+		END AddAlias;
+
+		PROCEDURE Dump*(w: Streams.Writer);
+		VAR alias: Alias;
+		BEGIN
+			alias := firstAlias;
+			WHILE alias # NIL DO
+				w.String("alias "); w.Int(alias.offset,1); w.String(" <-- ");
+				alias.Dump(w);
+				w.Ln;
+				alias := alias.nextAlias;
+			END;
+		END Dump;
+
+	END AliasList;
+
 	Fixup*=OBJECT
 	VAR
 		nextFixup-: Fixup;
@@ -135,6 +193,7 @@ TYPE
 	VAR
 		labels-: LabelList; (* labels for tracking the PC / debugging *)
 		fixupList-: FixupList;
+		aliasList-: AliasList;
 		finally-: Unit; (* position of finally section in bitstream -1 if none *)
 		comments-: Sections.CommentWriter; (* writer to write comment text between instructions *)
 		bigEndian-: BOOLEAN; (* endianess of bits (not bytes) *)
@@ -169,6 +228,7 @@ TYPE
 			labels := NIL;
 			SELF.bigEndian := bigEndian;
 			NEW(fixupList);
+			NEW(aliasList);
 			validPAFEnter := 0; validPAFExit := 0;
 			pc := 0;
 			fixed := FALSE;
@@ -212,6 +272,12 @@ TYPE
 			SELF.pc := pc;
 			CheckSize(0); (* adjust size *)
 		END SetPC;
+
+		PROCEDURE Align*(alignment: Unit);
+		BEGIN
+			SetPC(pc + (-pc) MOD alignment)
+		END Align;
+
 
 		PROCEDURE SetFinally*(atPC: Unit);
 		BEGIN finally := atPC

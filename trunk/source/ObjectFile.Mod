@@ -77,7 +77,14 @@ TYPE
 		patch*: Patches;
 	END;
 
+	Alias*= RECORD
+		identifier*: Identifier;
+		offset-: Unit
+	END;
+
 	Fixups*=POINTER TO ARRAY OF Fixup;
+
+	Aliases*= POINTER TO ARRAY OF Alias;
 
 	Section* = RECORD
 		type*: SectionType;
@@ -88,6 +95,8 @@ TYPE
 		alignment*: Unit;
 		fixups-: LONGINT;
 		fixup-: Fixups;
+		aliases-: LONGINT;
+		alias-: Aliases;
 		bits*: BitSets.BitSet;
 	END;
 
@@ -281,6 +290,14 @@ VAR
 		CopyPatches(source.patches, source.patch, dest.patches, dest.patch);
 	END CopyFixup;
 
+	PROCEDURE CopyAlias*(CONST source: Alias; VAR dest: Alias);
+	VAR i: LONGINT;
+	BEGIN
+		CopyIdentifier(source.identifier, dest.identifier);
+		dest.offset := source.offset;
+	END CopyAlias;
+
+
 	PROCEDURE CopySection* (CONST source: Section; VAR dest: Section);
 	VAR i: LONGINT;
 	BEGIN
@@ -291,9 +308,14 @@ VAR
 		dest.alignment := source.alignment;
 		dest.priority := source.priority;
 		dest.fixups:= source.fixups;
+		dest.aliases := source.aliases;
 		NEW (dest.fixup, dest.fixups);
 		FOR i := 0 TO dest.fixups - 1 DO
 			CopyFixup(source.fixup[i], dest.fixup[i]);
+		END;
+		NEW (dest.alias, dest.aliases);
+		FOR i := 0 TO dest.aliases - 1 DO
+			CopyAlias(source.alias[i], dest.alias[i]);
 		END;
 		NEW (dest.bits, source.bits.GetSize ());
 		BitSets.CopyBits (source.bits, 0, dest.bits, 0, source.bits.GetSize ());
@@ -379,6 +401,14 @@ VAR
 			END;
 		END WriteFixup;
 
+		PROCEDURE WriteAlias (CONST alias: Alias);
+		VAR i: LONGINT;
+		BEGIN
+			WriteIdentifier(alias.identifier);
+			writer.Char (Separator);
+			writer.Int (alias.offset, 0);
+		END WriteAlias;
+
 		PROCEDURE Zeros(offset: LONGINT): LONGINT;
 		VAR zeros: LONGINT;
 		BEGIN
@@ -438,11 +468,16 @@ VAR
 		writer.Char (Separator);
 		writer.Int(section.priority, 0);
 		writer.Char (Separator);
+		writer.Int (section.aliases, 0);
+		writer.Char (Separator);
 		writer.Int (section.fixups, 0);
 		writer.Char (Separator);
 		size := section.bits.GetSize ();
 		writer.Int (size DIV section.unit, 1);
 		ASSERT(size MOD section.unit = 0);
+		FOR i := 0 TO section.aliases - 1 DO
+			writer.Ln; writer.Char (Tab); WriteAlias (section.alias[i]);
+		END;
 		FOR i := 0 TO section.fixups - 1 DO
 			writer.Ln; writer.Char (Tab); WriteFixup (section.fixup[i]);
 		END;
@@ -519,6 +554,13 @@ VAR
 			END;
 		END ReadFixup;
 
+		PROCEDURE ReadAlias (VAR alias: Alias);
+		VAR i: LONGINT;
+		BEGIN
+			reader.SkipWhitespace; ReadIdentifier (alias.identifier);
+			reader.SkipWhitespace; reader.Int(alias.offset,FALSE);
+		END ReadAlias;
+
 		PROCEDURE ReadSegment(): BOOLEAN;
 		VAR len,offset: LONGINT;
 		BEGIN
@@ -544,9 +586,16 @@ VAR
 		section.fixed := relocatibility = Fixed;
 		reader.SkipWhitespace; reader.Int (section.alignment, FALSE);
 		reader.SkipWhitespace; reader.Int (section.priority, FALSE);
+		reader.SkipWhitespace; reader.Int (section.aliases, FALSE);
 		reader.SkipWhitespace; reader.Int (section.fixups, FALSE);
 		reader.SkipWhitespace; reader.Int (size, FALSE); size := size * section.unit;
-		IF (section.fixup = NIL) OR (LEN (section.fixup) < section.fixups) THEN
+		IF (section.aliases > 0) & ((section.alias = NIL) OR (LEN (section.alias) < section.aliases)) THEN
+			NEW (section.alias, section.aliases);
+		END;
+		FOR i := 0 TO section.aliases - 1 DO
+			ReadAlias (section.alias[i]);
+		END;
+		IF (section.fixups > 0) & ((section.fixup = NIL) OR (LEN (section.fixup) < section.fixups)) THEN
 			NEW (section.fixup, section.fixups);
 		END;
 		FOR i := 0 TO section.fixups - 1 DO
@@ -624,6 +673,13 @@ VAR
 			END;
 		END WriteFixup;
 
+		PROCEDURE WriteAlias (CONST alias: Alias);
+		VAR i: LONGINT;
+		BEGIN
+			WriteIdentifier(alias.identifier);
+			writer.RawNum(alias.offset);
+		END WriteAlias;
+
 		PROCEDURE Zeros(offset: LONGINT): LONGINT;
 		VAR zeros: LONGINT;
 		BEGIN
@@ -685,17 +741,22 @@ VAR
 		IF section.fixed THEN WriteValueIdentifier(Fixed,relocatabilities) ELSE WriteValueIdentifier(Aligned,relocatabilities) END;
 		writer.RawNum (section.alignment);
 		writer.RawNum (section.priority);
+		writer.RawNum (section.aliases);
 		writer.RawNum (section.fixups);
 		size := section.bits.GetSize ();
 		writer.RawNum (size DIV section.unit);
 		INC(headerLen, writer.Pos()-pos); pos := writer.Pos();
 
 		ASSERT(size MOD section.unit = 0);
+		FOR i := 0 TO section.aliases - 1 DO
+			WriteAlias (section.alias[i]);
+		END;
+		pos := writer.Pos();
 		FOR i := 0 TO section.fixups - 1 DO
 			WriteFixup (section.fixup[i]);
 		END;
-
 		INC(fixupLen, writer.Pos()-pos); pos := writer.Pos();
+
 		(*
 		SegmentedNameToString(section.identifier.name, name); D.String(name); D.Ln;
 		*)
@@ -786,6 +847,13 @@ VAR
 			END;
 		END ReadFixup;
 
+		PROCEDURE ReadAlias (VAR alias: Alias);
+		VAR i: LONGINT;
+		BEGIN
+			ReadIdentifier (alias.identifier);
+			reader.RawNum (alias.offset);
+		END ReadAlias;
+
 		PROCEDURE ReadSegment(): BOOLEAN;
 		VAR len,offset,bits: LONGINT; c: CHAR;
 		BEGIN
@@ -813,9 +881,16 @@ VAR
 		section.fixed := relocatibility = Fixed;
 		reader.RawNum (section.alignment);
 		reader.RawNum (section.priority);
+		reader.RawNum (section.aliases);
 		reader.RawNum (section.fixups);
 		reader.RawNum (size); size := size * section.unit;
-		IF (section.fixup = NIL) OR (LEN (section.fixup) < section.fixups) THEN
+		IF (section.aliases > 0) &((section.alias = NIL) OR (LEN (section.alias) < section.aliases)) THEN
+			NEW (section.alias, section.aliases);
+		END;
+		FOR i := 0 TO section.aliases - 1 DO
+			ReadAlias (section.alias[i]);
+		END;
+		IF (section.fixups > 0) & ((section.fixup = NIL) OR (LEN (section.fixup) < section.fixups)) THEN
 			NEW (section.fixup, section.fixups);
 		END;
 		FOR i := 0 TO section.fixups - 1 DO
@@ -855,6 +930,12 @@ VAR
 		section.fixups := fixups;
 		section.fixup := fixup;
 	END SetFixups;
+
+	PROCEDURE SetAliases*(VAR section: Section; aliases: LONGINT; alias: Aliases);
+	BEGIN
+		section.aliases := aliases;
+		section.alias := alias;
+	END SetAliases;
 
 	PROCEDURE AddPatch*(VAR patches: LONGINT; VAR patch: Patches; disp, ofs: LONGINT);
 	VAR newPatch: Patches; newPatches:LONGINT; i: LONGINT;
@@ -963,6 +1044,27 @@ VAR
 		(* increase size and add *)
 		RETURN index;
 	END AddFixup;
+
+	PROCEDURE AddAlias*(VAR aliases: LONGINT; VAR alias: Aliases; CONST name: SegmentedName; fingerprint, offset: LONGINT): LONGINT;
+	VAR i: LONGINT; newAliases, index: LONGINT; newAlias: Aliases;
+	BEGIN
+		newAliases := aliases+1;
+		IF (alias = NIL) OR (LEN(alias) < newAliases) THEN
+			NEW(newAlias, MAX(2*newAliases,32));
+			FOR i := 0 TO aliases-1 DO
+				newAlias[i] := alias[i];
+				(*CopyAlias(alias[i], newAlias[i]);*)
+			END;
+			alias := newAlias;
+		END;
+		alias[aliases].identifier.name := name;
+		alias[aliases].identifier.fingerprint := fingerprint;
+		alias[aliases].offset := offset;
+		index := aliases;
+		aliases := newAliases;
+		(* increase size and add *)
+		RETURN index;
+	END AddAlias;
 
 	PROCEDURE StringToSegmentedName*(CONST name: ARRAY OF CHAR; VAR segmentedName: SegmentedName);
 	VAR i,j,segment: LONGINT; n: SectionName;

@@ -1,4 +1,4 @@
-MODULE GenericLinker;	(* AUTHOR "negelef"; PURPOSE "Generic Object File Linker"; *)
+ MODULE GenericLinker;	(* AUTHOR "negelef"; PURPOSE "Generic Object File Linker"; *)
 
 IMPORT ObjectFile, Streams, Diagnostics, Strings, StringPool;
 
@@ -36,6 +36,7 @@ END Arrangement;
 TYPE Block* = POINTER TO RECORD (ObjectFile.Section)
 	next: Block;
 	address*: Address;
+	aliasOf*: Block;
 	referenced, used: BOOLEAN;
 END;
 
@@ -112,7 +113,7 @@ VAR
 	END Precedes;
 
 	PROCEDURE AddSection* (CONST section: ObjectFile.Section);
-	VAR priority: Priority; block, current, previous: Block; name: ARRAY 256 OF CHAR;
+	VAR priority: Priority; block, current, previous,newBlock: Block; name: ARRAY 256 OF CHAR; i: LONGINT; alias: ObjectFile.Alias;
 	BEGIN
 		IF FindBlock (section.identifier) # NIL THEN ObjectFile.SegmentedNameToString(section.identifier.name,name); Error (name, "duplicated section"); RETURN; END;
 		NEW (block); ObjectFile.CopySection (section, block^); block.address := InvalidAddress; block.referenced := FALSE; block.used := FALSE;
@@ -120,6 +121,21 @@ VAR
 		WHILE (current # NIL) & ~Precedes(block,current) DO previous := current; current := current.next; END;
 		IF previous # NIL THEN previous.next := block; ELSE firstBlock := block; END; block.next := current;
 		ExportBlock(block);
+		current := block;
+		(* append all alias blocks after the block *)
+		FOR i := 0 TO block.aliases-1 DO
+			alias := block.alias[i];
+			NEW(newBlock);
+			newBlock.identifier := alias.identifier;
+			newBlock.address := alias.offset;
+			newBlock.aliasOf := block;
+			newBlock.used := block.used;
+			newBlock.next := current.next;
+			current.next := newBlock;
+			current := newBlock;
+			ExportBlock(current);
+		END;
+
 	END AddSection;
 
 	PROCEDURE Resolve*;
@@ -128,19 +144,49 @@ VAR
 		IF ~error THEN block := firstBlock;
 			WHILE block # firstLinkedBlock DO
 				ObjectFile.SegmentedNameToString(block.identifier.name, name);
-				used := (GetType (block) IN usedCategories) OR (linkRoot # "") & Strings.StartsWith(linkRoot,0,name);
+				used := (GetType (block) IN usedCategories) OR (linkRoot # "") & Strings.StartsWith(linkRoot,0,name) OR (block.aliases > 0);
 				Reference (block, used); block := block.next;
 			END;
 		END;
 	END Resolve;
 
+	(*
+	PROCEDURE Aliases*(CONST block: Block);
+	VAR newBlock: Block; alias: ObjectFile.Alias; i: LONGINT; name: ARRAY 256 OF CHAR;
+	BEGIN
+		FOR i := 0 TO block.aliases-1 DO
+			alias := block.alias[i];
+			NEW(newBlock);
+			newBlock.identifier := alias.identifier;
+			newBlock.address := alias.offset;
+			newBlock.aliasOf := block;
+			newBlock.used := block.used;
+			newBlock.next := firstBlock;
+			firstBlock := newBlock;
+		END;
+	END Aliases;
+	*)
+
+	PROCEDURE PatchAlias*(CONST block: Block);
+	VAR newBlock: Block; alias: ObjectFile.Alias; i: LONGINT; name: ARRAY 256 OF CHAR;
+	BEGIN
+		IF block.aliasOf # NIL THEN INC(block.address, block.aliasOf.address) END;
+	END PatchAlias;
+
 	PROCEDURE Link*;
 	VAR block: Block;
 	BEGIN
+		(*
+		IF ~error THEN block := firstBlock; WHILE block # firstLinkedBlock DO Aliases (block); block := block.next; END; END;
+		*)
 		Resolve;
-		IF ~error THEN block := firstBlock; WHILE block # firstLinkedBlock DO IF block.used THEN Prearrange (block); END; block := block.next; END; END;
-		IF ~error THEN block := firstBlock; WHILE block # firstLinkedBlock DO IF block.used THEN Arrange (block); END; block := block.next; END; END;
-		IF ~error THEN block := firstBlock; WHILE block # firstLinkedBlock DO IF block.used THEN Patch (block); END; block := block.next; END; END;
+
+		IF ~error THEN block := firstBlock; WHILE block # firstLinkedBlock DO IF block.used & (block.aliasOf=NIL) THEN Prearrange (block); END; block := block.next; END; END;
+		IF ~error THEN block := firstBlock; WHILE block # firstLinkedBlock DO IF block.used & (block.aliasOf=NIL) THEN Arrange (block); END; block := block.next; END; END;
+		IF ~error THEN block := firstBlock; WHILE block # firstLinkedBlock DO PatchAlias (block); block := block.next; END; END;
+
+
+		IF ~error THEN block := firstBlock; WHILE block # firstLinkedBlock DO IF block.used & (block.aliasOf = NIL) THEN Patch (block); END; block := block.next; END; END;
 		IF ~error THEN firstLinkedBlock := firstBlock; END;
 		IF ~error & (log # NIL) THEN block := firstBlock; WHILE block # NIL DO Diagnose (block); block := block.next; END; END;
 	END Link;

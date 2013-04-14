@@ -1753,7 +1753,7 @@ VAR
 	VAR i,j: LONGINT; string: ObjectFile.SectionName;
 	BEGIN
 		i := 0;
-		WHILE (i<LEN(name)) & (name[i] >= 0)  DO
+		WHILE (i<LEN(name)) & (name[i] > 0)  DO
 			INC(i)
 		END;
 		IF (this[0] = ".") & (i < LEN(name)) THEN (* suffix *)
@@ -1764,6 +1764,7 @@ VAR
 			END;
 			string[j] := 0X;
 			name[i] := StringPool.GetIndex1(string);
+			IF i<LEN(name)-1 THEN name[i+1] := -1 END;
 		ELSE
 			StringPool.GetString(name[i-1], string);
 			Strings.Append(string, this);
@@ -1776,7 +1777,7 @@ VAR
 	VAR string, suffix: ObjectFile.SectionName; i: LONGINT;
 	BEGIN
 		i := 0;
-		WHILE (i < LEN(name)) & (name[i] >=0) DO
+		WHILE (i < LEN(name)) & (name[i] >0) DO
 			INC(i);
 		END;
 		IF i < LEN(name) THEN (* suffix *)
