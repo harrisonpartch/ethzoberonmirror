@@ -319,6 +319,7 @@ TYPE
 				(* code section for variable *)
 				Global.GetSymbolSegmentedName(x,name);
 				irv := implementationVisitor.NewSection(module.allSections, Sections.VarSection, name,x,dump);
+				irv.SetExported(IsExported(x));
 				irv.SetPositionOrAlignment(x.fixed, x.alignment);
 				irv.SetOffset(ToMemoryUnits(system,x.offsetInBits));
 				irv.Emit(Reserve(x.position,ToMemoryUnits(system,system.SizeOf(x.type))));
@@ -495,6 +496,7 @@ TYPE
 			IF (scope.body # NIL) & (x.isInline)  THEN
 				inline := TRUE;
 				ir := implementationVisitor.NewSection(module.allSections, Sections.InlineCodeSection, name,x,dump);
+				ir.SetExported(IsExported(x));
 			ELSIF (x.scope # NIL) & (x.scope IS SyntaxTree.CellScope) & (x.scope(SyntaxTree.CellScope).ownerCell.isCellNet)
 				OR (x.scope # NIL) & (x.scope IS SyntaxTree.ModuleScope) & (x.scope(SyntaxTree.ModuleScope).ownerModule.isCellNet) THEN
 					(* assembly *)
@@ -503,6 +505,7 @@ TYPE
 				inline := FALSE;
 				AddBodyCallStub(x);
 				ir := implementationVisitor.NewSection(module.allSections, Sections.BodyCodeSection, name,x,dump);
+				ir.SetExported(IsExported(x));
 			ELSIF (scope.outerScope IS SyntaxTree.CellScope) & (x = scope.outerScope(SyntaxTree.CellScope).bodyProcedure) THEN
 				inline := FALSE;
 				actorType := scope.outerScope(SyntaxTree.CellScope).ownerCell;
@@ -510,17 +513,21 @@ TYPE
 				AddBodyCallStub(x);
 				AddStackAllocation(x,stackSize);
 				ir := implementationVisitor.NewSection(module.allSections,Sections.BodyCodeSection, name,x,dump);
+				ir.SetExported(IsExported(x));
 			ELSIF (scope.outerScope IS SyntaxTree.CellScope) & (x.isConstructor) THEN
 				inline := FALSE;
 				Parameters(procedureType.firstParameter);
 				ir := implementationVisitor.NewSection(module.allSections, Sections.CodeSection, name,x,dump);
+				ir.SetExported(IsExported(x));
 			ELSE
 				inline := FALSE;
 				IF x.isEntry OR x.isExit THEN
 					ir := implementationVisitor.NewSection(module.allSections, Sections.InitCodeSection, name,x,dump);
+					ir.SetExported(TRUE);
 					IF x.isEntry THEN ir.SetPriority(EntryPriority) ELSE ir.SetPriority(ExitPriority) END;
 				ELSE
 					ir := implementationVisitor.NewSection(module.allSections, Sections.CodeSection, name,x,dump);
+					ir.SetExported(IsExported(x) OR SemanticChecker.InMethodTable(x));
 				END;
 			END;
 
@@ -660,6 +667,7 @@ TYPE
 			procedure.SetAccess(SyntaxTree.Hidden);
 			Global.GetSymbolSegmentedName (procedure,name);
 			ir := implementationVisitor.NewSection(module.allSections, Sections.InitCodeSection, name,procedure,dump);
+			ir.SetExported(TRUE);
 			ir.SetPriority(InitPriority);
 			Global.GetSymbolSegmentedName (bodyProcedure,name);
 			IntermediateCode.InitAddress(op, addressType, name, implementationVisitor.GetFingerprint(bodyProcedure), 0);
@@ -674,6 +682,7 @@ TYPE
 			Basic.RemoveSuffix(name);
 			Basic.SuffixSegmentedName(name, Basic.MakeString("@StackAllocation"));
 			ir := implementationVisitor.NewSection(module.allSections,Sections.InitCodeSection,name,NIL,dump);
+			ir.SetExported(TRUE);
 			ir.SetPriority(FirstPriority);
 			IntermediateCode.InitImmediate(op,addressType,initStack);
 			ir.Emit(Mov(-1,implementationVisitor.sp,op));
@@ -741,6 +750,7 @@ TYPE
 				moduleSelf.SetScope(x.moduleScope);
 				moduleSelf.SetUntraced(TRUE);
 				ir := implementationVisitor.NewSection(module.allSections, Sections.ConstSection, name,moduleSelf,dump);  ir.SetOffset(0);
+				ir.SetExported(TRUE);
 				IntermediateCode.InitImmediate(op,addressType,0);
 				ir.Emit(Data(-1,op));
 			END;
@@ -1093,12 +1103,14 @@ TYPE
 		END Init;
 
 		PROCEDURE NewSection(list: Sections.SectionList; type: SHORTINT; CONST name: Basic.SegmentedName; syntaxTreeSymbol: SyntaxTree.Symbol; dump: BOOLEAN): IntermediateCode.Section;
-		VAR fp: SyntaxTree.FingerPrint;
+		VAR fp: SyntaxTree.FingerPrint; section: IntermediateCode.Section;
 		BEGIN
 			IF (syntaxTreeSymbol # NIL) & ~((syntaxTreeSymbol IS SyntaxTree.Procedure) & (syntaxTreeSymbol(SyntaxTree.Procedure).isInline)) THEN
 				fp := fingerPrinter.SymbolFP(syntaxTreeSymbol)
 			END;
-			RETURN IntermediateCode.NewSection(list, type, name, syntaxTreeSymbol, dump)
+			section := IntermediateCode.NewSection(list, type, name, syntaxTreeSymbol, dump);
+			section.SetExported(IsExported(syntaxTreeSymbol));
+			RETURN section
 		END NewSection;
 
 		PROCEDURE AcquireRegister(CONST type: IntermediateCode.Type; class: IntermediateCode.RegisterClass): LONGINT;
@@ -9208,6 +9220,7 @@ TYPE
 			Strings.Append(name,".@Module");
 			Basic.ToSegmentedName(name, pooledName);
 			moduleSection := IntermediateCode.NewSection(module.allSections, Sections.ConstSection, pooledName,NIL,TRUE);
+			moduleSection.SetExported(TRUE);
 			IF moduleSection.pc = 0 THEN
 				ProtectedHeapBlock("Heaps","ProtRecBlockDesc",moduleSection,2);
 				Info(moduleSection, "HeapBlock");
@@ -9452,6 +9465,7 @@ TYPE
 			BEGIN
 					Global.GetSymbolSegmentedName(td,name);
 					source := IntermediateCode.NewSection(module.allSections, Sections.ConstSection, name,td,implementationVisitor.dump # NIL);
+					source.SetExported(IsExported(td));
 
 					IF ~simple THEN
 						(*
@@ -10419,6 +10433,12 @@ TYPE
 
 
 	END Init;
+
+	PROCEDURE IsExported(symbol: SyntaxTree.Symbol): BOOLEAN;
+	BEGIN
+		RETURN (symbol # NIL) & (symbol.access * SyntaxTree.Public # {})
+	END IsExported;
+
 
 
 BEGIN

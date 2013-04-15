@@ -141,10 +141,13 @@ TYPE
 		instructions-: Instructions; (* array of instructions *)
 		pc-: LONGINT; (* points to next instruction = len *)
 		finally-: LONGINT; (* finally section starts at, -1 if none *)
-		resolved-: BinaryCode.Section; (* reference to section containing compiled byte array *) (* TODO: ret rid of that? *)
+		resolved-, alias-: BinaryCode.Section; (* reference to section containing compiled byte array *) (* TODO: ret rid of that? *)
+		aliasOffset-: LONGINT; (* for aliases *)
+
 		comments-: Sections.CommentWriter;
 		validPAFEnter-,validPAFExit-: LONGINT; (* begin and end of code section where current PAF (procedure activation frame) is considered valid *)
 		sizeInUnits: LONGINT;
+		exported-: BOOLEAN;
 
 		PROCEDURE GetPC(): LONGINT;
 		BEGIN RETURN pc
@@ -156,8 +159,15 @@ TYPE
 			IF comment THEN NEW(comments,GetPC) ELSE comments := NIL END;
 			finally := -1;
 			validPAFEnter := 0; validPAFExit := 0;
-			sizeInUnits := NotYetCalculatedSize
+			sizeInUnits := NotYetCalculatedSize;
+			exported := FALSE;
 		END InitIntermediateSection;
+
+		PROCEDURE SetExported*(e: BOOLEAN);
+		BEGIN
+			exported := e
+		END SetExported;
+
 
 		PROCEDURE EnableComments*(enabled: BOOLEAN);
 		BEGIN
@@ -181,6 +191,12 @@ TYPE
 		PROCEDURE SetResolved*(section: BinaryCode.Section);
 		BEGIN resolved := section
 		END SetResolved;
+
+		PROCEDURE SetAlias*(section: BinaryCode.Section; offset: LONGINT);
+		BEGIN
+			alias := section; aliasOffset := offset;
+		END SetAlias;
+
 
 		PROCEDURE SetFinally*(atPc: LONGINT);
 		BEGIN finally := atPc

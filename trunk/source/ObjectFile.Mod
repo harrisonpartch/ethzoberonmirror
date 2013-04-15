@@ -239,9 +239,21 @@ VAR
 	modes: ARRAY 2 OF ARRAY 4 OF CHAR;
 	relocatabilities: ARRAY 2 OF ARRAY 8 OF CHAR;
 
-	headerLen, codeLen, fixupLen: LONGINT;
-	statSections: LONGINT; statFixups: LONGINT;
-	statSegments: LONGINT;
+
+
+	statHeaders, statHeadersSize: LONGINT;
+	statFixups, statFixupsSize, statFixupPatterns, statFixupPatches: LONGINT;
+	statAliases, statAliasesSize: LONGINT;
+	statSegments, statSegmentsSize: LONGINT;
+
+	statCodeSections, statCodeSectionsSize: LONGINT;
+	statDataSections, statDataSectionsSize: LONGINT;
+	statConstSections, statConstSectionsSize: LONGINT;
+	statInitSections, statInitSectionsSize: LONGINT;
+	statBodySections, statBodySectionsSize: LONGINT;
+
+	statSections, statSectionsTotalSize: LONGINT;
+
 
 	PROCEDURE IsCode* (type: SectionType): BOOLEAN;
 	BEGIN RETURN (type IN {InitCode, BodyCode, Code})
@@ -629,6 +641,7 @@ VAR
 		BEGIN
 			writer.RawNum (pattern.offset);
 			writer.RawNum (pattern.bits);
+			INC(statFixupPatterns);
 		END WriteFixupPattern;
 
 		PROCEDURE WriteIdentifier(CONST identifier: Identifier);
@@ -658,6 +671,7 @@ VAR
 		BEGIN
 			writer.RawNum (patch.displacement);
 			writer.RawNum (patch.offset);
+			INC(statFixupPatches);
 		END WritePatch;
 
 		PROCEDURE WriteFixup (CONST fixup: Fixup);
@@ -711,9 +725,9 @@ VAR
 		END GetSegment;
 
 		PROCEDURE WriteSegment(offset,len: LONGINT); (* offset in bits *)
-		VAR bits: LONGINT; first: BOOLEAN;
+		VAR bits: LONGINT; first: BOOLEAN; pos: LONGINT;
 		BEGIN
-			INC(statSegments);
+			pos := writer.Pos();
 			ASSERT(len > 0);
 			ASSERT(len MOD ByteSize = 0); ASSERT(offset MOD ByteSize = 0);
 			len := len DIV ByteSize;
@@ -723,15 +737,13 @@ VAR
 				INC(offset, ByteSize);
 				DEC(len);
 				writer.Char(CHR(bits));
-				(*
-				writer.RawLInt(bits);
-				*)
 			END;
+			INC(statSegments); INC(statSegmentsSize, writer.Pos()-pos);
 		END WriteSegment;
 
 
 	BEGIN
-		INC(statSections);
+		(* header *)
 		pos := writer.Pos();
 		IF section.type > Const THEN RETURN END; (* ignore exotic sections *)
 		writer.Char(1X);
@@ -745,29 +757,41 @@ VAR
 		writer.RawNum (section.fixups);
 		size := section.bits.GetSize ();
 		writer.RawNum (size DIV section.unit);
-		INC(headerLen, writer.Pos()-pos); pos := writer.Pos();
+		INC(statHeaders);
+		INC(statHeadersSize, writer.Pos()-pos);
 
+		(* aliases *)
+		pos := writer.Pos();
 		ASSERT(size MOD section.unit = 0);
 		FOR i := 0 TO section.aliases - 1 DO
 			WriteAlias (section.alias[i]);
 		END;
+		INC(statAliases, section.aliases);
+		INC(statAliasesSize, writer.Pos()-pos);
+
+		(* fixups *)
 		pos := writer.Pos();
 		FOR i := 0 TO section.fixups - 1 DO
 			WriteFixup (section.fixup[i]);
 		END;
-		INC(fixupLen, writer.Pos()-pos); pos := writer.Pos();
+		INC(statFixups, section.fixups);
+		INC(statFixupsSize, writer.Pos()-pos);
 
-		(*
-		SegmentedNameToString(section.identifier.name, name); D.String(name); D.Ln;
-		*)
+		(* code / data *)
+		pos := writer.Pos();
 		offset := 0;
 		WHILE GetSegment(offset, start, len) DO
-			(*D.Int(len,1); D.String(", "); D.Int(start,1); D.Ln;*)
 			WriteSegment(start, len);
 		END;
 		writer.RawNum(0);
-
-		INC(codeLen, writer.Pos()-pos);
+		CASE section.type OF
+			InitCode:  INC(statInitSections); INC(statInitSectionsSize, writer.Pos()-pos);
+			|BodyCode: INC(statBodySections); INC(statBodySectionsSize, writer.Pos()-pos);
+			|Code: INC(statCodeSections); INC(statCodeSectionsSize, writer.Pos()-pos);
+			|Data: INC(statDataSections); INC(statDataSectionsSize, writer.Pos()-pos);
+			|Const: INC(statConstSections); INC(statConstSectionsSize, writer.Pos()-pos);
+		ELSE (* ignored *)
+		END;
 	END WriteSectionBinary;
 
 	PROCEDURE ReadSectionBinary (reader: Streams.Reader; VAR section: Section; poolMap: PoolMap);
@@ -917,12 +941,15 @@ VAR
 	END ReadSection;
 
 	PROCEDURE WriteSection*(writer: Streams.Writer; CONST section: Section; binary: BOOLEAN; poolMap: PoolMap);
+	VAR pos: LONGINT;
 	BEGIN
+		pos := writer.Pos();
 		IF binary THEN
 			WriteSectionBinary(writer,section, poolMap)
 		ELSE
 			WriteSectionTextual(writer,section)
-		END
+		END;
+		INC(statSections); INC(statSectionsTotalSize, writer.Pos()-pos);
 	END WriteSection;
 
 	PROCEDURE SetFixups*(VAR section: Section; fixups: LONGINT; fixup: Fixups);
@@ -1178,10 +1205,38 @@ VAR
 	END "#";
 
 	PROCEDURE Statistics*;
+	VAR sections: LONGINT; sectionsContentSize: LONGINT;
 	BEGIN
-		TRACE(headerLen); TRACE(fixupLen); TRACE(codeLen);
-		TRACE(statSections); TRACE(statFixups); TRACE(statSegments);
+		TRACE(statHeaders, statHeadersSize);
+		TRACE(statFixups, statFixupsSize, statFixupPatterns, statFixupPatches);
+		TRACE(statAliases, statAliasesSize);
+		TRACE(statSegments, statSegmentsSize, statSegmentsSize DIV MAX(1,statSegments));
+
+		TRACE(statCodeSections, statCodeSectionsSize);
+		TRACE(statDataSections, statDataSectionsSize);
+		TRACE(statConstSections, statConstSectionsSize);
+		TRACE(statInitSections, statInitSectionsSize);
+		TRACE(statBodySections, statBodySectionsSize);
+		sections := statCodeSections + statDataSections + statConstSections + statInitSections + statBodySections;
+		sectionsContentSize := statCodeSectionsSize + statDataSectionsSize + statConstSectionsSize + statInitSectionsSize + statBodySectionsSize;
+		TRACE(sections, sectionsContentSize);
+		TRACE(statSections, statSectionsTotalSize);
 	END Statistics;
+
+	PROCEDURE ResetStatistics*;
+	BEGIN
+		statHeaders := 0; statHeadersSize := 0;
+		statFixups := 0; statFixupsSize := 0; statFixupPatterns := 0; statFixupPatches := 0;
+		statAliases := 0; statAliasesSize := 0;
+		statSegments := 0; statSegmentsSize := 0;
+		statCodeSections := 0; statCodeSectionsSize := 0;
+		statDataSections := 0; statDataSectionsSize := 0;
+		statConstSections := 0; statConstSectionsSize := 0;
+		statInitSections := 0; statInitSectionsSize := 0;
+		statBodySections := 0; statBodySectionsSize := 0;
+		statSections := 0; statSectionsTotalSize := 0;
+	END ResetStatistics;
+
 
 BEGIN
 	categories[Code] := "code";
@@ -1193,6 +1248,7 @@ BEGIN
 	modes[Relative] := "rel";
 	relocatabilities[Fixed] := "fixed";
 	relocatabilities[Aligned] := "aligned";
+	ResetStatistics;
 END ObjectFile.
 
 

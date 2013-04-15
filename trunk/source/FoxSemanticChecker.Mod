@@ -896,7 +896,7 @@ TYPE
 						procedure := symbol(SyntaxTree.Procedure);
 						IF procedure.super # NIL THEN
 							procedure.SetMethodNumber(procedure.super.methodNumber)
-						ELSE (*ELSIF ~procedure.isFinal THEN (* not a static method *)*)
+						ELSIF InMethodTable(procedure) THEN (* not a static method *)
 							procedure.SetMethodNumber(numberMethods);
 							INC(numberMethods);
 						END;
@@ -9160,7 +9160,6 @@ TYPE
 			OR (expression IS SyntaxTree.StatementDesignator) & HasAddress(expression(SyntaxTree.StatementDesignator).result);
 	END HasAddress;
 
-
 	PROCEDURE IsStaticProcedure*(procedure: SyntaxTree.Procedure): BOOLEAN;
 	BEGIN
 		IF procedure.scope IS SyntaxTree.RecordScope THEN
@@ -9170,5 +9169,10 @@ TYPE
 		END;
 	END IsStaticProcedure;
 
+	PROCEDURE InMethodTable*(procedure: SyntaxTree.Procedure): BOOLEAN;
+	CONST OptimizeMethodTable = FALSE;
+	BEGIN
+		RETURN ~OptimizeMethodTable OR IsStaticProcedure(procedure)
+	END InMethodTable;
 
 END FoxSemanticChecker.
