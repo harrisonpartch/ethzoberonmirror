@@ -7,7 +7,7 @@ IMPORT
 CONST
 	ScreenDPI = 71;
 	Debug = FALSE;
-	PersistentFontCache=TRUE;
+	PersistentFontCache=FALSE;
 
 TYPE
 	Glyph*  = RECORD
@@ -37,7 +37,6 @@ TYPE
 		glyph : OpenType.Glyph;
 		inCache, outCache: POINTER TO ARRAY OF CHAR; (* caches for antialiasing algorithm to avoid excessive allocation *)
 		ras: OpenTypeScan.Rasterizer;
-
 
 		PROCEDURE &Init*;
 		VAR mode : Raster.Mode; pix : Raster.Pixel;
@@ -231,8 +230,16 @@ TYPE
 		VAR i: LONGINT;
 		BEGIN
 			IF glyphRanges[gri].glyphs = NIL THEN
-				NEW(glyphRanges[gri].glyphs, glyphRanges[gri].lastCode - glyphRanges[gri].firstCode + 1)
+				NEW(glyphRanges[gri].glyphs, glyphRanges[gri].lastCode - glyphRanges[gri].firstCode + 1);
+				FOR i := glyphRanges[gri].firstCode TO glyphRanges[gri].lastCode DO
+					glyphRanges[gri].glyphs[i - glyphRanges[gri].firstCode].code := -1;
+				END;
 			END;
+
+			(* epxeriment *)
+			glyphRanges[gri].loaded := TRUE;
+			RETURN;
+
 
 			IF ~PersistentFontCache OR ~TryCacheFile(gri) THEN
 				FOR i := glyphRanges[gri].firstCode TO glyphRanges[gri].lastCode DO
@@ -266,7 +273,11 @@ TYPE
 		VAR gri : LONGINT;
 		BEGIN
 			IF FindGlyphRange(code, gri) THEN
-				glyph := glyphRanges[gri].glyphs[code - glyphRanges[gri].firstCode]; RETURN TRUE
+				IF glyphRanges[gri].glyphs[code - glyphRanges[gri].firstCode].code # code THEN
+					ReadGlyph(code, glyphRanges[gri].glyphs[code - glyphRanges[gri].firstCode])
+				END;
+				glyph := glyphRanges[gri].glyphs[code - glyphRanges[gri].firstCode];
+				RETURN TRUE
 			ELSE RETURN FALSE
 			END
 		END FindGlyph;
@@ -286,6 +297,7 @@ TYPE
 			data : OpenTypeFonts.RasterData;
 			p1 : Raster.Pixel;
 			mode : Raster.Mode;
+			obuf: POINTER TO ARRAY OF CHAR;
 		BEGIN
 			Raster.SetRGBA(p1, 0, 0, 0, 255);
 			Raster.InitMode(mode, Raster.srcCopy);
@@ -298,6 +310,7 @@ TYPE
 			g.y := glyph.hby;														(* horizontal bearing y *)
 			g.w := glyph.rw;														(* image width *)
 			g.h := glyph.rh;														(* image height *)
+			g.code := code;
 
 
 			IF glyph.rw * glyph.rh # 0 THEN
@@ -311,18 +324,30 @@ TYPE
 
 				xw := ((glyph.rw + 7) DIV 8) * 8;
 				l := xw * glyph.rh DIV 8;
+
+				IF (outCache = NIL) OR (LEN(outCache) < xw) THEN NEW(outCache, xw) END; obuf := outCache;
+
+
 				IF xw *  glyph.rh > 0 THEN
-					NEW(g.img); Raster.Create(g.img, xw, glyph.rh, Raster.A8);
+					NEW(g.img);
+					Raster.Create(g.img, xw, glyph.rh, Raster.A8);
+
 					pos := 0; k := 0;
 					WHILE l > 0 DO
 						ch := Pattern[k]; bits := ORD(ch); DEC(l); INC(k);
 						FOR b := 0 TO 7 DO
-							IF bit[ORD(ch), b]  THEN
-								IF pos MOD xw < glyph.rw THEN
-									Raster.Put(g.img, pos MOD xw, glyph.rh - pos DIV xw - 1, p1, mode);
-								END
+							IF (pos MOD xw < glyph.rw) & bit[ORD(ch), b] THEN
+								obuf[pos MOD xw] := 0FFX;
+							ELSE
+								obuf[pos MOD xw] := 0X;
+								(*
+								Raster.Put(g.img, pos MOD xw, glyph.rh - pos DIV xw - 1, p1, mode);
+								*)
 							END;
-							INC(pos)
+							INC(pos);
+							IF pos MOD xw = 0 THEN
+								Raster.PutPixels(g.img, 0, glyph.rh - (pos-1) DIV xw - 1, xw, Raster.A8, obuf^, 0, mode);
+							END;
 						END
 					END;
 
