@@ -5,7 +5,7 @@
 MODULE PNGDecoder; (** AUTHOR "TF"; PURPOSE "PNG decoder"; *)
 
 IMPORT
-	 SYSTEM, KernelLog, CRC, Raster, Streams, Inflate, WMGraphics, Codecs;
+	 SYSTEM, KernelLog, CRC, Raster, Streams, Inflate, WMGraphics, Codecs, Kernel;
 
 CONST
 	BufSize = 4096 * 8; Trace = FALSE;
@@ -134,12 +134,13 @@ TYPE
 		VAR x, y, cp : LONGINT;
 			filter, ls : LONGINT;
 			p : ADDRESS;
-			c, r, g, b, a, dummy : CHAR;
+			c, dummy : CHAR;
 			prior, current, temp : POINTER TO ARRAY OF CHAR;
 			currentByte : CHAR;
 			bitPos : LONGINT;
 			lastRowStart : ADDRESS;
-			len : LONGINT;
+			len,time,t1,t2 : LONGINT;
+			color: RECORD b,g,r,a: CHAR END;
 
 			PROCEDURE GetNextBit() : LONGINT;
 			BEGIN
@@ -162,20 +163,11 @@ TYPE
 				RETURN ORD(LSH(currentByte, bitPos-8)) MOD 16
 			END GetNext4Bits;
 
-			PROCEDURE PaethPredictor(a, b, c : LONGINT) : CHAR;
-			VAR p, pa, pb, pc:LONGINT;
-			BEGIN
-				p := a + b - c; pa := ABS(p - a); pb := ABS(p - b); pc := ABS(p - c);
-				IF (pa <= pb) & (pa <= pc) THEN RETURN CHR(a)
-				ELSIF (pb <= pc) THEN RETURN CHR(b)
-				ELSE RETURN CHR(c)
-				END
-			END PaethPredictor;
 
 			PROCEDURE GetNextFilterByte() : CHAR;
 			VAR result:CHAR;
 					t1, t2:LONGINT; f: LONGINT;
-					
+
 			BEGIN
 				CASE filter OF
 					| 0 : result := current[cp]
@@ -193,10 +185,12 @@ TYPE
 			END GetNextFilterByte;
 
 		BEGIN
+			time := Kernel.GetTicks();
 			bitPos := 0;
 			p := pic.adr;
 			IF Trace THEN KernelLog.String("bpp:"); KernelLog.Int(bpp, 8); KernelLog.Ln; END;
 			ls := GetLineSize(hdr.width); NEW(prior, ls + bpp); NEW(current, ls + bpp);
+
 
 			IF hdr.interlaceMethod = 0 THEN
 				FOR y := 0 TO hdr.height - 1 DO
@@ -220,14 +214,64 @@ TYPE
 								SYSTEM.PUT8(p, c); INC(p);
 							END
 						|2:(* color type 2 rgb *)
+							IF (hdr.bitDepth # 16) THEN
+							CASE filter OF
+							0:
+								FOR x:=0 TO hdr.width-1 DO
+									color.r := CHR(ORD(current[cp])); INC(cp);
+									color.g := CHR(ORD(current[cp])); INC(cp);
+									color.b := CHR(ORD(current[cp])); INC(cp);
+									SYSTEM.PUT8(p, color.b); INC(p);
+									SYSTEM.PUT8(p, color.g); INC(p);
+									SYSTEM.PUT8(p, color.r); INC(p);
+								END;
+							|1:
+								FOR x:=0 TO hdr.width-1 DO
+									color.r := CHR(ORD(current[cp])+ORD(current[cp-bpp])); current[cp] := color.r; INC(cp);
+									color.g := CHR(ORD(current[cp])+ORD(current[cp-bpp])); current[cp] :=color.g; INC(cp);
+									color.b := CHR(ORD(current[cp])+ORD(current[cp-bpp])); current[cp] := color.b; INC(cp);
+									SYSTEM.PUT8(p, color.b); INC(p);
+									SYSTEM.PUT8(p, color.g); INC(p);
+									SYSTEM.PUT8(p, color.r); INC(p);
+								END;
+							|2:
+								FOR x:=0 TO hdr.width-1 DO
+									color.r := CHR(ORD(current[cp])+ORD(prior[cp])); current[cp] := color.r; INC(cp);
+									color.g := CHR(ORD(current[cp])+ORD(prior[cp])); current[cp] := color.g;INC(cp);
+									color.b := CHR(ORD(current[cp])+ORD(prior[cp])); current[cp] := color.b;INC(cp);
+									SYSTEM.PUT8(p, color.b); INC(p);
+									SYSTEM.PUT8(p, color.g); INC(p);
+									SYSTEM.PUT8(p, color.r); INC(p);
+								END;
+							|3:
+								FOR x:=0 TO hdr.width-1 DO
+									t1 := ORD(current[cp-bpp]); t2 := ORD(prior[cp]); color.r:=CHR(ORD(current[cp])+(t1+t2) DIV 2); current[cp] := color.r;INC(cp);
+									t1 := ORD(current[cp-bpp]); t2 := ORD(prior[cp]); color.g:=CHR(ORD(current[cp])+(t1+t2) DIV 2); current[cp] := color.g;INC(cp);
+									t1 := ORD(current[cp-bpp]); t2 := ORD(prior[cp]); color.b:=CHR(ORD(current[cp])+(t1+t2) DIV 2); current[cp] := color.b;INC(cp);
+									SYSTEM.PUT8(p, color.b); INC(p);
+									SYSTEM.PUT8(p, color.g); INC(p);
+									SYSTEM.PUT8(p, color.r); INC(p);
+								END;
+							|4:
+								FOR x:=0 TO hdr.width-1 DO
+									color.r := CHR(ORD(current[cp])+	ORD(PaethPredictor(ORD(current[cp-bpp]), ORD(prior[cp]), ORD(prior[cp-bpp])))); current[cp] := color.r;INC(cp);
+									color.g := CHR(ORD(current[cp])+ORD(PaethPredictor(ORD(current[cp-bpp]), ORD(prior[cp]), ORD(prior[cp-bpp])))); current[cp] := color.g;INC(cp);
+									color.b := CHR(ORD(current[cp])+ORD(PaethPredictor(ORD(current[cp-bpp]), ORD(prior[cp]), ORD(prior[cp-bpp])))); current[cp] := color.b;INC(cp);
+									SYSTEM.PUT8(p, color.b); INC(p);
+									SYSTEM.PUT8(p, color.g); INC(p);
+									SYSTEM.PUT8(p, color.r); INC(p);
+								END;
+							END;
+							ELSE
 								FOR x := 0 TO hdr.width-1 DO
-									r := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-									g := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-									b := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-									SYSTEM.PUT8(p, b); INC(p);
-									SYSTEM.PUT8(p, g); INC(p);
-									SYSTEM.PUT8(p, r); INC(p);
+									color.r := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
+									color.g := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
+									color.b := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
+									SYSTEM.PUT8(p, color.b); INC(p);
+									SYSTEM.PUT8(p, color.g); INC(p);
+									SYSTEM.PUT8(p, color.r); INC(p);
 							END
+							END;
 						|3: (* color type 3 *)
 								FOR x:=0 TO hdr.width -1 DO
 									CASE hdr.bitDepth OF
@@ -241,43 +285,102 @@ TYPE
 						|4:(* color type 4 grayscale + alpha *)
 									FOR x:=0 TO hdr.width-1 DO
 										c := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-										a := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-										c := CHR(ORD(c) * ORD(a) DIV 256);
+										color.a := GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
+										c := CHR(ORD(c) * ORD(color.a) DIV 256);
 										SYSTEM.PUT8(p, c); INC(p);
 										SYSTEM.PUT8(p, c); INC(p);
 										SYSTEM.PUT8(p, c); INC(p);
-										SYSTEM.PUT8(p, a); INC(p)
+										SYSTEM.PUT8(p, color.a); INC(p)
 									END;
 						|6:(* color type 6 rgb + alpha *)
-							IF (filter = 0) & (hdr.bitDepth # 16) THEN
-								FOR x:=0 TO hdr.width-1 DO
-									r := current[cp]; INC(cp);
-									g := current[cp]; INC(cp);
-									b := current[cp]; INC(cp);
-									a := current[cp]; INC(cp);
-									IF ORD(a) = 255 THEN
-										SYSTEM.PUT8(p,b); INC(p);
-										SYSTEM.PUT8(p,g); INC(p);
-										SYSTEM.PUT8(p,r); INC(p);
-										SYSTEM.PUT8(p,a); INC(p);
+							IF (hdr.bitDepth # 16) THEN
+							CASE filter OF
+							0:	FOR x:=0 TO hdr.width-1 DO
+									color.r := CHR(ORD(current[cp])); INC(cp);
+									color.g := CHR(ORD(current[cp])); INC(cp);
+									color.b := CHR(ORD(current[cp])); INC(cp);
+									color.a := CHR(ORD(current[cp])); INC(cp);
+									(*SYSTEM.GET(SYSTEM.ADR(current[cp]), SYSTEM.VAL(LONGINT, color)); INC(cp,4);*)
+									IF ORD(color.a) = 255 THEN
+										SYSTEM.PUT32(p,SYSTEM.VAL(LONGINT,color)); INC(p,4);
 									ELSE
-										SYSTEM.PUT8(p, CHR(ORD(b)*ORD(a) DIV 256)); INC(p);
-										SYSTEM.PUT8(p, CHR(ORD(g)*ORD(a) DIV 256)); INC(p);
-										SYSTEM.PUT8(p, CHR(ORD(r)*ORD(a) DIV 256)); INC(p);
-										SYSTEM.PUT8(p, a); INC(p)
+										SYSTEM.PUT8(p, CHR(ORD(color.b)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.g)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.r)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, color.a); INC(p)
 									END;
 								END;
-							ELSE
-
+							|1:
 								FOR x:=0 TO hdr.width-1 DO
-									r:=GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-									g:=GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-									b:=GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-									a:=GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
-									SYSTEM.PUT8(p, CHR(ORD(b)*ORD(a) DIV 256)); INC(p);
-									SYSTEM.PUT8(p, CHR(ORD(g)*ORD(a) DIV 256)); INC(p);
-									SYSTEM.PUT8(p, CHR(ORD(r)*ORD(a) DIV 256)); INC(p);
-									SYSTEM.PUT8(p, a); INC(p)
+									color.r := CHR(ORD(current[cp])+ORD(current[cp-bpp])); current[cp] := color.r; INC(cp);
+									color.g := CHR(ORD(current[cp])+ORD(current[cp-bpp])); current[cp] :=color.g; INC(cp);
+									color.b := CHR(ORD(current[cp])+ORD(current[cp-bpp])); current[cp] := color.b; INC(cp);
+									color.a := CHR(ORD(current[cp])+ORD(current[cp-bpp])); current[cp] := color.a; INC(cp);
+									IF ORD(color.a) = 255 THEN
+										SYSTEM.PUT32(p,SYSTEM.VAL(LONGINT,color)); INC(p,4);
+									ELSE
+										SYSTEM.PUT8(p, CHR(ORD(color.b)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.g)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.r)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, color.a); INC(p)
+									END;
+								END;
+							|2:
+								FOR x:=0 TO hdr.width-1 DO
+									color.r := CHR(ORD(current[cp])+ORD(prior[cp])); current[cp] := color.r; INC(cp);
+									color.g := CHR(ORD(current[cp])+ORD(prior[cp])); current[cp] := color.g;INC(cp);
+									color.b := CHR(ORD(current[cp])+ORD(prior[cp])); current[cp] := color.b;INC(cp);
+									color.a := CHR(ORD(current[cp])+ORD(prior[cp])); current[cp] := color.a;INC(cp);
+									IF ORD(color.a) = 255 THEN
+										SYSTEM.PUT32(p,SYSTEM.VAL(LONGINT,color)); INC(p,4);
+									ELSE
+										SYSTEM.PUT8(p, CHR(ORD(color.b)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.g)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.r)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, color.a); INC(p)
+									END;
+								END;
+							|3:
+								FOR x:=0 TO hdr.width-1 DO
+									t1 := ORD(current[cp-bpp]); t2 := ORD(prior[cp]); color.r:=CHR(ORD(current[cp])+(t1+t2) DIV 2); current[cp] := color.r;INC(cp);
+									t1 := ORD(current[cp-bpp]); t2 := ORD(prior[cp]); color.g:=CHR(ORD(current[cp])+(t1+t2) DIV 2); current[cp] := color.g;INC(cp);
+									t1 := ORD(current[cp-bpp]); t2 := ORD(prior[cp]); color.b:=CHR(ORD(current[cp])+(t1+t2) DIV 2); current[cp] := color.b;INC(cp);
+									t1 := ORD(current[cp-bpp]); t2 := ORD(prior[cp]); color.a:=CHR(ORD(current[cp])+(t1+t2) DIV 2); current[cp] := color.a;INC(cp);
+									IF ORD(color.a) = 255 THEN
+										SYSTEM.PUT32(p,SYSTEM.VAL(LONGINT,color)); INC(p,4);
+									ELSE
+										SYSTEM.PUT8(p, CHR(ORD(color.b)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.g)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.r)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, color.a); INC(p)
+									END;
+								END;
+							|4:
+								FOR x:=0 TO hdr.width-1 DO
+									color.r := CHR(ORD(current[cp])+	ORD(PaethPredictor(ORD(current[cp-bpp]), ORD(prior[cp]), ORD(prior[cp-bpp])))); current[cp] := color.r;INC(cp);
+									color.g := CHR(ORD(current[cp])+ORD(PaethPredictor(ORD(current[cp-bpp]), ORD(prior[cp]), ORD(prior[cp-bpp])))); current[cp] := color.g;INC(cp);
+									color.b := CHR(ORD(current[cp])+ORD(PaethPredictor(ORD(current[cp-bpp]), ORD(prior[cp]), ORD(prior[cp-bpp])))); current[cp] := color.b;INC(cp);
+									color.a := CHR(ORD(current[cp])+ORD(PaethPredictor(ORD(current[cp-bpp]), ORD(prior[cp]), ORD(prior[cp-bpp])))); current[cp] := color.a;INC(cp);
+									IF ORD(color.a) = 255 THEN
+										SYSTEM.PUT32(p,SYSTEM.VAL(LONGINT,color)); INC(p,4);
+									ELSE
+										SYSTEM.PUT8(p, CHR(ORD(color.b)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.g)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, CHR(ORD(color.r)*ORD(color.a) DIV 256)); INC(p);
+										SYSTEM.PUT8(p, color.a); INC(p)
+									END;
+								END;
+							END;
+							ELSE
+								FOR x:=0 TO hdr.width-1 DO
+									color.r:=GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
+									color.g:=GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
+									color.b:=GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
+									color.a:=GetNextFilterByte(); IF hdr.bitDepth = 16 THEN dummy:=GetNextFilterByte() END;
+									SYSTEM.PUT8(p, CHR(ORD(color.b)*ORD(color.a) DIV 256)); INC(p);
+									SYSTEM.PUT8(p, CHR(ORD(color.g)*ORD(color.a) DIV 256)); INC(p);
+									SYSTEM.PUT8(p, CHR(ORD(color.r)*ORD(color.a) DIV 256)); INC(p);
+									SYSTEM.PUT8(p, color.a); INC(p)
 								END
 							END;
 					END;
@@ -286,7 +389,7 @@ TYPE
 					temp := prior; prior := current; current := temp
 				END
 			ELSE Error("interlace not yet supported")
-			END
+			END;
 		END Decode;
 
 		PROCEDURE ReadChunkHeader(VAR x: ChunkHeader);
@@ -443,6 +546,19 @@ TYPE
 	END PNGDecoder;
 
 VAR MagicID : ARRAY 8 OF CHAR;
+
+	PROCEDURE PaethPredictor(a, b, c : LONGINT) : CHAR;
+	VAR p, pa, pb, pc:LONGINT;
+	BEGIN
+		(*
+		p := a + b - c; pa := ABS(p - a); pb := ABS(p - b); pc := ABS(p - c);
+		*)
+		pa := ABS(b-c); pb := ABS(a-c); pc := ABS(a+b-2*c);
+		IF (pa <= pb) & (pa <= pc) THEN RETURN CHR(a)
+		ELSIF (pb <= pc) THEN RETURN CHR(b)
+		ELSE RETURN CHR(c)
+		END
+	END PaethPredictor;
 
 PROCEDURE Factory*():  Codecs.ImageDecoder;
 VAR p : PNGDecoder;

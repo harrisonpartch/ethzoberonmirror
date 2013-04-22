@@ -219,7 +219,7 @@ TYPE
 				size := SizeOf(variable.type.resolved);
 				IF size < 0 THEN RETURN FALSE END;
 
-				IF variable.alignment > 1 THEN
+				IF variable.alignment > 0 THEN
 					thisAlignment := variable.alignment*dataUnit;
 				ELSE
 					thisAlignment := AlignmentOf(SELF.variableAlignment, variable.type.resolved);
@@ -258,7 +258,7 @@ TYPE
 					IF size < 0 THEN RETURN FALSE END;
 					DEC(offset,size);
 
-					IF variable.alignment > 1 THEN
+					IF variable.alignment > 0 THEN
 						Basic.Align(offset, -variable.alignment*dataUnit);
 					ELSE
 						alignment := AlignmentOf(SELF.variableAlignment,variable.type.resolved);

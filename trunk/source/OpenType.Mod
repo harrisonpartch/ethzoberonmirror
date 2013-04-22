@@ -1198,7 +1198,7 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 						OpenTypeInt.SetStructures(context, inst.func, inst.instr, glyph.store, glyph.cvt);
 						OpenTypeInt.SetResolution(context, inst.ptsize, inst.xppm, inst.yppm, font.head.unitsPerEm, rotated, stretched);
 						OpenTypeInt.Execute(context, font.glyphProg, instrLen, font.twilight, comp);
-						glyph.fixDropouts := context.fixDropouts;
+						glyph.fixDropouts := TRUE OR context.fixDropouts;
 						glyph.scanType := context.scanType
 					END;
 
@@ -1304,6 +1304,7 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 				IF glyph.scanType IN {1, 5} THEN INCL(rules, OpenTypeScan.Stubs) END;
 				IF glyph.scanType IN {4, 5} THEN INCL(rules, OpenTypeScan.Smart) END
 			END;
+			INCL(rules, OpenTypeScan.Dropouts);
 			OpenTypeScan.Convert(glyph.outline, rules, ras);
 			glyph.hbx := SHORT(ras.xmin DIV 40H);
 			glyph.hby := SHORT(ras.ymin DIV 40H);

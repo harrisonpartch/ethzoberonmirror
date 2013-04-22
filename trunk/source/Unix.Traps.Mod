@@ -15,6 +15,8 @@ CONST
 TYPE 		
 	SigHandler = PROCEDURE ( sig: LONGINT; scp, ucp, dum: ADDRESS );  
 	
+	ExceptionHandler = RECORD  pc, fp, sp: ADDRESS  END;
+	
 VAR 
 	InstallSignalHandler: PROCEDURE{C} ( h: SigHandler );  
 	
@@ -78,7 +80,7 @@ VAR
 		pc, sp, bp: ADDRESS;  
 		trapno: LONGINT;  
 		process: Objects.Process;  
-		handled: BOOLEAN;  
+		handler: ExceptionHandler;  
 		w: Streams.Writer;
 	BEGIN 
 		INC( TrapHandlingLevel ); 
@@ -134,7 +136,6 @@ VAR
 			w.String( "(Signal " );  w.Int( sig, 0 );  w.Char( ')' );  
 		END;  
 		w.Ln;  
-		handled := FALSE;
 		IF TrapHandlingLevel = 1 THEN
 			process := Objects.CurrentProcess( ); 
 			pc := ucp.mc.eip;  bp := ucp.mc.ebp;
@@ -147,8 +148,8 @@ VAR
 			w.String( ", pc = " );  w.Address( pc );  w.Ln;  
 			w.Ln;  
 			Reflection.StackTraceBack( w, pc, bp, Objects.GetStackBottom( process ), TRUE, FALSE );
-			HandleException( process, ucp, handled ); 
-			IF handled THEN   
+			SearchExceptionHandler( process, ucp, handler ); 
+			IF (handler.pc # 0) & (Unix.Version # "Darwin") THEN   
 				w.Ln;  w.Ln;
 				w.String( "### program continues with exception handler ###" );   w.Ln				
 			END
@@ -160,11 +161,17 @@ VAR
 		
 		FinishTrap( w, process );
 		
-		IF handled THEN  RETURN  (*! to exception handler !! *)  END;
+		IF handler.pc # 0 THEN  
+			IF Unix.Version # "Darwin" THEN
+				(* in the Darwin port Unix.ModifyContext fails with bus error. Stack alignment problem? *)
+				Unix.ModifyContext( ucp, handler.pc, handler.fp, handler.sp );
+				RETURN  (*! to exception handler !! *)  
+			END
+		END;
 			
 		IF Machine.standaloneAppl THEN	
 			unix.error.Ln;  unix.error.Ln;
-			unix.error.String( "### Program aborted. Stack backtrace in logfile" );  unix.error.Ln;
+			unix.error.String( "### Program aborted. Stack traceback in logfile" );  unix.error.Ln;
 			unix.error.Update;
 			Machine.Shutdown( FALSE )
 		ELSIF TrapHandlingLevel > 1 THEN 
@@ -186,37 +193,27 @@ VAR
 	END UnlockOberon;
 	
 
-	(* Handles an exception. Interrupts are on during this procedure. *)
-	PROCEDURE HandleException( process: Objects.Process;  cont: Unix.Ucontext;  VAR handled: BOOLEAN );  
-	VAR handler, fp, sp, pc: ADDRESS;
+	PROCEDURE SearchExceptionHandler( process: Objects.Process;  cont: Unix.Ucontext;  VAR handler: ExceptionHandler );  
+	VAR entry, fp, sp, pc: ADDRESS;
 	BEGIN 
-		IF Unix.Version = "Darwin" THEN  handled := FALSE;  RETURN  END;
-		(* in Darwin Unix.ModifyContext fails with bus error. Stack alignment problem? *)
-		
+		handler.pc := 0;  (* no handler *)
 		pc := cont.mc.eip;  fp := cont.mc.ebp;  sp := cont.mc.espatsig;
 		IF pc = 0 THEN  
 			(* assume call of procedure variable with value NIL *)
 			S.GET( sp, pc );   (* get return address on top of stack *)
 		END;  
-		handler := Modules.GetExceptionHandler( pc );   
-		IF handler # -1 THEN  (* Handler in the current PAF *)
-			Unix.ModifyContext( cont, handler, fp, sp );
-			handled := TRUE;  
-		ELSE  
-			WHILE (fp <= process.stackBottom) & (handler = -1) DO  
-				S.GET( fp + 4, pc );  
-				pc := pc - 1;   (*  CALL instruction, machine dependant!!! *)
-				handler := Modules.GetExceptionHandler( pc );  
-				sp := fp;   (* Save the old framepointer into the stack pointer *)
-				S.GET( fp, fp ) (* Unwind PAF *)
-			END;  
-			IF handler = -1 THEN  handled := FALSE   
-			ELSE 
-				Unix.ModifyContext( cont, handler, fp, sp );
-				handled := TRUE  
-			END  
+		entry := Modules.GetExceptionHandler( pc );   
+		WHILE (entry = -1) & (fp <= process.stackBottom) DO  
+			S.GET( fp + 4, pc );  
+			pc := pc - 1;   (*  CALL instruction, machine dependent!!! *)
+			entry := Modules.GetExceptionHandler( pc );  
+			sp := fp;   (* Save the old framepointer into the stack pointer *)
+			S.GET( fp, fp ) (* Unwind PAF *)
 		END;  
-	END HandleException;  
+		IF entry # -1 THEN 
+			handler.pc := entry;  handler.fp := fp;  handler.sp := sp
+		END  
+	END SearchExceptionHandler;  
 	
 	
 	PROCEDURE SignalHandler( signal: LONGINT;  scp, ucp, dummy: ADDRESS );   

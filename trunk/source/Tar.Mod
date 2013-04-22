@@ -123,8 +123,10 @@ TYPE
 				res := -1;
 				RETURN
 			END;
-			IF min > max THEN min := max END;
-			input.Bytes(buf, ofs, min, len);
+			IF size < min THEN size := min END;
+			IF size > max THEN size := max END;
+
+			input.Bytes(buf, ofs, size, len);
 			DEC(max, len);
 			res := input.res
 		END Receive;
@@ -391,7 +393,11 @@ TYPE
 				OctStrToInt(hdr.size, size);
 				e.pos := pos;
 				pos := pos + RecordSize + size + ((-size) MOD RecordSize);
-				Files.OpenReader(in, file, pos);
+				IF in.CanSetPos() THEN
+					in.SetPos(pos)
+				ELSE
+					Files.OpenReader(in, file, pos);
+				END;
 				NEW(hdr)
 			END;
 			IF (in.res = Streams.Ok) & (hdr.chksum # "") THEN

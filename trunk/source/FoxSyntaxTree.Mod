@@ -2788,7 +2788,8 @@ TYPE
 			access := Internal;
 			state := Undefined;
 			offsetInBits := MIN(LONGINT);
-			alignment := 1; fixed := FALSE;
+			alignment := 0; (* take default *)
+			fixed := FALSE;
 			used := FALSE; written := FALSE;
 			InitFingerPrint(fingerprint);
 			comment := NIL;

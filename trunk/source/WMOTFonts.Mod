@@ -370,7 +370,7 @@ TYPE
 			END Get;
 
 		BEGIN
-			IF size <= 12 THEN RETURN END;
+			IF size <= 20 THEN RETURN END;
 			w := img.width; h := img.height;
 			IF (inCache = NIL) OR (LEN(inCache) < h*w) THEN NEW(inCache, h*w) END;
 			IF (outCache = NIL) OR (LEN(outCache) < w) THEN NEW(outCache, w) END;

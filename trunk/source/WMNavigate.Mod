@@ -8,7 +8,7 @@ MODULE WMNavigate; (** AUTHOR "staubesv"; PURPOSE "Windows navigation"; *)
 *)
 IMPORT
 	Modules, Kernel, Commands, Options, Locks, Strings, Raster, Plugins, Displays, KernelLog, Inputs, XML,
-	WMRectangles, WMGraphics, WMGraphicUtilities, WMWindowManager, WMComponents, WMProperties;
+	WMRectangles, WMGraphics, WMGraphicUtilities, WMWindowManager, WMComponents, WMProperties, Files, Dates;
 
 CONST
 
@@ -744,6 +744,8 @@ TYPE
 									manager.SetWindowFlag(window, WMWindowManager.FlagStayOnTop, ~(WMWindowManager.FlagStayOnTop IN window.flags));
 								ELSIF (index2 = SystemCommand_StayOnBottom) THEN
 									manager.SetWindowFlag(window, WMWindowManager.FlagStayOnBottom, ~(WMWindowManager.FlagStayOnBottom IN window.flags));
+								ELSIF (index2 = SystemCommand_WindowShot) THEN
+									WindowShot(window);
 							ELSIF (index2 = SystemCommand_Frame) THEN
 									manager.SetWindowFlag(window, WMWindowManager.FlagFrame, ~(WMWindowManager.FlagFrame IN window.flags));
 								END;
@@ -899,7 +901,7 @@ CONST
 	LeftBorder = 25;
 	RightBorder = 5;
 
-	NofSystemCommands = 3;
+	NofSystemCommands = 6;
 
 	SystemCommand = 99;
 	SystemCommand_Close = 0;
@@ -907,7 +909,7 @@ CONST
 	SystemCommand_StayOnTop = 2;
 	SystemCommand_StayOnBottom = 3;
 	SystemCommand_Frame = 4;
-
+	SystemCommand_WindowShot = 5;
 	Document = 1;
 
 TYPE
@@ -1059,6 +1061,8 @@ TYPE
 						index := SystemCommand_StayOnBottom;
 					ELSIF (y < commandOffset + 5 * LineHeight) THEN
 						index := SystemCommand_Frame;
+					ELSIF (y < commandOffset + 6 * LineHeight) THEN
+						index := SystemCommand_WindowShot;
 					END;
 				ELSIF (documentOffset <= y) & (y < documentOffset + nofDocuments * LineHeight) THEN
 					type := Document;
@@ -1116,6 +1120,8 @@ TYPE
 				DrawBg(y);
 				DrawYesNo(y, WMWindowManager.FlagStayOnTop IN window.flags);
 				canvas.DrawString(LeftBorder, y + 16, "StayOnTop"); INC(y, LineHeight);
+
+
 				IF (NofSystemCommands > 3) THEN
 					DrawBg(y);
 					DrawYesNo(y, WMWindowManager.FlagStayOnBottom IN window.flags);
@@ -1125,6 +1131,10 @@ TYPE
 					DrawBg(y);
 					DrawYesNo(y, WMWindowManager.FlagFrame IN window.flags);
 					canvas.DrawString(LeftBorder, y + 16, "Frame"); INC(y, LineHeight);
+				END;
+				IF (NofSystemCommands > 5) THEN
+					DrawBg(y);
+					canvas.DrawString(LeftBorder, y + 16, "WindowShot"); INC(y, LineHeight);
 				END;
 			END DrawSystemCommands;
 
@@ -1355,6 +1365,25 @@ BEGIN (* must hold window manager lock *)
 	DrawIntoCanvas(window, canvas, width, height, ignore, ignore);
 	RETURN image;
 END GetWindowImage;
+
+PROCEDURE GenerateName(CONST prefix: ARRAY OF CHAR; VAR str: ARRAY OF CHAR);
+VAR startTime: Dates.DateTime; num: ARRAY 32 OF CHAR;
+BEGIN
+	startTime := Dates.Now();
+	Strings.FormatDateTime("_yyyymmdd__hhnnss",startTime,str);
+	Strings.Concat(prefix,str,str);
+	Strings.Concat(str,".bmp",str);
+END GenerateName;
+
+PROCEDURE WindowShot(window: WMWindowManager.Window);
+VAR fn: Files.FileName; res: LONGINT;
+BEGIN
+	IF window IS WMWindowManager.DoubleBufferWindow THEN
+		GenerateName("ScreenShot",fn);
+		WMGraphics.StoreImage(window(WMWindowManager.DoubleBufferWindow).backImg, fn, res);
+	END;
+END WindowShot;
+
 
 PROCEDURE DrawIntoCanvas(window : WMWindowManager.Window; canvas : WMGraphics.BufferCanvas; width, height : LONGINT; VAR offsetX, offsetY : LONGINT);
 VAR image : Raster.Image; winWidth, winHeight, imgWidth, imgHeight : LONGINT; scaleX, scaleY : REAL;

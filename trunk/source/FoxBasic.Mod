@@ -1753,7 +1753,7 @@ VAR
 	VAR i,j: LONGINT; string: ObjectFile.SectionName;
 	BEGIN
 		i := 0;
-		WHILE (i<LEN(name)) & (name[i] > 0)  DO
+		WHILE (i<LEN(name)) & (name[i] >= 0)  DO
 			INC(i)
 		END;
 		IF (this[0] = ".") & (i < LEN(name)) THEN (* suffix *)
@@ -1777,7 +1777,7 @@ VAR
 	VAR string, suffix: ObjectFile.SectionName; i: LONGINT;
 	BEGIN
 		i := 0;
-		WHILE (i < LEN(name)) & (name[i] >0) DO
+		WHILE (i < LEN(name)) & (name[i] >= 0) DO
 			INC(i);
 		END;
 		IF i < LEN(name) THEN (* suffix *)

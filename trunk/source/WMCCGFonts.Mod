@@ -146,9 +146,11 @@ TYPE
 			range : GlyphRange; (* because of too complex expression otherwise ;-) *)
 		BEGIN
 			range := glyphRanges[rangeIndex];
+			(*
 			KernelLog.String("Loading range "); KernelLog.Hex(range.firstCode, 8);
 			KernelLog.String(".."); KernelLog.Hex(range.lastCode, 8);
 			KernelLog.Ln;
+			*)
 			(* glyphRanges[rangeIndex].glyphs in the new statement may not be replaced with range! *)
 			NEW(glyphRanges[rangeIndex].glyphs, range.lastCode - range.firstCode + 1);
 			NEW(r, f, range.filePos);

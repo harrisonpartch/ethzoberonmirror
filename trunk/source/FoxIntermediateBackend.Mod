@@ -9584,6 +9584,8 @@ TYPE
 		simpleMetaData-: BOOLEAN;
 		noAsserts: BOOLEAN;
 		optimize-: BOOLEAN;
+		dump-: Basic.Writer;
+
 
 		PROCEDURE &InitIntermediateBackend*;
 		BEGIN
@@ -9641,7 +9643,6 @@ TYPE
 
 		PROCEDURE ProcessIntermediateCodeModule(intermediateCodeModule: Formats.GeneratedModule): Formats.GeneratedModule;
 		VAR
-			dump: Basic.Writer;
 			result: Sections.Module;
 			traceName: Basic.MessageString;
 		BEGIN

@@ -1806,6 +1806,7 @@ VAR
 	element : XML.Element;
 	ignore : LONGINT;
 	errors : ErrorReporter;
+	file: Files.File; writer: Files.Writer; freader: Files.Reader; ch: CHAR; buf: ARRAY 512 OF CHAR; len: LONGINT;
 BEGIN (* {EXCLUSIVE} *)
 	ASSERT(FindRepository(name) = NIL);
 	COPY(name, filename);
@@ -1819,8 +1820,21 @@ BEGIN (* {EXCLUSIVE} *)
 		receiver := archive.OpenReceiver(IndexFile);
 		archive.Release;
 		IF (receiver # NIL) THEN
-			IF TraceLoading IN Trace THEN KernelLog.String("index file found ... "); END;
+
+
 			NEW(reader, receiver, 4096);
+			(*
+			file := Files.New("");
+			Files.OpenWriter(writer, file, 0);
+			REPEAT
+				reader.Bytes(buf, 0, LEN(buf), len); writer.Bytes(buf, 0, len);
+			UNTIL reader.res # 0;
+			writer.Update;
+			Files.OpenReader(freader, file,0);
+			reader := freader;
+			*)
+			IF TraceLoading IN Trace THEN KernelLog.String("index file found ... "); END;
+			(*NEW(reader, receiver, 4096);*)
 			NEW(errors);
 			element := Parse(reader, indexRegistry, errors);
 			IF (element # NIL) & (element IS Repository) THEN

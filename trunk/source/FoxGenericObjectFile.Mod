@@ -423,9 +423,7 @@ TYPE ObjectFileFormat* = OBJECT (Formats.ObjectFileFormat)
 		VAR i: LONGINT; fixup: BinaryCode.Fixup; index: LONGINT; alias: BinaryCode.Alias; name: ARRAY 256 OF CHAR;
 		BEGIN
 			IF (section.resolved # NIL)  & (section.alias = NIL)  THEN
-				IF section.exported THEN
-					poolMap.PutSegmentedName(section.resolved.identifier.name);
-				END;
+				poolMap.PutSegmentedName(section.resolved.identifier.name);
 				(* for those sections that have been already resolved *)
 				FOR i := 0 TO section.resolved.fixups-1 DO
 					poolMap.PutSegmentedName(section.resolved.fixup[i].identifier.name);

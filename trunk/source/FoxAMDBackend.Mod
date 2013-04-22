@@ -747,7 +747,7 @@ TYPE
 
 		(* infer intermediate code type from physical operand as far as possible *)
 		PROCEDURE PhysicalOperandType(CONST op:Assembler.Operand): IntermediateCode.Type;
-		VAR type:IntermediateCode.Type
+		VAR type:IntermediateCode.Type;
 		BEGIN
 			IF op.type = Assembler.sti THEN
 				IntermediateCode.InitType(type, IntermediateCode.Float, op.sizeInBytes*8)
@@ -3251,27 +3251,10 @@ TYPE
 		(* genasm *)
 		PROCEDURE ProcessIntermediateCodeModule*(intermediateCodeModule: Formats.GeneratedModule): Formats.GeneratedModule;
 		VAR
-			dump: Basic.Writer;
-			dumpName: Basic.MessageString;
 			result: Formats.GeneratedModule;
 		BEGIN
 			ASSERT(intermediateCodeModule IS Sections.Module);
-			result := intermediateCodeModule;
-
-			IF trace THEN
-				dumpName := "AMD64 code trace: ";
-				Strings.Append(dumpName,traceString);
-				dump := Basic.GetWriter(Basic.GetDebugWriter(dumpName));
-				dump.BeginComment;
-				dump.String(";---------------- intermediate code -----------------"); dump.Ln;
-				dump.EndComment;
-				IF (traceString="") OR (traceString="*") THEN
-					result.Dump(dump);
-					dump.Update
-				ELSE
-					Sections.DumpFiltered(dump, result(Sections.Module), traceString);
-				END
-			END;
+			result := ProcessIntermediateCodeModule^(intermediateCodeModule);
 
 			IF ~error THEN
 				GenerateBinary(result(Sections.Module),dump);

@@ -938,6 +938,9 @@ BEGIN
 						dfile := OpenOld(seacher, dfs, dname);
 						IF (dfile = NIL) OR overwrite THEN (* We may write to the target file *)
 							IF dfile # NIL THEN overwrite := TRUE; ELSE overwrite := FALSE; END;
+							IF overwrite THEN
+								dfile.GetName(dname);
+							END;
 							dfile := dfs.New0(dname);
 							IF dfile # NIL THEN (* We could create the target file *)
 								res := Ok;
@@ -967,7 +970,7 @@ BEGIN
 	END;
 	sfile.ReadBytes(sPos, buffer, 0, sfile.Length() MOD BufferSize);
 	dfile.WriteBytes(dPos, buffer, 0, sfile.Length() MOD BufferSize);
-
+	dfile.Update;
 	Register(dfile); (* Will enter exclusive region *)
 END CopyFile;
 

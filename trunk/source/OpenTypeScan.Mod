@@ -384,7 +384,7 @@ VAR
 							IF x0 MOD 40H > 20H THEN DEC(x0) ELSE INC(x1) END
 						END
 					END;
-					IF x0 < x1 THEN
+					IF x0 <= x1 THEN
 						ASSERT((r.xmin <= x0) & (x1 <= r.xmax), 110);
 						enum(SHORT((hor.yx - r.ymin) DIV 40H), x0 - r.xmin, x1 - r.xmin, data)
 					END;
@@ -433,7 +433,7 @@ VAR
 							IF y0 MOD 40H > 20H THEN DEC(y0) ELSE INC(y1) END
 						END
 					END;
-					IF y0 < y1 THEN
+					IF y0 <= y1 THEN
 						ASSERT((r.ymin <= y0) & (y1 <= r.ymax), 110);
 						enum(SHORT((ver.yx - r.xmin) DIV 40H), y0 - r.ymin, y1 - r.ymin, data)
 					END;
