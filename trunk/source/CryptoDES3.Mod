@@ -18,13 +18,13 @@ TYPE
 					ASSERT( keybits = 192 );
 					InitKey^( src, pos, 64 );
 					
-					X := U.BESetFrom( src, pos );  Y := U.BESetFrom( src, pos + 4 );
+					X := U.SetFromBufferBE( src, pos );  Y := U.SetFromBufferBE( src, pos + 4 );
 					DES.ComputeSubkeys( X, Y, ske, 0 );
 					
-					X := U.BESetFrom( src, pos + 8 );  Y := U.BESetFrom( src, pos + 12 );
+					X := U.SetFromBufferBE( src, pos + 8 );  Y := U.SetFromBufferBE( src, pos + 12 );
 					DES.ComputeSubkeys( X, Y, skd, 32 );
 					
-					X := U.BESetFrom( src, pos + 16);  Y := U.BESetFrom( src, pos + 20 );
+					X := U.SetFromBufferBE( src, pos + 16);  Y := U.SetFromBufferBE( src, pos + 20 );
 					DES.ComputeSubkeys( X, Y, ske, 64 );
 					
 					FOR i := 0 TO 30 BY 2 DO
@@ -42,7 +42,7 @@ TYPE
 				PROCEDURE SetIV*( CONST src: ARRAY OF CHAR;  p: LONGINT );
 				BEGIN
 					SetIV^( src, p );   (* set mode *)
-					ivx := U.BESetFrom( src, p );  ivy := U.BESetFrom( src, p+4 )
+					ivx := U.SetFromBufferBE( src, p );  ivy := U.SetFromBufferBE( src, p+4 )
 				END SetIV;
 
 				PROCEDURE Encrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
@@ -52,7 +52,7 @@ TYPE
 					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
 					i := 0;
 					WHILE i < len DO
-						X := U.BESetFrom( buf, ofs + i );  Y := U.BESetFrom( buf, ofs + i + 4 );
+						X := U.SetFromBufferBE( buf, ofs + i );  Y := U.SetFromBufferBE( buf, ofs + i + 4 );
 						IF mode = Ciphers.CBC THEN  X := X / ivx;  Y := Y / ivy   END;
 
 						DES.IP( X, Y );
@@ -71,7 +71,7 @@ TYPE
 						END;
 						DES.FP( Y, X );
 						
-						U.BESetToChars( Y, buf, ofs + i );   U.BESetToChars( X, buf, ofs + i + 4); 
+						U.SetToBufferBE( Y, buf, ofs + i );   U.SetToBufferBE( X, buf, ofs + i + 4); 
 						IF mode = Ciphers.CBC THEN  ivx := Y;  ivy := X  END;
 						INC( i, blockSize )
 					END
@@ -84,7 +84,7 @@ TYPE
 					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
 					i := 0;
 					WHILE i < len DO
-						X := U.BESetFrom( buf, ofs + i );  Y := U.BESetFrom( buf, ofs + i + 4 );
+						X := U.SetFromBufferBE( buf, ofs + i );  Y := U.SetFromBufferBE( buf, ofs + i + 4 );
 						IF mode = Ciphers.CBC THEN  X0 := X;  Y0 := Y  END;
 						
 						DES.IP( X, Y );
@@ -107,7 +107,7 @@ TYPE
 							Y := Y / ivx;  X := X / ivy  ; 
 							ivx := X0;  ivy := Y0  
 						END;
-						U.BESetToChars( Y, buf, ofs + i );   U.BESetToChars( X, buf, ofs + i + 4); 
+						U.SetToBufferBE( Y, buf, ofs + i );   U.SetToBufferBE( X, buf, ofs + i + 4); 
 						INC( i, blockSize )
 					END
 				END Decrypt;

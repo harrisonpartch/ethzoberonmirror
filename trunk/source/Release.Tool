@@ -673,9 +673,9 @@ PACKAGE ApplicationsMini ARCHIVE "ApplicationsMini.zip" SOURCE "ApplicationsMini
 	CryptoHashes.Mod CryptoMD5.Mod CryptoSHA1.Mod CryptoSHA256.Mod
 	CryptoPrimes.Mod CryptoDSA.Mod CryptoDiffieHellman.Mod
 	CryptoAES.Mod
-	CryptoBlowfish.Mod CryptoBlowfish.Data
-	CryptoTwofish.Mod CryptoTwofish.Data
-	CryptoCAST.Mod CryptoCAST.Data
+	CryptoBlowfish.Mod
+	CryptoTwofish.Mod
+	CryptoCAST.Mod 
 	CryptoHMAC.Mod CryptoIDEA.Mod
 	CryptoRSA.Mod
 END

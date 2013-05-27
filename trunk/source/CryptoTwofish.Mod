@@ -4,10 +4,9 @@ MODULE CryptoTwofish;   (** Twofish en/decryption *)
 		2002.07.22	g.f.
  *)
 
-IMPORT S := SYSTEM, Ciphers := CryptoCiphers, Out := KernelLog, Files;
+IMPORT S := SYSTEM, Ciphers := CryptoCiphers, U := CryptoUtils;
 
 CONST
-	datafile = "CryptoTwofish.Data";
 	N = 16;
 
 TYPE
@@ -34,8 +33,8 @@ TYPE
 				BEGIN
 					InitKey^( src, pos, keybits );  SELF.keybits := keybits;
 					FOR i := 0 TO keybits DIV 32 - 1 DO
-						IF ODD( i ) THEN  k32o[i DIV 2] := Int( src, pos + i*4 )
-						ELSE  k32e[i DIV 2] := Int( src, pos + i*4 )
+						IF ODD( i ) THEN  k32o[i DIV 2] := U.IntFromBufferLE( src, pos + i*4 )
+						ELSE  k32e[i DIV 2] := U.IntFromBufferLE( src, pos + i*4 )
 						END
 					END;
 					m := keybits DIV 64 - 1;
@@ -58,7 +57,7 @@ TYPE
 				VAR i: INTEGER;
 				BEGIN
 					SetIV^( src, pos );   (* set mode *)
-					FOR i := 0 TO 3 DO  iv[i] := Set( src, pos + 4*i )  END;
+					FOR i := 0 TO 3 DO  iv[i] := U.SetFromBufferLE( src, pos + 4*i )  END;
 				END SetIV;
 
 				PROCEDURE Encrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
@@ -84,7 +83,7 @@ TYPE
 				BEGIN
 					(* copy in the block, add whitening *)
 					FOR i := 0 TO 3 DO
-						x[i] := Set( buf, pos + i*4 )/S.VAL( SET, subkeys[i] );
+						x[i] := U.SetFromBufferLE( buf, pos + i*4 )/S.VAL( SET, subkeys[i] );
 						IF mode = Ciphers.CBC THEN  x[i] := x[i]/iv[i]  END
 					END;
 					(* main Twofish encryption loop *)
@@ -101,7 +100,7 @@ TYPE
 					END;
 					(* copy out, with whitening *)
 					FOR i := 0 TO 3 DO
-						x[i] := x[i]/S.VAL( SET, subkeys[4 + i] );  Chars( x[i], buf, pos + i*4 );
+						x[i] := x[i]/S.VAL( SET, subkeys[4 + i] );  U.SetToBufferLE( x[i], buf, pos + i*4 );
 						IF mode = Ciphers.CBC THEN  iv[i] := x[i]  END
 					END;
 				END EncryptBlock;
@@ -110,7 +109,7 @@ TYPE
 				VAR x0, x: Block;  t0, t1, i, r: LONGINT;  s0, s1: SET;
 				BEGIN
 					(* copy in the block, add whitening *)
-					FOR i := 0 TO 3 DO  x0[i] := Set( buf, pos + i*4 );  x[i] := x0[i]/S.VAL( SET, subkeys[4 + i] );   END;
+					FOR i := 0 TO 3 DO  x0[i] := U.SetFromBufferLE( buf, pos + i*4 );  x[i] := x0[i]/S.VAL( SET, subkeys[4 + i] );   END;
 					(* main Twofish decryption loop *)
 					FOR r := N - 1 TO 0 BY -1 DO
 						t0 := f32( S.VAL( LI, x[0] ), sbox, keybits );
@@ -126,7 +125,7 @@ TYPE
 					FOR i := 0 TO 3 DO
 						x[i] := x[i]/S.VAL( SET, subkeys[i] );
 						IF mode = Ciphers.CBC THEN  x[i] := x[i]/iv[i];  iv[i] := x0[i]  END;
-						Chars( x[i], buf, pos + i*4 );
+						U.SetToBufferLE( x[i], buf, pos + i*4 );
 					END;
 				END DecryptBlock;
 
@@ -178,28 +177,6 @@ TYPE
 		v[3] := S.VAL( SET, x MOD 256 );
 	END split;
 
-	PROCEDURE Int( CONST s: ARRAY OF CHAR;  p: LONGINT ): LONGINT;
-	VAR i, val: LONGINT;
-	BEGIN
-		val := 0;
-		FOR i := p + 3 TO p BY -1 DO  val := val*100H + ORD( s[i] )  END;
-		RETURN val
-	END Int;
-
-	PROCEDURE Set( CONST s: ARRAY OF CHAR;  p: LONGINT ): SET;
-	VAR i, val: LONGINT;
-	BEGIN
-		val := 0;
-		FOR i := p + 3 TO p BY -1 DO  val := val*100H + ORD( s[i] )  END;
-		RETURN S.VAL( SET, val )
-	END Set;
-
-	PROCEDURE Chars( s: SET;  VAR txt: ARRAY OF CHAR;  p: LONGINT );
-	VAR i, v: LONGINT;
-	BEGIN
-		v := S.VAL( LI, s );
-		FOR i := p TO p + 3 DO  txt[i] := CHR( v MOD 100H );  v := v DIV 100H  END;
-	END Chars;
 
 	PROCEDURE f32( x: LONGINT;  CONST k32: ARRAY OF LONGINT;  keybits: LONGINT ): LONGINT;
 	VAR a, b, c, d, l: LONGINT;  k, k1: SKey;
@@ -262,32 +239,51 @@ TYPE
 		RETURN r
 	END Encode;
 
-	PROCEDURE FError;
-	BEGIN
-		Out.String( "Format error in " );  Out.String( datafile );  Out.Ln
-	END FError;
+
 
 	PROCEDURE Init0;
 	VAR
-		i, j, val: LONGINT;
-		r: Files.Reader;
-		f: Files.File;
-		token: ARRAY 64 OF CHAR;
+		buf: U.InitBuffer;  i: LONGINT;
 	BEGIN
-		f := Files.Old( datafile );
-		IF f = NIL THEN
-			Out.String( "File '" );  Out.String( datafile );  Out.String( "' not found" );  Out.Ln
-		ELSE
-			Files.OpenReader( r, f, 0 );  r.SkipWhitespace;  r.Token( token );
-			IF token # "Twofish.P8x8" THEN  FError
-			ELSE
-				FOR i := 0 TO 1 DO
-					FOR j := 0 TO 255 DO  r.SkipWhitespace; r.Int( val, TRUE );  tab[i, j] := S.VAL( SET, val )  END;
-				END;
-			END
-		END
-	END Init0;
+		NEW( buf, 2048 );
+		buf.Add( "0A9 067 0B3 0E8 004 0FD 0A3 076 09A 092 080 078 0E4 0DD 0D1 038 " );
+		buf.Add( "00D 0C6 035 098 018 0F7 0EC 06C 043 075 037 026 0FA 013 094 048 " );
+		buf.Add( "0F2 0D0 08B 030 084 054 0DF 023 019 05B 03D 059 0F3 0AE 0A2 082 " );
+		buf.Add( "063 001 083 02E 0D9 051 09B 07C 0A6 0EB 0A5 0BE 016 00C 0E3 061 " );
+		buf.Add( "0C0 08C 03A 0F5 073 02C 025 00B 0BB 04E 089 06B 053 06A 0B4 0F1 " );
+		buf.Add( "0E1 0E6 0BD 045 0E2 0F4 0B6 066 0CC 095 003 056 0D4 01C 01E 0D7 " );
+		buf.Add( "0FB 0C3 08E 0B5 0E9 0CF 0BF 0BA 0EA 077 039 0AF 033 0C9 062 071 " );
+		buf.Add( "081 079 009 0AD 024 0CD 0F9 0D8 0E5 0C5 0B9 04D 044 008 086 0E7 " );
+		buf.Add( "0A1 01D 0AA 0ED 006 070 0B2 0D2 041 07B 0A0 011 031 0C2 027 090 " );
+		buf.Add( "020 0F6 060 0FF 096 05C 0B1 0AB 09E 09C 052 01B 05F 093 00A 0EF " );
+		buf.Add( "091 085 049 0EE 02D 04F 08F 03B 047 087 06D 046 0D6 03E 069 064 " );
+		buf.Add( "02A 0CE 0CB 02F 0FC 097 005 07A 0AC 07F 0D5 01A 04B 00E 0A7 05A " );
+		buf.Add( "028 014 03F 029 088 03C 04C 002 0B8 0DA 0B0 017 055 01F 08A 07D " );
+		buf.Add( "057 0C7 08D 074 0B7 0C4 09F 072 07E 015 022 012 058 007 099 034 " );
+		buf.Add( "06E 050 0DE 068 065 0BC 0DB 0F8 0C8 0A8 02B 040 0DC 0FE 032 0A4 " );
+		buf.Add( "0CA 010 021 0F0 0D3 05D 00F 000 06F 09D 036 042 04A 05E 0C1 0E0 " );
+		FOR i := 0 TO 255 DO  tab[0, i] :=  S.VAL( SET, buf.GetInt() )  END;
 
+		buf.Init( 2048 );
+		buf.Add( "075 0F3 0C6 0F4 0DB 07B 0FB 0C8 04A 0D3 0E6 06B 045 07D 0E8 04B " );
+		buf.Add( "0D6 032 0D8 0FD 037 071 0F1 0E1 030 00F 0F8 01B 087 0FA 006 03F " );
+		buf.Add( "05E 0BA 0AE 05B 08A 000 0BC 09D 06D 0C1 0B1 00E 080 05D 0D2 0D5 " );
+		buf.Add( "0A0 084 007 014 0B5 090 02C 0A3 0B2 073 04C 054 092 074 036 051 " );
+		buf.Add( "038 0B0 0BD 05A 0FC 060 062 096 06C 042 0F7 010 07C 028 027 08C " );
+		buf.Add( "013 095 09C 0C7 024 046 03B 070 0CA 0E3 085 0CB 011 0D0 093 0B8 " );
+		buf.Add( "0A6 083 020 0FF 09F 077 0C3 0CC 003 06F 008 0BF 040 0E7 02B 0E2 " );
+		buf.Add( "079 00C 0AA 082 041 03A 0EA 0B9 0E4 09A 0A4 097 07E 0DA 07A 017 " );
+		buf.Add( "066 094 0A1 01D 03D 0F0 0DE 0B3 00B 072 0A7 01C 0EF 0D1 053 03E " );
+		buf.Add( "08F 033 026 05F 0EC 076 02A 049 081 088 0EE 021 0C4 01A 0EB 0D9 " );
+		buf.Add( "0C5 039 099 0CD 0AD 031 08B 001 018 023 0DD 01F 04E 02D 0F9 048 " );
+		buf.Add( "04F 0F2 065 08E 078 05C 058 019 08D 0E5 098 057 067 07F 005 064 " );
+		buf.Add( "0AF 063 0B6 0FE 0F5 0B7 03C 0A5 0CE 0E9 068 044 0E0 04D 043 069 " );
+		buf.Add( "029 02E 0AC 015 059 0A8 00A 09E 06E 047 0DF 034 035 06A 0CF 0DC " );
+		buf.Add( "022 0C9 0C0 09B 089 0D4 0ED 0AB 012 0A2 00D 052 0BB 002 02F 0A9 " );
+		buf.Add( "0D7 061 01E 0B4 050 004 0F6 0C2 016 025 086 056 055 009 0BE 091 " );
+		FOR i := 0 TO 255 DO  tab[1, i] :=  S.VAL( SET, buf.GetInt() )  END;
+	END Init0;	
+		
 BEGIN
 	Init0
 END CryptoTwofish.

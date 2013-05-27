@@ -164,7 +164,7 @@ VAR
 	PROCEDURE FixTypeDescs( m: Module );
 	VAR i: LONGINT; 
 		
-		PROCEDURE PatchExport( VAR scope: ExportDesc;  tag: LONGINT );
+		PROCEDURE PatchExport( VAR scope: ExportDesc;  tag: ADDRESS );
 		VAR i: LONGINT;  t: ADDRESS;
 		BEGIN
 			S.GET( S.VAL( ADDRESS, scope.dsc ) - AdrSize, t );
@@ -178,16 +178,16 @@ VAR
 		END PatchExport;
 	
 	BEGIN
-		S.PUT( S.VAL( ADDRESS, m.typeInfo ) - AdrSize, S.VAL( SET, ptrElemTag ) + Heaps.ArrayMask );
+		S.PUT( S.VAL( ADDRESS, m.typeInfo ) - AdrSize, ptrElemTag + 2(*ArrayBit*) );
 		FOR i := 0 TO LEN( m.typeInfo ) -1 DO
 			S.PUT( S.VAL( ADDRESS, m.typeInfo[i] ) - AdrSize, tdTag );
 		END;
-		S.PUT( S.VAL( ADDRESS, m.module ) - AdrSize, S.VAL( SET, ptrElemTag ) + Heaps.ArrayMask );
+		S.PUT( S.VAL( ADDRESS, m.module ) - AdrSize, ptrElemTag + 2(*ArrayBit*) );
 		FOR i := 0 TO LEN( m.module ) -1 DO
 			S.PUT( S.VAL( ADDRESS, m.module[i] ) - AdrSize, modTag );
 		END;
 		S.PUT( S.VAL( ADDRESS, m ) - AdrSize,  modTag );
-		PatchExport( m.export, S.VAL( ADDRESS, S.VAL( SET, expTag ) + Heaps.ArrayMask ) );
+		PatchExport( m.export, expTag + 2(*ArrayBit*) );
 	END FixTypeDescs;
 
 	
@@ -389,8 +389,8 @@ VAR
 		ELSE
 			ofs := VarByName( m.refs, varName );
 			IF ofs = 0 THEN
-				error.String( "### AssignValue: variable '" ); error.String( modName ); 
-				error.Char( '.' ); error.String( varName );
+				error.String( "### AssignValue: variable '" ); 
+				error.String( modName );  error.Char( '.' );  error.String( varName );
 				error.String( "' not found" ); error.Ln
 			ELSE
 				S.PUT( m.sb + ofs, value );
@@ -405,13 +405,13 @@ VAR
 		m := root;
 		WHILE (m # NIL) & (m.name # modName) DO m := m.next  END;
 		IF m = NIL THEN
-			error.String( "### AssignValue: module '" ); error.String( modName ); 
+			error.String( "### AssignAddress: module '" );  error.String( modName ); 
 			error.String( "' not found" ); error.Ln;
 		ELSE
 			ofs := VarByName( m.refs, varName );
 			IF ofs = 0 THEN
-				error.String( "### AssignValue: variable '" ); error.String( modName ); 
-				error.Char( '.' ); error.String( varName );
+				error.String( "### AssignAddress: variable '" ); 
+				error.String( modName );  error.Char( '.' );  error.String( varName );
 				error.String( "' not found" ); error.Ln
 			ELSE
 				S.PUT( m.sb + ofs, value );

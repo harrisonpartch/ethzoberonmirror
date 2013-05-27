@@ -333,6 +333,9 @@ TYPE
 
 		IF options.GetString("hardware",name) THEN
 			compilerOptions.hardware := Hardware.GetDescription(name);
+			IF compilerOptions.hardware = NIL THEN
+				Error("hardware description could not be installed"); result := FALSE;
+			END;
 		END;
 
 		IF options.GetString("d", name) THEN

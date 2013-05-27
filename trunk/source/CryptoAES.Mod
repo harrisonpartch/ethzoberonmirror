@@ -40,7 +40,7 @@ TYPE
 				PROCEDURE SetIV*( CONST src: ARRAY OF CHAR;  pos: LONGINT );
 				BEGIN
 					SetIV^( src, pos );   (* set mode *)
-					U.CharsToBlockBE( src, pos, iv );
+					U.BufferToBlockBE( src, pos, iv );
 				END SetIV;
 
 				PROCEDURE Encrypt*( VAR buf: ARRAY OF CHAR;  ofs, len: LONGINT );
@@ -50,11 +50,11 @@ TYPE
 					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
 					i := 0;
 					WHILE i < len DO
-						U.CharsToBlockBE( buf, ofs + i, x );
+						U.BufferToBlockBE( buf, ofs + i, x );
 						FOR j := 0 TO 3 DO  x[j] := x[j] / erkeys[j]  END;
 						IF mode = CBC THEN  U.XORBlock( x, iv )  END;
 						RoundE( erkeys, x, rounds );
-						U.BlockToCharsBE( x, buf, ofs + i );
+						U.BlockToBufferBE( x, buf, ofs + i );
 						IF mode = CBC THEN  iv := x  END;
 						INC( i, blockSize )
 					END
@@ -67,11 +67,11 @@ TYPE
 					ASSERT( len MOD blockSize = 0 );   (* padding must have been added *)
 					i := 0;
 					WHILE i < len DO
-						U.CharsToBlockBE( buf, ofs + i, x0 );
+						U.BufferToBlockBE( buf, ofs + i, x0 );
 						FOR j := 0 TO 3 DO  x[j] := x0[j] / drkeys[j]  END;
 						RoundD( drkeys, x, rounds );
 						IF mode = CBC THEN  U.XORBlock( x, iv );  iv := x0  END;
-						U.BlockToCharsBE( x, buf, ofs + i );
+						U.BlockToBufferBE( x, buf, ofs + i );
 						INC( i, blockSize )
 					END
 				END Decrypt;
@@ -122,22 +122,22 @@ TYPE
 
 	BEGIN
 		i := 0;
-		Append( "  99 124 119 123 242 107 111 197   48     1 103   43 254 215 171 118 " );
-		Append( "202 130 201 125 250   89   71 240 173 212 162 175 156 164 114 192 " );
-		Append( "183 253 147   38   54   63 247 204   52 165 229 241 113 216   49   21 " );
-		Append( "    4 199   35 195   24 150     5 154     7   18 128 226 235   39 178 117 " );
-		Append( "    9 131   44   26   27 110   90 160   82   59 214 179   41 227   47 132 " );
-		Append( "  83 209     0 237   32 252 177   91 106 203 190   57   74   76   88 207 " );
-		Append( "208 239 170 251   67   77   51 133   69 249     2 127   80   60 159 168 " );
-		Append( "  81 163   64 143 146 157   56 245 188 182 218   33   16 255 243 210 " );
-		Append( "205   12   19 236   95 151   68   23 196 167 126   61 100   93   25 115 " );
-		Append( "  96 129   79 220   34   42 144 136   70 238 184   20 222   94   11 219 " );
-		Append( "224   50   58   10   73     6   36   92 194 211 172   98 145 149 228 121 " );
-		Append( "231 200   55 109 141 213   78 169 108   86 244 234 101 122 174     8 " );
-		Append( "186 120   37   46   28 166 180 198 232 221 116   31   75 189 139 138 " );
-		Append( "112   62 181 102   72     3 246   14   97   53   87 185 134 193   29 158 " );
-		Append( "225 248 152   17 105 217 142 148 155   30 135 233 206   85   40 223 " );
-		Append( "140 161 137   13 191 230   66 104   65 153   45   15 176   84 187   22 " );
+		Append( " 99 124 119 123 242 107 111 197  48   1 103  43 254 215 171 118 " );
+		Append( "202 130 201 125 250  89  71 240 173 212 162 175 156 164 114 192 " );
+		Append( "183 253 147  38  54  63 247 204  52 165 229 241 113 216  49  21 " );
+		Append( "  4 199  35 195  24 150   5 154   7  18 128 226 235  39 178 117 " );
+		Append( "  9 131  44  26  27 110  90 160  82  59 214 179  41 227  47 132 " );
+		Append( " 83 209   0 237  32 252 177  91 106 203 190  57  74  76  88 207 " );
+		Append( "208 239 170 251  67  77  51 133  69 249   2 127  80  60 159 168 " );
+		Append( " 81 163  64 143 146 157  56 245 188 182 218  33  16 255 243 210 " );
+		Append( "205  12  19 236  95 151  68  23 196 167 126  61 100  93  25 115 " );
+		Append( " 96 129  79 220  34  42 144 136  70 238 184  20 222  94  11 219 " );
+		Append( "224  50  58  10  73   6  36  92 194 211 172  98 145 149 228 121 " );
+		Append( "231 200  55 109 141 213  78 169 108  86 244 234 101 122 174   8 " );
+		Append( "186 120  37  46  28 166 180 198 232 221 116  31  75 189 139 138 " );
+		Append( "112  62 181 102  72   3 246  14  97  53  87 185 134 193  29 158 " );
+		Append( "225 248 152  17 105 217 142 148 155  30 135 233 206  85  40 223 " );
+		Append( "140 161 137  13 191 230  66 104  65 153  45  15 176  84 187  22 " );
 		si := 0;
 
 		FOR i := 0 TO 255 DO
@@ -193,7 +193,7 @@ TYPE
 	PROCEDURE Init128( VAR rk: RKeys;  CONST src: ARRAY OF CHAR;  pos: LONGINT ): SHORTINT;
 	VAR i, p: LONGINT;  ib: Ind4;
 	BEGIN
-		FOR i := 0 TO 3 DO  rk[i] := U.BESetFrom( src, pos + 4*i )  END;
+		FOR i := 0 TO 3 DO  rk[i] := U.SetFromBufferBE( src, pos + 4*i )  END;
 		p := 0;  i := 0;
 		LOOP
 			split( rk[p + 3], ib );
@@ -211,7 +211,7 @@ TYPE
 	PROCEDURE Init192( VAR rk: RKeys;  CONST src: ARRAY OF CHAR;  pos: LONGINT ): SHORTINT;
 	VAR i, p: LONGINT;  ib: Ind4;
 	BEGIN
-		FOR i := 0 TO 5 DO  rk[i] := U.BESetFrom( src, pos + 4*i )  END;
+		FOR i := 0 TO 5 DO  rk[i] := U.SetFromBufferBE( src, pos + 4*i )  END;
 		p := 0;  i := 0;
 		LOOP
 			split( rk[p + 5], ib );
@@ -231,7 +231,7 @@ TYPE
 	PROCEDURE Init256( VAR rk: RKeys;  CONST src: ARRAY OF CHAR;  pos: LONGINT ): SHORTINT;
 	VAR i, p: LONGINT;  ib: Ind4;
 	BEGIN
-		FOR i := 0 TO 7 DO  rk[i] := U.BESetFrom( src, pos + 4*i )  END;
+		FOR i := 0 TO 7 DO  rk[i] := U.SetFromBufferBE( src, pos + 4*i )  END;
 		p := 0;  i := 0;
 		LOOP
 			split( rk[p + 7], ib );

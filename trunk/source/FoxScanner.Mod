@@ -230,6 +230,14 @@ TYPE
 			RETURN w
 		END GetWriter;
 
+		PROCEDURE GetReader*(): Streams.Reader;
+		VAR r: Streams.StringReader;
+		BEGIN
+			NEW(r, 256);
+			r.Set(data^);
+			RETURN r
+		END GetReader;
+
 		PROCEDURE GetString*(VAR len: LONGINT) : StringType;
 		BEGIN
 			len := length;

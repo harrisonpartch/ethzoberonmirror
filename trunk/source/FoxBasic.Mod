@@ -1796,7 +1796,7 @@ VAR
 	VAR string: ObjectFile.SectionName; i: LONGINT;
 	BEGIN
 		i := 0;
-		WHILE (i< LEN(name)-1) & (name[i] >= 0) DO
+		WHILE (i< LEN(name)) & (name[i] >= 0) DO
 			INC(i);
 		END;
 		DEC(i);
@@ -1804,7 +1804,7 @@ VAR
 			RETURN FALSE
 		ELSE
 			StringPool.GetString(name[i],string);
-		RETURN Strings.EndsWith(string, this);
+			RETURN Strings.EndsWith(this, string);
 		END
 	END SegmentedNameEndsWith;
 

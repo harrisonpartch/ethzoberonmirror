@@ -940,6 +940,7 @@ BEGIN
 							IF dfile # NIL THEN overwrite := TRUE; ELSE overwrite := FALSE; END;
 							IF overwrite THEN
 								dfile.GetName(dname);
+								SplitName(dname, dprefix, dname);
 							END;
 							dfile := dfs.New0(dname);
 							IF dfile # NIL THEN (* We could create the target file *)

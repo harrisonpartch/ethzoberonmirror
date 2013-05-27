@@ -755,7 +755,7 @@ TYPE
 			this := modifiers;
 			WHILE this # NIL DO
 				IF ~this.resolved THEN
-				IF checkUse THEN
+				IF checkUse OR (this.expression = NIL) THEN
 					Error(this.position,Diagnostics.Invalid,"unexpected modifier");
 				ELSE
 					this.SetExpression(ConstantExpression(this.expression));
@@ -4973,6 +4973,7 @@ TYPE
 									ELSE
 										Error(position,Diagnostics.Invalid,"more actual than formal parameters")
 									END;
+
 								END;
 							END;
 							activeCellsStatement := TRUE;
@@ -5957,17 +5958,14 @@ TYPE
 						Error(expression.position,Diagnostics.Invalid,"forbidden non-realtime expression in realtime procedure");
 					END;
 				END;
+				(* designator modifiers for backends if they support it ...*)
+				IF (expression IS SyntaxTree.Designator) & (expression(SyntaxTree.Designator).modifiers # NIL) & (result IS SyntaxTree.Designator) THEN
+					result(SyntaxTree.Designator).SetModifiers(expression(SyntaxTree.Designator).modifiers);
+					CheckModifiers(result(SyntaxTree.Designator).modifiers, FALSE);
+				END;
 				resolvedExpression := prev
 			ELSE
 				result := expression
-			END;
-			(* check that designator modifier is only used in a place where it is also handled
-			 Currently, this is only at NEW(cell {capabilities}, ...)
-			*)
-			IF (expression # NIL) & (expression IS SyntaxTree.Designator) & (result # NIL) & (result IS SyntaxTree.Designator) THEN
-				IF (expression(SyntaxTree.Designator).modifiers # NIL) & (result(SyntaxTree.Designator).modifiers=NIL) THEN (* modifier not understood during resolving *)
-					Error(expression.position, Diagnostics.Invalid,"invalid modifier.");
-				END;
 			END;
 			RETURN result
 		END ResolveExpression;

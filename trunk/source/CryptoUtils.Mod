@@ -1,6 +1,53 @@
-MODULE CryptoUtils;
+MODULE CryptoUtils; (** AUTHOR "GF"; PURPOSE ""; *)
 
 IMPORT S := SYSTEM, Out := KernelLog, Random, Kernel, B := CryptoBigNumbers;
+
+
+TYPE 
+	InitBuffer* = OBJECT	(**   buffer supporting initialization of large tables with hex values  *)
+	VAR 
+		buf: POINTER TO ARRAY OF CHAR;
+		in, out: LONGINT;
+		
+		PROCEDURE & Init*( size: LONGINT );
+		BEGIN
+			NEW( buf, size );  in := 0;  out := 0;
+		END Init;
+		
+		PROCEDURE Add*( CONST x: ARRAY OF CHAR );
+		VAR  i: LONGINT;  c: CHAR;
+		BEGIN
+			c := x[0];  i := 1;
+			WHILE c # 0X DO 
+				buf[in] := c;  INC( in );  c := x[i];  INC( i )
+			END;
+			buf[in] := ' ';  INC( in );  buf[in] := 0X
+		END Add;
+		
+		
+		PROCEDURE GetInt*( ): LONGINT;
+		VAR x: LONGINT; c: CHAR;
+		BEGIN
+			WHILE (buf[out] <= ' ') & (buf[out] # 0X) DO  INC( out )  END;
+			c := buf[out];  INC( out );  x := 0;
+			REPEAT
+				IF (c >= '0') & (c <= '9')  THEN  x := 16*x + (ORD( c ) - ORD( '0' ))
+				ELSIF (c >= 'A') & (c <= 'F') THEN  x := 16*x + (ORD( c ) - ORD( 'A' ) + 10)
+				ELSIF (c >= 'a') & (c <= 'f') THEN  x := 16*x + (ORD( c ) - ORD( 'a' ) + 10)
+				ELSE  HALT( 100 )
+				END;
+				c := buf[out];  INC( out )
+			UNTIL c <= ' ';
+			RETURN x
+		END GetInt;
+		
+		PROCEDURE GetSet*(): SET;
+		BEGIN
+			RETURN S.VAL( SET, GetInt() )
+		END GetSet;
+		
+	END InitBuffer
+
 
 VAR
 	hexd: ARRAY 17 OF CHAR;	(* constant *)
@@ -212,7 +259,7 @@ VAR
 
 
 	(* copy char buffer to 32-bit words in block. big endian format *)
-	PROCEDURE CharsToBlockBE*( CONST buf: ARRAY OF CHAR; pos: LONGINT; VAR block: ARRAY OF S.BYTE );
+	PROCEDURE BufferToBlockBE*( CONST buf: ARRAY OF CHAR; pos: LONGINT; VAR block: ARRAY OF S.BYTE );
 	VAR i: LONGINT; a: ADDRESS;
 	BEGIN
 		a := ADDRESSOF( block );
@@ -224,9 +271,11 @@ VAR
 					ORD( buf[pos + 3] ) );
 			INC( a, 4 );  INC( pos, 4 )
 		END
-	END CharsToBlockBE;
-
-	PROCEDURE CharsToBlockLE*( CONST buf: ARRAY OF CHAR;  pos: LONGINT;  VAR block: ARRAY OF S.BYTE );
+	END BufferToBlockBE;
+	
+	
+	(* copy char buffer to 32-bit words in block. little endian format *)
+	PROCEDURE BufferToBlockLE*( CONST buf: ARRAY OF CHAR;  pos: LONGINT;  VAR block: ARRAY OF S.BYTE );
 	VAR i: LONGINT;  a: ADDRESS;
 	BEGIN
 		a := ADDRESSOF( block );
@@ -238,10 +287,10 @@ VAR
 					ORD( buf[pos + 0] ) );
 			INC( a, 4 );  INC( pos, 4 )
 		END
-	END CharsToBlockLE;
+	END BufferToBlockLE;
 
-	(* copy 32bit words in block to char buffer. bigendian format *)
-	PROCEDURE BlockToCharsBE*( CONST block: ARRAY OF S.BYTE;  VAR buf: ARRAY OF CHAR; pos: LONGINT );
+	(* copy 32bit words in block to char buffer. big endian format *)
+	PROCEDURE BlockToBufferBE*( CONST block: ARRAY OF S.BYTE;  VAR buf: ARRAY OF CHAR; pos: LONGINT );
 	VAR a: ADDRESS; i, w: LONGINT;
 	BEGIN
 		a := ADDRESSOF( block );
@@ -253,9 +302,10 @@ VAR
 			buf[pos + 0] := CHR( w MOD 256 );
 			INC( pos, 4 )
 		END
-	END BlockToCharsBE;
+	END BlockToBufferBE;
 
-	PROCEDURE BlockToCharsLE*( CONST block: ARRAY OF S.BYTE;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
+	(* copy 32bit words in block to char buffer. little endian format *)
+	PROCEDURE BlockToBufferLE*( CONST block: ARRAY OF S.BYTE;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
 	VAR a: ADDRESS;  i, w: LONGINT;
 	BEGIN
 		a := ADDRESSOF( block );
@@ -267,40 +317,62 @@ VAR
 			buf[pos + 3] := CHR( w MOD 100H );
 			INC( pos, 4 )
 		END
-	END BlockToCharsLE;
+	END BlockToBufferLE;
 	
-	PROCEDURE BESetToChars*( CONST v: SET;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
-	VAR val: LONGINT;
+	PROCEDURE SetToBufferBE*( val: SET;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
 	BEGIN
-		val := S.VAL( LONGINT, v );
+		IntToBufferBE( S.VAL( LONGINT, val ), buf, pos );
+	END SetToBufferBE;
+
+	PROCEDURE IntToBufferBE*( val: LONGINT;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
+	BEGIN
 		buf[pos + 3] := CHR( val MOD 256 );  val := val DIV 256;
 		buf[pos + 2] := CHR( val MOD 256 );  val := val DIV 256;
 		buf[pos + 1] := CHR( val MOD 256 );  val := val DIV 256;
 		buf[pos + 0] := CHR( val MOD 256 );
-	END BESetToChars;
-
-
-	PROCEDURE BESetFrom*( CONST buf: ARRAY OF CHAR;  pos: LONGINT ): SET;
+	END IntToBufferBE;
+	
+	PROCEDURE SetToBufferLE*( val: SET;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
 	BEGIN
-		RETURN  S.VAL( SET,
-						ASH( LONG( ORD( buf[pos + 0] ) ), 24 ) +
-						ASH( LONG( ORD( buf[pos + 1] ) ), 16 ) +
-						ASH( LONG( ORD( buf[pos + 2] ) ), 8 ) +
-						ORD( buf[pos + 3] ) );
-	END BESetFrom;
-
-
-	PROCEDURE LESetFrom*( CONST buf: ARRAY OF CHAR;  pos: LONGINT ): SET;
+		IntToBufferLE( S.VAL( LONGINT, val ), buf, pos );
+	END SetToBufferLE;
+	
+	PROCEDURE IntToBufferLE*( val: LONGINT;  VAR buf: ARRAY OF CHAR;  pos: LONGINT );
 	BEGIN
-		RETURN  S.VAL( SET,
-						ASH( LONG( ORD( buf[pos + 3] ) ), 24 ) +
-						ASH( LONG( ORD( buf[pos + 2] ) ), 16 ) +
-						ASH( LONG( ORD( buf[pos + 1] ) ), 8 ) +
-						ORD( buf[pos] ) );
-	END LESetFrom;
+		buf[pos + 0] := CHR( val MOD 256 );  val := val DIV 256;
+		buf[pos + 1] := CHR( val MOD 256 );  val := val DIV 256;
+		buf[pos + 2] := CHR( val MOD 256 );  val := val DIV 256;
+		buf[pos + 3] := CHR( val MOD 256 );
+	END IntToBufferLE;
+	
+	
+	PROCEDURE SetFromBufferBE*( CONST buf: ARRAY OF CHAR;  pos: LONGINT ): SET;
+	BEGIN
+		RETURN  S.VAL( SET, IntFromBufferBE( buf, pos ) )
+	END SetFromBufferBE;
+	
+	PROCEDURE IntFromBufferBE*( CONST buf: ARRAY OF CHAR;  pos: LONGINT ): LONGINT;
+	BEGIN
+		RETURN	ASH( LONG( ORD( buf[pos + 0] ) ), 24 ) +
+					ASH( LONG( ORD( buf[pos + 1] ) ), 16 ) +
+					ASH( LONG( ORD( buf[pos + 2] ) ), 8 ) +
+					ORD( buf[pos + 3] );
+	END IntFromBufferBE;
 
 
+	PROCEDURE SetFromBufferLE*( CONST buf: ARRAY OF CHAR;  pos: LONGINT ): SET;
+	BEGIN
+		RETURN  S.VAL( SET, IntFromBufferLE( buf, pos ) )
+	END SetFromBufferLE;
 
+	PROCEDURE IntFromBufferLE*( CONST buf: ARRAY OF CHAR;  pos: LONGINT ): LONGINT;
+	BEGIN
+		RETURN	ASH( LONG( ORD( buf[pos + 3] ) ), 24 ) +
+					ASH( LONG( ORD( buf[pos + 2] ) ), 16 ) +
+					ASH( LONG( ORD( buf[pos + 1] ) ), 8 ) +
+					ORD( buf[pos] );
+	END IntFromBufferLE;
+	
 
 
 BEGIN

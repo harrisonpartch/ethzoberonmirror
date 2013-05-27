@@ -21,7 +21,6 @@ CONST
 	HeapBlockOffset = - 2*AddrSize;
 	TypeDescOffset = -AddrSize;
 	
-	ArrayMask* = {1};
 	ProtTypeBit* = 31;   (* flags in TypeDesc, low bits reserved for extLevel *)
 	
 	FlagsOfs = AddrSize * 3;			(* flags offset in TypeDesc *)
@@ -78,7 +77,7 @@ VAR
 	BEGIN
 		FOR i := 0 TO numRelocations - 1 DO
 			IF relocAddr[i] = adr THEN
-			(*	Error( "", "same ptr location marked twice for fixing, ignored" );	*)
+				Error( "", "same ptr location marked twice for fixing, ignored" );	
 				RETURN
 			END
 		END;
@@ -90,8 +89,8 @@ VAR
 	END Relocate;
 	
 	
-	PROCEDURE ClearMem( a, len: LONGINT );
-	VAR  top: LONGINT;
+	PROCEDURE ClearMem( a: ADDRESS; len: SIZE );
+	VAR  top: ADDRESS;
 	BEGIN
 		top := a + len;
 		WHILE (a MOD 4 # 0) & (a < top) DO  S.PUT( a, S.VAL( SHORTINT, 0 ) );  INC( a )  END;
@@ -100,8 +99,8 @@ VAR
 	END ClearMem;
 
 
-	PROCEDURE NewBlock( size: LONGINT ): ADDRESS;   (* size MOD B = 0 *)
-	VAR rsize, rest: LONGINT;  ptr, restptr: ADDRESS;
+	PROCEDURE NewBlock( size: SIZE ): ADDRESS;   (* size MOD B = 0 *)
+	VAR rsize, rest: SIZE;  ptr, restptr: ADDRESS;
 	BEGIN
 		ptr := AN;
 		ASSERT( ptr MOD BlockSize = BlockSize - AddrSize );
@@ -129,20 +128,21 @@ VAR
 		ClearMem( ptr, size - AddrSize );
 		S.PUT( ptr - AddrSize, ptr );	Relocate( ptr - AddrSize );
 		S.PUT( ptr, size - AddrSize );
-		S.PUT( ptr + SizeSize, S.VAL( LONGINT, -AddrSize ) );
+		S.PUT( ptr + SizeSize, S.VAL( SIZE, -AddrSize ) );
 		S.PUT( ptr + 24 - AddrSize, ptr );	Relocate( ptr + 24 - AddrSize );
 		RETURN ptr + 24;
 	END NewSys;
 
 
-	PROCEDURE NewRec*( VAR ptr: ANY; tag: ADDRESS;  size: LONGINT );   (* implementation of NEW( ptr ) *)
-	VAR p: ADDRESS;  typ: ADDRESS;  flags: SET
+	PROCEDURE NewRec*( VAR ptr: ANY;  tag: ADDRESS );   (* implementation of NEW( ptr ) *)
+	VAR p: ADDRESS;  typ: ADDRESS;  flags: SET; size: SIZE;
 	BEGIN
 		S.GET( tag - AddrSize, typ );   (* will be replaced by direct compiler call of NewProtObj *)
 		S.GET( typ + FlagsOfs, flags );
 		IF ProtTypeBit IN flags THEN  (* protected record *)
 			NewProtRec( S.VAL( ANY, ptr  ), tag );
 		ELSE
+			S.GET( tag, size );
 			INC( size, AddrSize ); INC( size, (-size) MOD BlockSize );
 			p := NewBlock( size ) + AddrSize;
 			S.PUT( p - AddrSize, tag );  Relocate( p - AddrSize );
@@ -153,7 +153,7 @@ VAR
 
 
 	PROCEDURE NewProtRec*( VAR p: ANY;  tag: ADDRESS );
-	VAR recSize, size: LONGINT;  ptr0, ptr: ADDRESS;
+	VAR recSize, size: SIZE;  ptr0, ptr: ADDRESS;
 	BEGIN
 		S.GET( tag, recSize );
 		(* add space for tag and header and round up to BlockSize *)
@@ -204,7 +204,7 @@ VAR
 			ELSE
 				size := AddrSize + dataOffset + arrSize;  INC( size, (-size) MOD BlockSize );
 				p := NewBlock( size ) + AddrSize;
-				S.PUT( p - AddrSize, S.VAL( SET, eltag ) + {1} );  Relocate( p - AddrSize );
+				S.PUT( p - AddrSize, eltag + 2 (*ArrayBit*) );  Relocate( p - AddrSize );
 				ClearMem( p, size - AddrSize );
 				firstElem := p + dataOffset;
 				S.PUT( p, firstElem + arrSize - elSize );  Relocate( p );
@@ -253,7 +253,7 @@ VAR
 
 
 	PROCEDURE Initialize*( w: Streams.Writer );
-	VAR firstBlock: ADDRESS;  i, size: LONGINT;  heap: ADDRESS;
+	VAR heap, firstBlock: ADDRESS;  i: LONGINT;  size: SIZE;
 	BEGIN
 		error := w;
 		

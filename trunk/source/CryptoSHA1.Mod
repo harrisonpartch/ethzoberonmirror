@@ -1,23 +1,22 @@
 MODULE CryptoSHA1;	(** AUTHOR "G.F."; PURPOSE "SHA-1"; *)
 
 IMPORT
-	S := SYSTEM,  Hashes := CryptoHashes;
+	S := SYSTEM,  Hashes := CryptoHashes, U := CryptoUtils;
 
 CONST
 	BlockSize = 64;
 
 TYPE
-	Context = RECORD
-		h0, h1, h2, h3, h4: LONGINT;	(* state *)
-		Nl, Nh: LONGINT;
-		data: ARRAY BlockSize OF CHAR;	(* pending data *)
-		n: LONGINT	(* number of chars in data *)
-	END;
+	State = ARRAY 5 OF LONGINT;
 
 	Hash* = OBJECT (Hashes.Hash)
 		VAR
-			c: Context;
-
+			hash: State;
+			Nl, Nh: LONGINT;
+			cdata: ARRAY BlockSize OF CHAR;	(* pending data *)
+			cn: LONGINT	(* number of chars in data *)
+			
+			
 		PROCEDURE &Init*;
 		BEGIN
 			SetNameAndSize( "sha1", 20 );
@@ -26,61 +25,68 @@ TYPE
 
 		PROCEDURE Initialize*;
 		BEGIN
-			c.h0 := 067452301H;
-			c.h1 := LONGINT( 0EFCDAB89H );
-			c.h2 := LONGINT( 098BADCFEH );
-			c.h3 := 010325476H;
-			c.h4 := LONGINT( 0C3D2E1F0H );
-			c.Nl := 0;
-			c.Nh := 0;
-			c.n := 0;
+			hash[0] := 067452301H;
+			hash[1] := LONGINT( 0EFCDAB89H );
+			hash[2] := LONGINT( 098BADCFEH );
+			hash[3] := 010325476H;
+			hash[4] := LONGINT( 0C3D2E1F0H );
+			Nl := 0;
+			Nh := 0;
+			cn := 0;
 			initialized := TRUE
 		END Initialize;
+		
+		
+		PROCEDURE HashContextBlock;
+		BEGIN
+			HashBlock( hash, cdata, 0 );  cn := 0
+		END HashContextBlock;
 
 		(** data: value to be hashed *)
 		PROCEDURE Update*( CONST data: ARRAY OF CHAR;  pos, len: LONGINT );
 			VAR n, i, l: LONGINT;
 		BEGIN
 			ASSERT( initialized );
-			l := c.Nl + len *8;
-			IF l < c.Nl THEN INC( c.Nh )  (* overflow *)  END;
-			c.Nh := c.Nh + ASH( len, -29 );  c.Nl := l;
+			l := Nl + len *8;
+			IF l < Nl THEN INC( Nh )  (* overflow *)  END;
+			Nh := Nh + ASH( len, -29 );  Nl := l;
 
-			IF c.n > 0 THEN
-				IF c.n + len < BlockSize THEN
-					i := c.n;  INC( c.n, len );
-					WHILE i < c.n  DO  c.data[i] := data[pos];  INC( i ); INC( pos )  END;
+			IF cn > 0 THEN
+				IF cn + len < BlockSize THEN
+					i := cn;  INC( cn, len );
+					WHILE i < cn  DO  cdata[i] := data[pos];  INC( i ); INC( pos )  END;
 					RETURN
 				ELSE
-					WHILE c.n < BlockSize  DO
-						c.data[c.n] := data[pos];  INC( c.n );  INC( pos );  DEC( len )
+					WHILE cn < BlockSize  DO
+						cdata[cn] := data[pos];  INC( cn );  INC( pos );  DEC( len )
 					END;
-					HashContextBlock( c );
+					HashContextBlock;
 				END
 			END;
 
 			n := 0;
-			WHILE n < len DIV BlockSize  DO  HashBlock( c, data, pos );  INC( n )  END;
+			WHILE n < len DIV BlockSize  DO  
+				HashBlock( hash, data, pos );  INC( n ); INC( pos, BlockSize )
+			END;
 			len := len MOD BlockSize;
-			WHILE c.n < len  DO c.data[c.n] := data[pos];  INC( c.n );  INC( pos )  END;
+			WHILE cn < len  DO cdata[cn] := data[pos];  INC( cn );  INC( pos )  END;
 		END Update;
 
 		(** get the hashvalue of length SELF.size *)
 		PROCEDURE GetHash*( VAR buf: ARRAY OF CHAR;  pos: LONGINT );
 			VAR p: LONGINT;
 		BEGIN
-			c.data[c.n] := 80X;  INC( c.n );
-			IF c.n > BlockSize - 8 THEN
-				WHILE c.n < BlockSize  DO  c.data[c.n] := 0X;  INC( c.n )  END;
-				HashContextBlock( c );
+			cdata[cn] := 80X;  INC( cn );
+			IF cn > BlockSize - 8 THEN
+				WHILE cn < BlockSize  DO  cdata[cn] := 0X;  INC( cn )  END;
+				HashContextBlock;
 			END;
 			p := BlockSize - 8;
-			WHILE c.n < p  DO  c.data[c.n] := 0X;  INC( c.n )  END;
-			int2chars( c.Nh, c.data, p );  int2chars( c.Nl, c.data, p );
+			WHILE cn < p  DO  cdata[cn] := 0X;  INC( cn )  END;
+			U.IntToBufferBE( Nh, cdata, p );  U.IntToBufferBE( Nl, cdata, p + 4 );
 
-			HashContextBlock( c );
-			int2chars( c.h0, buf, pos );  int2chars( c.h1, buf, pos );  int2chars( c.h2, buf, pos );
-			int2chars( c.h3, buf, pos );  int2chars( c.h4, buf, pos );
+			HashContextBlock;
+			U.BlockToBufferBE( hash, buf, pos )
 		END GetHash;
 
 	END Hash;
@@ -96,21 +102,7 @@ TYPE
 		NEW( h );  RETURN h
 	END NewHash;
 
-	PROCEDURE chars2set( CONST buf: ARRAY OF CHAR;  VAR p: LONGINT;  VAR s: SET );
-	BEGIN
-		INC( p, 4 );
-		s := S.VAL( SET,  ASH( LONG( ORD( buf[p - 4] ) ), 24 ) +
-						ASH( LONG( ORD( buf[p - 3] ) ), 16 ) +
-						ASH( LONG( ORD( buf[p - 2] ) ), 8 ) +
-						ORD( buf[p - 1] ) );
-	END chars2set;
 
-	PROCEDURE int2chars( v: LONGINT;  VAR buf: ARRAY OF CHAR;  VAR p: LONGINT );
-	VAR i: LONGINT;
-	BEGIN
-		INC( p, 4 );
-		FOR i := 1 TO 4 DO  buf[p - i] := CHR( v MOD 256);  v := v DIV 256  END
-	END int2chars;
 
 	PROCEDURE F1( b, c, d: LONGINT ): LONGINT;
 	BEGIN
@@ -151,28 +143,29 @@ TYPE
 		b := ROT( b, 30 );
 	END tr6079;
 
-	PROCEDURE HashBlock( VAR c: Context;  CONST buf: ARRAY OF CHAR;  VAR pos: LONGINT );
-	VAR A, B, C, D, E, T: LONGINT;
+	PROCEDURE HashBlock( VAR state: State;  CONST buf: ARRAY OF CHAR;  pos: LONGINT );
+	VAR 
+		A, B, C, D, E, T: LONGINT;
 		x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, xa, xb, xc, xd, xe, xf: SET;
 	BEGIN
-		A := c.h0;  B := c.h1;  C := c.h2;  D := c.h3;  E := c.h4;
+		A := state[0];  B := state[1];  C := state[2];  D := state[3];  E := state[4];
 
-		chars2set( buf, pos, x0 );		tr0019( A, B, C, D, E, T, x0 );
-		chars2set( buf, pos, x1 ); 	tr0019( T, A, B, C, D, E, x1 );
-		chars2set( buf, pos, x2 ); 	tr0019( E, T, A, B, C, D, x2 );
-		chars2set( buf, pos, x3 ); 	tr0019( D, E, T, A, B, C, x3 );
-		chars2set( buf, pos, x4 ); 	tr0019( C, D, E, T, A, B, x4 );
-		chars2set( buf, pos, x5 ); 	tr0019( B, C, D, E, T, A, x5 );
-		chars2set( buf, pos, x6 ); 	tr0019( A, B, C, D, E, T, x6 );
-		chars2set( buf, pos, x7 ); 	tr0019( T, A, B, C, D, E, x7 );
-		chars2set( buf, pos, x8 ); 	tr0019( E, T, A, B, C, D, x8 );
-		chars2set( buf, pos, x9 ); 	tr0019( D, E, T, A, B, C, x9 );
-		chars2set( buf, pos, xa ); 	tr0019( C, D, E, T, A, B, xa );
-		chars2set( buf, pos, xb ); 	tr0019( B, C, D, E, T, A, xb );
-		chars2set( buf, pos, xc ); 		tr0019( A, B, C, D, E, T, xc );
-		chars2set( buf, pos, xd ); 	tr0019( T, A, B, C, D, E, xd );
-		chars2set( buf, pos, xe ); 	tr0019( E, T, A, B, C, D, xe );
-		chars2set( buf, pos, xf  );		tr0019( D, E, T, A, B, C, xf  );
+		x0 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( A, B, C, D, E, T, x0 );
+		x1 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( T, A, B, C, D, E, x1 );
+		x2 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( E, T, A, B, C, D, x2 );
+		x3 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( D, E, T, A, B, C, x3 );
+		x4 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( C, D, E, T, A, B, x4 );
+		x5 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( B, C, D, E, T, A, x5 );
+		x6 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( A, B, C, D, E, T, x6 );
+		x7 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( T, A, B, C, D, E, x7 );
+		x8 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( E, T, A, B, C, D, x8 );
+		x9 := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( D, E, T, A, B, C, x9 );
+		xa := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( C, D, E, T, A, B, xa );
+		xb := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( B, C, D, E, T, A, xb );
+		xc := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( A, B, C, D, E, T, xc );
+		xd := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( T, A, B, C, D, E, xd );
+		xe := U.SetFromBufferBE( buf, pos );  INC( pos, 4 );  tr0019( E, T, A, B, C, D, xe );
+		xf := U.SetFromBufferBE( buf, pos  );  INC( pos, 4 );  tr0019( D, E, T, A, B, C, xf  );
 
 		x0 := ROT( x0 / x2 / x8 / xd, 1 );		tr0019( C, D, E, T, A, B, x0 );
 		x1 := ROT( x1 / x3 / x9 / xe, 1 );		tr0019( B, C, D, E, T, A, x1 );
@@ -221,7 +214,7 @@ TYPE
 		xa := ROT( xa / xc / x2 / x7, 1 );		tr4059( C, D, E, T, A, B, xa );
 		xb := ROT( xb / xd / x3 / x8, 1 );		tr4059( B, C, D, E, T, A, xb );
 
-		xc := ROT( xc / xe / x4 / x9, 1 );		tr6079( A, B, C, D, E, T, xc );
+		xc := ROT( xc / xe / x4 / x9, 1 );			tr6079( A, B, C, D, E, T, xc );
 		xd := ROT( xd / xf  / x5 / xa, 1 );		tr6079( T, A, B, C, D, E, xd );
 		xe := ROT( xe / x0 / x6 / xb, 1 ); 		tr6079( E, T, A, B, C, D, xe );
 		xf  := ROT( xf  / x1 / x7 / xc, 1 );		tr6079( D, E, T, A, B, C, xf  );
@@ -242,13 +235,10 @@ TYPE
 		xe := ROT( xe / x0 / x6 / xb, 1 );		tr6079( A, B, C, D, E, T, xe );
 		xf  := ROT( xf  / x1 / x7 / xc, 1 );		tr6079( T, A, B, C, D, E, xf  );
 
-		c.h0 := c.h0 + E;  c.h1 := c.h1 + T;  c.h2 := c.h2 + A;  c.h3 := c.h3 + B;  c.h4 := c.h4 + C;
+		INC( state[0], E );  INC( state[1], T );  INC( state[2], A );  
+		INC( state[3], B );  INC( state[4], C );
 	END HashBlock;
 
-	PROCEDURE HashContextBlock( VAR c: Context );
-	VAR p: LONGINT;
-	BEGIN
-		p := 0;  HashBlock( c, c.data, p );  c.n := 0
-	END HashContextBlock;
+
 
 END CryptoSHA1.

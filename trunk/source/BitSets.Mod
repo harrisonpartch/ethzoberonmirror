@@ -1,6 +1,6 @@
 MODULE BitSets;	(** AUTHOR "negelef"; PURPOSE "generic bit container"; *)
 
-IMPORT SYSTEM; 
+IMPORT SYSTEM;
 
 CONST Elements = MAX (SET) - MIN (SET) + 1;
 
@@ -96,6 +96,12 @@ TYPE BitSet* = OBJECT
 		RETURN value;
 	END GetBits;
 
+	PROCEDURE CopyTo*(address: ADDRESS; bits: SIZE);
+	BEGIN
+		ASSERT(bits MOD 8 = 0);
+		SYSTEM.MOVE(ADDRESS OF data[0], address, bits DIV 8);
+	END CopyTo;
+
 END BitSet;
 
 PROCEDURE CopyBits* (source: BitSet; sourcePos: LONGINT; dest: BitSet; destPos, count: LONGINT);
@@ -122,6 +128,8 @@ BEGIN
 		END;
 	END;
 END CopyBits;
+
+
 
 END BitSets.
 

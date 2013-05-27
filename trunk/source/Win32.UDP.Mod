@@ -92,8 +92,12 @@ TYPE
 					avail := res > 0;
 					IF ~avail THEN  (* nothing available yet *)
 						fdset.fdcount := 1;  fdset.socket[0] := sock;
-						NEW(time);
-						time.sec := ms DIV 1000; time.musec := 1000* (ms MOD 1000);
+						IF ms = 0 THEN
+							time := NIL
+						ELSE
+							NEW(time);
+							time.sec := ms DIV 1000; time.musec := 1000* (ms MOD 1000);
+						END;
 						ret := WSock32.select( 0, fdset, NIL , NIL , time );
 						avail := ret = 1;
 						IF  ~avail THEN (* still nothing available *)
@@ -115,7 +119,7 @@ TYPE
 
 			(*? Problem - Windows XP does not fill in the Fip.UseProtocol field for IPv4 packets ! done manually here*)
 			IF fip.ipv4Adr # 0 THEN fip.usedProtocol := IP.IPv4 END;
-			
+
 			IF trace THEN
 				IF (fip.usedProtocol = IP.IPv4) THEN
 					KernelLog.String( "UDP.Receive : " );  KernelLog.Int( fip.ipv4Adr, 1 );  KernelLog.String( " , " );  KernelLog.Int( fport, 1 );

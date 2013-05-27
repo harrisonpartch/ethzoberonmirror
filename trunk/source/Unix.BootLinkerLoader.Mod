@@ -411,7 +411,7 @@ VAR
 				r.RawString( name );
 				r.RawLInt( tdSize);
 
-				Heaps.NewRec( S.VAL( ANY, m.typeInfo[i] ), Modules.tdTag, SIZEOF( Modules.TypeDescRec) );
+				Heaps.NewRec( S.VAL( ANY, m.typeInfo[i] ), Modules.tdTag );
 				Heaps.Relocate( ADDRESSOF( m.typeInfo[i] ) );
 				Heaps.FillStaticType( tdAdr, startAddr, S.VAL( ADDRESS, m.typeInfo[i] ), tdSize, recSize, pointers,
 									 Modules.MaxTags + type[i].methods);
@@ -448,7 +448,7 @@ VAR
 				totTdSize := totTdSize + tdSize;
 			END;
 			base := S.VAL( ADDRESS, m.typeInfo ) - AddrSize;
-			S.PUT( base, S.VAL( SET, Modules.ptrElemTag ) + Heaps.ArrayMask );
+			S.PUT( base, Modules.ptrElemTag + 2(*ArrayBit*) );
 
 			RETURN TRUE
 		ELSE

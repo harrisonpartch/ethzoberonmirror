@@ -1223,6 +1223,9 @@ TYPE
 			ELSE
 				x.Accept(SELF)
 			END;
+			IF (x IS SyntaxTree.Designator) & (x(SyntaxTree.Designator).modifiers # NIL) THEN
+				Error(x.position, "unsupported modifier");
+			END;
 		END Expression;
 
 		(*
@@ -8440,6 +8443,14 @@ TYPE
 			section.Emit(Data(-11,op));
 		END Address;
 
+		PROCEDURE Size(section: IntermediateCode.Section; value: LONGINT);
+		VAR op: IntermediateCode.Operand;
+		BEGIN
+			IntermediateCode.InitImmediate(op,IntermediateCode.GetType(module.system, module.system.sizeType),value);
+			section.Emit(Data(-12,op));
+		END Size;
+
+
 		PROCEDURE Set(section: IntermediateCode.Section; value: SET);
 		VAR op: IntermediateCode.Operand;
 		BEGIN
@@ -8666,6 +8677,20 @@ TYPE
 					Char( section, 0X); INC(i);
 				END;
 			END Name;
+
+
+			PROCEDURE LongName(section: IntermediateCode.Section; CONST name: ARRAY OF CHAR);
+			VAR i: LONGINT; ch: CHAR;
+			BEGIN
+				i := 0;
+				REPEAT
+					ch := name[i]; INC(i);
+					Char( section, ch);
+				UNTIL ch = 0X;
+				WHILE i < 128 DO
+					Char( section, 0X); INC(i);
+				END;
+			END LongName;
 
 			PROCEDURE References(section: IntermediateCode.Section);
 			CONST
@@ -9090,13 +9115,13 @@ TYPE
 		VAR
 			p: Sections.Section; sizePC, size, i: LONGINT;
 		BEGIN
-			Info(source, "command array descriptor");
+			Info(source, "Type info section");
 			size := 0;
 			Array(source,sizePC);
 			FOR i := 0 TO module.allSections.Length() - 1 DO
 				p := module.allSections.GetSection(i);
 				WITH p: IntermediateCode.Section DO
-						IF Basic.SegmentedNameEndsWith(p.name,"@Info") THEN
+					IF Basic.SegmentedNameEndsWith(p.name,"@Info") THEN
 						Symbol(source,p,0,0);
 						INC(size);
 					END;
@@ -9340,7 +9365,6 @@ TYPE
 		VAR variable: SyntaxTree.Variable; pc: LONGINT; symbol: Sections.Section;
 		BEGIN
 			Array(source,pc);
-
 			Info(source, "pointer offsets array data");
 			IF scope IS SyntaxTree.RecordScope THEN
 				Pointers(0,symbol, source,scope(SyntaxTree.RecordScope).ownerRecord,numberPointers);
@@ -9364,10 +9388,63 @@ TYPE
 		PROCEDURE CheckTypeDeclaration(x: SyntaxTree.Type);
 		VAR recordType: SyntaxTree.RecordType;
 			tir: IntermediateCode.Section; op: IntermediateCode.Operand; name: Basic.SegmentedName; td: SyntaxTree.TypeDeclaration;
-			section: Sections.Section; string: SyntaxTree.String;
+			section: Sections.Section; string: SyntaxTree.String; type: SyntaxTree.Type;
+
+			PROCEDURE FieldArray(source: IntermediateCode.Section);
+			VAR variable: SyntaxTree.Variable; pc, offset: LONGINT; symbol, tir: Sections.Section; size: LONGINT; name: ARRAY 128 OF CHAR;
+				segmentedName: Basic.SegmentedName;
+				td: SyntaxTree.TypeDeclaration;
+			BEGIN
+				Array(source,pc);
+
+				Info(source, "FieldArray");
+				IF x IS SyntaxTree.RecordType THEN
+					variable := x(SyntaxTree.RecordType).recordScope.firstVariable
+				ELSE
+					variable := NIL;
+				END;
+				size :=0;
+				WHILE variable # NIL DO
+					type := variable.type.resolved;
+					Info(source,"offset");
+					Size(source, ToMemoryUnits(module.system,variable.offsetInBits));
+					Info(source,"type class");
+					IF type IS SyntaxTree.PointerType THEN
+						Size(source, 1);
+					ELSIF type IS SyntaxTree.RecordType THEN
+						Size(source, 2);
+					ELSIF type IS SyntaxTree.NumberType THEN
+						Size(source, 3);
+					ELSE
+						Size(source, 0);
+					END;
+					Info(source, "type desc");
+					IF type IS SyntaxTree.RecordType THEN
+						td := type(SyntaxTree.RecordType).typeDeclaration;
+						Global.GetSymbolSegmentedName(td,segmentedName);
+						IF (td.scope = NIL) OR (td.scope.ownerModule = module.module) THEN
+							tir := IntermediateCode.NewSection(module.allSections, Sections.ConstSection, segmentedName,td,implementationVisitor.dump # NIL);
+						ELSE
+							tir := IntermediateCode.NewSection(module.importedSections, Sections.ConstSection, segmentedName,td,implementationVisitor.dump # NIL);
+						END;
+						offset := ToMemoryUnits(module.system,GetTypeRecordBaseOffset(type(SyntaxTree.RecordType).recordScope.numberMethods)*module.system.addressSize);
+						Symbol(source, tir,  0, offset);
+					ELSE
+						Address(source, 0);
+					END;
+					Info(source,"flags");
+					Set(source, {});
+					Info(source,"name");
+					variable.GetName(name);
+					LongName(source, name);
+					variable := variable.nextVariable;
+					INC(size);
+				END;
+				PatchLongint(source,pc,size);
+			END FieldArray;
 
 			PROCEDURE NewTypeDescriptorInfo(tag: Sections.Section; offset: LONGINT; isProtected: BOOLEAN): Sections.Section;
-			VAR name: Basic.SegmentedName;source: IntermediateCode.Section;
+			VAR name: Basic.SegmentedName;source, fieldSection: IntermediateCode.Section;
 				moduleSection: IntermediateCode.Section; i: LONGINT; flags: SET;
 				sectionName: Basic.SectionName;
 			CONST MPO=-40000000H;
@@ -9399,10 +9476,28 @@ TYPE
 					Symbol( source, moduleSection, moduleSection.pc,0);
 					Info(source, "type name");
 					i := 0;
+					Global.GetSymbolNameInScope(td, module.module.moduleScope, sectionName);
+					(*
 					Global.GetSymbolSegmentedName(td,name);
 					Basic.SegmentedNameToString(name, sectionName);
+					*)
 					Name(source,sectionName);
 					source.SetReferenced(FALSE);
+
+					Global.GetSymbolSegmentedName(td,name);
+					Basic.AppendToSegmentedName(name,"@Fields");
+
+					fieldSection := IntermediateCode.NewSection(module.allSections, Sections.ConstSection, name, NIL,TRUE);
+					HeapBlock("Heaps","SystemBlockDesc", fieldSection, 2);
+					Info(fieldSection, "HeapBlock");
+					Address(fieldSection,0); (* empty such that GC does not go on traversing *)
+					Info(fieldSection, "TypeDescriptor");
+					Address(fieldSection,0);
+
+					Info(source, "FieldArray ref");
+					Symbol(source, fieldSection, fieldSection.pc, 0);
+
+					FieldArray(fieldSection);
 					RETURN source;
 			END NewTypeDescriptorInfo;
 

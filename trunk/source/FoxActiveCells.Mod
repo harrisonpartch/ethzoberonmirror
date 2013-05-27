@@ -1312,6 +1312,7 @@ TYPE
 			AddDevice("LCD", 0FFFFFFC8H);
 			AddDevice("CF", 0FFFFFFCCH);
 			AddDevice("LED", 0FFFFFFC7H);
+			AddDevice("LEDDigits", 0FFFFFFC8H);
 			AddDevice("TIMER", 0FFFFFFC6H);
 			(*AddDevice("PORT",0FF10H); *)
 			AddDevice("PORT", 0FFFFFFE0H);
