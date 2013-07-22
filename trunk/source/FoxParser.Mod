@@ -272,7 +272,7 @@ TYPE
 		END NextSymbol;
 
 		(** Check if current symbol equals sym. If yes then return true, return false otherwise *)
-		PROCEDURE Peek(token: Scanner.Token): BOOLEAN;
+		PROCEDURE Peek*(token: Scanner.Token): BOOLEAN;
 		VAR comment: SyntaxTree.Comment;
 		BEGIN
 			SkipComments();
@@ -280,7 +280,7 @@ TYPE
 		END Peek;
 
 		(** Check if the current symbol equals sym.If yes then read next symbol, report error otherwise. returns success value  *)
-		PROCEDURE Mandatory( token: Scanner.Token): BOOLEAN;
+		PROCEDURE Mandatory*( token: Scanner.Token): BOOLEAN;
 		BEGIN
 			ASSERT( token # Scanner.Identifier );  ASSERT( token # Scanner.String );  ASSERT( token # Scanner.Number );   (* because of NextSymbol ! *)
 			IF ~Peek(token) THEN
@@ -329,7 +329,7 @@ TYPE
 
 		(** Check if current symbol is a string (or string-like character). If yes then copy identifier to name and get next symbol,
 		report error otherwise and set name to empty name. returns success value*)
-		PROCEDURE MandatoryString( VAR name: Scanner.StringType ): BOOLEAN;
+		PROCEDURE MandatoryString*( VAR name: Scanner.StringType ): BOOLEAN;
 		BEGIN
 			IF Peek( Scanner.String) THEN
 				name := symbol.string;
@@ -375,7 +375,7 @@ TYPE
 		END ExpectThisString;
 
 		(** Check if current symbol equals sym. If yes then get next symbol, return false otherwise *)
-		PROCEDURE Optional( token: Scanner.Token ): BOOLEAN;
+		PROCEDURE Optional*( token: Scanner.Token ): BOOLEAN;
 		BEGIN
 			(* do not use for Identifier, String or Number, if the result is needed ! *)
 			IF Peek(token) THEN
@@ -394,7 +394,7 @@ TYPE
 		(** Parsing according to the EBNF **)
 
 		(** QualifiedIdentifier = Identifier ['.' Identifier]. **)
-		PROCEDURE QualifiedIdentifier( ): SyntaxTree.QualifiedIdentifier;
+		PROCEDURE QualifiedIdentifier*( ): SyntaxTree.QualifiedIdentifier;
 		VAR prefix,suffix: SyntaxTree.Identifier; qualifiedIdentifier: SyntaxTree.QualifiedIdentifier;  position0,position1: LONGINT;
 		BEGIN
 			IF Trace THEN S( "QualifiedIdentifier" ) END;
@@ -687,6 +687,15 @@ TYPE
 					factor := SyntaxTree.NewStringValue( position, symbol.string );
 					factor.End( symbol.end );
 					NextSymbol;
+					WHILE (symbol.token = Scanner.String) OR (symbol.token = Scanner.Character) DO
+						IF symbol.token = Scanner.Character THEN
+							factor(SyntaxTree.StringValue).AppendChar(symbol.character);
+						ELSE
+							factor(SyntaxTree.StringValue).Append(symbol.string);
+						END;
+						factor.End(symbol.end);
+						NextSymbol;
+					END;
 			| Scanner.Nil:
 					factor := SyntaxTree.NewNilValue( position );
 					factor.End( symbol.end );

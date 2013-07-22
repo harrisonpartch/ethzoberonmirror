@@ -868,7 +868,7 @@ MODULE GfxRegions; (** portable *)	(* eos  *)
 	PROCEDURE Init* (reg: Region; mode: INTEGER);
 	BEGIN
 		reg.mode := mode;
-		reg.data := NIL;
+		(* reg.data := NIL; *)
 		Clear(reg)
 	END Init;
 

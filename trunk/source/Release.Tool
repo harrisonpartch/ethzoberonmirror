@@ -1270,7 +1270,9 @@ PACKAGE Contributions ARCHIVE "Contributions.zip" SOURCE "ContributionsSrc.zip" 
 	WIN { Win32.VfW.Mod RasterPixelFormats.Mod VideoExample.Mod TestVideo.Mod}
 
 	WMOverlay.Mod WMOverlay.tar
-
+	
+	# Oberon pretty printing
+	PrettyPrint.Mod  PrettyPrintHighlighter.XML
 
 	NbrInt8.Mod NbrInt16.Mod NbrInt32.Mod I386.NbrInt64.Mod NbrInt.Mod NbrRat.Mod
 	I386.NbrRe32.Mod I386.NbrRe64.Mod NbrRe.Mod NbrCplx.Mod NbrStrings.Mod

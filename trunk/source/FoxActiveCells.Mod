@@ -24,6 +24,7 @@ CONST
 	(* comparison flags *)
 	CheckModules= 0;
 	CheckParameters=1;
+	CheckCapabilityParameters = 2;
 
 TYPE
 	Name*= ARRAY 256 OF CHAR;
@@ -425,7 +426,11 @@ TYPE
 			IF TraceSame THEN TRACE("Parameter",name) END;
 			IF (as = NIL) OR ~(as IS Parameter) THEN RETURN FALSE END;
 			WITH as: Parameter DO
-				IF (index # as.index) OR (type # as.type) OR (integer # as.integer) OR (as.boolean # boolean) THEN RETURN FALSE END;
+				(*IF (index # as.index) OR (type # as.type) OR (integer # as.integer) OR (as.boolean # boolean) THEN RETURN FALSE END;*)
+				IF (index # as.index) OR (type # as.type) THEN RETURN FALSE; END;
+				IF ((type = 0) & (as.boolean # boolean))
+					OR ((type = 1) & (as.integer # integer))
+					OR ((type = 2) & (as.string^ # string^)) THEN RETURN FALSE; END; 
 			END;
 			RETURN Same^(as, flags)
 		END Same;
@@ -555,6 +560,7 @@ TYPE
 				IF (index # as.index) THEN RETURN FALSE END;
 				IF ~type.Same(as.type, flags) THEN RETURN FALSE END;
 				IF (CheckParameters IN flags) & ~parameters.Same(as.parameters, flags) THEN RETURN FALSE END;
+				IF (CheckCapabilityParameters IN flags) & ~capabilityParameters.Same(as.capabilityParameters, flags) THEN RETURN FALSE END;
 				IF (instructionMemorySize # as.instructionMemorySize) THEN RETURN FALSE END;
 				IF (dataMemorySize # as.dataMemorySize) THEN RETURN FALSE END;
 			END;
@@ -870,7 +876,7 @@ TYPE
 				IF (dataMemorySize # as.dataMemorySize) THEN RETURN FALSE END;
 				IF (capabilities # as.capabilities) THEN RETURN FALSE END;
 			END;
-			RETURN Same^(as, flags)
+			RETURN TRUE (*RETURN Same^(as, flags)*)
 		END Same;
 
 

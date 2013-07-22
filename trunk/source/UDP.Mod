@@ -91,7 +91,7 @@ TYPE
 
 		(** Send a UDP datagram to the foreign address specified by "fip" and "fport".
 			The data is in "data[ofs..ofs+len-1]".  In case of concurrent sends the datagrams are serialized. *)
-		PROCEDURE Send*(fip: IP.Adr; fport: LONGINT; VAR data: ARRAY OF CHAR; ofs, len: LONGINT; VAR res: LONGINT);
+		PROCEDURE Send*(fip: IP.Adr; fport: LONGINT; CONST data: ARRAY OF CHAR; ofs, len: LONGINT; VAR res: LONGINT);
 		VAR
 			int: IP.Interface;
 
@@ -112,7 +112,7 @@ TYPE
 
 		(** Send a broadcast UDP datagram via interface "int" to port "lport". Normally only used by DHCP.
 			The data is in "data[ofs..ofs+len-1]".  In case of concurrent sends the datagrams are serialized. *)
-		PROCEDURE SendBroadcast*(int: IP.Interface; fport: LONGINT; VAR data: ARRAY OF CHAR; ofs, len: LONGINT);
+		PROCEDURE SendBroadcast*(int: IP.Interface; fport: LONGINT; CONST data: ARRAY OF CHAR; ofs, len: LONGINT);
 		BEGIN {EXCLUSIVE}
 			ASSERT((fport >= 0) & (fport < 10000H));
 			ASSERT((len >= 0) & (len <= MaxUDPDataLen));
@@ -193,7 +193,7 @@ TYPE
 
 
 		(* Internal send operation. Called from "Send" and "SendBroadcast". *)
-		PROCEDURE DoSend(int: IP.Interface; fip: IP.Adr; fport: LONGINT; VAR data: ARRAY OF CHAR; ofs, len: LONGINT);
+		PROCEDURE DoSend(int: IP.Interface; fip: IP.Adr; fport: LONGINT; CONST data: ARRAY OF CHAR; ofs, len: LONGINT);
 		VAR
 			sum: LONGINT;
 			pseudoHdrLen: LONGINT;

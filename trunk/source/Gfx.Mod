@@ -205,7 +205,12 @@ MODULE Gfx; (** portable *)	(* eos  *)
 		ctxt.cpx := 0; ctxt.cpy := 0;
 		ctxt.flatness := 0.5;
 		ctxt.font := GfxFonts.Default;
-		NEW(ctxt.tmpPath); NEW(ctxt.dashPath)
+		IF ctxt.tmpPath = NIL THEN
+			NEW(ctxt.tmpPath);
+		END;
+		IF ctxt.dashPath = NIL THEN
+			NEW(ctxt.dashPath)
+		END;
 	END Init;
 
 	(** save and restore graphics state **)

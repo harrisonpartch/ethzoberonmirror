@@ -38,7 +38,46 @@ TYPE
 		documentation*: Backend.Backend;
 		activeCellsBackend, activeCellsAssembler: Backend.Backend;
 		srcPath, destPath: Files.FileName;
+		replacements: SemanticChecker.Replacement;
 	END;
+
+	PROCEDURE ParseReplacements(CONST filename: ARRAY OF CHAR; VAR replacement: SemanticChecker.Replacement; diagnostics: Diagnostics.Diagnostics): BOOLEAN;
+	VAR reader: Streams.Reader; r: SemanticChecker.Replacement;
+		identifier: SyntaxTree.QualifiedIdentifier;
+		scanner: Scanner.Scanner; parser: Parser.Parser; expression: SyntaxTree.Expression;
+	BEGIN
+		replacement := NIL;
+		reader := Basic.GetFileReader(filename);
+		IF reader = NIL THEN
+			diagnostics.Error (filename, Diagnostics.Invalid, Diagnostics.Invalid, "failed to open");
+		ELSE
+
+			NEW(scanner, filename, reader,0, diagnostics);
+			NEW(parser, scanner, diagnostics);
+
+			REPEAT (* WHILE parser.Peek(Scanner.Identifier) DO*)
+				identifier := parser.QualifiedIdentifier();
+				IF parser.Mandatory(Scanner.Equal) THEN
+					expression := parser.Expression();
+					NEW(r); identifier.GetName(r.name);  r.expression := expression; r.used := FALSE;
+					r.next := replacement; replacement := r;
+				END;
+				WHILE parser.Optional(Scanner.Semicolon) DO END;
+			UNTIL ~parser.Peek(Scanner.Identifier); (*END;*)
+
+		END;
+		(*done := FALSE;
+		WHILE reader.GetString(name) & ~done DO
+			IF reader.GetChar(equal) & (equal = "=") & reader.GetString(value) THEN
+				NEW(r); r.name := name; r.string := Strings.NewString(value); r.used := FALSE;
+				r.next := replacement; replacement := r;
+			ELSE done := TRUE;
+			END;
+		END;
+		*)
+		RETURN (replacement # NIL)
+	END ParseReplacements;
+
 
 	PROCEDURE Modules*(CONST source: ARRAY OF CHAR; (* source file name, for debugging and better error reports *)
 			reader: Streams.Reader; (* reader to read from *)
@@ -149,6 +188,7 @@ TYPE
 					options.symbolFile.Initialize(diagnostics,system,options.destPath);
 				END;
 				checker := SemanticChecker.NewChecker(diagnostics,Info IN flags,UseDarwinCCalls IN flags,system,options.symbolFile,activeCellsSpecification,importCache);
+				checker.replacements := options.replacements;
 				checker.Module(module);
 				IF checker.error THEN
 					FinalMessage(TRUE," could not be compiled (checker errors).");
@@ -253,6 +293,7 @@ TYPE
 			END;
 		UNTIL (SingleModule IN flags) OR ~parser.NextModule();
 
+
 		RETURN TRUE;
 	END Modules;
 
@@ -290,6 +331,7 @@ TYPE
 		options.Add("d","documentation", Options.String);
 		options.Add("S","srcPath", Options.String);
 		options.Add("D","destPath", Options.String);
+		options.Add(0X,"replacements", Options.String);
 
 		position := input.Pos();
 		parsed := options.Parse(input,NIL);
@@ -352,6 +394,14 @@ TYPE
 			compilerOptions.activeCellsAssembler := Backend.GetBackendByName("FoxIntermediateLinker");
 		END;
 
+		IF options.GetString("replacements", name) THEN
+			IF ~ParseReplacements(name, compilerOptions.replacements, diagnostics) THEN
+				Error("replacement file could not be opened or is empty"); result := FALSE;
+			END;
+		ELSE compilerOptions.replacements := NIL
+		END;
+
+
 		IF compilerOptions.backend # NIL THEN compilerOptions.backend.DefineOptions (options); INCL(compilerOptions.flags,Check); END;
 		IF compilerOptions.symbolFile # NIL THEN compilerOptions.symbolFile.DefineOptions(options); INCL(compilerOptions.flags,Check) END;
 		IF compilerOptions.objectFile # NIL THEN compilerOptions.objectFile.DefineOptions(options); INCL(compilerOptions.flags,Check) END;
@@ -398,6 +448,8 @@ TYPE
 		time: LONGINT; reader: Streams.Reader;
 		importCache: SyntaxTree.ModuleScope;
 		options: CompilerOptions;
+		replacement: SemanticChecker.Replacement;
+		name: ARRAY 128 OF CHAR;
 	BEGIN
 		error := FALSE;
 
@@ -423,6 +475,16 @@ TYPE
 			IF Silent IN options.flags THEN
 				time := Kernel.GetTicks()-time;
 				context.out.Ln; context.out.String("compiler elapsed ms"); context.out.Int(time,10);
+			END;
+			IF ~error THEN
+				replacement := options.replacements;
+				WHILE replacement # NIL DO
+					IF ~replacement.used THEN
+						name := replacement.name;
+						diagnostics.Warning(name,  Diagnostics.Invalid, Diagnostics.Invalid, " unused replacement.");
+					END;
+					replacement := replacement.next;
+				END;
 			END;
 		END;
 		IF error THEN context.result := -1 ELSE context.result := Commands.Ok END;

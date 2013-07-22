@@ -199,7 +199,7 @@ typedef struct fd_set {
 		send-: PROCEDURE {WINAPI} (s: Socket; CONST buf: ARRAY   OF SYSTEM.BYTE; len: LONGINT; flags: SET): LONGINT;
 
 		(** The Windows Sockets sendto function sends data to a specific destination. *)
-		sendto-: PROCEDURE {WINAPI} (s: Socket; VAR buf: ARRAY   OF SYSTEM.BYTE; len: LONGINT; flags: LONGINT; VAR to: ARRAY   OF SYSTEM.BYTE; tolen: LONGINT): LONGINT;
+		sendto-: PROCEDURE {WINAPI} (s: Socket; CONST buf: ARRAY   OF SYSTEM.BYTE; len: LONGINT; flags: LONGINT; VAR to: ARRAY   OF SYSTEM.BYTE; tolen: LONGINT): LONGINT;
 
 		(** The Windows Sockets setsockopt function sets a socket option. *)
 		setsockopt-: PROCEDURE {WINAPI} (s: Socket; level, optname: LONGINT; VAR optval: ARRAY   OF SYSTEM.BYTE; optlen: LONGINT): LONGINT;

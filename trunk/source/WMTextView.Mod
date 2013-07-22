@@ -3577,6 +3577,35 @@ TYPE
 
 		PROCEDURE FindCommandRange*(pos: LONGINT; VAR start, end, nofLastSelections : LONGINT);
 		VAR ch : LONGINT; string : ARRAY 23 OF CHAR; i : LONGINT; sDoCommands, lastWasTilde : BOOLEAN;
+			escapeString: ARRAY 32 OF LONGINT; escapePos: LONGINT; escape: BOOLEAN;
+
+			(* note: this simple algorithm can be emplyed if  the substring to be implicitly searched for does not contain its first character *)
+			PROCEDURE String(escape: BOOLEAN; CONST escapeString: ARRAY OF LONGINT);
+			VAR done: BOOLEAN; escapePos: LONGINT;
+			BEGIN
+				done := FALSE; escapePos := -1;
+				REPEAT
+					utilreader.ReadCh(ch);
+					IF ch = ORD('"') THEN
+						IF escape THEN
+							escapePos := 0;
+						ELSE
+							 done := TRUE
+						END;
+					ELSIF escapePos >= 0 THEN
+						IF escapeString[escapePos] = 0 THEN
+							IF ch =ORD("\") THEN done := TRUE
+							ELSE escapePos := -1
+							END;
+						ELSIF escapeString[escapePos] # ch THEN
+							escapePos := -1;
+						ELSE
+							INC(escapePos);
+						END;
+					END;
+				UNTIL done OR utilreader.eot;
+			END String;
+
 		BEGIN
 			nofLastSelections := 0;
 			text.AcquireRead;
@@ -3589,6 +3618,18 @@ TYPE
 			utilreader.SetDirection(1); utilreader.SetPosition(start);
 			REPEAT
 				utilreader.ReadCh(ch);
+
+				IF ch = ORD('"') THEN
+					escapeString[escapePos] := 0;
+					String(escape, escapeString);
+				ELSIF ch =ORD("\") THEN
+					escape := TRUE;
+					escapePos := 0;
+				ELSIF escape THEN
+					IF TextUtilities.IsWhiteSpace(ch,text.isUTF) THEN escape := FALSE
+					ELSE escapeString[escapePos] := ch; INC(escapePos);
+					END;
+				END;
 
 				(* check whether the command is SystemTools.DoCommands *)
 				IF (i < 22) THEN

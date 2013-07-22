@@ -832,7 +832,7 @@ VAR
 		IF b.len = 0 THEN  Out.String( " 00000000" )
 		ELSE  i := b.len;
 			WHILE i > 0 DO
-				DEC( i );  Out.Hex( b.d[i], 2 );
+				DEC( i );  Out.Hex( b.d[i], -8 );
 				IF i > 0 THEN
 					IF i MOD 6 = 0 THEN  Out.Ln
 					ELSE  Out.String( "  " )

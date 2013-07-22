@@ -1294,7 +1294,7 @@ TYPE
 				emitter.Emit2(InstructionSet.opSUB,opSP,op1);
 			END;
 
-			IF cc = SyntaxTree.WinAPICallingConvention THEN
+			IF (cc = SyntaxTree.WinAPICallingConvention) OR (cc = SyntaxTree.CCallingConvention) THEN
 				(* the winapi calling convention presumes that all registers except EAX, EDX and ECX are retained by the callee *)
 				emitter.Emit1(InstructionSet.opPUSH,opEBX);
 				emitter.Emit1(InstructionSet.opPUSH,opEDI);
@@ -1317,7 +1317,7 @@ TYPE
 		VAR cc: LONGINT;
 		BEGIN
 			cc := SHORT(instruction.op1.intValue);
-			IF cc = SyntaxTree.WinAPICallingConvention THEN
+			IF (cc = SyntaxTree.WinAPICallingConvention)  OR (cc = SyntaxTree.CCallingConvention) THEN
 				emitter.Emit1(InstructionSet.opPOP,opESI);
 				emitter.Emit1(InstructionSet.opPOP,opEDI);
 				emitter.Emit1(InstructionSet.opPOP,opEBX);
@@ -3260,9 +3260,7 @@ TYPE
 				GenerateBinary(result(Sections.Module),dump);
 				IF dump # NIL THEN
 					dump.Ln; dump.Ln;
-					dump.BeginComment;
 					dump.String(";------------------ binary code -------------------"); dump.Ln;
-					dump.EndComment;
 					IF (traceString="") OR (traceString="*") THEN
 						result.Dump(dump);
 						dump.Update

@@ -1,8 +1,8 @@
 MODULE FoxSemanticChecker; (* AUTHOR "fof & fn"; PURPOSE "Oberon Compiler: Semantic Checker"; *)
 (* (c) fof ETHZ 2009 *)
 
-IMPORT D := Debugging, Basic := FoxBasic, Scanner := FoxScanner, SyntaxTree := FoxSyntaxTree,
-Diagnostics, Global := FoxGlobal, Printout:= FoxPrintout, Formats := FoxFormats, ActiveCells := FoxActiveCells, SYSTEM, Strings;
+IMPORT D := Debugging, Basic := FoxBasic, Scanner := FoxScanner, SyntaxTree := FoxSyntaxTree, Parser := FoxParser,
+Diagnostics, Global := FoxGlobal, Printout:= FoxPrintout, Formats := FoxFormats, ActiveCells := FoxActiveCells, SYSTEM, Streams, Strings;
 
 CONST
 	Trace = FALSE;
@@ -56,6 +56,12 @@ TYPE
 		type: SyntaxTree.Type;
 	END;
 
+	Replacement*= POINTER TO RECORD
+		name*: Basic.SegmentedName;
+		expression*: SyntaxTree.Expression;
+		used*: BOOLEAN;
+		next*: Replacement;
+	END;
 
 	(** checker object: used to check and resolve a module
 		- resolves types
@@ -97,6 +103,7 @@ TYPE
 		withEntries: WithEntry;
 		activeCellsStatement: BOOLEAN;
 		activeCellsSpecification: ActiveCells.Specification;
+		replacements*: Replacement;
 
 		PROCEDURE &InitChecker*(diagnostics: Diagnostics.Diagnostics; verboseErrorMessage,useDarwinCCalls: BOOLEAN; system: Global.System; symbolFileFormat: Formats.SymbolFileFormat; activeCellsSpecification: ActiveCells.Specification; VAR importCache: SyntaxTree.ModuleScope);
 		BEGIN
@@ -158,6 +165,19 @@ TYPE
 			END;
 			error := TRUE;
 		END ErrorSS;
+
+		PROCEDURE InfoSS(position: LONGINT; CONST msg1: ARRAY OF CHAR; CONST s: Basic.String);
+		VAR msg, msg2: ARRAY 256 OF CHAR;
+		BEGIN
+			IF diagnostics # NIL THEN
+				COPY(msg1, msg);
+				Strings.Append(msg, " = ");
+				Basic.GetString(s, msg2);
+				Strings.Append(msg, msg2);
+				diagnostics.Information(currentScope.ownerModule.sourceName, position, Diagnostics.Invalid, msg);
+			END;
+		END InfoSS;
+
 
 		(*** symbol lookup ***)
 
@@ -6124,11 +6144,36 @@ TYPE
 		VAR
 			expression: SyntaxTree.Expression;
 			type: SyntaxTree.Type;
+			name: Basic.SegmentedName;
+			replacement: Replacement;
+			stringReader: Streams.StringReader;
+			scanner: Scanner.Scanner; parser: Parser.Parser;
 		BEGIN
 			IF Trace THEN D.Str("VisitConstant "); D.Str0(constant.name);  D.Ln;  END;
 			IF SymbolNeedsResolution(constant) THEN
+				expression := constant.value;
+				IF replacements # NIL THEN
+					Global.GetSymbolSegmentedName(constant, name);
+					replacement := replacements;
+					WHILE (replacement # NIL) & (replacement.name # name) DO
+						replacement := replacement.next;
+					END;
+					IF replacement # NIL THEN
+						InfoSS(constant.position, "replacing constant", constant.name);
+						(*
+						NEW(stringReader, Strings.Length(replacement.string^));
+						stringReader.Set(replacement.string^);
+						NEW(scanner, replacement.string^, stringReader,0, diagnostics);
+						NEW(parser, scanner, diagnostics);
+						expression := parser.Expression();
+						*)
+						expression := replacement.expression;
+						replacement.used := TRUE;
+					END;
+				END;
+
 				constant.SetType(SyntaxTree.invalidType);
-				expression := ConstantExpression(constant.value);
+				expression := ConstantExpression(expression);
 				ASSERT(expression.type # NIL);
 				type := expression.type.resolved;
 				constant.SetType(type);

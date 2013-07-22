@@ -639,7 +639,7 @@ TYPE
 		PROCEDURE PutInt*(key, value: LONGINT);
 		VAR hash: LONGINT;
 		BEGIN
-			ASSERT(key # 0);
+			(*ASSERT(key # 0);*)
 			ASSERT(used < size);
 			hash := HashValue(key);
 			IF table[hash].key = 0 THEN

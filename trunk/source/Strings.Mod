@@ -933,6 +933,17 @@ BEGIN
 	RETURN s
 END NewString;
 
+PROCEDURE SetAOC*(CONST str: ARRAY OF CHAR; VAR s: String);
+VAR l: LONGINT;
+BEGIN
+	l := Length(str) + 1;
+	IF (s = NIL) OR (LEN(s^) < l) THEN
+		NEW(s,l)
+	END;
+	COPY(str, s^);
+END SetAOC;
+
+
 (* Gets extension of the given name, returns file (without extension) and ext *)
 PROCEDURE GetExtension* (CONST name : ARRAY OF CHAR; VAR file, ext: ARRAY OF CHAR);
 VAR len, index: LONGINT;

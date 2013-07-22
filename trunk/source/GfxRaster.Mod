@@ -1336,7 +1336,10 @@ MODULE GfxRaster; (** portable *)	(* eos  *)
 	PROCEDURE InitContext* (rc: Context);
 	BEGIN
 		rc.setColPat := SetColPat;
-		NEW(rc.clipReg); GfxRegions.Init(rc.clipReg, GfxRegions.Winding)
+		IF rc.clipReg = NIL THEN
+			NEW(rc.clipReg);
+		END;
+		GfxRegions.Init(rc.clipReg, GfxRegions.Winding)
 	END InitContext;
 
 END GfxRaster.

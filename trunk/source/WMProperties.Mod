@@ -1069,7 +1069,10 @@ TYPE
 
 		PROCEDURE SetAOC*(CONST value : ARRAY OF CHAR);
 		BEGIN
-			Set(Strings.NewString(value));
+			AcquireWrite;
+				Strings.SetAOC(value, SELF.value);
+				Set(SELF.value);
+			ReleaseWrite;
 		END SetAOC;
 
 		PROCEDURE FromXML*(xml : XML.Element);

@@ -434,21 +434,32 @@ END Enumerate;
 (** Create a new file and optionally fill it with content
 	Option c: Transform <LF> into <CR><LF>
 	Option r: Remove whitespace at beginning of line
+	Option a: Append to file instead of creating new file
 *)
 PROCEDURE CreateFile*(context : Commands.Context); (** [Options] filename [content] ~ *)
 VAR
 	options : Options.Options; cr, removeWhitespace : BOOLEAN;
-	file : Files.File; filename : Files.FileName; writer : Files.Writer; ch : CHAR;
+	file : Files.File; filename : Files.FileName; writer : Files.Writer; ch : CHAR; pos: LONGINT;
 BEGIN
 	NEW(options);
 	options.Add("c", "cr", Options.Flag);
 	options.Add("r", "remove", Options.Flag);
+	options.Add("a", "append", Options.Flag);
 	IF options.Parse(context.arg, context.out) THEN
 		IF context.arg.GetString(filename) THEN
 			cr := options.GetFlag("cr");
 			removeWhitespace := options.GetFlag("remove");
-			file := Files.New(filename);
-			Files.OpenWriter(writer, file, 0);
+			file := NIL;
+			IF options.GetFlag("append") THEN
+				file := Files.Old(filename);
+			END;
+			IF file = NIL THEN
+				file := Files.New(filename);
+				pos := 0;
+			ELSE
+				pos := file.Length();
+			END;
+			Files.OpenWriter(writer, file, pos);
 			IF removeWhitespace THEN context.arg.SkipWhitespace; END;
 			WHILE (context.arg.res = Streams.Ok) DO
 				ch := context.arg.Get();

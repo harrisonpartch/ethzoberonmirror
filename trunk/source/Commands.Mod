@@ -192,7 +192,7 @@ BEGIN
 	moduleName := ""; procedureName := ""; msg := "";
 	maxlen := LEN(moduleName); cmdlen := LEN(cmdstr);
 	i := 0; WHILE (i < cmdlen) & (i < maxlen-1) & (cmdstr[i] # Delimiter) & (cmdstr[i] # 0X) DO moduleName[i] := cmdstr[i]; INC(i); END;
-	IF (i >= maxlen-1)  THEN
+	IF (i >= maxlen)  THEN
 		COPY("Module name too long", msg);
 	ELSIF (i >= cmdlen) THEN
 		COPY("Command string not 0X terminated", msg);

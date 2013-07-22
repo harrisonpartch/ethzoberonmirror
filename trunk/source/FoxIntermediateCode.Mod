@@ -676,6 +676,17 @@ TYPE
 		& (s1.symbol.name = s2.symbol.name) & (s1.string = s2.string) & (s1.symbolOffset = s2.symbolOffset) & TypeEquals(s1.type,s2.type);
 	END OperandEquals;
 
+	PROCEDURE Equals*(CONST i1, i2: Instruction):BOOLEAN;
+	BEGIN
+		IF i1.opcode # i2.opcode THEN RETURN FALSE END;
+		IF i1.subtype # i2.subtype THEN RETURN FALSE END;
+		IF i1.pc # i2.pc THEN RETURN FALSE END;
+		IF ~OperandEquals(i1.op1, i2.op1) THEN RETURN FALSE END;
+		IF ~OperandEquals(i1.op2, i2.op2) THEN RETURN FALSE END;
+		IF ~OperandEquals(i1.op3, i2.op3) THEN RETURN FALSE END;
+		RETURN TRUE
+	END Equals;
+
 	PROCEDURE DumpInstruction*(w: Streams.Writer; CONST instr: Instruction);
 	BEGIN
 		w.String(instructionFormat[instr.opcode].name);

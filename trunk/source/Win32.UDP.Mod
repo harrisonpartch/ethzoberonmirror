@@ -43,7 +43,7 @@ TYPE
 					 In case of concurrent sends the datagrams are serialized.
 	Sends len bytes of data (beginning at pos in buf) to the host specified by remIP and remPort. *)
 
-		PROCEDURE Send*( fip: IP.Adr;  fport: LONGINT;  VAR data: ARRAY OF CHAR;  ofs, len: LONGINT; VAR res: LONGINT );
+		PROCEDURE Send*( fip: IP.Adr;  fport: LONGINT;  CONST data: ARRAY OF CHAR;  ofs, len: LONGINT; VAR res: LONGINT );
 		VAR sadr: WSock32.sockaddrIn;  err: LONGINT;
 		BEGIN
 			ASSERT ( LEN( data ) >= (ofs + len) );

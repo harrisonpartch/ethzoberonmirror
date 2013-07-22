@@ -10,6 +10,10 @@ IMPORT Machine, S := SYSTEM, Inputs, Plugins, X11, Displays, XDisplay, Api:=X11A
 
 CONST
 	ML = 0;  MM = 1;  MR = 2;
+	
+	ModeSwitch = 13;
+	
+	MetaMask = { Api.Mod4Mask, ModeSwitch };
 
 
 VAR
@@ -97,8 +101,7 @@ VAR
 						ELSIF Api.Mod1Mask IN bdiff THEN 
 							km.keysym := Inputs.KsAltL;
 							IF ~MRseen THEN SendMouseMsg( x, y, 0, xbuttons )  END
-						ELSIF Api.Mod4Mask IN bdiff THEN 
-							km.keysym := Inputs.KsMetaL;
+						ELSIF MetaMask*bdiff # {} THEN km.keysym := Inputs.KsMetaL;
 						ELSIF Api.Mod5Mask IN bdiff THEN km.keysym := Inputs.KsAltR
 						END;
 						km.flags := KeyState( );
@@ -128,7 +131,7 @@ VAR
 						ELSIF Api.Mod1Mask IN bdiff THEN 
 							km.keysym := Inputs.KsAltL;
 							IF ~MRseen THEN SendMouseMsg( x, y, 0, xbuttons )  END
-						ELSIF Api.Mod4Mask IN bdiff THEN km.keysym := Inputs.KsMetaL
+						ELSIF MetaMask*bdiff # {} THEN km.keysym := Inputs.KsMetaL
 						ELSIF Api.Mod5Mask IN bdiff THEN km.keysym := Inputs.KsAltR
 						END;
 						km.flags := KeyState( ) + {Inputs.Release};
@@ -218,7 +221,7 @@ VAR
 		IF Api.ShiftMask IN xbuttons THEN  INCL( keys, Inputs.LeftShift )  END;
 		IF Api.ControlMask IN xbuttons THEN  INCL( keys, Inputs.LeftCtrl )  END;
 		IF Api.Mod1Mask IN xbuttons THEN  INCL( keys, Inputs.LeftAlt )  END;
-		IF Api.Mod4Mask IN xbuttons THEN  INCL( keys, Inputs.LeftMeta )  END;
+		IF MetaMask*xbuttons # {} THEN  INCL( keys, Inputs.LeftMeta )  END;
 		IF Api.Mod5Mask IN xbuttons THEN  INCL( keys, Inputs.RightAlt )  END;
 		RETURN keys
 	END KeyState;
@@ -314,21 +317,21 @@ VAR
 		(*a acute*)		Rebind( "aacute", 0, 094X );			Rebind( "aacute", 1, 094X );
 		(*a grave*) 		Rebind( "agrave", 0, 08BX );			Rebind( "agrave", 1, 08BX );
 		(*a diaeresis*)	Rebind( "adiaeresis", 0, 083X );		Rebind( "adiaeresis", 1, 083X );
-		(*a circumflex*)	Rebind( "acircumflex", 0, 086X );	Rebind( "acircumflex", 1, 086X );
+		(*a circumflex*)	Rebind( "acircumflex", 0, 086X );		Rebind( "acircumflex", 1, 086X );
 		(*e acute*) 		Rebind( "eacute", 0, 090X );			Rebind( "eacute", 1, 090X );
 		(*e grave*)		Rebind( "egrave", 0, 08CX );			Rebind( "egrave", 1, 08CX );
 		(*e diaeresis*)	Rebind( "ediaeresis", 0, 091X );		Rebind( "ediaeresis", 1, 091X );
-		(*e circumflex*)	Rebind( "ecircumflex", 0, 087X );	Rebind( "ecircumflex", 1, 087X );
+		(*e circumflex*)	Rebind( "ecircumflex", 0, 087X );		Rebind( "ecircumflex", 1, 087X );
 		(*i grave*)		Rebind( "igrave", 0, 08DX );			Rebind( "igrave", 1, 08DX );
 		(*i diaeresis*)	Rebind( "idiaeresis", 0, 092X );		Rebind( "idiaeresis", 1, 092X );
 		(*i circumflex*)	Rebind( "icircumflex", 0, 088X );		Rebind( "icircumflex", 1, 088X );
 		(*o grave*)		Rebind( "ograve", 0, 08EX );			Rebind( "ograve", 1, 08EX );
 		(*o diaeresis*)	Rebind( "odiaeresis", 0, 084X );		Rebind( "odiaeresis", 1, 084X );
-		(*o circumflex*)	Rebind( "ocircumflex", 0, 089X );	Rebind( "ocircumflex", 1, 089X );
+		(*o circumflex*)	Rebind( "ocircumflex", 0, 089X );		Rebind( "ocircumflex", 1, 089X );
 		(*u grave*)		Rebind( "ugrave", 0, 08FX );			Rebind( "ugrave", 1, 08FX );
 		(*u diaeresis*)	Rebind( "udiaeresis", 0, 085X );		Rebind( "udiaeresis", 1, 085X );
-		(*u circumflex*)	Rebind( "ucircumflex", 0, 08AX );	Rebind( "ucircumflex", 1, 08AX );
-		(*c cedilla*)	Rebind( "ccedilla", 0, 093X );		Rebind( "ccedilla", 1, 093X );
+		(*u circumflex*)	Rebind( "ucircumflex", 0, 08AX );		Rebind( "ucircumflex", 1, 08AX );
+		(*c cedilla*)	Rebind( "ccedilla", 0, 093X );			Rebind( "ccedilla", 1, 093X );
 
 		(*n tilde*)		Rebind( "ntilde", 0, 095X );
 		(*s sharp*)		Rebind( "ssharp", 0, 096X );

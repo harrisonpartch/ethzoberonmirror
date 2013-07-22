@@ -137,7 +137,7 @@
 				<Group style="Bold">
 					BOOLEAN
 					SHORTINT INTEGER LONGINT HUGEINT
-					REAL LONGREAL					
+					REAL LONGREAL
 					COMPLEX LONGCOMPLEX
 					SET
 					CHAR
@@ -168,7 +168,7 @@
 					SYSTEM.XOR
 					SYSTEM.MULD
 					SYSTEM.ADDC
-					SYSTEM.PACK SYSTEM.UNPK					
+					SYSTEM.PACK SYSTEM.UNPK
 					HALT
 					UNTRACED
 				</Group>
@@ -213,12 +213,17 @@
 				/>
 				<Region
 					style="String" styleOpen="Bold" styleClose="Bold"
-					open='"' close='"' nesting="FALSE" multiline="FALSE"
+					open='"' close='"' nesting="FALSE" multiline="TRUE"
 				/>
 				<Region
 					style="String" styleOpen="Bold" styleClose="Bold"
-					open="'" close="'" nesting="FALSE" multiline="FALSE"
+					open="'" close="'" nesting="FALSE" multiline="TRUE"
 				/>
+				<Region
+					style="String" styleOpen="Bold" styleClose="Bold"
+					open='\"' close='"\' nesting="FALSE" multiline="TRUE"
+				/>
+
 				<Region
 					style="Default" styleOpen="Default" styleClose="Default"
 					open="CODE" close="END" nesting="FALSE" multiline="TRUE"
@@ -236,7 +241,7 @@
 					*)
 				</Group>
 				<Group style="Red">
-					= := * + - / ? ! 
+					= := * + - / ? !
 					&lt; &lt;= &gt;= &gt; #
 				</Group>
 				<Group style="Comment">
@@ -332,11 +337,15 @@
 				/>
 				<Region
 					style="String" styleOpen="Bold" styleClose="Bold"
-					open='"' close='"' nesting="FALSE" multiline="FALSE"
+					open='"' close='"' nesting="FALSE" multiline="TRUE"
 				/>
 				<Region
 					style="String" styleOpen="Bold" styleClose="Bold"
-					open="'" close="'" nesting="FALSE" multiline="FALSE"
+					open="'" close="'" nesting="FALSE" multiline="TRUE"
+				/>
+				<Region
+					style="String" styleOpen="Bold" styleClose="Bold"
+					open='\"' close='"\' nesting="FALSE" multiline="TRUE"
 				/>
 			</Regions>
 
@@ -433,6 +442,10 @@
 					style="String" styleOpen="Bold" styleClose="Bold"
 					open="'" close="'" nesting="FALSE" multiline="TRUE"
 				/>
+				<Region
+					style="String" styleOpen="Bold" styleClose="Bold"
+					open='\"' close='"\' nesting="FALSE" multiline="TRUE"
+				/>
 			</Regions>
 		</Highlighter>
 
@@ -463,7 +476,15 @@
 				/>
 				<Region
 					style="String" styleOpen="Bold" styleClose="Bold"
-					open='"' close='"' nesting="FALSE" multiline="FALSE"
+					open='"' close='"' nesting="FALSE" multiline="TRUE"
+				/>
+				<Region
+					style="String" styleOpen="Bold" styleClose="Bold"
+					open="'" close="'" nesting="FALSE" multiline="TRUE"
+				/>
+				<Region
+					style="String" styleOpen="Bold" styleClose="Bold"
+					open='\"' close='"\' nesting="FALSE" multiline="TRUE"
 				/>
 			</Regions>
 		</Highlighter>

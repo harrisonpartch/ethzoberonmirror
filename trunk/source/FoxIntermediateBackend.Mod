@@ -670,8 +670,15 @@ TYPE
 			ir.SetExported(TRUE);
 			ir.SetPriority(InitPriority);
 			Global.GetSymbolSegmentedName (bodyProcedure,name);
-			IntermediateCode.InitAddress(op, addressType, name, implementationVisitor.GetFingerprint(bodyProcedure), 0);
-			ir.Emit(Call(bodyProcedure.position,op, 0));
+			IF backend.preregisterStatic THEN
+				implementationVisitor.currentScope := module.module.moduleScope;
+				implementationVisitor.section := ir;
+				implementationVisitor.PushSelfPointer();
+				implementationVisitor.CallThis("Modules","Preregister",1);
+			ELSE
+				IntermediateCode.InitAddress(op, addressType, name, implementationVisitor.GetFingerprint(bodyProcedure), 0);
+				ir.Emit(Call(bodyProcedure.position,op, 0));
+			END;
 		END AddBodyCallStub;
 
 		PROCEDURE AddStackAllocation(symbol: SyntaxTree.Symbol; initStack: LONGINT); (* code that is only necessary for static linkers *)
@@ -1054,6 +1061,9 @@ TYPE
 		currentMapper: SymbolMapper;
 		currentInlineExit: Label;
 
+		moduleBodySection: IntermediateCode.Section;
+		NeedDescriptor : BOOLEAN;
+
 		PROCEDURE & Init(system: Global.System; checker: SemanticChecker.Checker; supportedInstructionProcedure: SupportedInstructionProcedure; supportedImmediateProcedure: SupportedImmediateProcedure; emitLabels: BOOLEAN; CONST runtime: SyntaxTree.IdentifierString; backend: IntermediateBackend;
 			newObjectFile: BOOLEAN);
 		BEGIN
@@ -1100,6 +1110,7 @@ TYPE
 			NEW(fingerPrinter, system);
 			NEW(temporaries);
 			currentIsInline := FALSE;
+			NeedDescriptor := FALSE;
 		END Init;
 
 		PROCEDURE NewSection(list: Sections.SectionList; type: SHORTINT; CONST name: Basic.SegmentedName; syntaxTreeSymbol: SyntaxTree.Symbol; dump: BOOLEAN): IntermediateCode.Section;
@@ -2785,7 +2796,7 @@ TYPE
 
 			InitOperand(localResult, ModeReference);
 
-			IF (resultingType IS SyntaxTree.MathArrayType) & (resultingType(SyntaxTree.MathArrayType).form # SyntaxTree.Static) THEN
+			IF (resultingType IS SyntaxTree.MathArrayType)  & ( (resultingType(SyntaxTree.MathArrayType).form # SyntaxTree.Static) OR NeedDescriptor) THEN
 				targetArrayDimensionality := resultingType(SyntaxTree.MathArrayType).Dimensionality();
 
 				IF arrayDestinationTag.mode # IntermediateCode.Undefined THEN
@@ -2982,38 +2993,19 @@ TYPE
 
 						(* 3. incorporate index step size: *)
 						IF IsIntegerImmediate(stepSize, staticStepSize) & IsIntegerImmediate(targetLength, staticTargetLength) THEN
-							(* step size and current target length are static *)
-							IF staticTargetLength MOD staticStepSize = 0 THEN
-								staticTargetLength := staticTargetLength DIV staticStepSize
-							ELSE
-								staticTargetLength := 1 + staticTargetLength DIV staticStepSize
-							END;
+							(*step size and current target length are static *)
+							staticTargetLength := (staticTargetLength-1) DIV staticStepSize + 1;
 							targetLength := IntermediateCode.Immediate(sizeType, staticTargetLength)
 						ELSIF IsIntegerImmediate(stepSize, staticStepSize) & (staticStepSize = 1) THEN
 							(* step size = 1: nothing to do *)
 						ELSE
 							(* emit code for this:
-							tmp := targetLength MOD stepSize;
-							IF tmp = 0 THEN
-								targetLength := targetLength DIV stepSize
-							ELSE
-								targetLength := targetLength DIV stepSize;
-								targetLength := targetLength + 1
-							END
+								targetLength := (targetLength-1) DIV stepSize +1;
 							*)
-							skipLabel1 := NewLabel();
-							skipLabel2 := NewLabel();
-							tmp := 	IntermediateCode.Register(sizeType, IntermediateCode.GeneralPurposeRegister,AcquireRegister(sizeType,IntermediateCode.GeneralPurposeRegister));
-							Emit(Mod(position,tmp, targetLength, stepSize));
-							BrneL(skipLabel1, tmp, IntermediateCode.Immediate(sizeType, 0));
-							TransferToRegister(targetLength, targetLength);
-							Emit(Div(position,targetLength, targetLength, stepSize));
-							BrL(skipLabel2);
-							SetLabel(skipLabel1);
-							Emit(Div(position,targetLength, targetLength, stepSize));
+							AddInt(targetLength, targetLength, IntermediateCode.Immediate(sizeType, -1));
+							DivInt(targetLength, targetLength, stepSize);
 							AddInt(targetLength, targetLength, IntermediateCode.Immediate(sizeType, 1));
-							SetLabel(skipLabel2);
-							ReleaseIntermediateOperand(tmp);
+
 						END;
 
 						(* determine increment of target array for current dimension *)
@@ -3089,7 +3081,7 @@ TYPE
 			ELSIF (resultingType IS SyntaxTree.ArrayType) THEN
 				result.tag := array.tag; UseIntermediateOperand(result.tag); result.dimOffset := array.dimOffset+indexListSize-1;
 
-			ELSIF (resultingType IS SyntaxTree.MathArrayType) & (resultingType(SyntaxTree.MathArrayType).form # SyntaxTree.Static) THEN
+			ELSIF (resultingType IS SyntaxTree.MathArrayType) & ( (resultingType(SyntaxTree.MathArrayType).form # SyntaxTree.Static) OR NeedDescriptor) THEN
 				(* finalize target array descriptor *)
 				ASSERT(result.tag.mode # IntermediateCode.Undefined); (* tag has been already set in the beginning *)
 
@@ -3233,6 +3225,26 @@ TYPE
 				END;
 			END;
 		END MulInt;
+
+		PROCEDURE DivInt(VAR res: IntermediateCode.Operand; x,y: IntermediateCode.Operand);
+		BEGIN
+			ReleaseIntermediateOperand(res);
+			IF IsImmediate(x) & IsImmediate(y) THEN
+				IntermediateCode.InitImmediate(res,x.type,x.intValue DIV y.intValue);
+			ELSE
+				IF ~ReusableRegister(res) THEN
+					IntermediateCode.InitRegister(res,x.type,IntermediateCode.GeneralPurposeRegister,AcquireRegister(x.type,IntermediateCode.GeneralPurposeRegister));
+				ELSE UseIntermediateOperand(res);
+				END;
+				IF IsImmediate(x) & (x.intValue = 1) THEN
+					Emit(Mov(position,res,y))
+				ELSIF IsImmediate(y) & (y.intValue=1) THEN
+					Emit(Mov(position,res,x))
+				ELSE
+					Emit(Div(position,res, x, y));
+				END;
+			END;
+		END DivInt;
 
 		PROCEDURE IndexDesignator(x: SyntaxTree.IndexDesignator);
 		VAR length,res: IntermediateCode.Operand; type: SyntaxTree.Type; maxDim: LONGINT; array:Operand;
@@ -3566,8 +3578,10 @@ TYPE
 						arrayDestinationTag := variableOp.op;
 						ReuseCopy(arrayDestinationTag,arrayDestinationTag);
 						arrayDestinationDimension := dim;
+						NeedDescriptor := TRUE;
 						Designate(expression,operand);
 						Pass((operand.tag));
+						NeedDescriptor := FALSE;
 					(* case 2a *)
 					ELSIF type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Open THEN
 						WHILE (i< dim) & (type.resolved(SyntaxTree.MathArrayType).form = SyntaxTree.Open) DO
@@ -8250,6 +8264,7 @@ TYPE
 			IF Trace THEN TraceEnter("Body") END;
 			ReleaseUsedRegisters(saved); (* just in case ... *)
 			section := ir;
+			IF moduleBody THEN moduleBodySection := section END;
 			IF ir.comments # NIL THEN
 				commentPrintout := Printout.NewPrinter(ir.comments,Printout.SourceCode,FALSE);
 				commentPrintout.SingleStatement(TRUE);
@@ -9234,6 +9249,7 @@ TYPE
 				noProcs*: LONGINT;
 				firstProc*: ADDRESS; <-   done by loader
 				maxPtrs*: LONGINT;
+				crc*: LONGINT;
 		*)
 
 		PROCEDURE ModuleSection(): IntermediateCode.Section;
@@ -9258,7 +9274,7 @@ TYPE
 			RETURN moduleSection;
 		END ModuleSection;
 
-		PROCEDURE Module();
+		PROCEDURE Module(bodyProc: IntermediateCode.Section);
 		VAR moduleName: ARRAY 128 OF CHAR;
 		moduleSection, pointerSection, importSection, emptyArraySection, exportDescArray, exceptionSection, commandsSection,
 			typeInfoSection, procTableSection, ptrTableSection, referenceSection : IntermediateCode.Section;
@@ -9359,6 +9375,10 @@ TYPE
 			Longint(moduleSection,maxPointers);
 			Info(moduleSection, "crc*: LONGINT");
 			Longint(moduleSection, 0); (*!  must be implemented *)
+
+
+			Info(moduleSection, "body*: ADDRESS");
+			Symbol(moduleSection, bodyProc, 0,0);
 		END Module;
 
 		PROCEDURE PointerArray(source: IntermediateCode.Section; scope: SyntaxTree.Scope; VAR numberPointers: LONGINT);
@@ -9679,6 +9699,7 @@ TYPE
 		simpleMetaData-: BOOLEAN;
 		noAsserts: BOOLEAN;
 		optimize-: BOOLEAN;
+		preregisterStatic-: BOOLEAN;
 		dump-: Basic.Writer;
 
 
@@ -9719,7 +9740,7 @@ TYPE
 			declarationVisitor.Module(x,module);
 
 			IF newObjectFile & ~meta.simple THEN
-				meta.Module();
+				meta.Module(implementationVisitor.moduleBodySection);
 			END;
 
 			GetDescription(platformName);
@@ -9784,6 +9805,7 @@ TYPE
 			options.Add(0X,"noAsserts",Options.Flag);
 			options.Add(0X,"metaData",Options.String);
 			options.Add('o',"optimize", Options.Flag);
+			options.Add(0X,"preregisterStatic", Options.Flag);
 		END DefineOptions;
 
 		PROCEDURE GetOptions(options: Options.Options);
@@ -9803,6 +9825,7 @@ TYPE
 			IF options.GetString("runtime",name) THEN SetRuntimeModuleName(name) END;
 			IF options.GetString("traceModule",name) THEN SetTraceModuleName(name) END;
 			optimize := options.GetFlag("optimize");
+			preregisterStatic := options.GetFlag("preregisterStatic");
 		END GetOptions;
 
 		PROCEDURE DefaultSymbolFileFormat(): Formats.SymbolFileFormat;
@@ -10303,6 +10326,7 @@ TYPE
 	PROCEDURE Push*(position: LONGINT;op: IntermediateCode.Operand): IntermediateCode.Instruction;
 	VAR instruction: IntermediateCode.Instruction;
 	BEGIN
+		ASSERT(op.mode # IntermediateCode.Undefined);
 		IntermediateCode.InitInstruction(instruction, position, IntermediateCode.push,op,emptyOperand,emptyOperand);
 		RETURN instruction
 	END Push;
