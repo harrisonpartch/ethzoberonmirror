@@ -1,0 +1,44 @@
+LinuxAos (rev.5274): Kernel: Initialized and started.
+Unix.Dlopen: loading library libXext.so.6 failed
+Unix.Dlopen: loading library libXext.so failed
+X11.LinkToX:  Unix.Dlopen( libXext.so ) failed 
+Unix.Dlsym:  entry 'XShmQueryVersion' not found
+Unix.Dlsym:  entry 'XShmPixmapFormat' not found
+Unix.Dlsym:  entry 'XShmAttach' not found
+Unix.Dlsym:  entry 'XShmDetach' not found
+Unix.Dlsym:  entry 'XShmPutImage' not found
+Unix.Dlsym:  entry 'XShmGetImage' not found
+Unix.Dlsym:  entry 'XShmCreateImage' not found
+Unix.Dlsym:  entry 'XShmCreatePixmap' not found
+X11 Display depth = 24
+Default font installedOpenType 0.45 BBPort /3.12.2004  eos, pl
+WindowManager: 24-bit color
+WindowManager: Display resolution: 1408x868x24
+DisplayRefresher installed.
+Autostart: executing FSTools.Mount 'Work Directory' RelativeFileSystem .
+Work Directory: mounted
+Autostart: executing FSTools.Mount 'Module Sources' RelativeFileSystem .aoshome/source
+Module Sources: mounted
+Autostart: executing FSTools.Mount 'Fonts' RelativeFileSystem .aoshome/fonts
+Fonts: mounted
+Autostart: executing FSTools.Mount 'ETHZ A2-Rep.' RelativeFileSystem source
+ETHZ A2-Rep.: mounted
+Autostart: executing FileTrapWriter.Install
+Autostart: executing WMTrapWriter.Install
+{P cpuid= 0, pid= 34 Events: System event log started.}
+WMMacros: Macro file Macros.XML loaded.
+Autostart: executing UpTime.Install
+Uptime monitor started.
+Autostart: executing StartMenu.Open
+Autostart: executing SkinEngine.Unload
+ZeroSkin already loaded
+Autostart: executing WMRestorable.Load Auto.dsk
+{P cpuid= 0, pid= 46 Starting logger}
+WMRestorable: Loading desktop from Auto.dsk...
+Autostart: executing WMNavigate.Open -vs 1 0 0 Navigation:TaskList
+Cleanup
+{P cpuid= 0, pid= 60 Events: System event log shut down.}
+WindowManager: Window manager closed
+{P cpuid= 0, pid= 60 Files: 141 open files}
+Objects 120 discarded finalizers, 0 pending finalizers
+UnixFiles 143 discarded finalizers, 0 pending finalizers
