@@ -1267,7 +1267,12 @@ TYPE
 		PROCEDURE Write*(w: Streams.Writer; context: ANY; level : LONGINT);
 		BEGIN
 			IF value = NIL THEN KernelLog.String("NIL attribute "); KernelLog.Ln; RETURN END;
-			w.Char(Space); w.String(name^); w.String('="'); w.String(value^); w.Char('"')
+			w.Char(Space); w.String(name^);
+			IF Strings.ContainsChar(value^, '"', FALSE) THEN
+				w.String("='"); w.String(value^); w.Char("'")
+			ELSE
+				w.String('="'); w.String(value^); w.Char('"')
+			END;
 		END Write;
 
 	END Attribute;

@@ -630,22 +630,22 @@ TYPE
 				IF type.length = 4 THEN
 					(*ASSERT(type.form = IntermediateCode.Float);*)
 					ASSERT(type.sizeInBits = 32);
-					SpecialMove(InstructionSet.opMOVUPS, InstructionSet.opMOVUPS, dest, src, type);
+					SpecialMove(InstructionSet.opMOVUPS, InstructionSet.opMOVUPS, TRUE, dest, src, type);
 				ELSE
 					(*
 					ASSERT(type.form = IntermediateCode.Float);
 					*)
 					ASSERT(type.sizeInBits = 64);
-					SpecialMove(InstructionSet.opMOVUPD, InstructionSet.opMOVUPS, dest, src, type);
+					SpecialMove(InstructionSet.opMOVUPD, InstructionSet.opMOVUPS, TRUE, dest, src, type);
 				END;
 			ELSIF type.form = IntermediateCode.Float THEN
 				IF type.sizeInBits = 32 THEN
-					SpecialMove(InstructionSet.opMOVSS, InstructionSet.opMOVSS, dest, src, type);
+					SpecialMove(InstructionSet.opMOVSS, InstructionSet.opMOVSS, TRUE, dest, src, type);
 				ELSE
-					SpecialMove(InstructionSet.opMOVSD, InstructionSet.opMOVSD, dest, src, type);
+					SpecialMove(InstructionSet.opMOVSD, InstructionSet.opMOVSD, TRUE, dest, src, type);
 				END;
 			ELSE
-				SpecialMove(InstructionSet.opMOV, InstructionSet.opMOV, dest, src, type);
+				SpecialMove(InstructionSet.opMOV, InstructionSet.opMOV, TRUE, dest, src, type);
 			END;
 		END Move;
 
@@ -1015,11 +1015,11 @@ TYPE
 		(*-------------------  helpers for code generation ----------------------*)
 
 		(* move, potentially with conversion. parameter back used for moving back from temporary operand*)
-		PROCEDURE SpecialMove(op, back: LONGINT; VAR dest,src: Assembler.Operand; type: IntermediateCode.Type);
+		PROCEDURE SpecialMove(op, back: LONGINT; canStoreToMemory: BOOLEAN; VAR dest,src: Assembler.Operand; type: IntermediateCode.Type);
 		VAR temp: Assembler.Operand; ticket: Ticket;
 		BEGIN
 			IF Assembler.SameOperand(src,dest) THEN (* do nothing *)
-			ELSIF ~Assembler.IsMemoryOperand(dest) OR ~Assembler.IsMemoryOperand(src) THEN
+			ELSIF ~Assembler.IsMemoryOperand(dest) OR (~Assembler.IsMemoryOperand(src) & canStoreToMemory) THEN
 				emitter.Emit2(op,dest,src);
 			ELSE
 				ticket := TemporaryTicket(IntermediateCode.GeneralPurposeRegister,type);
@@ -1535,9 +1535,9 @@ TYPE
 						MakeOperand(vsrc,Low,src,NIL);
 						MakeOperand(vdest, Low, dest, NIL);
 						IF srcType.sizeInBits = 32 THEN
-							SpecialMove(InstructionSet.opCVTSS2SD, InstructionSet.opMOVSS, dest, src, destType)
+							SpecialMove(InstructionSet.opCVTSS2SD, InstructionSet.opMOVSS, FALSE, dest, src, destType)
 						ELSE
-							SpecialMove(InstructionSet.opCVTSD2SS, InstructionSet.opMOVSD, dest, src, destType)
+							SpecialMove(InstructionSet.opCVTSD2SS, InstructionSet.opMOVSD, FALSE, dest, src, destType)
 						END;
 					END;
 				|IntermediateCode.SignedInteger:
@@ -1767,7 +1767,7 @@ TYPE
 						edx := ReservePhysicalRegister(IntermediateCode.GeneralPurposeRegister,IntermediateCode.int32,EDX,inPC);
 						IF vsrc.type.sizeInBits < 32 THEN
 							MakeOperand(vsrc,Low,op2,NIL);
-							SpecialMove(InstructionSet.opMOVSX,InstructionSet.opMOV,opEAX,op2,PhysicalOperandType(opEAX));
+							SpecialMove(InstructionSet.opMOVSX,InstructionSet.opMOV, FALSE, opEAX,op2,PhysicalOperandType(opEAX));
 						ELSE
 							MakeOperand(vsrc,Low,op2,eax);
 						END;
@@ -1793,9 +1793,9 @@ TYPE
 					ELSIF  srcType.form = IntermediateCode.SignedInteger THEN
 						IF srcType.sizeInBits=32 THEN (* 64 bits only *)
 							ASSERT(cpuBits=64);
-							SpecialMove(InstructionSet.opMOVSXD,InstructionSet.opMOV,op1,op2,PhysicalOperandType(op1));
+							SpecialMove(InstructionSet.opMOVSXD,InstructionSet.opMOV, FALSE, op1,op2,PhysicalOperandType(op1));
 						ELSE
-							SpecialMove(InstructionSet.opMOVSX,InstructionSet.opMOV,op1,op2,PhysicalOperandType(op1));
+							SpecialMove(InstructionSet.opMOVSX,InstructionSet.opMOV, FALSE, op1,op2,PhysicalOperandType(op1));
 						END;
 					ELSE
 						ASSERT(srcType.form = IntermediateCode.UnsignedInteger);
@@ -1815,7 +1815,7 @@ TYPE
 								Move( op1, op2,srcType);
 							END;
 						ELSE
-							SpecialMove(InstructionSet.opMOVZX, InstructionSet.opMOV, op1, op2,PhysicalOperandType(op1))
+							SpecialMove(InstructionSet.opMOVZX, InstructionSet.opMOV, FALSE, op1, op2,PhysicalOperandType(op1))
 						END;
 					END;
 				END;
@@ -3041,7 +3041,7 @@ TYPE
 						Assembler.InitRegister(reg, register);
 						MakeOperand(outr[i], Low, dest, NIL);
 						IF outr[i].type.length > 1 THEN
-							SpecialMove(InstructionSet.opMOVUPS,InstructionSet.opMOVUPS, dest, reg, outr[i].type)
+							SpecialMove(InstructionSet.opMOVUPS,InstructionSet.opMOVUPS, TRUE, dest, reg, outr[i].type)
 						ELSE
 							Move( dest, reg,outr[i].type)
 						END;

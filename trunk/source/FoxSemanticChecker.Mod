@@ -7870,13 +7870,15 @@ TYPE
 		**)
 		PROCEDURE Module*(x: SyntaxTree.Module);
 		VAR (* nopov *)
-			import: SyntaxTree.Import; modifier: SyntaxTree.Modifier; value,position: LONGINT; prevIsCellNet: BOOLEAN;
+			import: SyntaxTree.Import; modifier: SyntaxTree.Modifier; value,position: LONGINT; prevIsCellNet: BOOLEAN; prevScope: SyntaxTree.Scope;
 		BEGIN
+			prevScope := currentScope;
 			prevIsCellNet := currentIsCellNet;
 			module := x;
 			ASSERT(x # NIL);
 			global := system.globalScope[x.case];
 			x.moduleScope.SetGlobalScope(global);
+			currentScope := global;
 			IF (x.name = Global.SystemName) OR (x.name = Global.systemName) THEN Error(x.position,Diagnostics.Invalid,"name reserved") END;
 			IF x.context = SyntaxTree.invalidIdentifier THEN x.SetContext(Global.A2Name) END;
 			RemoveModuleFromCache(importCache,x);
@@ -7909,6 +7911,7 @@ TYPE
 			Implementations(x);
 			module := NIL;
 			currentIsCellNet := prevIsCellNet;
+			currentScope := prevScope;
 		END Module;
 
 

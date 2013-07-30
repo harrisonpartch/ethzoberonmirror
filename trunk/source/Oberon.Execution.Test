@@ -7754,3 +7754,24 @@ positive: simple calling convention test (c and winapi returning pointer)
 	BEGIN
 		Test
 	END Test.
+
+positive: use local variable as value and as reference (optimizer test)
+
+	MODULE Test;
+
+	PROCEDURE P(VAR x: LONGINT);
+	BEGIN
+		x := 20;
+	END P;
+
+	PROCEDURE T;
+	VAR x: LONGINT;
+	BEGIN
+		x := 10;
+		P(x);
+		ASSERT(x=20);
+	END T;
+
+	BEGIN
+		T;
+	END Test.

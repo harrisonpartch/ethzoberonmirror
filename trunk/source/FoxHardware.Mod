@@ -56,16 +56,22 @@ TYPE
 			d := GetDescription(hardware);
 			IF d = NIL THEN context.error.String("could not instantiate hardware description "); context.error.String(hardware); context.error.Ln; RETURN END;
 			d.Init(diagnostics, context.out);
+			specification := ActiveCells.LoadSpecification(fileName, diagnostics, context.out);
+			(*
 			NEW(specification,"",diagnostics,context.out);
 			f := Files.Old(fileName);
 			IF f = NIL THEN context.error.String("could not open specification file "); context.error.String(fileName); context.error.Ln; RETURN END;
 			NEW(r,f,0);
 			IF specification.Read(r) & d.Emit(specification) THEN END;
+			*)
+			IF specification # NIL THEN
+				IF d.Emit(specification) THEN END;
+			END;
 		END;
 	END Emit;
-	
+
 	(* tools *)
-	
+
 	PROCEDURE SizeInBlocks*(sizeInUnits, blockSize: LONGINT): LONGINT;
 	BEGIN
 		RETURN (sizeInUnits-1) DIV blockSize +1

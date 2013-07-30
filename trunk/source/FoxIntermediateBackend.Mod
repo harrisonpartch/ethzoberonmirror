@@ -1320,7 +1320,7 @@ TYPE
 					MakeMemory(firstOp, operand.op, IntermediateCode.GetType(system, system.longintType), 0);
 					MakeMemory(lastOp, operand.op, IntermediateCode.GetType(system, system.longintType), ToMemoryUnits(system, system.SizeOf(system.longintType)));
 					MakeMemory(stepOp, operand.op, IntermediateCode.GetType(system, system.longintType), 2 * ToMemoryUnits(system, system.SizeOf(system.longintType)));
-					ReleaseIntermediateOperand(operand.op);
+					ReleaseOperand(operand);
 					operand.op := firstOp;
 					operand.tag := lastOp;
 					operand.extra := stepOp;

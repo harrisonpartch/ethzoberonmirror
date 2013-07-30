@@ -527,7 +527,7 @@ TYPE
 
 		PROCEDURE Clear*;
 		VAR i: LONGINT;
-		BEGIN FOR i := 0 TO size - 1 DO table[i].key := NIL; END; END Clear;
+		BEGIN FOR i := 0 TO size - 1 DO table[i].key := NIL; table[i].value := NIL; table[i].valueInt := 0 END; END Clear;
 
 		(* Interface for integer values *)
 

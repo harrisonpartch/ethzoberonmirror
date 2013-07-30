@@ -196,7 +196,7 @@ TYPE
 				delegate.instance := scope.instances.ByName(s);
 				ASSERT(delegate.instance # NIL);
 				IF ~CheckItem(r,"delegatePort") OR ~GetString(r,s) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
-				delegate.port := delegate.instance.type.ports.ByName(s);
+				delegate.port := delegate.instance.instanceType.ports.ByName(s);
 			END;
 			RETURN TRUE
 		END Read;
@@ -416,7 +416,7 @@ TYPE
 		Boolean=0;Integer=1;String=2;
 	VAR
 		index-: LONGINT;
-		type-: SHORTINT; (* Integer or Boolean, for the time being *)
+		parameterType-: SHORTINT; (* Integer or Boolean, for the time being *)
 		integer-: LONGINT;
 		boolean-: BOOLEAN;
 		string-: Strings.String;
@@ -427,10 +427,10 @@ TYPE
 			IF (as = NIL) OR ~(as IS Parameter) THEN RETURN FALSE END;
 			WITH as: Parameter DO
 				(*IF (index # as.index) OR (type # as.type) OR (integer # as.integer) OR (as.boolean # boolean) THEN RETURN FALSE END;*)
-				IF (index # as.index) OR (type # as.type) THEN RETURN FALSE; END;
-				IF ((type = 0) & (as.boolean # boolean))
-					OR ((type = 1) & (as.integer # integer))
-					OR ((type = 2) & (as.string^ # string^)) THEN RETURN FALSE; END; 
+				IF (index # as.index) OR (parameterType # as.parameterType) THEN RETURN FALSE; END;
+				IF ((parameterType = 0) & (as.boolean # boolean))
+					OR ((parameterType = 1) & (as.integer # integer))
+					OR ((parameterType = 2) & (as.string^ # string^)) THEN RETURN FALSE; END;
 			END;
 			RETURN Same^(as, flags)
 		END Same;
@@ -442,17 +442,17 @@ TYPE
 
 		PROCEDURE SetBoolean*(b: BOOLEAN);
 		BEGIN
-			type := Boolean; boolean := b
+			parameterType := Boolean; boolean := b
 		END SetBoolean;
 
 		PROCEDURE SetInteger*(i: LONGINT);
 		BEGIN
-			type := Integer; integer := i
+			parameterType := Integer; integer := i
 		END SetInteger;
 
 		PROCEDURE SetString*(CONST s: ARRAY OF CHAR);
 		BEGIN
-			type := String; string := Strings.NewString(s);
+			parameterType := String; string := Strings.NewString(s);
 		END SetString;
 
 
@@ -463,15 +463,15 @@ TYPE
 			w.Int(index,1);
 			w.String(" name="); w.String(name);
 			w.String(" type=");
-			IF type = Integer THEN w.String("INTEGER")
-			ELSIF type=Boolean THEN w.String("BOOLEAN")
-			ELSIF type=String THEN w.String("STRING");
+			IF parameterType = Integer THEN w.String("INTEGER")
+			ELSIF parameterType=Boolean THEN w.String("BOOLEAN")
+			ELSIF parameterType=String THEN w.String("STRING");
 			END;
 			w.String(" value=");
-			IF type = Integer THEN w.Int(integer,1)
-			ELSIF type=Boolean THEN
+			IF parameterType = Integer THEN w.Int(integer,1)
+			ELSIF parameterType=Boolean THEN
 				IF boolean THEN w.String("TRUE") ELSE w.String("FALSE") END
-			ELSIF type = String THEN w.String("'"); w.String(string^); w.String("'");
+			ELSIF parameterType = String THEN w.String("'"); w.String(string^); w.String("'");
 			END;
 			w.Ln;
 			w.Update;
@@ -482,15 +482,15 @@ TYPE
 		BEGIN
 			IF r.GetInteger(index,FALSE) & CheckItem(r,"name") & GetString(r,name)
 				&CheckItem(r,"type") & GetString(r,s) & CheckItem(r,"value") THEN
-					IF s= "INTEGER" THEN type := Integer
-					ELSIF s = "BOOLEAN" THEN type := Boolean
-					ELSIF s = "STRING" THEN type := String
+					IF s= "INTEGER" THEN parameterType := Integer
+					ELSIF s = "BOOLEAN" THEN parameterType := Boolean
+					ELSIF s = "STRING" THEN parameterType := String
 					ELSE RETURN FALSE
 					END;
-					IF (type = Integer) & r.GetInteger(integer,FALSE) THEN
-					ELSIF (type=Boolean) & GetString(r,s) THEN
+					IF (parameterType = Integer) & r.GetInteger(integer,FALSE) THEN
+					ELSIF (parameterType=Boolean) & GetString(r,s) THEN
 						IF s="TRUE" THEN boolean := TRUE ELSE boolean := FALSE END;
-					ELSIF (type=String) & GetString(r,s) THEN
+					ELSIF (parameterType=String) & GetString(r,s) THEN
 						string := Strings.NewString(s);
 					ELSE RETURN FALSE
 					END;
@@ -544,7 +544,7 @@ TYPE
 	*)
 	Instance*=OBJECT (Symbol)
 	VAR
-		type-: Type; (* instance type *)
+		instanceType-: Type; (* instance type *)
 		parameters-: ParameterList;
 		capabilityParameters-: ParameterList;
 		index-: LONGINT;
@@ -558,7 +558,7 @@ TYPE
 			IF (as = NIL) OR ~(as IS Instance) THEN RETURN FALSE END;
 			WITH as: Instance DO
 				IF (index # as.index) THEN RETURN FALSE END;
-				IF ~type.Same(as.type, flags) THEN RETURN FALSE END;
+				IF ~instanceType.Same(as.instanceType, flags) THEN RETURN FALSE END;
 				IF (CheckParameters IN flags) & ~parameters.Same(as.parameters, flags) THEN RETURN FALSE END;
 				IF (CheckCapabilityParameters IN flags) & ~capabilityParameters.Same(as.capabilityParameters, flags) THEN RETURN FALSE END;
 				IF (instructionMemorySize # as.instructionMemorySize) THEN RETURN FALSE END;
@@ -575,7 +575,7 @@ TYPE
 		PROCEDURE &Init(CONST name: ARRAY OF CHAR; scope: Scope; c: Type);
 		BEGIN
 			InitSymbol(name,scope);
-			type := c;
+			instanceType := c;
 			index := -1; SELF.scope := scope; NEW(parameters,4); NEW(capabilityParameters, 4);
 			ASSERT(scope # NIL);
 			SetType(c);
@@ -584,7 +584,7 @@ TYPE
 		PROCEDURE SetType(type: Type);
 		BEGIN
 			IF type # NIL THEN
-				SELF.type := type;
+				SELF.instanceType := type;
 				dataMemorySize := type.dataMemorySize;
 				capabilities := type.capabilities;
 			END;
@@ -619,7 +619,7 @@ TYPE
 			Indent(w,indent); INC(indent);
 			w.Int(index,1);
 			w.String(" name="); w.String(name);
-			type.GetFullName(typeName,scope);
+			instanceType.GetFullName(typeName,scope);
 			w.String(" type="); w.String(typeName);
 			w.String(" instructionMemorySize="); w.Int(instructionMemorySize,1);
 			w.String(" dataMemorySize="); w.Int(dataMemorySize,1);
@@ -677,7 +677,7 @@ TYPE
 		VAR name:Name;
 		BEGIN
 			AppendToMsg^(msg);
-			type.GetFullName(name,NIL);
+			instanceType.GetFullName(name,NIL);
 			Strings.Append(msg," (");
 			Strings.Append(msg,name);
 			Strings.Append(msg,")");
@@ -1186,11 +1186,11 @@ TYPE
 			~CheckItem(r,"outInstance") OR ~ GetString(r,s) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
 			IF s#"NIL" THEN out.instance := scope.instances.ByName(s) END;
 			IF ~CheckItem(r,"outPort") OR ~GetString(r,s) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
-			IF s#"NIL" THEN out.port := out.instance.type.ports.ByName(s) END;
+			IF s#"NIL" THEN out.port := out.instance.instanceType.ports.ByName(s) END;
 			IF ~CheckItem(r,"inInstance") OR ~ GetString(r,s) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
 			IF s#"NIL" THEN in.instance := scope.instances.ByName(s) END;
 			IF ~CheckItem(r,"inPort")OR ~GetString(r,s) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
-			IF s#"NIL" THEN	in.port := in.instance.type.ports.ByName(s) END;
+			IF s#"NIL" THEN	in.port := in.instance.instanceType.ports.ByName(s) END;
 			IF ~CheckItem(r,"size")OR ~r.GetInteger(i,FALSE) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
 			fifoSize := i;
 			IF ~CheckItem(r,"width")OR ~r.GetInteger(i,FALSE) THEN IF TraceError THEN HALT(100) ELSE RETURN FALSE END END;
@@ -1708,12 +1708,12 @@ TYPE
 		 	COPY(instance.name, name); Strings.Append(name,"."); Strings.Append(name,subInstance.name);
 		 	newInstance := instances.ByName(name);
 		 	IF newInstance = NIL THEN
-		 		NEW(newInstance, name, scope, subInstance.type);
+		 		NEW(newInstance, name, scope, subInstance.instanceType);
 		 		FOR i := 0 TO subInstance.parameters.Length()-1 DO
 		 			parameter := subInstance.parameters.GetParameter(i);
 		 			newParameter := newInstance.AddParameter(parameter.name);
 		 			newParameter.index := parameter.index;
-		 			newParameter.type := parameter.type;
+		 			newParameter.parameterType := parameter.parameterType;
 		 			newParameter.integer := parameter.integer;
 		 			newParameter.boolean := parameter.boolean;
 		 		END;
@@ -1731,15 +1731,15 @@ TYPE
 		END;
 		FOR i := 0 TO scope.instances.Length()-1 DO
 			instance := scope.instances.GetInstance(i);
-			IF instance.type.instances.Length() # 0 THEN
-				FlattenNetwork(instance.type);
-				FOR j := 0 TO instance.type.instances.Length()-1 DO
-					subInstance := instance.type.instances.GetInstance(j);
+			IF instance.instanceType.instances.Length() # 0 THEN
+				FlattenNetwork(instance.instanceType);
+				FOR j := 0 TO instance.instanceType.instances.Length()-1 DO
+					subInstance := instance.instanceType.instances.GetInstance(j);
 					newInstance := EmbedInstance(instance, subInstance);
 					instances.AddInstance(newInstance)
 				END;
-				FOR j := 0 TO instance.type.channels.Length()-1 DO
-					oldChannel := instance.type.channels.GetChannel(j);
+				FOR j := 0 TO instance.instanceType.channels.Length()-1 DO
+					oldChannel := instance.instanceType.channels.GetChannel(j);
 					(* do not copy name: duplicates! *)
 					channel := scope.NewChannel();
 					channel.ConnectIn(oldChannel.in.instance, oldChannel.in.port);
