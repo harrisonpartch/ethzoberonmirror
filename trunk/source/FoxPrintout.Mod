@@ -1836,6 +1836,8 @@ VAR
 			debug.Symbol(a(SyntaxTree.Symbol))
 		ELSIF a IS SyntaxTree.Statement THEN
 			debug.Statement(a(SyntaxTree.Statement))
+		ELSIF a IS SyntaxTree.StatementSequence THEN
+			debug.StatementSequence(a(SyntaxTree.StatementSequence));
 		ELSIF a IS SyntaxTree.Scope THEN
 			scope := a(SyntaxTree.Scope);
 			WHILE(scope # NIL) DO

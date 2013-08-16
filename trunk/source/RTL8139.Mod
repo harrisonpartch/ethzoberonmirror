@@ -70,7 +70,7 @@ TYPE
 			END;
 		END Linked;
 
-		PROCEDURE DoSend*(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
+		PROCEDURE DoSend*(dst: Network.LinkAdr; type: LONGINT; CONST l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
 		VAR i: LONGINT; bufAdr: ADDRESS; txState:LONGINT; txs:SET; t, totlen:LONGINT;
 		BEGIN {EXCLUSIVE}
 			(* Disable IRQ *)

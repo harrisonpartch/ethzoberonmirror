@@ -711,6 +711,8 @@ TYPE
 				resolved := ResolveType(procedureType.returnType);
 				IF (resolved # NIL) & (resolved.resolved IS SyntaxTree.ArrayType) & (resolved.resolved(SyntaxTree.ArrayType).length = NIL) THEN
 					Error(procedureType.position,Diagnostics.Invalid,"forbidden open array return type");
+				ELSIF (resolved # NIL) & (procedureType.noReturn) THEN
+					Error(procedureType.position,Diagnostics.Invalid,"procedure with return type does not return");
 				END;
 
 				procedureType.SetReturnType(resolved);
@@ -807,6 +809,8 @@ TYPE
 					ELSE
 						procedureType.SetCallingConvention(SyntaxTree.CCallingConvention)
 					END
+				ELSIF HasFlag(modifiers, Global.NameNoReturn,position) THEN
+					procedureType.SetNoReturn(TRUE);
 				END;
 				IF HasValue(modifiers,Global.NameStackAligned,position,value) THEN procedureType.SetStackAlignment(value) END;
 				IF HasFlag(modifiers, Global.NameDelegate,position) THEN procedureType.SetDelegate(TRUE) END;
@@ -6343,6 +6347,9 @@ TYPE
 					procedureType.SetInterrupt(TRUE);
 					procedureType.SetCallingConvention(SyntaxTree.InterruptCallingConvention)
 				END;
+				IF HasFlag(modifiers, Global.NameNoReturn, position) THEN
+					procedureType.SetNoReturn(TRUE);
+				END;
 				IF HasValue(modifiers, Global.NamePcOffset, position, value) THEN procedureType.SetPcOffset(value) END;
 
 				IF HasFlag(modifiers,Global.NameNoPAF,position) THEN procedureType.SetNoPAF(TRUE) END;
@@ -7368,6 +7375,9 @@ TYPE
 					END;
 				ELSE
 					procedure := scope(SyntaxTree.ProcedureScope).ownerProcedure;
+					IF procedure.type(SyntaxTree.ProcedureType).noReturn THEN
+						Error(position,Diagnostics.Invalid,"return statement in procedure that does not return");
+					END;
 					returnType := procedure.type(SyntaxTree.ProcedureType).returnType;
 					IF returnType # NIL THEN
 						returnType := returnType.resolved;

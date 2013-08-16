@@ -1545,7 +1545,7 @@ TYPE
 			firstParameter-,lastParameter-: Parameter; numberParameters-: LONGINT;  (* parameters *)
 			returnParameter-: Parameter; (* not really necessary in syntax tree but very handy for backends *)
 
-			isDelegate-,isInterrupt-,noPAF-: BOOLEAN;
+			isDelegate-,isInterrupt-,noPAF-,noReturn-: BOOLEAN;
 			pcOffset-: LONGINT; (* PC offset: used for ARM interrupt procedures *)
 			callingConvention-: LONGINT;
 			stackAlignment-: LONGINT;
@@ -1569,6 +1569,9 @@ TYPE
 		BEGIN SELF.noPAF := noPAF
 		END SetNoPAF;
 
+		PROCEDURE SetNoReturn*(noReturn: BOOLEAN);
+		BEGIN SELF.noReturn := noReturn
+		END SetNoReturn;
 
 		PROCEDURE SetPcOffset*(pcOffset: LONGINT);
 		BEGIN SELF.pcOffset := pcOffset
@@ -1649,6 +1652,7 @@ TYPE
 				WITH this: ProcedureType DO
 					result := (returnType = NIL) & (this.returnType = NIL) OR (returnType # NIL) & (this.returnType # NIL) & returnType.SameType(this.returnType.resolved);
 					result := result & (callingConvention = this.callingConvention);
+					result := result & (noReturn = this.noReturn);
 					IF result THEN
 						p1 := firstParameter; p2 := this.firstParameter;
 						WHILE (p1 # NIL) & (p2 # NIL) & (p1.access # Hidden) & (p2.access # Hidden) & (p1.kind = p2.kind) & (p1.type.SameType(p2.type) OR (p2.type.resolved # NIL) & p1.type.SameType(p2.type.resolved)) DO

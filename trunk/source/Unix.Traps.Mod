@@ -122,6 +122,7 @@ VAR
 				| 7:       w.String( "  (Index out of range)" ) 
 				| 8:       w.String( "  (ASSERT failed)" ) 
 				| 9:       w.String( "  (Array dimension error)" ) 
+				| 16:      w.String( "  (Procedure returned)" ) 
 				ELSE 
 					IF trapno >= 30 THEN  w.String( "  (programmed HALT)" )  
 					ELSE  w.String( "  (unknown exception, division error?)" )   

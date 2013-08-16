@@ -10,7 +10,7 @@ IMPORT SYSTEM, Streams, Files, KernelLog;
 
 CONST
 	DefaultExtension = ".Obx";
-	HeapSize = 630*1024;	(* linker heap size *)
+	HeapSize = 1024*1024 (*630*1024;*);	(* linker heap size *)
 
 	AddressSize = SIZEOF (ADDRESS);
 	LenOfs = 3 * AddressSize; (* offset of first array dimension in SysBlk or ArrayBlk *)
@@ -1246,7 +1246,7 @@ BEGIN
 					KernelLog.String("<=");
 					KernelLog.Int(freeAdr,1);
 					KernelLog.String(" at "); KernelLog.Int(i,1); KernelLog.String(":"); KernelLog.Int(relocates,1);
-					KernelLog.String(" Check for fixup duplicates ! "); 
+					KernelLog.String(" Check for fixup duplicates ! ");
 					KernelLog.Ln;
 				END;
 				(*ASSERT((adr > beginMemBlockAdr) & (adr <= freeAdr));*)

@@ -43,6 +43,7 @@ CONST
 		ArrayFormTrap*=10; (* indicates that array cannot be (re-)allocated since shape, type or size does not match *)
 		SetElementTrap*=11; (* indicates that a set element is out of MIN(SET)...MAX(SET) *)
 		NegativeDivisorTrap*=12;
+		NoReturnTrap*=16; (* indicates that a procedure marked no return did return *)
 
 		Trace = FALSE;
 		TraceRegisterUsageCount=TRUE;
@@ -4529,6 +4530,11 @@ TYPE
 			ReleaseParameterRegisters();
 
 			Emit(Call(position,operand.op,parametersSize));
+
+			IF procedureType.noReturn THEN
+				Emit(Trap(position,NoReturnTrap));
+			END;
+
 			IF (procedureType.returnType # NIL) & ~structuredReturnType THEN
 				return := NewRegisterOperand(IntermediateCode.GetType(system,procedureType.returnType));
 				Emit(Result(position,return));

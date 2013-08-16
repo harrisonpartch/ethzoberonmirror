@@ -1451,6 +1451,7 @@ TYPE
 		Basic.SetErrorMessage(String,"missing string");
 		Basic.SetErrorMessage(Character,"missing character");
 		Basic.SetErrorMessage(Identifier,"missing identifier");
+		Basic.SetErrorMessage(EndOfText,"unexpected symbol before end");
 	  END InitKeywords;
 
 	(** debugging / reporting **)

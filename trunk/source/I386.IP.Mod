@@ -144,7 +144,7 @@ TYPE
 
 
 		(** Send an IP packet on this interface. *)
-		PROCEDURE Send*(type: LONGINT; destAdr: Adr; VAR l4hdr, data: ARRAY OF CHAR; h4len, dofs, dlen, TTL: LONGINT);
+		PROCEDURE Send*(type: LONGINT; destAdr: Adr; CONST l4hdr, data: ARRAY OF CHAR; h4len, dofs, dlen, TTL: LONGINT);
 		BEGIN
 			(* Extensions have to override this method.*)
 			HALT(99);
@@ -152,7 +152,7 @@ TYPE
 
 
 		(* Internal procedure to perform the rest of the send operation. Used by "Send" and for IP forwarding. *)
-		PROCEDURE DoSend*(destAdr: Adr; VAR l3hdr, l4hdr, data: ARRAY OF CHAR; h3len, h4len, dofs, dlen: LONGINT) ;
+		PROCEDURE DoSend*(destAdr: Adr; CONST l3hdr, l4hdr, data: ARRAY OF CHAR; h3len, h4len, dofs, dlen: LONGINT) ;
 		BEGIN
 			(* Extensions have to override this method.*)
 			HALT(99);
@@ -1003,7 +1003,7 @@ END IPConfig;
 	be passed to Checksum2, which sums the data following sequentially on the data summed by this
 	operation. Carries from bit 15 are accumulated in the top 16 bits, so at most 65535 words can be
 	summed by Checksum1 and Checksum2 together. *)
-PROCEDURE Checksum1*(VAR data: ARRAY OF CHAR; ofs, len, chk1: LONGINT): LONGINT;
+PROCEDURE Checksum1*(CONST data: ARRAY OF CHAR; ofs, len, chk1: LONGINT): LONGINT;
 CODE {SYSTEM.i386}
 	MOV EAX, [EBP+chk1]
 	MOV EBX, [EBP+data]
@@ -1024,7 +1024,7 @@ END Checksum1;
 
 (** 	Continue a checksum operation. len can be zero or odd. chk1 can be the result of Checksum1 for
 	the immediately preceding data, or 0 for contiguous data. *)
-PROCEDURE Checksum2*(VAR data: ARRAY OF CHAR; ofs, len, chk1: LONGINT): INTEGER;
+PROCEDURE Checksum2*(CONST data: ARRAY OF CHAR; ofs, len, chk1: LONGINT): INTEGER;
 	CODE {SYSTEM.i386}
 	MOV EAX, [EBP+chk1]
 	MOV EBX, [EBP+data]

@@ -1292,20 +1292,22 @@ END Copy;
  * array of LONGINTs of the size <size>;  parameters in bytes; alignmet has to be a power of two
  *)
 PROCEDURE GetAlignedMemSpace*(size, alignment : LONGINT ) : AlignedMemSpace;
-VAR memspace : AlignedMemSpace; 	temp, i : LONGINT; mask : SET;
+VAR memspace : AlignedMemSpace; base, adr: ADDRESS;  len: SIZE;
 BEGIN
 	ASSERT(alignment >= 4);
 	NEW(memspace);
-	NEW(memspace.data, 2*size + alignment); (* so we will definitly find a <alignment>-aligned memory space of the size <size> *)
-	mask := {}; temp := alignment; i := 0;
-	LOOP (* i = log2(alignment) *)
-		temp := temp DIV 2;
-		IF temp = 1 THEN INC(i); EXIT ELSE INC(i)END;
-		IF (temp MOD 2 # 0) OR (temp = 0)  THEN (* ERROR!! *) RETURN NIL END;
-	END;
-	FOR temp := 0 TO i-1 DO INCL(mask, temp);  END;
-	temp := SYSTEM.VAL(LONGINT, SYSTEM.VAL(SET, ADDRESSOF(memspace.data[0]) + alignment - 1) - mask);
-	memspace.base := (temp - ADDRESSOF(memspace.data[0])) DIV 4; (* -> memspace.data[memspace.base] is <alignment bytes> - aligned *)
+	len := (size + 2* alignment) DIV 4;
+	NEW(memspace.data, len ); (* so we will definitly find a <alignment>-aligned memory space of the size <size> *)
+
+	adr := ADDRESS OF memspace.data[0];
+	(* alignment *)
+	base := adr + (-adr) MOD alignment;
+	ASSERT(base MOD alignment = 0);
+
+	memspace.base := (base - adr) DIV 4;
+
+	ASSERT(ADDRESS OF memspace.data[memspace.base] = base);
+
 	RETURN memspace;
 END GetAlignedMemSpace;
 

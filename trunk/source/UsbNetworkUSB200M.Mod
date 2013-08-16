@@ -245,7 +245,7 @@ TYPE
 
 		gpioConfiguration : SET;
 
-		PROCEDURE SendFrame*(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
+		PROCEDURE SendFrame*(dst: Network.LinkAdr; type: LONGINT; CONST l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
 		VAR status : Usbdi.Status; i, packetSize, padLength : LONGINT;
 		BEGIN {EXCLUSIVE}
 			(* 4 Byte USB header *)

@@ -21,6 +21,7 @@ CONST
 	StringFinal*="FINAL";
 	StringAbstract*="ABSTRACT";
 	StringRegister*= "REGISTER";
+	StringNoReturn*="NORETURN";
 
 	(* block modifier flag names *)
 	StringExclusive* = "EXCLUSIVE";
@@ -51,6 +52,7 @@ CONST
 	AssertTrap* = 8;
 	ArraySizeTrap* = 9;
 	ArrayFormTrap*=10; (* fof: indicates that array cannot be (re-)allocated since shape, type or size does not match *)
+	NoReturnTrap*=16;
 
 	(** builtin procedures **)
 	(* FoxProgTools.Enum -e -i
@@ -107,7 +109,7 @@ VAR
 	NameWinAPI-,NameC-,NameUntraced-,NameDelegate-,NameInterrupt-, NamePcOffset-, NameNoPAF-,NameEntry-, NameExit-, NameFixed-,NameAligned-,NameStackAligned-,
 	NameExclusive-,NameActive-,NamePriority-,NameSafe-,NameRealtime-, NameDynamic-, NameDataMemorySize-, NameCodeMemorySize-
 	, NameChannelWidth-, NameChannelDepth-, NameChannelModule-, NameVector-, NameFloatingPoint-, NameEngine-, NameFinal-, NameAbstract-,
-	NameFrequencyDivider-, NameRegister-: SyntaxTree.Identifier;
+	NameFrequencyDivider-, NameRegister-,NameNoReturn-: SyntaxTree.Identifier;
 
 	identifiers: ARRAY 2 OF ARRAY end OF SyntaxTree.Identifier;
 
@@ -1373,6 +1375,7 @@ TYPE
 		NameAbstract := SyntaxTree.NewIdentifier(StringAbstract);
 		NameFrequencyDivider := SyntaxTree.NewIdentifier(StringFrequencyDivider);
 		NameRegister := SyntaxTree.NewIdentifier(StringRegister);
+		NameNoReturn := SyntaxTree.NewIdentifier(StringNoReturn);
 
 		(* types *)
 		Boolean8 := SyntaxTree.NewBooleanType(8);
