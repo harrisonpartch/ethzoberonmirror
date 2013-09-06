@@ -1100,11 +1100,12 @@ MODULE Gfx; (** portable *)	(* eos  *)
 			WHILE scan.elem # GfxPaths.Stop DO
 				CASE scan.elem OF
 				| GfxPaths.Enter: ctxt.do.enter(ctxt, scan.x, scan.y, scan.dx, scan.dy)
-				| GfxPaths.Line: ctxt.do.line(ctxt, scan.x, scan.y)
+				| GfxPaths.Line: ctxt.do.line(ctxt, scan.x, scan.y);
 				| GfxPaths.Arc: ctxt.do.arc(ctxt, scan.x, scan.y, scan.x0, scan.y0, scan.x1, scan.y1, scan.x2, scan.y2)
 				| GfxPaths.Bezier: ctxt.do.bezier(ctxt, scan.x, scan.y, scan.x1, scan.y1, scan.x2, scan.y2)
 				| GfxPaths.Exit: ctxt.do.exit(ctxt, scan.dx, scan.dy)
-				END
+				END;
+				GfxPaths.Scan(scan);
 			END;
 			ctxt.do.end(ctxt)
 		END

@@ -9,6 +9,7 @@
 
 Release.Build --path="../Test/" --build --zip --xml A2 ~
 
+
 # Step 2:  Link boot files
 
 SystemTools.DoCommands
@@ -163,7 +164,7 @@ SystemTools.Show CD image build time:  ~ SystemTools.Timer elapsed ~
 SystemTools.DoCommands
 
 PCAAMD64.Assemble OBLUnreal.Asm ~
-PartitionsLib.SetBootLoaderFile OBLUnreal.Bin ~ 
+PartitionsLib.SetBootLoaderFile OBLUnreal.Bin ~
 
 SystemTools.Timer start ~
 
@@ -262,33 +263,40 @@ VirtualDisks.Uninstall VDISK0 ~
 SystemTools.Show HDD image build time:  ~ SystemTools.Timer elapsed ~
 ~~
 
+../Test/CompileCommand.Tool
 
 
+***********************************************************************
+# Step 1: Compile modules and generate ZIP packages
+Release.Build --path="../Test/" --build --zip --xml A2 ~
 
 # Step 3e: Create image for bootable USB  (A2USB.img)
 
+
 SystemTools.DoCommands
 
+Compiler.Compile  -b=AMD --objectFileExtension=.Obx --symbolFileExtension=.Obx --destPath=../Test/ BiosFreePCI.Mod  ~
+
 PCAAMD64.Assemble OBLUnreal.Asm ~
-PartitionsLib.SetBootLoaderFile OBLUnreal.Bin ~ 
+PartitionsLib.SetBootLoaderFile OBLUnreal.Bin ~
 PCAAMD64.Assemble BootManager.Asm ~
-BootManager.Split BootManager.Bin ~ 
+BootManager.Split BootManager.Bin ~
 SystemTools.Timer start ~
 
 FSTools.DeleteFiles ../Test/A2HDD.img ~
 
-VirtualDisks.Create ../Test/A2HDD.img 300000 512 ~
+VirtualDisks.Create ../Test/A2HDD.img 320000 512 ~
 VirtualDisks.Install -b=512 VDISK0 ../Test/A2HDD.img ~
 
 Linker.Link \P../Test/ \.Obx ../Test/USB.Bin 0100000H 100000H Kernel Traps
 	UsbHubDriver UsbEhci UsbStorageBoot
 	DiskVolumes DiskFS Loader BootConsole ~
-	
+
 Partitions.WriteMBR VDISK0#0 OBEMBR.Bin ~
 Partitions.InstallBootManager VDISK0#0 BootManagerMBR.Bin BootManagerTail.Bin ~
 Partitions.Create VDISK0#1 76 150 ~
 
-Partitions.Format VDISK0#1 AosFS -2 ../Test/USB.Bin ~ (* -2 makes sure that actual boot file size is taken as offset for AosFS *)
+Partitions.Format VDISK0#1 AosFS -1 ../Test/USB.Bin ~ (* -1 makes sure that actual boot file size is taken as offset for AosFS *)
 FSTools.Mount TEMP AosFS VDISK0#1 ~
 
 ZipTool.ExtractAll --prefix=TEMP: --sourcePath=../Test/ --overwrite --silent
@@ -302,22 +310,42 @@ FSTools.Watch TEMP ~
 FSTools.Unmount TEMP ~
 
 Partitions.SetConfig VDISK0#1
-	TraceMode="0" TracePort="1" TraceBPS="115200"
+	TraceMode="1" 
+	TracePort="1" 
+	TraceBPS="115200"
 	BootVol1="AOS AosFS USB0#1"
 	AosFS="DiskVolumes.New DiskFS.NewFS"
+	CacheSize="1000"
+	ExtMemSize="512"
+	MaxProcs="-1"
+	ATADetect="legacy"
+	Init="118"
+	Boot="DisplayLinear.Install"
 	Boot1="Keyboard.Install;MousePS2.Install"
 	Boot2="DriverDatabase.Enable;UsbHubDriver.Install;UsbEhci.Install;UsbUhci.Install;UsbOhci.Install"
 	Boot3="WindowManager.Install"
-	Boot5="Autostart.Run"
-	Boot="DisplayLinear.Install"
-	CacheSize="1000"
-	ExtMemSize="64"
-	MaxProcs="-1"
-	Init="117"
+	Boot4="Autostart.Run"
 	~
 VirtualDisks.Uninstall VDISK0 ~
 
 SystemTools.Show HDD image build time:  ~ SystemTools.Timer elapsed ~
 
 FSTools.CloseFiles ../Test/A2HDD.img ~
+
+~
+use this to test machine with autoreboot
+	Boot5="Reboot.Do 10000 reboot"
+	
+
+WinDisks.Install "PhysicalDrive2" RW ~
+
+~
+*** CAUTION: check that drive is not a local drive !!!! ***
+SystemTools.DoCommands
+Partitions.FileToPartition PhysicalDrive2#0 ../Test/A2HDD.img 0 160000  ~
+WinDisks.Uninstall "PhysicalDrive2" ~
+~
+
+
+
 

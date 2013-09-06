@@ -197,6 +197,7 @@ TYPE
 			x := SELF.x.usageValue;
 			y := SELF.y.usageValue;
 
+
 			IF (tipSwitch.usageValue#0) THEN mm.keys := mm.keys + {0}; END;
 			(* these dimensions are very specific to the model we currently need. The driver has to be factored our to a separate module *)
 			mm.x := (x-minX) * w DIV (maxX-minX+1); mm.y := (y-minY) * h DIV (maxY-minY+1);
@@ -315,6 +316,20 @@ BEGIN
 	RETURN hidDriver;
 END Probe;
 
+
+(*check, whether the device is a hid device
+ *	return 	HidDriver, if hid device found, NIL otherwise
+ *)
+PROCEDURE Probe2(dev : Usbdi.UsbDevice; if : Usbdi.InterfaceDescriptor) : Usbdi.Driver;
+VAR hidDriver : HidDriver;
+BEGIN
+	hidDriver := NIL;
+	IF (dev.descriptor.idVendor = 19E2H) & (dev.descriptor.idProduct =2533H) THEN
+		NEW(hidDriver); hidDriver.minX := 0; hidDriver.minY := 0; hidDriver.maxX := 1366; hidDriver.maxY := 768
+	END;
+	RETURN hidDriver;
+END Probe2;
+
 (* Called, when detaching the UsbHidDriver *)
 PROCEDURE Cleanup;
 BEGIN
@@ -326,6 +341,17 @@ BEGIN
 	Usbdi.drivers.Add(Probe, "Atmel", "CDT 9.75", 10);
 END InstallCDT975;
 
+PROCEDURE InstallUnknown1*;
+BEGIN
+	Usbdi.drivers.Add(Probe2, "UnknownVendorTS", "Touchscreen", 10);
+END InstallUnknown1;
+
+
 BEGIN
 	Modules.InstallTermHandler(Cleanup);
 END UsbTouchscreen.
+
+UsbTouchscreen.InstallCDT975
+UsbTouchscreen.InstallUnknown1
+
+SystemTools.Free UsbTouchscreen ~

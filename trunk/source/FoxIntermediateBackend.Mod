@@ -2277,6 +2277,7 @@ TYPE
 			leftExpression,rightExpression : SyntaxTree.Expression;
 			componentType: IntermediateCode.Type;
 			value: HUGEINT; exp: LONGINT;next,exit: Label; recordType: SyntaxTree.RecordType; dest: IntermediateCode.Operand;
+			size: LONGINT;
 		BEGIN
 			IF Trace THEN TraceEnter("VisitBinaryExpression") END;
 			dest := destination; destination := emptyOperand;
@@ -2644,6 +2645,25 @@ TYPE
 					result.mode := ModeValue;
 					result.op := temp.op;
 					result.tag := nil; (* may be left over from calls to evaluate *)
+				END;
+			|Scanner.Questionmarks:
+				Evaluate(x.left, left);
+				Emit(Push(position,left.op));
+				ReleaseOperand(left);
+				Designate(x.right, right);
+				size := ToMemoryUnits(system,system.SizeOf(x.right.type));
+				IF size # 1 THEN Error(x.right.position,"receive not implemented for complex data types") END;
+				Emit(Push(position,right.op));
+				ReleaseOperand(right);
+				CallThis(ChannelModuleName,"ReceiveNonBlockingB",-1);
+				InitOperand(result, ModeValue);
+				result.op := NewRegisterOperand(bool);
+				Emit(Result(position,result.op));
+				IF conditional THEN
+					IntermediateCode.InitImmediate(zero,setType,0);
+					BrneL(trueLabel,result.op,zero);
+					ReleaseOperand(result);
+					BrL(falseLabel);
 				END;
 			ELSE
 				HALT(100);
@@ -9078,7 +9098,7 @@ TYPE
 				IF (p.symbol # NIL) & (p.symbol IS SyntaxTree.Procedure)  THEN
 					procedure := p.symbol(SyntaxTree.Procedure);
 					procedureType := procedure.type(SyntaxTree.ProcedureType);
-					IF (SyntaxTree.PublicRead IN procedure.access) & ~(procedure.isInline) & ~(procedureType.isDelegate) & GetProcedureAllowed() THEN
+					IF (SyntaxTree.PublicWrite IN procedure.access) & ~(procedure.isInline) & ~(procedureType.isDelegate) & GetProcedureAllowed() THEN
 						procedure.GetName(name);
 						Name(source,name);
 						numberParameters := procedureType.numberParameters;

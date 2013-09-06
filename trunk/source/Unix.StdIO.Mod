@@ -2,7 +2,7 @@ MODULE StdIO;	(** AUTHOR gf;  PURPOSE "Unix standard IO and argument channels *)
 
 (* Commands.Context for programs running outside Aos *)
 
-IMPORT S := SYSTEM, Commands, Streams, Unix;
+IMPORT S := SYSTEM, Modules, Commands, Streams, Unix;
 
 CONST 
 	AddrSize = SIZEOF( ADDRESS );
@@ -61,6 +61,12 @@ BEGIN
 	ignore := Unix.write( 2, ADDRESSOF( data[ofs] ), len );  res := Streams.Ok
 END SendErrout;
 
+PROCEDURE Cleanup;
+BEGIN
+	env.error.Update;
+	env.out.Update
+END Cleanup;
+
 PROCEDURE Setup;
 VAR
 	arg: Streams.Reader;
@@ -76,6 +82,7 @@ BEGIN
 	argc := Unix.argc;
 	argv := Unix.argv;
 	iarg := 0; ch := 0X;
+	Modules.InstallTermHandler( Cleanup )
 END Setup
 
 BEGIN

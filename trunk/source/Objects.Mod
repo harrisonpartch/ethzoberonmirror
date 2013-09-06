@@ -32,7 +32,7 @@ CONST
 
 	Stats* = FALSE;	  (* maintain statistical counters *)
 	TraceVerbose = FALSE;	(* write out verbose trace info *)
-	StrongChecks = FALSE;	(* strong sanity checks *)
+	StrongChecks = TRUE;	(* strong sanity checks *)
 	VeryConservative = FALSE;	(* temp - be very conservative about stack-based pointers *)
 	YieldTrick = FALSE;	(* avoid yield when no ready process available *)
 
@@ -378,6 +378,8 @@ VAR
 		root: InterruptList;
 		process: Process
 	END;
+
+	processingIRQ: ARRAY NumIRQ OF BOOLEAN;
 
 	rootedProcesses: ARRAY NumPriorities OF Process; (* list of potential processes that are not traced by GC when processing the ready queues, since GC only traces processes with
 	                                                                                      priorities Low ... High in ready queues. The potentially not traced processes are rooted here and traced by the GC *)
@@ -794,8 +796,26 @@ END GetCpuCycles;
 PROCEDURE FieldIRQ(VAR state: Machine.State);
 VAR t: Process; id: LONGINT; new: Process; preempt: BOOLEAN;
 BEGIN
-	Machine.Sti ();	(* avoid Processors.StopAll deadlock when waiting for locks below (remove this) *)
 	Machine.DisableIRQ(state.INT);	(* do this before acknowledging irq *)
+
+	IF StrongChecks THEN
+		IF processingIRQ[state.INT-MinIRQ] THEN
+			Trace.String("IRQ recursion "); Trace.Int(state.INT,1); Trace.Ln;
+			RETURN
+		ELSE
+			processingIRQ[state.INT-MinIRQ] := TRUE;
+		END;
+	END;
+	
+	(* if the reenabling of interrupts cannot be circumvented, then it is REQUIRED to acknowledge interrupts
+		BEFORE reenabling. Otherwise spurious IRQs cannot be identified as such.
+		Please note that this particular problem with spurious IRQs cannot observed on many machines but IF it is observed
+		then the machine will behave unexpected. Very hard to debug and trace!
+
+		Machine.Ack(state.INT); 
+		Machine.Sti ();	(* avoid Processors.StopAll deadlock when waiting for locks below (remove this) *)
+	*)
+	
 	Machine.Acquire(Machine.Objects);
 	t := interrupt[state.INT-MinIRQ].process;
 	IF StrongChecks THEN ASSERT(t.mode = AwaitingEvent) END;
@@ -866,6 +886,7 @@ BEGIN
 		Machine.Acquire(Machine.Objects);
 		ASSERT(running[Machine.ID ()] = t); (* strong check *)
 		t.mode := AwaitingEvent;
+		processingIRQ[int-MinIRQ] := FALSE;
 		Machine.EnableIRQ(int);
 		SwitchToNew
 	END
@@ -1695,6 +1716,7 @@ BEGIN
 	gcBarrier := {};
 	FOR i := 0 TO Machine.MaxCPU - 1 DO running[i] := NIL END;
 	FOR i := 0 TO NumPriorities - 1 DO rootedProcesses[i] := NIL END;
+	FOR i := 0 TO NumIRQ-1 DO processingIRQ[i] := FALSE END;
 	nextProcessID := 0; Machine.ticks := 0;
 	traceProcess := NIL;
 	lock := Lock; unlock := Unlock; await := Await; create := CreateProcess;

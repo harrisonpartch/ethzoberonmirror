@@ -163,7 +163,8 @@ TYPE
 		IF ActiveCellsFlag IN flags THEN
 			NEW(activeCellsSpecification, "", diagnostics, log);
 			IF (system # NIL) THEN
-				activeCellsSpecification.DefineDevices(system)
+				activeCellsSpecification.DefineDevices(system);
+				Global.OperatorDefined(system, Scanner.Questionmarks, TRUE);
 			END;
 			Global.NewBuiltin(Global.Connect,"CONNECT",system.globalScope,FALSE);
 			Global.NewBuiltin(Global.Receive,"RECEIVE",system.globalScope,FALSE);

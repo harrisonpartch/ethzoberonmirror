@@ -533,6 +533,7 @@ PACKAGE ApplicationsMini ARCHIVE "ApplicationsMini.zip" SOURCE "ApplicationsMini
 	ProcessInfo.Mod
 
 	SystemTools.Mod
+	Reboot.Mod # Tool to reboot machine after delay (and write system reboot time to file)
 
 	WIN { Win32.WinApplications.Mod }
 

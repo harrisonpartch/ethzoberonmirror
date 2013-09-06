@@ -1072,7 +1072,7 @@ TYPE
 				callingConvention: LONGINT;
 
 			BEGIN
-				visibility := SyntaxTree.ReadOnly; flags := {};
+				visibility := SyntaxTree.Public + SyntaxTree.Protected + SyntaxTree.Internal; flags := {};
 
 				IF tag <= 0 THEN (* TypeReference = number:RawNum(<0) *)
 					type := NewTypeReference(-tag);
@@ -1497,7 +1497,7 @@ TYPE
 						IF TraceImport IN Trace  THEN  D.Str("alias:"); D.Str(name); D.Ln  END;
 						typeDeclaration := SyntaxTree.NewTypeDeclaration(-1,SyntaxTree.NewIdentifier(name));
 						typeDeclaration.SetDeclaredType(type);
-						visibility := SyntaxTree.ReadOnly; (*SyntaxTree.Public+SyntaxTree.Protected+SyntaxTree.Internal;*)
+						visibility := SyntaxTree.Public+SyntaxTree.Protected+SyntaxTree.Internal;
 						typeDeclaration.SetAccess(visibility);
 						typeDeclaration.SetState(SyntaxTree.Resolved);
 						IF ~(type IS SyntaxTree.BasicType) THEN

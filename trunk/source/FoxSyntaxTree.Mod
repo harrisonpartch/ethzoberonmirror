@@ -2969,6 +2969,8 @@ TYPE
 		useRegister-: BOOLEAN; registerNumber-: LONGINT;
 		modifiers-: Modifier;
 
+		usedAsReference-: BOOLEAN;
+
 		PROCEDURE & InitVariable*( position: LONGINT;  name: Identifier);
 		BEGIN
 			InitSymbol(position,name);
@@ -2978,7 +2980,14 @@ TYPE
 			modifiers := NIL;
 			useRegister := FALSE;
 			registerNumber := -1;
+			usedAsReference := FALSE;
 		END InitVariable;
+
+		PROCEDURE UsedAsReference*;
+		BEGIN
+			usedAsReference := TRUE
+		END UsedAsReference;
+
 
 		PROCEDURE SetUntraced*(u: BOOLEAN);
 		BEGIN untraced := u
@@ -3024,7 +3033,7 @@ TYPE
 		BEGIN
 			InitSymbol( position, name );
 			SELF.kind := kind;
-			IF kind = ConstParameter THEN access := access * ReadOnly  END;
+			IF kind = ConstParameter THEN access := access END;
 			nextParameter := NIL;
 			SELF.ownerType := ownerType;
 			modifiers := NIL;

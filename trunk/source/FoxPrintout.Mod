@@ -910,13 +910,9 @@ TYPE
 			ELSE
 				Identifier(x.name)
 			END;
+
 			IF SyntaxTree.PublicWrite IN x.access THEN w.String( "*" )
-			ELSIF SyntaxTree.PublicRead IN x.access THEN
-				IF x IS SyntaxTree.Variable THEN
-					w.String( "-" )
-				ELSIF ~(x IS SyntaxTree.Parameter) THEN
-					w.String("*")
-				END
+			ELSIF SyntaxTree.PublicRead IN x.access THEN w.String( "-" )
 			ELSIF x.access = {} THEN ASSERT(mode > SourceCode);
 				IF info THEN BeginComment; w.String("<- hidden"); EndComment  END;
 			END;

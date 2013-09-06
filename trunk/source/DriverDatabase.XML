@@ -137,6 +137,9 @@
 		<vendor id="03EB" name="Atmel">
 			<device id = "201C" name="CDT 9.75" revision="all" flags="N"> UsbTouchscreen.InstallCDT975 </device>
 		</vendor>
+		<vendor id="19E2" name="Unknown">
+			<device id = "2533" name="Unknown" revision="all" flags="N"> UsbTouchscreen.InstallUnknown1 </device>
+		</vendor>		
 	</deviceSpecific>
 
 	<classSpecific>

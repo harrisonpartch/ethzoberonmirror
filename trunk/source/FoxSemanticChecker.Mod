@@ -193,20 +193,23 @@ TYPE
 			WHILE (scope # NIL) & (symbol = NIL) DO
 				symbol := scope.FindSymbol(name);
 
-				WHILE (symbol # NIL) & (symbol.scope.ownerModule # currentScope.ownerModule) & (symbol.access * SyntaxTree.Public = {}) DO
-					(* found symbol in different module, but is it not exported, can we go on searching in record base scopes ? *)
-					symbol.MarkUsed;
-					IF (symbol.scope IS SyntaxTree.RecordScope) THEN
-						ownerRecord := symbol.scope(SyntaxTree.RecordScope).ownerRecord;
-						base := RecordBase(ownerRecord);
-						IF (base # NIL) THEN
-							baseScope := base.recordScope;
-							symbol := Find(baseScope,name,FALSE);
+				IF (symbol # NIL) & (symbol IS SyntaxTree.Parameter) & (symbol.scope IS SyntaxTree.CellScope) THEN (* ok, symbol auto-export in scope *)
+				ELSE
+					WHILE (symbol # NIL) & (symbol.scope.ownerModule # currentScope.ownerModule) & (symbol.access * SyntaxTree.Public = {}) DO
+						(* found symbol in different module, but is it not exported, can we go on searching in record base scopes ? *)
+						symbol.MarkUsed;
+						IF (symbol.scope IS SyntaxTree.RecordScope) THEN
+							ownerRecord := symbol.scope(SyntaxTree.RecordScope).ownerRecord;
+							base := RecordBase(ownerRecord);
+							IF (base # NIL) THEN
+								baseScope := base.recordScope;
+								symbol := Find(baseScope,name,FALSE);
+							ELSE
+								symbol := NIL;
+							END;
 						ELSE
 							symbol := NIL;
 						END;
-					ELSE
-						symbol := NIL;
 					END;
 				END;
 				IF traverse THEN scope := scope.outerScope ELSE scope := NIL END;
@@ -961,7 +964,7 @@ TYPE
 		PROCEDURE VisitCellType(x: SyntaxTree.CellType);
 		VAR
 			symbol: SyntaxTree.Symbol; isRealtime: BOOLEAN; parameter: SyntaxTree.Parameter; type: SyntaxTree.Type; len: LONGINT;
-			modifier: SyntaxTree.Modifier; position,value: LONGINT;
+			modifier: SyntaxTree.Modifier; position,value: LONGINT; isEngine: BOOLEAN;
 		BEGIN
 			IF TypeNeedsResolution(x) THEN
 
@@ -969,6 +972,7 @@ TYPE
 				IF ~x.isCellNet THEN
 					IF HasValue(modifier,Global.NameDataMemorySize,position,value) THEN END;
 					IF HasValue(modifier,Global.NameCodeMemorySize,position,value) THEN END;
+					IF HasFlag(modifier, Global.NameEngine, position) THEN isEngine := TRUE ELSE isEngine := FALSE END;
 					IF HasFlag(modifier, Global.NameVector,position) THEN END;
 					IF HasFlag(modifier, Global.NameFloatingPoint, position) THEN END;
 					symbol := system.activeCellsCapabilities;
@@ -1018,8 +1022,10 @@ TYPE
 				END;
 				x.SetState(SyntaxTree.Resolved);
 
-				IF x.cellScope.bodyProcedure = NIL THEN
+				IF (x.cellScope.bodyProcedure = NIL) & (~isEngine)THEN
 					Error(x.position, Diagnostics.Invalid, "Forbidden empty Body.");
+				ELSIF (x.cellScope.bodyProcedure # NIL) & (isEngine)THEN
+					Warning(x.position, "Non-empty body for an engine?");
 				END;
 			END;
 			resolvedType := ResolvedType(x);
@@ -1491,7 +1497,9 @@ TYPE
 
 			IF actualType = SyntaxTree.invalidType THEN (* error already handled *)
 			ELSIF (formal.kind = SyntaxTree.VarParameter) THEN
-
+				IF (actual IS SyntaxTree.SymbolDesignator) & (actual(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Variable) THEN
+					actual(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Variable).UsedAsReference;
+				END;
 				IF (formal.ownerType(SyntaxTree.ProcedureType).callingConvention = SyntaxTree.WinAPICallingConvention) & (actualType IS SyntaxTree.NilType) THEN
 					result := TRUE; (* special rule for WINAPI parameters, needed to be able to pass NIL address to var parameters *)
 				ELSIF ~IsVariable(actual) THEN
@@ -2824,6 +2832,8 @@ TYPE
 				ELSE
 					Error(binaryExpression.position,Diagnostics.Invalid,"operator not applicable between different enumerators");
 				END;
+			ELSIF (leftType IS SyntaxTree.PortType) & (operator = Scanner.Questionmarks) THEN
+				type := system.booleanType;
 			ELSIF (leftType IS SyntaxTree.BasicType) & (rightType IS SyntaxTree.BasicType)
 				OR IsCharacterType(leftType) & IsCharacterType(rightType)
 			THEN
@@ -3372,13 +3382,16 @@ TYPE
 				END;
 			END;
 
-			assignable := (left = NIL) OR left.assignable OR (left IS SyntaxTree.DereferenceDesignator) OR (left IS SyntaxTree.SelfDesignator);
+			assignable := (left = NIL) OR left.assignable OR (left IS SyntaxTree.DereferenceDesignator) OR (left IS SyntaxTree.SelfDesignator) OR (left IS SyntaxTree.SymbolDesignator) & (left(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Import);
 
 			IF (currentScope # NIL) & (symbol.scope.ownerModule # currentScope.ownerModule) THEN
 				assignable := assignable & (SyntaxTree.PublicWrite IN symbol.access);
 			ELSE
 				assignable := assignable & (SyntaxTree.InternalWrite IN symbol.access);
 			END;
+
+			assignable := assignable & ((symbol IS SyntaxTree.Variable) OR (symbol IS SyntaxTree.Parameter)
+				& (symbol(SyntaxTree.Parameter).kind # SyntaxTree.ConstParameter) & ~(symbol(SyntaxTree.Parameter).ownerType IS SyntaxTree.CellType));
 
 			result := SyntaxTree.NewSymbolDesignator(position,left,symbol);
 			result.SetType(symbol.type);
@@ -6281,10 +6294,6 @@ TYPE
 				parameter.SetType(ResolveType(parameter.type));
 				ASSERT(parameter.type.resolved # NIL);
 				CheckSymbolVisibility(parameter);
-				IF parameter.kind = SyntaxTree.ConstParameter THEN parameter.SetAccess(parameter.access * SyntaxTree.ReadOnly) END;
-				IF parameter.ownerType IS SyntaxTree.CellType THEN
-					parameter.SetAccess(SyntaxTree.ReadOnly);
-				END;
 				IF parameter.defaultValue # NIL THEN
 					IF parameter.kind # SyntaxTree.ValueParameter THEN
 						Error(parameter.position,Diagnostics.Invalid,"forbidden default value on non-value parameter");
