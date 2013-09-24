@@ -399,7 +399,7 @@ TYPE
 		IF ~found THEN context.out.String("no ports found"); context.out.Ln END;
 	END Scan;
 
-	PROCEDURE Install*;
+	PROCEDURE Install*(context: Commands.Context);
 	END Install;
 
 (** Create a port object for each windows COM port *)

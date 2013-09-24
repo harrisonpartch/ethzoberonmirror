@@ -4685,6 +4685,12 @@ TYPE
 			modifiers := NIL;
 		END InitModule;
 
+		PROCEDURE SetCase*(case: LONGINT);
+		BEGIN
+			SELF.case := case
+		END SetCase;
+
+
 		PROCEDURE SetCellNet*(isCellNet: BOOLEAN);
 		BEGIN SELF.isCellNet := isCellNet
 		END SetCellNet;

@@ -2269,6 +2269,8 @@ BEGIN
 		ScanPCI(105AH, 0D30H);	(* Asus A7V Promise *)
 		ScanPCI(1078H, 0102H);		(* Cyrix IDE *)
 		ScanPCI(1166H, 0211H);		(* Serverworks *)
+		ScanPCI(8086H, 27C0H); (* found on TL device *)
+
  	ELSIF str = "legacy" THEN
  		Show("Legacy mode..."); KernelLog.Ln;
 		NEW(c, 1F0H, 3F0H, 0, 14);

@@ -440,15 +440,24 @@ BEGIN
 			IF ORD(s[0]) < 32 THEN	(* Bits 7..5 of the MCR are always 0 when a UART is present *)
 				(* Register this RS232Port with an identical index in Serials.registeredSerials array *)
 				Serials.RegisterOnboardPort (i+1, port, name, "Onboard UART");
-				ShowModule(context.out); context.out.String("Port "); context.out.String(name); context.out.String(" installed."); context.out.Ln;
+				IF context # NIL THEN
+					ShowModule(context.out); context.out.String("Port "); context.out.String(name); context.out.String(" installed."); context.out.Ln;
+				END;
 			ELSE
-				ShowModule(context.out); context.out.String("No UART present at address specified for ");
-				context.out.String(name);
-				context.out.Ln
+				IF context # NIL THEN
+					ShowModule(context.out); context.out.String("No UART present at address specified for ");
+					context.out.String(name);
+					context.out.Ln
+				END;
 			END
 		END
 	END;
 END Install;
+
+PROCEDURE Init*; (* compatibility with windows ... *)
+BEGIN
+END Init;
+
 
 END V24.
 

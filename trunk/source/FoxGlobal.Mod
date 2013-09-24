@@ -41,6 +41,8 @@ CONST
 	StringFloatingPoint*="FloatingPoint";
 	StringFrequencyDivider*="FrequencyDivider";
 	StringEngine*="Engine";
+	StringTRM*="TRM";
+	StringTRMS*="TRMS";
 
 	(* traps *)
 	WithTrap* = 1;
@@ -101,6 +103,7 @@ Asr*= systemSpecial+1; Ror*= Asr+1; Flt*= Ror+1; Conversion*= Flt+1; DotTimesPlu
 	VectorCapability* = 0;
 	FloatingPointCapability*= 1;
 	EngineCapability*= 2;
+	TRMSCapability*= 3;
 
 VAR
 	(* names *)
@@ -108,7 +111,7 @@ VAR
 	A2Name-,OberonName-,ArrayBaseName-,RecordBodyName-,ModuleBodyName-,
 	NameWinAPI-,NameC-,NameUntraced-,NameDelegate-,NameInterrupt-, NamePcOffset-, NameNoPAF-,NameEntry-, NameExit-, NameFixed-,NameAligned-,NameStackAligned-,
 	NameExclusive-,NameActive-,NamePriority-,NameSafe-,NameRealtime-, NameDynamic-, NameDataMemorySize-, NameCodeMemorySize-
-	, NameChannelWidth-, NameChannelDepth-, NameChannelModule-, NameVector-, NameFloatingPoint-, NameEngine-, NameFinal-, NameAbstract-,
+	, NameChannelWidth-, NameChannelDepth-, NameChannelModule-, NameVector-, NameFloatingPoint-, NameTRM-, NameTRMS-, NameEngine-, NameFinal-, NameAbstract-,
 	NameFrequencyDivider-, NameRegister-,NameNoReturn-: SyntaxTree.Identifier;
 
 	identifiers: ARRAY 2 OF ARRAY end OF SyntaxTree.Identifier;
@@ -1370,6 +1373,8 @@ TYPE
 		NameChannelModule := SyntaxTree.NewIdentifier(StringChannelModule);
 		NameVector := SyntaxTree.NewIdentifier(StringVector);
 		NameFloatingPoint := SyntaxTree.NewIdentifier(StringFloatingPoint);
+		NameTRM := SyntaxTree.NewIdentifier(StringTRM);
+		NameTRMS := SyntaxTree.NewIdentifier(StringTRMS);
 		NameEngine := SyntaxTree.NewIdentifier(StringEngine);
 		NameFinal := SyntaxTree.NewIdentifier(StringFinal);
 		NameAbstract := SyntaxTree.NewIdentifier(StringAbstract);

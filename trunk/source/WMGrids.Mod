@@ -743,7 +743,7 @@ TYPE
 		BEGIN
 			PointerDown^(x, y, keys);
 			lastkeys := keys;
-			IF keys * {0} # {} THEN
+			IF keys * {0,1} # {} THEN
 				IF allowColResize.Get() & (colWidths # NIL) & OnFixedXGridLine(x, y, dragCellSpacingNr, dragCellSpacingPos) THEN
 					dragCellSpacingWidth := TRUE;
 				ELSIF  allowRowResize.Get() & (rowHeights # NIL) & OnFixedYGridLine(x, y, dragCellSpacingNr, dragCellSpacingPos) THEN

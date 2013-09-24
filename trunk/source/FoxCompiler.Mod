@@ -22,6 +22,7 @@ CONST
 	UseDarwinCCalls*=9;	(* use Darwin stack alignment for ext. C procedures *)	(*fld*)
 	SingleModule*=10;
 	Oberon07*=11;
+	ChangeCase*=12;
 
 	DefaultBackend = "AMD";
 
@@ -199,7 +200,11 @@ TYPE
 					warnings.Module(module);
 				END;
 
-				IF Print IN flags THEN PrintModule END;
+				IF Print IN flags THEN
+					IF ChangeCase IN flags THEN module.SetCase(1-module.case) END;
+					PrintModule;
+					IF ChangeCase IN flags THEN module.SetCase(1-module.case) END;
+				END;
 
 				IF ActiveCellsFlag IN flags THEN
 					Global.GetSymbolName(module,name);
@@ -287,6 +292,7 @@ TYPE
 
 				FinalMessage(FALSE, " done.");
 			ELSIF Print IN flags THEN
+				IF  ChangeCase IN flags THEN module.SetCase(1-module.case) END;
 				PrintModule;
 				FinalMessage(FALSE, " done.")
 			ELSE
@@ -314,6 +320,7 @@ TYPE
 		result := TRUE;
 		NEW(options);
 		options.Add("p","print",Options.Flag);
+		options.Add("P","Print",Options.Flag);
 		options.Add(0X,"silent",Options.Flag);
 		options.Add("c","check",Options.Flag);
 		options.Add("e","traceError",Options.Flag);
@@ -418,6 +425,7 @@ TYPE
 
 		IF result THEN
 			IF options.GetFlag("print") THEN INCL(compilerOptions.flags, Print) END;
+			IF options.GetFlag("Print") THEN INCL(compilerOptions.flags, Print); INCL(compilerOptions.flags, ChangeCase) END;
 			IF options.GetFlag("silent") THEN INCL(compilerOptions.flags, Silent) END;
 			IF options.GetFlag("check") THEN INCL(compilerOptions.flags, Check) END;
 			IF options.GetFlag("traceError") THEN INCL(compilerOptions.flags, TraceError) END;

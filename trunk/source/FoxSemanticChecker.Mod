@@ -975,6 +975,8 @@ TYPE
 					IF HasFlag(modifier, Global.NameEngine, position) THEN isEngine := TRUE ELSE isEngine := FALSE END;
 					IF HasFlag(modifier, Global.NameVector,position) THEN END;
 					IF HasFlag(modifier, Global.NameFloatingPoint, position) THEN END;
+					IF HasFlag(modifier, Global.NameTRM, position) THEN END;
+					IF HasFlag(modifier, Global.NameTRMS, position) THEN END;
 					symbol := system.activeCellsCapabilities;
 					WHILE symbol # NIL DO
 						IF HasFlag(modifier, symbol.name, position) THEN END;
@@ -2235,6 +2237,8 @@ TYPE
 					result := SyntaxTree.NewComplexValue(expression.position, real, 0);
 					result.SetType(type);
 					result(SyntaxTree.ComplexValue).UpdateSubtype;
+				ELSIF (type IS SyntaxTree.PortType) THEN
+					result := ConvertValue(position, expression, system.integerType);
 				ELSE
 					Error(position,Diagnostics.Invalid,"real value cannot be converted");
 					result := SyntaxTree.invalidExpression;
@@ -2255,6 +2259,8 @@ TYPE
 				ELSIF (type IS SyntaxTree.CharacterType) OR (type IS SyntaxTree.ByteType) THEN (* for example: possible via ch = CHR(SYSTEM.VAL(LONGINT,set)) *)
 					result := SyntaxTree.NewCharacterValue(expression.position,SYSTEM.VAL(CHAR,set));
 					result.SetType(type);
+				ELSIF (type IS SyntaxTree.PortType) THEN
+					result := ConvertValue(position, expression, system.integerType);
 				ELSE
 					Error(position,Diagnostics.Invalid,"set value cannot be converted");
 					result := SyntaxTree.invalidExpression;
@@ -2287,6 +2293,8 @@ TYPE
 				ELSIF (type IS SyntaxTree.CharacterType) THEN
 					result := SyntaxTree.NewCharacterValue(expression.position,char);
 					result.SetType(type);
+				ELSIF (type IS SyntaxTree.PortType) THEN
+					result := ConvertValue(position, expression, system.integerType);
 				ELSE
 					Error(position,Diagnostics.Invalid,"character value cannot be converted");
 					result := SyntaxTree.invalidExpression;
@@ -5593,11 +5601,8 @@ TYPE
 
 
 				(* ---- SUM ----- *)
-				ELSIF (id = Global.Sum) & CheckArity(1,2) THEN
-					HALT(200);
-					IF numberActualParameters=1 THEN
-					ELSE
-					END;
+				ELSIF (id = Global.Sum) & CheckArity(1,2) THEN (* can only be found by overloading *)
+					Error(position, Diagnostics.Invalid, "sum operator not applicable");
 				(* ---- DIM ----- *)
 				ELSIF (id = Global.Dim) & CheckArity(1,1) THEN
 					type := system.sizeType;

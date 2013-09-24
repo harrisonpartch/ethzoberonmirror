@@ -127,6 +127,9 @@ TYPE
 		PROCEDURE GetProtocol*(VAR protocol : LONGINT) : BOOLEAN;
 		VAR buffer : Usbdi.BufferPtr;
 		BEGIN
+			IF (interface.bInterfaceClass # 3H) OR (interface.bInterfaceSubClass #  1) THEN
+				TRACE(interface.bInterfaceClass, interface.bInterfaceSubClass); RETURN FALSE
+			END;
 			ASSERT((interface.bInterfaceClass = 3H) & (interface.bInterfaceSubClass=  1));
 			NEW(buffer, 1);
 			IF device.Request(HidGetRequest, HrGetProtocol, 0, interface.bInterfaceNumber, 1, buffer^) = Usbdi.Ok THEN

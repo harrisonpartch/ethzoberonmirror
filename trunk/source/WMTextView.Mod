@@ -2800,13 +2800,20 @@ TYPE
 			END;
 			IF canStart & (2 IN keys) THEN openFile := TRUE; SetInterclick(InterclickCancelled); END;
 			IF keys * {0, 1, 2} = {0, 1, 2} THEN AbortStart END;
+
 			IF allowPiemenu.Get() & (keys * {0, 1, 2} = {2}) THEN
 				text.AcquireRead;
 				ViewToTextPos(x, y, pos);
 				cursor.SetPosition(pos);
 				text.ReleaseRead;
-				ShowContextMenu(x, y) END;
-			IF allowTextSelection.Get() & (keys * {0, 1, 2} = {0}) THEN
+				ShowContextMenu(x, y)
+			END;
+
+			IF allowTextSelection.Get() &
+			( (keys * {0, 1, 2} = {0})  (* left mouse for select *)
+			   OR (keys * {0, 1, 2} = {1}) & doubleclickedWord  (* remove selection when double clicking *)
+			   OR (keys * {0,1,2} = {2}) & (~allowPiemenu.Get())) (* right mouse for selection if pie menu is not enabled *)
+			THEN
 				AbortStart;
 				text.AcquireRead;
 				ViewToTextPos(x, y, pos);
@@ -4181,7 +4188,7 @@ BEGIN
 	PTVAllowTextSelection.Set(TRUE);
 	NEW(PTVAllowPiemenu, NIL, Strings.NewString("allowPiemenu"),
 		Strings.NewString("if set to true, a mouse right-click opens the pie menu"));
-	PTVAllowPiemenu.Set(TRUE);
+	PTVAllowPiemenu.Set(FALSE);
 	NEW(PTVWrapMode, NIL, Strings.NewString("wrapMode"), Strings.NewString("Set text wrapping mode"));
 	PTVWrapMode.Set(WrapWord);
 	NEW(PTVfirstLine, NIL, Strings.NewString("firstLine"),

@@ -1378,12 +1378,21 @@ TYPE
 		KernelLog.String("WindowManager: Window manager closed"); KernelLog.Ln;
 	END WindowManager;
 
+VAR
+	DoubleClick: LONGINT;
+TYPE
 	MouseObj = OBJECT (Inputs.Sink)
 	VAR
 		view : ViewPort;
 		x, y, z : LONGINT;
 		threshold, speedup: LONGINT;
 		enableMMEmulation : BOOLEAN;
+
+		(* double click support *)
+		lastTime: LONGINT;
+		prevKeys: SET;
+	CONST
+		DoubleClick = 400 (* ms *);
 
 		PROCEDURE &Init*(t, s:LONGINT);
 		BEGIN
@@ -1393,7 +1402,7 @@ TYPE
 		END Init;
 
 		PROCEDURE Handle(VAR msg: Inputs.Message);
-		VAR dx, dy, dz: LONGINT; modifierFlags : SET;
+		VAR dx, dy, dz: LONGINT; modifierFlags : SET; time: LONGINT;
 		BEGIN {EXCLUSIVE}
 			IF (msg IS Inputs.MouseMsg) THEN
 				WITH msg: Inputs.MouseMsg DO
@@ -1415,6 +1424,16 @@ TYPE
 
 				WITH msg: Inputs.AbsMouseMsg DO
 					x := msg.x;  y := msg.y;  z := msg.z;
+
+					IF (DoubleClick > 0) & (msg.keys = {0}) & (prevKeys = {}) THEN
+						time := Kernel.GetTicks();
+						IF time - lastTime < DoubleClick THEN
+							msg.keys := {1}; lastTime := time-DoubleClick;
+						ELSE
+							lastTime := time;
+						END;
+					END;
+					prevKeys := msg.keys;
 
 					IF msg.dx # 0 THEN dx := msg.dx;  INC( x, dx );
 					ELSE x := msg.x;  dx := x - msg.x;
@@ -1524,6 +1543,7 @@ VAR
 	defaultMouse : MouseObj;
 	CharToUnicode: ARRAY 256 OF LONGINT; (** mapping from Oberon character codes to Unicodes **)
 	t : Kernel.Timer;
+
 
 PROCEDURE Min(a, b:LONGINT):LONGINT;
 BEGIN
@@ -1655,11 +1675,23 @@ BEGIN
 	session.CheckChain(TRUE);
 END TraceChain;
 
+PROCEDURE SetDoubleClick*(context: Commands.Context);
+VAR options: Options.Options; speed: LONGINT;
+BEGIN
+	NEW(options);
+	options.Add("s","speed",Options.Integer);
+	IF options.Parse(context.arg, context.error) THEN
+		IF ~options.GetInteger("speed", speed) THEN
+			DoubleClick := speed
+		END;
+	END;
+END SetDoubleClick;
 
 BEGIN
 	WMFontManager.Install;
 	InitCharMaps;
 	Modules.InstallTermHandler(CleanUp);
+	DoubleClick := 500;
 	NEW(t);
 END WindowManager.
 

@@ -80,7 +80,7 @@ CONST
 	MinPtrOfs = -40000000H;	(* sentinel offset for ptrOfs *)
 	MethodEndMarker* = MinPtrOfs; (* marks the end of the method addresses in the static type descriptor *)
 
-	InitTableLen = 1024 + 256;
+	InitTableLen = 2048 + 256;
 	InitPtrTableLen = 2048;
 
 	TypeDescRecSize* = 5 * AddressSize + 32;  (* needs to be changed in case TypeDesc is adapted *)
