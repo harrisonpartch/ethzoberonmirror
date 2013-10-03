@@ -469,7 +469,7 @@ TYPE
 			WHILE Basic.GetStringParameter(context.arg,filename) & ~error DO
 				IF options.srcPath # "" THEN
 					Files.SplitPath(filename, path, file);
-					IF path = "" THEN Files.JoinPath(file, options.srcPath, filename) END;
+					IF path = "" THEN Files.JoinPath(options.srcPath, file, filename) END;
 				END;
 				reader := Basic.GetFileReader(filename);
 

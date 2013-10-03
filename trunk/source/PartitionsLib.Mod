@@ -2816,6 +2816,8 @@ TYPE
 		VAR tsize, reserved, fsOfs: LONGINT;
 		BEGIN {EXCLUSIVE}
 			table := NIL; GetVars(dev, part, tsize, reserved, fsOfs, res);
+			BootLoaderSize := reserved-tsize;
+			(*TRACE(BootLoaderSize);*)
 			IF res = AosDisks.Ok THEN
 				NEW(table, tsize*BS);
 				dev.Transfer(AosDisks.Read, dev.table[part].start + BootLoaderSize, tsize, table^, 0, res)
@@ -2827,6 +2829,8 @@ TYPE
 		VAR tsize, reserved, fsOfs: LONGINT;
 		BEGIN {EXCLUSIVE}
 			GetVars(dev, part, tsize, reserved, fsOfs, res);
+			BootLoaderSize := reserved-tsize;
+			(*TRACE(BootLoaderSize);*)
 			IF res = AosDisks.Ok THEN
 				ASSERT(tsize*BS = LEN(table^)); (* same size *)
 				dev.Transfer(AosDisks.Write, dev.table[part].start + BootLoaderSize, tsize, table^, 0, res)
@@ -2933,7 +2937,8 @@ TYPE
 				IF t = type THEN RETURN i
 				ELSIF t = -1 THEN RETURN -1
 				ELSE INC(i, Get4(table^, i+4));
-				END
+				END;
+				IF i >= LEN(table) THEN RETURN -1 END;
 			END;
 		END FindEntry;
 

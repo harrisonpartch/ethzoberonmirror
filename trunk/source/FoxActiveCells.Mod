@@ -1316,15 +1316,18 @@ TYPE
 
 			AddDevice("DDR", 0FFCAH);
 			AddDevice("RS232",0FFFFFFC4H);
+
 			AddDevice("LCD", 0FFFFFFC8H);
+			AddDevice("LEDDigits", 0FFFFFFC8H);
+
 			AddDevice("CF", 0FFFFFFCCH);
 			AddDevice("LED", 0FFFFFFC7H);
-			AddDevice("LEDDigits", 0FFFFFFC8H);
 			AddDevice("TIMER", 0FFFFFFC6H);
 			(*AddDevice("PORT",0FF10H); *)
 			AddDevice("PORT", 0FFFFFFE0H);
 			AddDevice("Switch", 0FFFFFFC7H);
-			AddDevice("PersistentSwitch", 0FFFFFFC8H);
+			AddDevice("Wheel", 0FFFFFFCAH);
+			AddDevice("PersistentSwitch", 0FFFFFFCBH);
 			AddDevice("Motor",0FFFFFFCEH);
 			AddDevice("BraceletSPI",0FFFFFFD2H);
 			AddDevice("GPI",0FFFFFFD6H);

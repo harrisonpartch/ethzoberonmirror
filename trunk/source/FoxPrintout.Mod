@@ -863,7 +863,7 @@ TYPE
 				ELSIF ch = Scanner.LF THEN (* ignore *)
 				ELSIF ch = Scanner.TAB THEN w.String("\t")
 				ELSIF ch = '\' THEN w.String("\\")
-				ELSIF ch = '"' THEN w.String(\"""\); (* " *)
+				ELSIF ch = '"' THEN w.String('"""'); (* *)
 				ELSE w.Char(ch)
 				END;
 				INC( i );
