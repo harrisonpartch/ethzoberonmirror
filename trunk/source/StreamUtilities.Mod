@@ -1,7 +1,7 @@
 MODULE StreamUtilities; (** AUTHOR "Patrick Hunziker"; PURPOSE "stream utilities"; *)
 (* daisychaining of readers or writers with 'logging side-stream', or with size limitation*)
 
-IMPORT Streams, SYSTEM, KernelLog(* , KernelLog, Commands*);
+IMPORT Streams, SYSTEM (*, KernelLog, Commands*);
 
 CONST
 	ReaderBufSize = Streams.DefaultReaderSize;
@@ -41,6 +41,68 @@ TYPE	WriterMonitor* = OBJECT (Streams.Writer);
 		END Pos;
 
 	END WriterMonitor;
+
+TYPE  Encryptor*=PROCEDURE{DELEGATE}( VAR buf: ARRAY OF CHAR;  pos, len: LONGINT );
+
+(* encrypting writer that can daisychained with another writer *)
+TYPE	EncryptingWriter* = OBJECT (Streams.Writer);
+		VAR out : Streams.Writer; encrypt: Encryptor; buf: POINTER TO ARRAY OF CHAR;
+
+		PROCEDURE &Init*(out:Streams.Writer; encrypt:Encryptor);
+		BEGIN
+			InitWriter(Sender, WriterBufSize);
+			NEW(buf, WriterBufSize);
+			SELF.out := out;
+			SELF.encrypt:=encrypt;
+			Reset;
+		END Init;
+
+		PROCEDURE Sender(CONST outBuf: ARRAY OF CHAR; ofs, len: LONGINT; propagate: BOOLEAN; VAR res: LONGINT);
+		VAR i:LONGINT;
+		BEGIN
+			FOR i:=0 TO len-1 DO buf[i]:=outBuf[ofs+i] END;
+			IF encrypt#NIL THEN encrypt(buf^,0,len); END;
+			out.Bytes(buf^, 0, len);
+			INC(sent,len);
+			IF propagate THEN out.Update END;
+			res:=out.res;
+		END Sender;
+
+		PROCEDURE Pos*(): LONGINT;
+		BEGIN RETURN out.Pos()
+		END Pos;
+
+	END EncryptingWriter;
+
+	TYPE  Decryptor*=PROCEDURE{DELEGATE}( VAR buf: ARRAY OF CHAR;  pos, len: LONGINT );
+
+	(* reader that can daisychained with another reader that reads and decrypts a stream*)
+	DecryptingReader* = OBJECT(Streams.Reader)
+		VAR in: Streams.Reader;
+			decrypt:Decryptor;
+
+		PROCEDURE &Init*(in: Streams.Reader; decrypt: Decryptor);
+		BEGIN
+			InitReader(Receiver, ReaderBufSize);
+			SELF.in := in;
+			SELF.decrypt:=decrypt;
+		END Init;
+
+		PROCEDURE Receiver(VAR inBuf: ARRAY OF CHAR; ofs, size, min: LONGINT; VAR len, res: LONGINT);
+		BEGIN
+			ASSERT((size > 0) & (min <= size) & (min >= 0));
+			in.Bytes(inBuf, ofs, size, len);
+			IF decrypt#NIL THEN decrypt(inBuf, ofs, len); END;
+			INC(received,len);
+			res:=in.res;
+		END Receiver;
+
+		PROCEDURE Pos*(): LONGINT;
+		BEGIN RETURN in.Pos()
+		END Pos;
+
+	END DecryptingReader;
+
 
 TYPE
 
@@ -341,7 +403,7 @@ BEGIN
 	w.String("123456789"); w.Ln; w.Update;
 END Test2;
 *)
-
+(*
 PROCEDURE TestAsync*;
 VAR log: Streams.Writer; i: LONGINT;
 BEGIN
@@ -364,11 +426,44 @@ BEGIN
 	KernelLog.String(" D O N E "); KernelLog.Ln;
 END TestAsync2;
 
+PROCEDURE TestEncode(VAR buf: ARRAY OF CHAR; pos,len:LONGINT);
+VAR i:LONGINT;
+BEGIN
+	FOR i:=pos TO pos+len-1 DO
+		IF (buf[i]>="!") & (buf[i]<"~") THEN buf[i]:=CHR(ORD(buf[i])+1) END;
+	END;
+END TestEncode;
+
+PROCEDURE TestDecode(VAR buf: ARRAY OF CHAR; pos,len:LONGINT);
+VAR i:LONGINT;
+BEGIN
+	FOR i:=pos TO pos+len-1 DO
+		IF (buf[i]>"!") & (buf[i]<="~") THEN buf[i]:=CHR(ORD(buf[i])-1) END;
+	END;
+END TestDecode;
+
+PROCEDURE TestCrypt*(context:Commands.Context);
+VAR log: Streams.Writer; secretwriter: EncryptingWriter; secretreader:DecryptingReader; 
+	i: LONGINT; 
+	string:ARRAY 64 OF CHAR; res:BOOLEAN;
+BEGIN
+	NEW(log, KernelLog.Send,128);
+	
+	NEW(secretreader, context.arg, TestDecode);
+	res:=secretreader.GetString(string);
+	log.String("decoded secret: "); log.String(string); log.Ln; log.String("encoded secret: ");  log.Update;
+	
+	NEW(secretwriter, log, TestEncode);
+	secretwriter.String(string); secretwriter.Update;
+END TestCrypt;
+*)
+
 END StreamUtilities.
 
 StreamUtilities.Test hello ~
 StreamUtilities.Test2 abcd efghijk ~
 StreamUtilities.TestAsync abcd efghijk ~
+StreamUtilities.TestCrypt IfmmpXpsme ~
 
 SystemTools.FreeDownTo StreamUtilities ~
 

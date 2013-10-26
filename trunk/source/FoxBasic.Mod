@@ -1650,9 +1650,9 @@ TYPE
 
 	END TracingDiagnostics;
 
-	DebugWriterFactory*= PROCEDURE (CONST title: ARRAY OF CHAR): Streams.Writer;
-	WriterFactory*=PROCEDURE (w: Streams.Writer): Writer;
-	DiagnosticsFactory*=PROCEDURE (w: Streams.Writer): Diagnostics.Diagnostics;
+	DebugWriterFactory*= PROCEDURE{DELEGATE} (CONST title: ARRAY OF CHAR): Streams.Writer;
+	WriterFactory*=PROCEDURE{DELEGATE} (w: Streams.Writer): Writer;
+	DiagnosticsFactory*=PROCEDURE{DELEGATE} (w: Streams.Writer): Diagnostics.Diagnostics;
 
 VAR
 	lists-: LONGINT;  enlarged-: LONGINT;  strings-: LONGINT; integerObjects: HashTableInt;

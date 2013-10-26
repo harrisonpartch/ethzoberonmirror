@@ -1391,8 +1391,8 @@ TYPE
 		(* double click support *)
 		lastTime: LONGINT;
 		prevKeys: SET;
-	CONST
-		DoubleClick = 400 (* ms *);
+	(*CONST
+		DoubleClick = 400 (* ms *);*)
 
 		PROCEDURE &Init*(t, s:LONGINT);
 		BEGIN
@@ -1681,7 +1681,7 @@ BEGIN
 	NEW(options);
 	options.Add("s","speed",Options.Integer);
 	IF options.Parse(context.arg, context.error) THEN
-		IF ~options.GetInteger("speed", speed) THEN
+		IF options.GetInteger("speed", speed) THEN
 			DoubleClick := speed
 		END;
 	END;

@@ -933,7 +933,7 @@ TYPE
 
 		PROCEDURE & InitPort;
 		BEGIN
-			NEW(sendBuffer, 128);
+			NEW(sendBuffer, 128); NEW(data1,1);
 		END InitPort;
 
 		PROCEDURE Open(bps, data, parity, stop : LONGINT; VAR res: LONGINT);
