@@ -508,16 +508,24 @@ BEGIN
 	try := 0;
 	REPEAT
 		COPY(fi.name^, exactName);
+
 		IF try > 0 THEN  Strings.Append(exactName, "_")  END;
-		(*ALEX 2006.06.05 bold fonts are suffixed with bd; ex.: arialbd.ttf*)
-		IF (WMGraphics.FontBold IN fi.style) & ~(WMGraphics.FontItalic IN fi.style) THEN
-			Strings.Append(exactName, "bd")
-		ELSE
-			IF WMGraphics.FontBold IN fi.style THEN Strings.Append(exactName, "b") END;
-			IF WMGraphics.FontItalic IN fi.style THEN Strings.Append(exactName, "i") END;
-		END;
+		(*	ALEX 2006.06.05 bold fonts are suffixed with bd; ex.: arialbd.ttf
+			fof: but not all of them, such as calibri --> calibrib
+		*)
+
+		IF WMGraphics.FontBold IN fi.style THEN Strings.Append(exactName, "b") END;
+		IF WMGraphics.FontItalic IN fi.style THEN Strings.Append(exactName, "i") END;
 		Strings.Append(exactName, ".ttf");
 		f := LoadFont(exactName, fi.size);
+		
+		IF (f = NIL) & (WMGraphics.FontBold IN fi.style) & ~(WMGraphics.FontItalic IN fi.style) THEN
+			(* some fonts do use "bd" or "_bd" as suffix *)
+			COPY(fi.name^, exactName);
+			IF try > 0 THEN  Strings.Append(exactName, "_")  END;
+			Strings.Append(exactName, "bd.ttf");
+			f := LoadFont(exactName, fi.size);
+		END;
 		INC( try )
 	UNTIL (f # NIL) OR (try >= 2);
 	IF f # NIL THEN

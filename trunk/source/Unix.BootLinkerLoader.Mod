@@ -5,13 +5,17 @@ MODULE BootLinkerLoader;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 
 (* based on Oberon for Windows bootlinker (MH) and  MIPS bootlinker (RC) *)
 
+(*! BootLinker specific parts are surrounded by: 
+	(*! begin =============================*)
+	(*! ============================== end *)
+*)
 
 IMPORT S := SYSTEM, Heaps := BootLinkerHeaps, Modules := BootLinkerModules, Streams, Files, Strings;
 
 CONST	
 	AddrSize = SIZEOF( ADDRESS );
 
-	ObjSuffix = ".Obj";
+	ObjSuffix* = ".Obj";
 
 	Ok = 0;
 	FileNotFound = 3401;
@@ -25,7 +29,7 @@ CONST
 
 	FileTag = 0BBX;				(* cf. PCM.Mod *)
 	NoZeroCompress = 0ADX;	(* cf. PCM.Mod *)
-	FileVersion* = 0B1X;			(* cf. PCM.Mod *)
+	FileVersion = 0B1X;			(* cf. PCM.Mod *)
 	FileVersionOC=0B2X; (* preparation for object and symbol file for new Oberon Compiler *)
 	CurrentFileVersion=0B4X;
 	
@@ -73,8 +77,12 @@ TYPE
 				baseEntry: ADDRESS
 			END;
 
+
+
+(*! begin =============================================================*)
+
 VAR
-	lastMod{UNTRACED}: Modules.Module;
+	lastMod: Modules.Module;
 
 	KernelRoutines: ARRAY 11 OF RECORD
 				name: Modules.Name;
@@ -83,18 +91,8 @@ VAR
 	
 	dlsymAdr-, entrypoint-: ADDRESS;
 	
-	out*: Streams.Writer;
-	error*: Streams.Writer;
-
-
-
-	PROCEDURE Error( CONST str1, str2: ARRAY OF CHAR );
-	BEGIN
-		error.Ln;
-		error.String( "Error: " );  error.String( str1 );  error.String( str2 );  
-		error.Ln; 
-	END Error;
-
+	error: Streams.Writer;
+	
 
 	PROCEDURE GetHeapRoutines( m: Modules.Module );
 	VAR i: LONGINT;
@@ -135,8 +133,7 @@ VAR
 		KernelRoutines[10].adr := Modules.ProcByName( KernelRoutines[10].name, m )	
 	END TreatModules;
 	
-	
-	
+(*! ============================================================= end *)
 	
 	
 
@@ -192,7 +189,11 @@ VAR
 		WHILE ch # 0X DO  string[i] := ch;  INC( i );  r.Char( ch )  END;
 		string[i] := 0X;
 	END ReadString8;
+	
+	
 
+
+(*! begin =============================================================*)
 
 	PROCEDURE AllocateModule( m: Modules.Module; h: ObjHeader );
 	CONST 
@@ -201,12 +202,11 @@ VAR
 		dataSize: LONGINT;
 
 		
-		PROCEDURE NewSysArray( VAR ptr: ANY; elements, elemSize: SIZE );
-		VAR adr: ADDRESS;
+		PROCEDURE NewSysArray( VAR ptr: ANY; elements, elemSize: LONGINT );
 		BEGIN
-			adr := Heaps.NewSys( Heaps.ArraySize( elements, elemSize, 1 ) );
-			S.PUT( adr + LenOfs, elements );   (* dimension *)
-			ptr := S.VAL( ANY, adr );  Heaps.Relocate( ADDRESSOF( ptr ) )
+			Heaps.NewSys( ptr, Heaps.ArraySize( elements, elemSize, 1 ) );
+			S.PUT( S.VAL( ADDRESS, ptr ) + LenOfs, elements );   (* dimension *)
+			Heaps.Relocate( ADDRESSOF( ptr ) )
 		END NewSysArray;
 
 		PROCEDURE NewPtrArray( VAR ptr: ANY; elements: LONGINT );
@@ -241,15 +241,17 @@ VAR
 		Heaps.Relocate( ADDRESSOF( m.sb ) );
 	END AllocateModule;
 
+(*! ============================================================= end *)
+
 
 	(* ReadEntryBlock - Read the entry block. *)
 
-	PROCEDURE ReadEntryBlock( r: Streams.Reader;  m: Modules.Module; h: ObjHeader ): BOOLEAN;
+	PROCEDURE ReadEntryBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
 	VAR tag: CHAR;  i, num: LONGINT;
 	BEGIN
 		r.Char(tag);
 		IF tag = 82X THEN	(* entry tag *)
-			FOR i := 0 TO h.entries-1 DO
+			FOR i := 0 TO LEN( m.entry ) - 1 DO
 				r.RawNum(num);
 				m.entry[i] := num + ADDRESSOF( m.code[0] );
 				Heaps.Relocate( ADDRESSOF( m.entry[i] ) );
@@ -262,14 +264,36 @@ VAR
 	END ReadEntryBlock;
 
 
+	(* ReadCommandBlock - Read the command block. *)
+
+	PROCEDURE ReadCommandBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
+	VAR tag: CHAR;  i, adr: LONGINT;
+	BEGIN
+		r.Char( tag );
+		IF tag = 83X THEN  (* command tag *)
+			FOR i := 0 TO LEN( m.command ) - 1 DO
+				r.RawNum( adr );  m.command[i].argTdAdr := adr;
+				r.RawNum( adr );  m.command[i].retTdAdr := adr;
+				r.RawString( m.command[i].name );
+				r.RawNum( adr );  m.command[i].entryAdr := adr;
+				(* addresses will be fixed up later in FixupCommands *)
+			END;
+			RETURN TRUE
+		ELSE
+			RETURN FALSE
+		END
+	END ReadCommandBlock;
+	
+
+
 	(* ReadPointerBlock - Read the pointer block. *)
 
-	PROCEDURE ReadPointerBlock( r: Streams.Reader;  m: Modules.Module; h: ObjHeader ): BOOLEAN;
+	PROCEDURE ReadPointerBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
 	VAR tag: CHAR;  i, num: LONGINT;
 	BEGIN
 		r.Char(tag);
 		IF tag = 84X THEN	(* pointer tag *)
-			FOR i := 0 TO h.pointers-1 DO
+			FOR i := 0 TO LEN( m.ptrAdr ) - 1 DO
 				r.RawNum(num);
 				ASSERT(num MOD AddrSize = 0);	(* no deep copy flag *)
 				m.ptrAdr[i] := m.sb + num;
@@ -284,15 +308,15 @@ VAR
 
 	(* ReadImportBlock - Read the import block. *)
 
-	PROCEDURE ReadImportBlock(	r: Streams.Reader;  m: Modules.Module; h: ObjHeader;
-								VAR res: LONGINT;  VAR msg: ARRAY OF CHAR ): BOOLEAN;
+	PROCEDURE ReadImportBlock(	r: Streams.Reader;  m: Modules.Module; 
+									VAR res: LONGINT;  VAR msg: ARRAY OF CHAR ): BOOLEAN;
 	VAR
 		tag: CHAR;  i: LONGINT;  name: Modules.Name;
 	BEGIN
 		r.Char(tag);
 		IF tag = 85X THEN	(* import tag *)
 			i := 0;
-			WHILE (i # h.modules) & (res = Ok) DO
+			WHILE (i # LEN( m.module )) & (res = Ok) DO
 				ReadString8( r, name );
 				(* recursively load the imported module *)
 				m.module[i] := Load( name, res, msg );
@@ -333,6 +357,30 @@ VAR
 	END ReadDataLinkBlock;
 
 
+	(* ReadLinkBlock - Read the link block. *)
+
+	PROCEDURE ReadLinkBlock( r: Streams.Reader;
+							  	links, entries: LONGINT;
+								VAR l: ARRAY OF LinkRec;
+								VAR f: ARRAY OF LONGINT;
+								VAR caseTableSize: LONGINT ): BOOLEAN;
+	VAR tag: CHAR;  i, num: LONGINT;
+	BEGIN
+		r.Char( tag );
+		IF tag = 86X THEN  (* links tag *)
+			FOR i := 0 TO links - 1 DO
+				r.Char( tag );  l[i].mod := ORD( tag );  r.Char( tag );  l[i].entry := ORD( tag );
+				r.RawNum( num );  l[i].link := num
+			END;
+			FOR i := 0 TO entries - 1 DO  r.RawNum( num );  f[i] := num;   END;
+			r.RawNum( caseTableSize );
+			RETURN TRUE
+		ELSE
+			RETURN FALSE
+		END
+	END ReadLinkBlock;
+
+
 	(* ReadConstBlock - Read the constant block. *)
 
 	PROCEDURE ReadConstBlock( r: Streams.Reader;  m: Modules.Module; h: ObjHeader ): BOOLEAN;
@@ -353,265 +401,10 @@ VAR
 	END ReadConstBlock;
 
 
-	(* ReadCodeBlock - Read the code block. *)
-
-	PROCEDURE ReadCodeBlock( r: Streams.Reader;  m: Modules.Module; h: ObjHeader ): BOOLEAN;
-	VAR tag: CHAR; ignore: LONGINT;
-	BEGIN
-		r.Char(tag);
-		IF tag = 89X THEN	(* code tag *)
-			r.Bytes(m.code^, 0, h.codeSize, ignore);
-			RETURN TRUE
-		ELSE
-			RETURN FALSE
-		END
-	END ReadCodeBlock;
-
-
-	(* ReadRefBlock - Read the reference block. *)
-
-	PROCEDURE ReadRefBlock( r: Streams.Reader;  m: Modules.Module; h: ObjHeader ): BOOLEAN;
-	VAR tag: CHAR; ignore: LONGINT;
-	BEGIN
-		r.Char( tag );
-		IF tag = 8CX THEN	(* ref tag *)
-			r.Bytes( m.refs^, 0, h.refSize, ignore );
-			RETURN TRUE
-		ELSE
-			RETURN FALSE
-		END
-	END ReadRefBlock;
-
-
-
-	PROCEDURE ReadTypeBlock( r: Streams.Reader;  m: Modules.Module; h: ObjHeader; VAR type: ARRAY OF TypeRec ): BOOLEAN;
-	VAR
-		tag: CHAR;  i, j, num, newMethods, method, pointers, entry: LONGINT;
-		tdSize: LONGINT; (* ug *)
-		name: Modules.Name;  flags: SET;
-		recSize, ofs, totTdSize: SIZE;
-		startAddr, tdAdr, base: ADDRESS;
-		sTB {UNTRACED}: Heaps.StaticTypeBlock;
-	BEGIN
-		r.Char(tag);
-		IF tag = 8BX THEN	(* type tag *)
-			totTdSize := 0;
-			IF h.staticTdSize > 0 THEN  startAddr := ADDRESSOF(m.staticTypeDescs[0])  END;
-			FOR i := 0 TO h.types - 1 DO
-				flags := {};  type[i].init := FALSE;
-				r.RawNum( recSize );
-				r.RawNum( num );  type[i].entry := num;
-				r.RawNum( num );  type[i].baseMod := num;
-				r.RawNum( num );  type[i].baseEntry := num;
-				r.RawNum( num );  type[i].methods := ABS( num );
-				IF num # 0 THEN  flags := {Heaps.ProtTypeBit}  END;
-				r.RawNum( num );  type[i].inhMethods := num;
-				r.RawNum( newMethods );
-				r.RawLInt( pointers );
-				r.RawString( name );
-				r.RawLInt( tdSize);
-
-				Heaps.NewRec( S.VAL( ANY, m.typeInfo[i] ), Modules.tdTag );
-				Heaps.Relocate( ADDRESSOF( m.typeInfo[i] ) );
-				Heaps.FillStaticType( tdAdr, startAddr, S.VAL( ADDRESS, m.typeInfo[i] ), tdSize, recSize, pointers,
-									 Modules.MaxTags + type[i].methods);
-				m.typeInfo[i].tag := tdAdr;	Heaps.Relocate( ADDRESSOF( m.typeInfo[i].tag ) );
-				m.typeInfo[i].flags := flags;
-				m.typeInfo[i].mod := m;		Heaps.Relocate( ADDRESSOF( m.typeInfo[i].mod ) );
-				m.typeInfo[i].name := name;
-
-				base := m.typeInfo[i].tag + Modules.Mth0Ofs;   (* read new methods *)
-				FOR j := 0 TO newMethods - 1 DO
-					r.RawNum( method );
-					r.RawNum( entry );
-					S.PUT( base - AddrSize*method, m.entry[entry] );
-					Heaps.Relocate( base - AddrSize*method );
-				END;
-				(* other methods are left NIL *)
-				sTB := S.VAL( Heaps.StaticTypeBlock, tdAdr );
-				ASSERT( LEN( sTB.pointerOffsets ) = pointers );
-				FOR j := 0 TO pointers - 1 DO
-					r.RawNum( num );  ofs := num;
-					ASSERT( ofs MOD 4 = 0 );   (* no deep copy flag *)
-					sTB.pointerOffsets[j] := ofs;
-					ASSERT( ADDRESSOF( sTB.pointerOffsets[j] ) < startAddr + tdSize )
-				END;
-				
-				ASSERT( m.typeInfo[i].tag # 0 );
-				ASSERT( ADDRESSOF( m.data[0] ) <=  m.sb + type[i].entry, 1001 );
-				ASSERT( m.sb + type[i].entry+4  <= ADDRESSOF( m.data[LEN(m.data)-1])+1, 1002 );
-				
-				S.PUT( m.sb + type[i].entry, m.typeInfo[i].tag );    (* patch in constant area *)
-				Heaps.Relocate( m.sb + type[i].entry );
-				
-				startAddr := startAddr + tdSize;
-				totTdSize := totTdSize + tdSize;
-			END;
-			base := S.VAL( ADDRESS, m.typeInfo ) - AddrSize;
-			S.PUT( base, Modules.ptrElemTag + 2(*ArrayBit*) );
-
-			RETURN TRUE
-		ELSE
-			RETURN FALSE
-		END
-	END ReadTypeBlock;
-	
-
-	(* ReadCommandBlock - Read the command block. *)
-
-	PROCEDURE ReadCommandBlock( r: Streams.Reader;  m: Modules.Module; h: ObjHeader ): BOOLEAN;
-	VAR tag: CHAR;  i, adr: LONGINT;
-	BEGIN
-		r.Char( tag );
-		IF tag = 83X THEN  (* command tag *)
-			FOR i := 0 TO h.commands - 1 DO
-				r.RawNum( adr );  m.command[i].argTdAdr := adr;
-				r.RawNum( adr );  m.command[i].retTdAdr := adr;
-				r.RawString( m.command[i].name );
-				r.RawNum( adr );  m.command[i].entryAdr := adr;
-				(* addresses will be fixed up later in FixupCommands *)
-			END;
-			RETURN TRUE
-		ELSE
-			RETURN FALSE
-		END
-	END ReadCommandBlock;
-	
-
-	(* ReadLinkBlock - Read the link block. *)
-
-	PROCEDURE ReadLinkBlock( r: Streams.Reader;
-							  links, entries: LONGINT;
-							    VAR l: ARRAY OF LinkRec;
-							    VAR f: ARRAY OF LONGINT;
-							    VAR caseTableSize: LONGINT ): BOOLEAN;
-	VAR tag: CHAR;  i, num: LONGINT;
-	BEGIN
-		r.Char( tag );
-		IF tag = 86X THEN  (* links tag *)
-			FOR i := 0 TO links - 1 DO
-				r.Char( tag );  l[i].mod := ORD( tag );  r.Char( tag );  l[i].entry := ORD( tag );
-				r.RawNum( num );  l[i].link := num
-			END;
-			FOR i := 0 TO entries - 1 DO  r.RawNum( num );  f[i] := num;   END;
-			r.RawNum( caseTableSize );
-			RETURN TRUE
-		ELSE
-			RETURN FALSE
-		END
-	END ReadLinkBlock;
-	
-
-	PROCEDURE ReadPtrsInProcBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
-	VAR
-		tag: CHAR;  i, j, codeoffset, beginOffset, endOffset, nofptrs, p: LONGINT;
-		procTable: Modules.ProcTable;  ptrTable: Modules.PtrTable;
-
-		PROCEDURE Max( i, j: LONGINT ): LONGINT;
-		BEGIN
-			IF i > j THEN  RETURN i  ELSE  RETURN j  END
-		END Max;
-
-		PROCEDURE SwapProcTableEntries( p, q: LONGINT );
-		VAR procentry: Modules.ProcTableEntry;  k, i, basep, baseq, ptr: LONGINT;
-		BEGIN
-			k := Max( procTable[p].noPtr, procTable[q].noPtr );
-			IF k > 0 THEN  (* swap entries in ptrTable first *)
-				basep := p*m.maxPtrs;  baseq := q*m.maxPtrs;
-				FOR i := 0 TO k - 1 DO
-					ptr := ptrTable[basep + i];  ptrTable[basep + i] := ptrTable[baseq + i];  ptrTable[baseq + i] := ptr
-				END
-			END;
-			procentry := procTable[p];  procTable[p] := procTable[q];  procTable[q] := procentry
-		END SwapProcTableEntries;
-
-		PROCEDURE SortProcTable;
-		VAR i, j, min: LONGINT;
-		BEGIN
-			FOR i := 0 TO m.noProcs - 2 DO
-				min := i;
-				FOR j := i + 1 TO m.noProcs - 1 DO
-					IF procTable[j].pcFrom < procTable[min].pcFrom THEN  min := j  END
-				END;
-				IF min # i THEN  SwapProcTableEntries( i, min )  END
-			END
-		END SortProcTable;
-
-	BEGIN
-		r.Char( tag );
-		IF tag = 8FX THEN
-			NEW( procTable, m.noProcs );  NEW( ptrTable, m.noProcs*m.maxPtrs );
-			(* m.noProcs > 0 since the empty module contains the module body procedure *)
-			FOR i := 0 TO m.noProcs - 1 DO
-				r.RawNum( codeoffset );
-				r.RawNum( beginOffset );
-				r.RawNum( endOffset );
-				r.RawLInt( nofptrs );   (* fixed size *)
-
-				procTable[i].pcFrom := codeoffset + ADDRESSOF( m.code[0] );
-				procTable[i].pcStatementBegin := beginOffset + ADDRESSOF( m.code[0] );
-				procTable[i].pcStatementEnd := endOffset + ADDRESSOF( m.code[0] );
-				procTable[i].noPtr := nofptrs;
-				FOR j := 0 TO nofptrs - 1 DO  r.RawNum( p );  ptrTable[i*m.maxPtrs + j] := p;   END  ;
-			END;
-			SortProcTable();
-			m.firstProc := procTable[0].pcFrom;  Heaps.Relocate( ADDRESSOF( m.firstProc ) );
-			FOR i := 0 TO m.noProcs - 2 DO  procTable[i].pcLimit := procTable[i + 1].pcFrom  END;
-			procTable[m.noProcs - 1].pcLimit := ADDRESSOF( m.code[0] ) + LEN( m.code ) + 1;
-					(* last element ùerved for end of code segment, allow 1 byte extra, cf. Modules.ThisModuleByAdr *)
-			Modules.InsertProcOffsets(procTable, ptrTable, m.maxPtrs);
-			procTable := NIL;  ptrTable := NIL;
-			RETURN TRUE
-		ELSE
-			RETURN FALSE
-		END;
-	END ReadPtrsInProcBlock;
-	
-
-	PROCEDURE ReadExTableBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
-	VAR tag: CHAR;  pcFrom, pcTo, pcHandler, i: LONGINT;
-
-		PROCEDURE SelectionSort( exTable: Modules.ExceptionTable );
-		VAR p, q, min: LONGINT;  entry: Modules.ExceptionTableEntry;
-		BEGIN
-			FOR p := 0 TO LEN( exTable ) - 2 DO
-				min := p;
-				FOR q := p + 1 TO LEN( exTable ) - 1 DO
-					IF exTable[min].pcFrom > exTable[q].pcFrom THEN  min := q  END;
-					entry := exTable[min];  exTable[min] := exTable[p];  exTable[p] := entry;
-				END
-			END
-		END SelectionSort;
-
-	BEGIN
-		r.Char( tag );
-		IF tag = 8EX THEN
-			FOR i := 0 TO LEN( m.exTable ) - 1 DO
-				r.Char( tag );
-				IF tag = 0FEX THEN
-					r.RawNum( pcFrom );
-					r.RawNum( pcTo );
-					r.RawNum( pcHandler );
-					m.exTable[i].pcFrom := pcFrom + ADDRESSOF( m.code[0] );
-					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcFrom ) );
-					m.exTable[i].pcTo := pcTo + ADDRESSOF( m.code[0] );
-					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcTo ) );
-					m.exTable[i].pcHandler := pcHandler + ADDRESSOF( m.code[0] );
-					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcHandler ) )
-				ELSE
-					RETURN FALSE
-				END;
-			END;
-			SelectionSort( m.exTable );
-			RETURN TRUE
-		ELSE
-			RETURN FALSE
-		END;
-	END ReadExTableBlock;
-
 
 	PROCEDURE ReadExportBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
-	VAR tag: CHAR;  struct: ARRAY MaxStructs OF ADDRESS;
+	VAR 
+		tag: CHAR;  struct: ARRAY MaxStructs OF ADDRESS;
 		structs, i: LONGINT;
 		p {UNTRACED}: Modules.ExportPtr; (* this variable must be untraced since it will be casted from a pure address field, it is not a valid heap block *)
 
@@ -663,6 +456,25 @@ VAR
 	END ReadExportBlock;
 
 
+
+	(* ReadCodeBlock - Read the code block. *)
+
+	PROCEDURE ReadCodeBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
+	VAR tag: CHAR; ignore: LONGINT;
+	BEGIN
+		r.Char(tag);
+		IF tag = 89X THEN	(* code tag *)
+			r.Bytes( m.code^, 0, LEN( m.code ), ignore );
+			RETURN TRUE
+		ELSE
+			RETURN FALSE
+		END
+	END ReadCodeBlock;
+
+
+
+	(* ReadUseBlock - Read and check the use block. *)
+	
 	PROCEDURE ReadUseBlock( r: Streams.Reader;  m: Modules.Module;  CONST dataLink: ARRAY OF DataLinkRec;
 							   VAR res: LONGINT;  VAR msg: ARRAY OF CHAR
 							   ): BOOLEAN;
@@ -672,12 +484,13 @@ VAR
 		BEGIN
 			IF res = Ok THEN
 				res := IncompatibleImport;
-				error.String( m.name );  error.String( " incompatible with " );  error.String( mod.name );  error.String( "  :  " )
+				COPY( m.name, msg );  Strings.Append( msg, " incompatible with " );  Strings.Append( msg, mod.name );  
+				Strings.Append( msg, "  :  " )
 			END
 		END Err;
 
-		PROCEDURE FixupVar( code, link, fixval: LONGINT );
-		VAR i, val, adr: LONGINT;
+		PROCEDURE FixupVar( code:ADDRESS;  link:SIZE;  fixval: ADDRESS );
+		VAR i: LONGINT;  val, adr: ADDRESS;
 		BEGIN
 			ASSERT(dataLink[link].mod # 0);	(* this must be non-local module (?) *)
 			FOR i := 0 TO dataLink[link].fixups - 1 DO
@@ -687,7 +500,7 @@ VAR
 			END
 		END FixupVar;
 
-		PROCEDURE FixupCall( code, link, fixval: LONGINT );
+		PROCEDURE FixupCall( code: ADDRESS;  link: SIZE;  fixval: ADDRESS );
 		VAR nextlink: LONGINT;  opcode: CHAR;
 		BEGIN
 			REPEAT
@@ -703,7 +516,8 @@ VAR
 				link := nextlink
 			UNTIL link = Sentinel
 		END FixupCall;
-
+		
+	
 		PROCEDURE CheckScope( scope: Modules.ExportDesc;  level: INTEGER );
 		VAR fp, link, i: LONGINT;  adr, tdadr: ADDRESS;  tmpErr: BOOLEAN; 
 		BEGIN
@@ -763,10 +577,104 @@ VAR
 			res := FileCorrupt
 		END;
 		RETURN res = Ok
-	END ReadUseBlock;
+	END ReadUseBlock;	
+		
 
 
+	(* ReadTypeBlock - Read the type block. *)
+	
+	PROCEDURE ReadTypeBlock( r: Streams.Reader;  m: Modules.Module;  VAR type: ARRAY OF TypeRec ): BOOLEAN;
+	VAR
+		tag: CHAR;  i, j, num, newMethods, method, pointers, entry: LONGINT;
+		tdSize: LONGINT; (* ug *)
+		name: Modules.Name;  flags: SET;
+		recSize, ofs, totTdSize: SIZE;
+		startAddr, tdAdr, base: ADDRESS;
+		sTB {UNTRACED}: Heaps.StaticTypeBlock;
+	BEGIN
+		r.Char(tag);
+		IF tag = 8BX THEN	(* type tag *)
+			totTdSize := 0;
+			IF LEN( m.staticTypeDescs ) > 0 THEN  startAddr := ADDRESSOF(m.staticTypeDescs[0])  END;
+			FOR i := 0 TO LEN( type ) - 1 DO
+				flags := {};  type[i].init := FALSE;
+				r.RawNum( num );  recSize := num;
+				r.RawNum( num );  type[i].entry := num;
+				r.RawNum( num );  type[i].baseMod := num;
+				r.RawNum( num );  type[i].baseEntry := num;
+				r.RawNum( num );  type[i].methods := ABS( num );
+				IF num # 0 THEN  flags := {Heaps.ProtTypeBit}  END;
+				r.RawNum( num );  type[i].inhMethods := num;
+				r.RawNum( newMethods );
+				r.RawLInt( pointers );
+				r.RawString( name );
+				r.RawLInt( tdSize );
+
+				Heaps.NewRec( S.VAL( ANY, m.typeInfo[i] ), Modules.tdTag );
+				Heaps.Relocate( ADDRESSOF( m.typeInfo[i] ) );
+				Heaps.FillStaticType( tdAdr, startAddr, S.VAL( ADDRESS, m.typeInfo[i] ), tdSize, LONGINT(recSize), pointers,
+									 Modules.MaxTags + type[i].methods);
+				m.typeInfo[i].tag := tdAdr;	Heaps.Relocate( ADDRESSOF( m.typeInfo[i].tag ) );
+				m.typeInfo[i].flags := flags;
+				m.typeInfo[i].mod := m;		Heaps.Relocate( ADDRESSOF( m.typeInfo[i].mod ) );
+				m.typeInfo[i].name := name;
+
+				base := m.typeInfo[i].tag + Modules.Mth0Ofs;   (* read new methods *)
+				FOR j := 0 TO newMethods - 1 DO
+					r.RawNum( method );
+					r.RawNum( entry );
+					S.PUT( base - AddrSize*method, m.entry[entry] );
+					Heaps.Relocate( base - AddrSize*method );
+				END;
+				(* other methods are left NIL *)
+				sTB := S.VAL( Heaps.StaticTypeBlock, tdAdr );
+				ASSERT( LEN( sTB.pointerOffsets ) = pointers );
+				FOR j := 0 TO pointers - 1 DO
+					r.RawNum( num );  ofs := num;
+					ASSERT( ofs MOD 4 = 0 );   (* no deep copy flag *)
+					sTB.pointerOffsets[j] := LONGINT(ofs);
+					ASSERT( ADDRESSOF( sTB.pointerOffsets[j] ) < startAddr + tdSize )
+				END;
+				
+				ASSERT( m.typeInfo[i].tag # 0 );
+				ASSERT( ADDRESSOF( m.data[0] ) <=  m.sb + type[i].entry, 1001 );
+				ASSERT( m.sb + type[i].entry+4  <= ADDRESSOF( m.data[LEN(m.data)-1])+1, 1002 );
+				
+				S.PUT( m.sb + type[i].entry, m.typeInfo[i].tag );    (* patch in constant area *)
+				Heaps.Relocate( m.sb + type[i].entry );
+				
+				startAddr := startAddr + tdSize;
+				totTdSize := totTdSize + tdSize;
+			END;
+			base := S.VAL( ADDRESS, m.typeInfo ) - AddrSize;
+			S.PUT( base, Modules.ptrElemTag + 2(*ArrayBit*) );
+
+			RETURN TRUE
+		ELSE
+			RETURN FALSE
+		END
+	END ReadTypeBlock;
+
+
+	
+	(* ReadRefBlock - Read the reference block. *)
+
+	PROCEDURE ReadRefBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
+	VAR tag: CHAR; ignore: LONGINT;
+	BEGIN
+		r.Char( tag );
+		IF tag = 8CX THEN	(* ref tag *)
+			r.Bytes( m.refs^, 0, LEN( m.refs ), ignore );
+			RETURN TRUE
+		ELSE
+			RETURN FALSE
+		END
+	END ReadRefBlock;
+	
+	
+	
 	(* FixupGlobals - Fix up references to global variables. *)
+	
 	PROCEDURE FixupGlobals( m: Modules.Module;  CONST dataLink: ARRAY OF DataLinkRec );
 	VAR i: LONGINT; t: SIZE;  adr: ADDRESS;
 	BEGIN
@@ -777,13 +685,74 @@ VAR
 			END
 		END
 	END FixupGlobals;
+	
+	
+	
+	(* FixupLinks - Fix up other references. *)
 
-	(* When loader parsed the command block, the type descriptors had not yet been allocated
+	PROCEDURE FixupLinks( m: Modules.Module;  
+							CONST link: ARRAY OF LinkRec;
+							VAR fixupCounts: ARRAY OF LONGINT;
+							caseTableSize: LONGINT;
+							VAR res: LONGINT );
+	VAR 
+		codeadr: ADDRESS;  i, ii: LONGINT;
+
+		PROCEDURE FixRelative( ofs: SIZE;  val: ADDRESS );
+		VAR t: SIZE;  adr: ADDRESS;
+		BEGIN
+			ASSERT( val # 0 );
+			WHILE ofs # Sentinel DO
+				adr := codeadr + ofs;  S.GET( adr, t );
+				S.PUT( adr, val - (adr + 4) );   (* fixup for relative CALL instruction => no relocation required *)
+				ofs := t
+			END
+		END FixRelative;
+
+		PROCEDURE FixEntry( ofs: SIZE;  VAR fixupCounts: ARRAY OF LONGINT );
+		VAR t: SIZE;  adr: ADDRESS;  i: LONGINT;
+		BEGIN
+			i := 0;
+			WHILE ofs # Sentinel  DO
+				adr := codeadr + ofs;  S.GET( adr, t );
+				WHILE fixupCounts[i] = 0 DO  INC( i )  END;
+				S.PUT( adr, m.entry[i] );  Heaps.Relocate( adr );
+				DEC( fixupCounts[i] );  ofs := t
+			END
+		END FixEntry;
+
+		PROCEDURE FixCase( ofs: SIZE; caseTableSize: LONGINT );
+		VAR t: SIZE;  adr: ADDRESS; i: LONGINT;
+		BEGIN
+			i := caseTableSize;
+			WHILE i > 0 DO
+				adr := m.sb + ofs;  S.GET( adr, t );  S.PUT( adr, codeadr + t );  Heaps.Relocate( adr );
+				DEC( i );  ofs := ofs + 4
+			END
+		END FixCase;
+
+	BEGIN
+		codeadr := ADDRESSOF( m.code[0] );
+		FOR i := 0 TO LEN( link ) - 1 DO
+			ASSERT( link[i].mod = 0 );   (* only fix local things *)
+			CASE link[i].entry OF
+			| 243..253:
+					ii := 253 - link[i].entry;  FixRelative( link[i].link, KernelRoutines[ii].adr )
+			| 254:   FixEntry( link[i].link, fixupCounts ) (* local procedure address *)
+			| 255:   FixCase( link[i].link, caseTableSize ) (* case table *)
+			ELSE
+				res := 3406;  RETURN  (* unknown fixup type *)
+			END
+		END
+	END FixupLinks;
+	
+	
+	(*	When loader parsed the command block, the type descriptors had not yet been allocated
 		so we could not fixup the addresses -> do it now. *)
-	PROCEDURE FixupCommands( m: Modules.Module; h: ObjHeader );
+	PROCEDURE FixupCommands( m: Modules.Module );
 	VAR i: LONGINT;
 	BEGIN
-		FOR i := 0 TO h.commands - 1 DO
+		FOR i := 0 TO LEN( m.command ) - 1 DO
 			m.command[i].entryAdr := m.command[i].entryAdr + ADDRESSOF( m.code[0] );
 			Heaps.Relocate( ADDRESSOF( m.command[i].entryAdr ) );
 			IF m.command[i].argTdAdr > 1 THEN
@@ -798,10 +767,12 @@ VAR
 	END FixupCommands;
 
 
+
 	(* InitType - Initialize a dynamic type. *)
 
 	PROCEDURE InitType( m: Modules.Module;  VAR type: ARRAY OF TypeRec;  i: LONGINT );
-	VAR j, t, root, baseMod, baseTag, baseMth, extLevel, baseRoot: LONGINT;  baseM: Modules.Module;
+	VAR 
+		j, baseMod, extLevel: LONGINT;  t, root, baseTag, baseMth, baseRoot: ADDRESS;  baseM: Modules.Module;
 	BEGIN
 		IF ~type[i].init THEN
 			root := m.typeInfo[i].tag;
@@ -851,70 +822,127 @@ VAR
 	END InitType;
 
 
-	(* FixupLinks - Fix up other references. *)
 
-	PROCEDURE FixupLinks( m: Modules.Module;  CONST link: ARRAY OF LinkRec;
-						   VAR fixupCounts: ARRAY OF LONGINT;
-						   caseTableSize: LONGINT;
-						   VAR res: LONGINT );
-	VAR codeadr, i, ii: LONGINT;
+	PROCEDURE ReadExTableBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
+	VAR tag: CHAR;  pcFrom, pcTo, pcHandler, i: LONGINT;
 
-		PROCEDURE FixRelative( ofs, val: LONGINT );
-		VAR t, adr: LONGINT;
+		PROCEDURE SelectionSort( exTable: Modules.ExceptionTable );
+		VAR p, q, min: LONGINT;  entry: Modules.ExceptionTableEntry;
 		BEGIN
-			ASSERT( val # 0 );
-			WHILE ofs # Sentinel DO
-				adr := codeadr + ofs;  S.GET( adr, t );
-				S.PUT( adr, val - (adr + AddrSize) );   (* relative => no relocation required *)
-				ofs := t
+			FOR p := 0 TO LEN( exTable ) - 2 DO
+				min := p;
+				FOR q := p + 1 TO LEN( exTable ) - 1 DO
+					IF exTable[min].pcFrom > exTable[q].pcFrom THEN  min := q  END;
+					entry := exTable[min];  exTable[min] := exTable[p];  exTable[p] := entry;
+				END
 			END
-		END FixRelative;
-
-		PROCEDURE FixEntry( ofs: LONGINT;  VAR fixupCounts: ARRAY OF LONGINT );
-		VAR t, adr, i: LONGINT;
-		BEGIN
-			i := 0;
-			WHILE ofs # Sentinel  DO
-				adr := codeadr + ofs;  S.GET( adr, t );
-				WHILE fixupCounts[i] = 0 DO  INC( i )  END;
-				S.PUT( adr, m.entry[i] );  Heaps.Relocate( adr );
-				DEC( fixupCounts[i] );  ofs := t
-			END
-		END FixEntry;
-
-		PROCEDURE FixCase( ofs, caseTableSize: LONGINT );
-		VAR t, adr, i: LONGINT;
-		BEGIN
-			i := caseTableSize;
-			WHILE i > 0 DO
-				adr := m.sb + ofs;  S.GET( adr, t );  S.PUT( adr, codeadr + t );  Heaps.Relocate( adr );
-				DEC( i );  ofs := ofs + 4
-			END
-		END FixCase;
+		END SelectionSort;
 
 	BEGIN
-		codeadr := ADDRESSOF( m.code[0] );
-		FOR i := 0 TO LEN( link ) - 1 DO
-			ASSERT( link[i].mod = 0 );   (* only fix local things *)
-			CASE link[i].entry OF
-			| 243..253:
-					ii := 253 - link[i].entry;  FixRelative( link[i].link, KernelRoutines[ii].adr )
-			| 254:   FixEntry( link[i].link, fixupCounts ) (* local procedure address *)
-			| 255:   FixCase( link[i].link, caseTableSize ) (* case table *)
-			ELSE
-				error.String( "unsupported externel proc # " );  
-				error.Int( link[i].entry, 0 );  error.Ln;
-				res := 3406;  RETURN  (* unknown fixup type *)
+		r.Char( tag );
+		IF tag = 8EX THEN
+			FOR i := 0 TO LEN( m.exTable ) - 1 DO
+				r.Char( tag );
+				IF tag = 0FEX THEN
+					r.RawNum( pcFrom );
+					r.RawNum( pcTo );
+					r.RawNum( pcHandler );
+					m.exTable[i].pcFrom := pcFrom + ADDRESSOF( m.code[0] );
+					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcFrom ) );
+					m.exTable[i].pcTo := pcTo + ADDRESSOF( m.code[0] );
+					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcTo ) );
+					m.exTable[i].pcHandler := pcHandler + ADDRESSOF( m.code[0] );
+					Heaps.Relocate( ADDRESSOF( m.exTable[i].pcHandler ) )
+				ELSE
+					RETURN FALSE
+				END;
+			END;
+			SelectionSort( m.exTable );
+			RETURN TRUE
+		ELSE
+			RETURN FALSE
+		END;
+	END ReadExTableBlock;
+
+
+
+
+	PROCEDURE ReadPtrsInProcBlock( r: Streams.Reader;  m: Modules.Module ): BOOLEAN;
+	VAR
+		tag: CHAR;  i, j, codeoffset, beginOffset, endOffset, nofptrs, p: LONGINT;
+		procTable: Modules.ProcTable;  ptrTable: Modules.PtrTable;
+
+		PROCEDURE Max( i, j: LONGINT ): LONGINT;
+		BEGIN
+			IF i > j THEN  RETURN i  ELSE  RETURN j  END
+		END Max;
+
+		PROCEDURE SwapProcTableEntries( p, q: LONGINT );
+		VAR 
+			procentry: Modules.ProcTableEntry;  
+			k, i, basep, baseq: LONGINT;  ptr: SIZE;
+		BEGIN
+			k := Max( procTable[p].noPtr, procTable[q].noPtr );
+			IF k > 0 THEN  (* swap entries in ptrTable first *)
+				basep := p*m.maxPtrs;  baseq := q*m.maxPtrs;
+				FOR i := 0 TO k - 1 DO
+					ptr := ptrTable[basep + i];  ptrTable[basep + i] := ptrTable[baseq + i];  ptrTable[baseq + i] := ptr
+				END
+			END;
+			procentry := procTable[p];  procTable[p] := procTable[q];  procTable[q] := procentry
+		END SwapProcTableEntries;
+
+		PROCEDURE SortProcTable;
+		VAR i, j, min: LONGINT;
+		BEGIN
+			FOR i := 0 TO m.noProcs - 2 DO
+				min := i;
+				FOR j := i + 1 TO m.noProcs - 1 DO
+					IF procTable[j].pcFrom < procTable[min].pcFrom THEN  min := j  END
+				END;
+				IF min # i THEN  SwapProcTableEntries( i, min )  END
 			END
-		END
-	END FixupLinks;
+		END SortProcTable;
+
+	BEGIN
+		r.Char( tag );
+		IF tag = 8FX THEN
+			NEW( procTable, m.noProcs );  NEW( ptrTable, m.noProcs*m.maxPtrs );
+			(* m.noProcs > 0 since the empty module contains the module body procedure *)
+			FOR i := 0 TO m.noProcs - 1 DO
+				r.RawNum( codeoffset );
+				r.RawNum( beginOffset );
+				r.RawNum( endOffset );
+				r.RawLInt( nofptrs );   (* fixed size *)
+
+				procTable[i].pcFrom := codeoffset + ADDRESSOF( m.code[0] );
+				procTable[i].pcStatementBegin := beginOffset + ADDRESSOF( m.code[0] );
+				procTable[i].pcStatementEnd := endOffset + ADDRESSOF( m.code[0] );
+				procTable[i].noPtr := nofptrs;
+				FOR j := 0 TO nofptrs - 1 DO  r.RawNum( p );  ptrTable[i*m.maxPtrs + j] := p;   END  ;
+			END;
+			SortProcTable();
+			m.firstProc := procTable[0].pcFrom;  Heaps.Relocate( ADDRESSOF( m.firstProc ) );
+			FOR i := 0 TO m.noProcs - 2 DO  procTable[i].pcLimit := procTable[i + 1].pcFrom  END;
+			procTable[m.noProcs - 1].pcLimit := ADDRESSOF( m.code[0] ) + LEN( m.code ) + 1;
+					(* last element reserved for end of code segment, allow 1 byte extra, cf. Modules.ThisModuleByAdr *)
+					
+			Modules.InsertProcOffsets(procTable, ptrTable, m.maxPtrs);
+			procTable := NIL;  ptrTable := NIL;
+			RETURN TRUE
+		ELSE
+			RETURN FALSE
+		END;
+	END ReadPtrsInProcBlock;
+	
 
 
 
 	PROCEDURE LoadObj( CONST name, fileName: ARRAY OF CHAR;  r: Streams.Reader;
-						 VAR res: LONGINT;  VAR msg: ARRAY OF CHAR
-						): Modules.Module;
-	VAR 	i, caseTableSize: LONGINT;   imp: Modules.Module;
+						 	VAR res: LONGINT;  VAR msg: ARRAY OF CHAR
+							): Modules.Module;
+	VAR 	
+		i, caseTableSize: LONGINT;   imp: Modules.Module;
 		h: ObjHeader;
 		links: POINTER TO ARRAY OF LinkRec;
 		fixupCounts: POINTER TO ARRAY OF LONGINT;
@@ -935,38 +963,40 @@ VAR
 				IF Modules.root = NIL THEN  Modules.root := lastMod  END;
 				m.init := FALSE;  m.refcnt := 0;  m.next := NIL;  m.export.dsc := NIL;  m.term := NIL;
 				
-				i := 0;  WHILE h.name[i] # 0X DO m.name[i] := h.name[i];  INC(i) END;
+				i := 0;  
+				WHILE h.name[i] # 0X DO m.name[i] := h.name[i];  INC(i) END;
 				m.name[i] := 0X;
 				
-				m.noProcs := h.procs;
-				m.maxPtrs := h.maxPtrs;
-				m.crc := h.crc;
+				m.noProcs := h.procs;  m.maxPtrs := h.maxPtrs;  m.crc := h.crc;
 
 				AllocateModule( m, h );
 
 				NEW( dataLink, h.dataLinks );  NEW( links, h.links );  NEW( fixupCounts, h.entries );
 				NEW( type, h.types );
 
-				IF ReadEntryBlock( r, m, h ) & ReadCommandBlock( r, m, h ) & ReadPointerBlock( r, m, h ) &
-					ReadImportBlock( r, m, h, res, msg ) & ReadDataLinkBlock( r, h.dataLinks, dataLink^ ) &
+				IF ReadEntryBlock( r, m ) & ReadCommandBlock( r, m ) & ReadPointerBlock( r, m ) &
+					ReadImportBlock( r, m, res, msg ) & ReadDataLinkBlock( r, h.dataLinks, dataLink^ ) &
 					ReadLinkBlock( r, h.links, h.entries, links^, fixupCounts^, caseTableSize ) &
-					ReadConstBlock(r, m, h) & ReadExportBlock(r, m) & ReadCodeBlock( r, m, h ) &
-					ReadUseBlock( r, m, dataLink^, res, msg ) & ReadTypeBlock( r, m, h, type^ ) &
-					ReadExTableBlock( r, m ) & ReadPtrsInProcBlock( r, m )  & ReadRefBlock( r, m, h )
+					ReadConstBlock(r, m, h) & ReadExportBlock(r, m) & ReadCodeBlock( r, m ) &
+					ReadUseBlock( r, m, dataLink^, res, msg ) & ReadTypeBlock( r, m, type^ ) &
+					ReadExTableBlock( r, m ) & ReadPtrsInProcBlock( r, m )  & ReadRefBlock( r, m )
 				THEN
+(*! begin =============================================================*)
 					IF m.name = "Glue" THEN  TreatGlue( m )
 					ELSIF m.name = "Heaps" THEN  GetHeapRoutines( m )
 					ELSIF m.name = "Modules" THEN  TreatModules( m ); 
 					ELSIF m.name = "Objects" THEN  GetObjectRoutines( m )
 					ELSIF m.name = "BootConsole" THEN  entrypoint := ADDRESSOF( m.code[0] )
 					END;
+(*! ============================================================= end *)
 					IF h.dataLinks # 0 THEN  FixupGlobals( m, dataLink^ )  END;
 					IF h.links # 0 THEN  FixupLinks( m, links^, fixupCounts^, caseTableSize, res )  END;
-					IF h.commands # 0 THEN  FixupCommands( m, h )  END;
-					FOR i := 0 TO LEN(type^)-1  DO  InitType( m, type^, i )  END;
+					IF h.commands # 0 THEN  FixupCommands( m )  END;
+					IF res = Ok THEN
+						FOR i := 0 TO LEN(type^) - 1 DO  InitType( m, type^, i )  END
+					END;
+					dataLink := NIL;  links := NIL;  type := NIL;
 					m.init := TRUE;  m.published := TRUE;
-					(*InsertProcOffsets(m.procTable, m.ptrTable, m.maxPtrs);*)
-					m.procTable := NIL; m.ptrTable := NIL; (* not used any more as entered in global variable *)
 				END
 			END
 		ELSE
@@ -977,6 +1007,10 @@ VAR
 		RETURN m
 	END LoadObj;
 
+
+
+
+(*! begin =============================================================*)
 
 	PROCEDURE Load*( CONST name: ARRAY OF CHAR; VAR res: LONGINT;  VAR msg:  ARRAY OF CHAR ): Modules.Module;
 	VAR f: Files.File;  r: Files.Reader;
@@ -989,16 +1023,18 @@ VAR
 			COPY( name, fname );  Strings.Append( fname, ObjSuffix );
 			f := Files.Old( fname );
 			IF f = NIL THEN
-				Error( fname, " not found" );  res := FileNotFound;  RETURN  NIL
+				msg := " file not found: ";  Strings.Append( msg, fname ); 
+				res := FileNotFound;  RETURN  NIL
 			END;
 			Files.OpenReader( r, f, 0 );
 			m := LoadObj( name, fname, r, res, msg )
 		ELSIF ~m.init THEN
-			Error( "cyclic import not allowed: ", m.name );
+			msg := " cyclic import not allowed: ";  Strings.Append( msg, m.name );
+			res := IncompatibleImport;
 			m := NIL
 		END;
 		RETURN m
-	END Load;
+	END Load; 
 	
 	
 	PROCEDURE InitKernelRoutines;
@@ -1017,8 +1053,8 @@ VAR
 		KernelRoutines[9].name := "";
 		KernelRoutines[10].name := "GetProcedure";
 	END InitKernelRoutines;
-	
-	
+
+
 	PROCEDURE Initialize*( w: Streams.Writer );
 	BEGIN
 		error := w;
@@ -1028,6 +1064,7 @@ VAR
 		dlsymAdr := 0;  entrypoint := 0
 	END Initialize;
 	
+(*! ============================================================= end *)		
 
 END BootLinkerLoader.
 

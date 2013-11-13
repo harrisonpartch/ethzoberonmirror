@@ -16,7 +16,12 @@
  *-----------------------------------------------------------*/
 
 #ifdef DARWIN
+#  undef 	__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__
 #  define	__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__	1059
+#endif
+
+#ifdef LINUX
+#  define _use_valloc /* use the obsolete valloc function instead of posix_memalign */
 #endif
 
 #include <sys/types.h>
@@ -24,9 +29,7 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <dlfcn.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -34,22 +37,13 @@
 #ifdef DARWIN
 #  include <sys/ucontext.h>
 #  include <sys/_types.h>
+#  include <sys/signal.h>
 #endif
 #include <signal.h>
 #include <limits.h>
 #include "Threads.h"
 #include <sys/mman.h>
 #include <X11/Xlib.h>
-/*
-#include <AL/al.h>
-#include <AL/alc.h>
-*/
-
-#ifdef LINUX
-#  define _use_valloc /* use the obsolete valloc function instead of posix_memalign */
-#endif
-
-typedef unsigned long	u_long;
 
 typedef void (*OberonProc)();
 
@@ -71,13 +65,13 @@ char defaultpath[] = ".:/usr/aos/obj:/usr/aos/system:/usr/aos/fonts";
 #ifdef DARWIN
   char bootname[64] = "DarwinAosCore";
 #endif
+
 size_t heapSize;
 size_t codeSize;
 address heapAdr;
 int Argc;
 char **Argv;
 int debug;
-int suid_root;
 
 static stack_t sigstk;
 
@@ -89,10 +83,10 @@ typedef	void(*trap_t)(long, void*, void*, int);
 static trap_t	AosTrap;
 
 
-static void sighandler( int sig, void *scp, void *ucp ) {
+static void sighandler( int sig, siginfo_t *scp, void *ucp ) {
 	
 	if (debug | (AosTrap == NULL)) {
-	    printf("\nhandler for signal %d got called, ucp = %x\n", sig, ucp);
+	    printf("\nhandler for signal %d got called, ucp = %p\n", sig, ucp);
 	    if (AosTrap == NULL) exit(1);
 	}
 	AosTrap(0, ucp, scp, sig); /* rev. order: Oberon <--> C */
@@ -105,11 +99,7 @@ static void installHandler(int sig) {
 	sigemptyset(&mask);
 	act.sa_mask = mask;
 	act.sa_flags =  SA_SIGINFO|SA_ONSTACK|SA_NODEFER;
-#ifdef LINUX
-	act.sa_handler = (__sighandler_t)sighandler;
-#else
-	act.sa_handler = sighandler;
-#endif
+	act.sa_sigaction = sighandler;
 	if (sigaction( sig, &act, NULL ) != 0) {
 		perror("sigaction");
 	}
@@ -152,7 +142,7 @@ static void CreateSignalstack() {
 	sigstk.ss_size = SIGSTACKSIZE;
 	sigstk.ss_flags = 0;
 	if (debug)
-		printf( "Signalstack created [%x ... %x]\n", 
+		printf( "Signalstack created [%p ... %p]\n", 
 	 	        sigstk.ss_sp, sigstk.ss_sp + SIGSTACKSIZE );
 	SetSigaltstack();
 }
@@ -167,7 +157,7 @@ void* o_dlopen(char *lib, int mode) {
         if (debug&1)
 	    printf("o_dlopen: %s not loaded, error = %s\n", lib, dlerror());
     }
-    if (debug&1) printf("o_dlopen: handle = %x\n", handle);
+    if (debug&1) printf("o_dlopen: handle = %p\n", handle);
 
     return handle;
 }
@@ -254,7 +244,7 @@ void SetupXErrHandlers( void* XE, void* XIOE ) {
 
 void o_dlsym(void* handle, char* symbol, void** adr)
 {
-  if (debug==(-1)) printf("o_dlsym: %x %s\n", handle, symbol);
+  if (debug==(-1)) printf("o_dlsym: %p %s\n", handle, symbol);
   
   if      (strcmp("dlopen",		symbol) == 0) *adr = o_dlopen;
   else if (strcmp("dlclose",		symbol) == 0) *adr = o_dlclose;
@@ -312,14 +302,21 @@ void o_dlsym(void* handle, char* symbol, void** adr)
 
 /*----- Files Reading primitives -----*/
 
+
 int Rint() {
-  unsigned char b[4];
+  unsigned char b[4]; int i;
 
-  /* b[3] = fgetc(fd); b[2] = fgetc(fd); b[1] = fgetc(fd); b[0] = fgetc(fd); */
+  /* read little endian integer */
+  for (i=0; i<4; i++) b[i] = fgetc(fd);
+  return *((int*)b);
+}
 
-  /* little endian machine reading little endian integer */
-  b[0] = fgetc(fd); b[1] = fgetc(fd); b[2] = fgetc(fd); b[3] = fgetc(fd);
-  return *((int *) b);
+address RAddress() {
+  unsigned char b[8]; int i;
+
+  /* read little endian address */
+  for (i=0; i<8; i++) b[i] = fgetc(fd);
+  return *((address*)b);
 }
 
 int RNum() {
@@ -339,25 +336,24 @@ void Assert( address x ) {
   address y;
 
   if((x < heapAdr) | (x >= heapAdr + heapSize)) {
-    printf("bad reloc. pos %x [%x, %x]\n", x, heapAdr, heapAdr+heapSize);
+    printf("bad reloc. pos %p [%p, %p]\n", x, heapAdr, heapAdr+heapSize);
   }
   if (x > heapAdr+codeSize) {
     y = *(address*)x;
     if((y < heapAdr) | (y >= heapAdr+heapSize)) {
-      printf("bad reloc. value %x [%x, %x]\n", y, heapAdr, heapAdr+heapSize);
+      printf("bad reloc. value %p [%p, %p]\n", y, heapAdr, heapAdr+heapSize);
     }
   }
 }
 
 	
-void Relocate(address heapAdr, size_t shift) {
-  int len; address adr; 
+void Relocate(size_t shift) {
+  int len; address *adr; 
   
   len = RNum(); 
   while (len != 0) { 
-    adr = (address)RNum(); 
-    adr += (u_long)heapAdr; 
-    *((address*)adr) += shift; 
+    adr = heapAdr + RNum();
+    *adr += shift; 
     Assert( adr );
     len--; 
   } 
@@ -367,7 +363,7 @@ void Relocate(address heapAdr, size_t shift) {
 void Boot() {
   address adr, fileHeapAdr, dlsymAdr;
   size_t shift, len, fileHeapSize;
-  int d, notfound;  
+  int arch, d, notfound;  
   OberonProc body;
 
   d = 0; notfound = 1;
@@ -380,29 +376,35 @@ void Boot() {
     printf("Aos BootLoader: boot file %s not found\n", bootname);  
     exit(-1);
   }
-  fileHeapAdr = (address)Rint(); fileHeapSize = Rint();
-  if (fileHeapSize >= heapSize) {
+  arch = Rint();
+  if (arch != 8*sizeof(address)) {
+    printf("bootfile %s has wrong architecture, got %d, expected %d\n", bootname, arch, (int)(8*sizeof(address)) );
+    exit(-1);
+  }
+  fileHeapAdr = RAddress(); 
+  fileHeapSize = Rint();
+  if (fileHeapSize > heapSize) {
     printf("Aos BootLoader: heap too small\n");  
     exit(-1);
   }
-  adr = heapAdr; len = fileHeapSize + 32; 
+  adr = heapAdr; len = heapSize; 
   while (len > 0) { 
     *((int*)adr) = 0; 
     len -= 4; adr += 4; 
   } 
   shift = heapAdr - fileHeapAdr;
-  adr = (address)Rint(); len = Rint();
-  while (len != 0) {
-    adr += shift;
-    len += (u_long)adr;
-    codeSize = len - (u_long)heapAdr;
-    while (adr != (address)len) { *((int*)adr) = Rint(); adr += 4; }
-    adr = (address)Rint(); len = Rint();
+  
+  adr = heapAdr + Rint();
+  len = Rint();  /* used heap */
+  while (len > 0) {
+    *(int*)adr = Rint(); adr += 4; len -= 4;
   }
-  body = (OberonProc)(adr + shift);
-  Relocate(heapAdr, shift);
-  dlsymAdr = (address)Rint();
-  *((int *)(heapAdr + (u_long)dlsymAdr)) = (int)o_dlsym;
+  body = (OberonProc)heapAdr + Rint();
+  dlsymAdr = heapAdr + Rint();
+
+  Relocate(shift);
+  *(address*)dlsymAdr = o_dlsym;
+  
   fclose(fd);
   if(mprotect((void*)heapAdr, heapSize, PROT_READ|PROT_WRITE|PROT_EXEC) != 0)
      perror("mprotect");
@@ -434,20 +436,12 @@ int main(int argc, char *argv[])
   
   Argc = argc; Argv = argv;
 
-  /* check if we have suid root privileges */
-  if (geteuid() == 0) {
-     suid_root = 1;
-     seteuid( getuid() );
-  } else {
-     suid_root = 0;
-  }
-
   debug = 0;
   p = getenv("AOSDEBUG");
   if (p != NULL) debug = atoi(p);
 
   if (debug) {
-     printf( "UnixAos Boot Loader 09.04.2013\n" );
+     printf( "UnixAos Boot Loader 27.10.2013\n" );
      printf( "debug = %d\n", debug );
   }
 

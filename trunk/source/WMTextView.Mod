@@ -4220,6 +4220,20 @@ BEGIN
 	PTVclBgCurrentLine.Set(0);
 END InitPrototypes;
 
+
+PROCEDURE EnablePiemenu*;
+BEGIN
+	PTVAllowPiemenu.Set( TRUE );
+	KernelLog.String( "Piemenu enabled" );  KernelLog.Ln
+END EnablePiemenu;
+
+PROCEDURE DisablePiemenu*;
+BEGIN
+	PTVAllowPiemenu.Set( FALSE );
+	KernelLog.String( "Piemenu disabled" );  KernelLog.Ln
+END DisablePiemenu;
+
+
 PROCEDURE TextViewFactory*() : XML.Element;
 VAR e : TextView;
 BEGIN

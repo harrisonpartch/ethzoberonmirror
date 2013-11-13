@@ -12,9 +12,9 @@ CONST
 	AddrSize = SIZEOF( ADDRESS );
 	SizeSize = SIZEOF( SIZE );
 
-	BootHeapSize = 2*1024*1024;  MaxReloc = 10000;  
+	BootHeapSize* = 2*1024*1024;  MaxReloc = 10000;  
 
-	NilVal* = 0;
+	NilVal* = 0;		
 	BlockSize* = 32;	(* must be a mutiple of 32 *)
 	ProtOfs = 2*BlockSize + 16;
 	ArrayAlignment = 8;
@@ -43,9 +43,9 @@ TYPE
 VAR
 	error: Streams.Writer;
 	
-	AN-:  ADDRESS;
 
-	heapAdr-: ADDRESS;
+	heapAdr-	: ADDRESS;
+	beginFree-	: ADDRESS;
 
 	relocAddr-: ARRAY MaxReloc OF ADDRESS;
 	numRelocations-: LONGINT;
@@ -54,22 +54,14 @@ VAR
 
 
 
-	PROCEDURE Error( CONST str1, str2: ARRAY OF CHAR );
+	PROCEDURE Error( CONST str: ARRAY OF CHAR );
 	BEGIN
 		error.Ln;
-		error.String( "Error: " );  error.String( str1 );  error.String( str2 );  
+		error.String( "Error: " );  error.String( str );  
 		error.Ln; 
 	END Error;
 	
 	
-	PROCEDURE FatalError( CONST str1, str2: ARRAY OF CHAR );
-	BEGIN
-		error.Ln;
-		error.String( "Error: " );  error.String( str1 );  error.String( str2 );  
-		error.Ln; 
-		error.Update;
-		HALT( 99 )
-	END FatalError;
 	
 
 	PROCEDURE Relocate*( adr: ADDRESS );
@@ -77,13 +69,13 @@ VAR
 	BEGIN
 		FOR i := 0 TO numRelocations - 1 DO
 			IF relocAddr[i] = adr THEN
-				Error( "", "same ptr location marked twice for fixing, ignored" );	
+				Error( "same ptr location marked twice for fixing, ignored" );	
 				RETURN
 			END
 		END;
 		IF numRelocations # -1 THEN
 			IF numRelocations < MaxReloc THEN  relocAddr[numRelocations] := adr;  INC( numRelocations )
-			ELSE  Error( "Too many relocations", "" );  numRelocations := -1
+			ELSE  Error( "Too many relocations" );  numRelocations := -1
 			END
 		END
 	END Relocate;
@@ -102,120 +94,111 @@ VAR
 	PROCEDURE NewBlock( size: SIZE ): ADDRESS;   (* size MOD B = 0 *)
 	VAR rsize, rest: SIZE;  ptr, restptr: ADDRESS;
 	BEGIN
-		ptr := AN;
+		ptr := beginFree;
 		ASSERT( ptr MOD BlockSize = BlockSize - AddrSize );
 		S.GET( ptr + AddrSize, rsize );
-		IF rsize + AddrSize < size  THEN  FatalError( "Pseudo-heap too small", "" )  END;
+		IF rsize + AddrSize < size  THEN  
+			Error( "Pseudo-heap too small" );  HALT( 99 )  
+		END;
 		rest := rsize + AddrSize - size;
 		IF rest > 0 THEN  (* >= B >= 16 *)
 			restptr := ptr + size;
 			S.PUT( restptr, restptr + AddrSize );
 			S.PUT( restptr + AddrSize, rest - AddrSize );
 			S.PUT( restptr + 2*AddrSize, 0 );
-			AN := restptr
+			beginFree := restptr
 		ELSE
-			AN := 0
+			beginFree := 0
 		END;
 		RETURN ptr
 	END NewBlock;
 
 
-	PROCEDURE NewSys*( size: SIZE ): ADDRESS;   (* implementation of S.NEW(ptr, size) *)
-	VAR ptr: ADDRESS;
+	PROCEDURE NewSys*( VAR p: ANY;  size: SIZE );   (* implementation of SYSTEM.NEW(ptr, size) *)
+	VAR adr: ADDRESS;
 	BEGIN
 		INC( size, AddrSize + 24 );  INC( size, (-size) MOD BlockSize );
-		ptr := NewBlock( size ) + AddrSize;
-		ClearMem( ptr, size - AddrSize );
-		S.PUT( ptr - AddrSize, ptr );	Relocate( ptr - AddrSize );
-		S.PUT( ptr, size - AddrSize );
-		S.PUT( ptr + SizeSize, S.VAL( SIZE, -AddrSize ) );
-		S.PUT( ptr + 24 - AddrSize, ptr );	Relocate( ptr + 24 - AddrSize );
-		RETURN ptr + 24;
+		adr := NewBlock( size ) + AddrSize;
+		ClearMem( adr, size - AddrSize );
+		S.PUT( adr - AddrSize, adr );				Relocate( adr - AddrSize );
+		S.PUT( adr, size - AddrSize );
+		S.PUT( adr + SizeSize, S.VAL( SIZE, -AddrSize ) );
+		S.PUT( adr + 24 - AddrSize, adr );		Relocate( adr + 24 - AddrSize );
+		p := S.VAL( ANY, adr + 24 );
 	END NewSys;
 
 
-	PROCEDURE NewRec*( VAR ptr: ANY;  tag: ADDRESS );   (* implementation of NEW( ptr ) *)
-	VAR p: ADDRESS;  typ: ADDRESS;  flags: SET; size: SIZE;
+	PROCEDURE NewRec*( VAR p: ANY;  tag: ADDRESS );   (* implementation of NEW( ptr ) *)
+	VAR adr: ADDRESS;  typ: ADDRESS;  flags: SET; size: SIZE;
 	BEGIN
 		S.GET( tag - AddrSize, typ );   (* will be replaced by direct compiler call of NewProtObj *)
 		S.GET( typ + FlagsOfs, flags );
 		IF ProtTypeBit IN flags THEN  (* protected record *)
-			NewProtRec( S.VAL( ANY, ptr  ), tag );
+			NewProtRec( S.VAL( ANY, p ), tag );
 		ELSE
 			S.GET( tag, size );
 			INC( size, AddrSize ); INC( size, (-size) MOD BlockSize );
-			p := NewBlock( size ) + AddrSize;
-			S.PUT( p - AddrSize, tag );  Relocate( p - AddrSize );
-			ClearMem( p, size - AddrSize );
-			ptr := S.VAL( ANY, p )
+			adr := NewBlock( size ) + AddrSize;
+			S.PUT( adr - AddrSize, tag );			Relocate( adr - AddrSize );
+			ClearMem( adr, size - AddrSize );
+			p := S.VAL( ANY, adr )
 		END
 	END NewRec;
 
 
 	PROCEDURE NewProtRec*( VAR p: ANY;  tag: ADDRESS );
-	VAR recSize, size: SIZE;  ptr0, ptr: ADDRESS;
+	VAR recSize, blockSize: SIZE;  adr, ptr: ADDRESS;
 	BEGIN
 		S.GET( tag, recSize );
 		(* add space for tag and header and round up to BlockSize *)
-		size := recSize + ProtOfs + AddrSize;  INC( size, (-size) MOD BlockSize );
-		ptr0 := NewBlock( size ) + AddrSize;
-		ClearMem( ptr0, size - AddrSize );   (* clear everything *)
-		S.PUT( ptr0 - AddrSize, ptr0 );   (* set the main tag *)	Relocate( ptr0 - AddrSize );
-		S.PUT( ptr0, size - AddrSize );   (* size *)
+		blockSize := recSize + ProtOfs + AddrSize;  INC( blockSize, (-blockSize) MOD BlockSize );
+		adr := NewBlock( blockSize ) + AddrSize;
+		ClearMem( adr, blockSize - AddrSize );   (* clear everything *)
+		S.PUT( adr - AddrSize, adr );				Relocate( adr - AddrSize );
+		S.PUT( adr, blockSize - AddrSize );		(* size *)
 		
-		ptr := ptr0 + ProtOfs;
-		S.PUT( ptr + HeapBlockOffset, ptr0 );	Relocate( ptr + HeapBlockOffset );
-		S.PUT( ptr + TypeDescOffset, tag );	Relocate( ptr + TypeDescOffset );
+		ptr := adr + ProtOfs;
+		S.PUT( ptr + HeapBlockOffset, adr );		Relocate( ptr + HeapBlockOffset );
+		S.PUT( ptr + TypeDescOffset, tag );		Relocate( ptr + TypeDescOffset );
 		
 		p := S.VAL( ANY, ptr );
 	END NewProtRec;
 	
 	
 	PROCEDURE ArraySize*( numElems: LONGINT; elemSize: SIZE; numDims: LONGINT ): SIZE;
-	VAR arrSize, arrayDataOffset: SIZE;
+	VAR arrSize, dataOffs: SIZE;
 	BEGIN
 		arrSize := numElems * elemSize;
-		arrayDataOffset := numDims*AddrSize + 3*AddrSize;
-		INC( arrayDataOffset, (-arrayDataOffset) MOD ArrayAlignment ); (* align to multiple of ArrayAlignment *)
-		RETURN arrayDataOffset + arrSize
+		dataOffs := 3*AddrSize + numDims*AddrSize;  INC( dataOffs, (-dataOffs) MOD ArrayAlignment ); 
+		RETURN dataOffs + arrSize
 	END ArraySize;
 
 
 	PROCEDURE NewArr*( VAR ptr: ANY; eltag: ADDRESS;  nofelem, nofdim: LONGINT );
 	(* implementation of NEW(ptr, dim0,  ...) *)
 	VAR 
-	(*	sTB: StaticTypeBlock;	*)
-		size, elSize, arrSize, ptrOffset, dataOffset: SIZE;  firstElem, p: ADDRESS;
+		blockSize, elSize, arrSize, dataOffs: SIZE;  firstElem, adr: ADDRESS;
 	BEGIN
-		ASSERT( nofdim = 1 );   (* bootloader limit *)
+		ASSERT( (nofdim = 1) & (nofelem > 0) );   (* bootloader limit *)
 		S.GET( eltag, elSize );
 		arrSize := nofelem*elSize;	
-	(*	sTB := S.VAL( StaticTypeBlock, eltag );
-		arrSize := nofelem*sTB.recSize;	*)
-		dataOffset := 3*AddrSize + nofdim*AddrSize;
-		INC( dataOffset, (-dataOffset) MOD ArrayAlignment );  (* -> ADR(firstElem) MOD 8 = 0 *)
-		IF arrSize = 0 THEN
-			p := NewSys( nofdim*AddrSize + 3*AddrSize );
-		ELSE
-			S.GET( eltag + AddrSize, ptrOffset );
-			IF ptrOffset = -AddrSize THEN  (* no pointers in element type *)
-				p := NewSys( dataOffset + arrSize );
-				S.PUT( p + 3*AddrSize, nofelem )
-			ELSE
-				size := AddrSize + dataOffset + arrSize;  INC( size, (-size) MOD BlockSize );
-				p := NewBlock( size ) + AddrSize;
-				S.PUT( p - AddrSize, eltag + 2 (*ArrayBit*) );  Relocate( p - AddrSize );
-				ClearMem( p, size - AddrSize );
-				firstElem := p + dataOffset;
-				S.PUT( p, firstElem + arrSize - elSize );  Relocate( p );
-				(* p + 4 is reserved for mark phase *)
-				S.PUT( p + 2*AddrSize, firstElem );  Relocate( p + 2*AddrSize );
-				S.PUT( p + 3*AddrSize, nofelem );
-			END
-		END;
-		ptr := S.VAL( ANY, p )
+		dataOffs := 3*AddrSize + nofdim*AddrSize;  INC( dataOffs, (-dataOffs) MOD ArrayAlignment );  
+		
+		blockSize := AddrSize + dataOffs + arrSize;  INC( blockSize, (-blockSize) MOD BlockSize );
+		adr := NewBlock( blockSize ) + AddrSize;
+		
+		S.PUT( adr - AddrSize, eltag + 2 (*ArrayBit*) );	Relocate( adr - AddrSize );
+		ClearMem( adr, blockSize - AddrSize );
+		firstElem := adr + dataOffs;
+		S.PUT( adr, firstElem + arrSize - elSize );			Relocate( adr );
+			(*  adr + 1*AddrSize is reserved for mark phase (old non recursive Mark) *)
+		S.PUT( adr + 2*AddrSize, firstElem );				Relocate( adr + 2*AddrSize );
+		S.PUT( adr + 3*AddrSize, nofelem );		(* dimension 0 *)
+				
+		ptr := S.VAL( ANY, adr )
 	END NewArr;
 	
+
 
 	PROCEDURE FillStaticType*( VAR staticTypeAddr: ADDRESS;
 								startAddr, typeInfoAdr: ADDRESS;
@@ -267,8 +250,8 @@ VAR
 		size := heap + BootHeapSize - firstBlock;  DEC( size, size MOD BlockSize );
 		S.PUT( firstBlock, firstBlock + AddrSize );
 		S.PUT( firstBlock + AddrSize, size - AddrSize );
-		S.PUT( firstBlock + 2*AddrSize, 0 );
-		AN := firstBlock ;
+		S.PUT( firstBlock + 2*AddrSize, ADDRESS( 0 ) );
+		beginFree := firstBlock ;
 	END Initialize;
 
 

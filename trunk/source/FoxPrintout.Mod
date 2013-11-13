@@ -268,6 +268,7 @@ TYPE
 		PROCEDURE VisitCellType(x: SyntaxTree.CellType);
 		BEGIN
 			Keyword("CELL ");
+			Modifiers(x.modifiers);
 			IF x.firstParameter # NIL THEN ParameterList(x.firstParameter) END;
 			Scope(x.cellScope);
 
