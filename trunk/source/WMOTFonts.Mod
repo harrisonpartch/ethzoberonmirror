@@ -352,7 +352,6 @@ TYPE
 					END;
 
 				END;
-
 				Antialias(g.img);
 			END;
 
@@ -370,7 +369,7 @@ TYPE
 			END Get;
 
 		BEGIN
-			IF size <= 20 THEN RETURN END;
+		(*	IF size <= 20 THEN RETURN END;		gf *)
 			w := img.width; h := img.height;
 			IF (inCache = NIL) OR (LEN(inCache) < h*w) THEN NEW(inCache, h*w) END;
 			IF (outCache = NIL) OR (LEN(outCache) < w) THEN NEW(outCache, w) END;
@@ -381,7 +380,7 @@ TYPE
 			FOR y := 0 TO img.height-1 DO
 				Raster.GetPixels(img, 0,y,w,Raster.A8, ibuf^, y*w,mode);
 			END;
-
+	
 			pos := 0;
 			FOR y := 0 TO h-1 DO
 				FOR x := 0 TO w-1 DO
@@ -407,8 +406,10 @@ TYPE
 						vu := 0;
 					END;
 					(* interpolate pixels only on boundary not in vertices *)
-					IF (((size > 24) OR (v = 0)) & (v #vl) # (v#vr)) & ((v#vb) # (v#vu)) THEN
-						obuf[x] := CHR( (10*v+ 4*vl + 4*vr + 3*vb + 3*vu) DIV 24);
+				(*	IF (((size > 24) OR (v = 0)) & (v#vl) # (v#vr)) & ((v#vb) # (v#vu)) THEN
+						obuf[x] := CHR( (10*v+ 3*vl + 3*vr + 2*vb + 2*vu) DIV 24);	gf *)
+					IF (v = 0) & ((v#vl) # (v#vr)) & ((v#vb) # (v#vu)) THEN
+						obuf[x] := CHR( (3*vl + 2*vr + 2*vb + 2*vu) DIV 28)
 					ELSE
 						obuf[x] := CHR(v);
 					END;
@@ -484,6 +485,7 @@ TYPE
 VAR bit: ARRAY 100H, 8 OF BOOLEAN;					(* Bit[b, i] means bit i in byte b is set *)
 	Pattern: ARRAY 360*360 DIV 8 OF CHAR;				(* enough for 36 point at 720 dpi *)
 	font : Font;
+	
 
 PROCEDURE InitBitTable;
 VAR b, i: LONGINT;

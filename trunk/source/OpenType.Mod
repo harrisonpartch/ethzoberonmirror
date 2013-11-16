@@ -665,7 +665,7 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 
 	(** open a OpenType font file; file name extension and path may be omitted; returns NIL if not found **)
 	PROCEDURE Open* (name: ARRAY OF CHAR): Font;
-		VAR fname, temp, ext: ARRAY 64 OF CHAR; obj: CacheObj; file: Files.File; r: Files.Rider; version: LONGINT; font: Font;
+		VAR fname, temp, ext: Files.FileName; obj: CacheObj; file: Files.File; r: Files.Rider; version: LONGINT; font: Font;
 	BEGIN
 		NEW(Log);
 		COPY(name, fname);
@@ -1580,3 +1580,5 @@ BEGIN
 	Identity[0] := 10000H; Identity[1] := 0;
 	Identity[2] := 0; Identity[3] := 10000H
 END OpenType.
+
+SystemTools.FreeDownTo OpenType ~
