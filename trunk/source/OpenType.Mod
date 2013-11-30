@@ -13,6 +13,9 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 		KernelLog, Strings, Files;
 
 
+	CONST 
+		SharpenContours = TRUE; (* switching off sharpening can result in visually hard to see lines in small chinese fonts *)
+
 	CONST
 		(** name ids **)
 		Copyright* = 0; Family* = 1; Subfamily* = 2; UniqueID* = 3; FullName* = 4; Version* = 5;
@@ -32,6 +35,7 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 		X = OpenTypeInt.X; Y = OpenTypeInt.Y;
 
 		Debug = FALSE;
+
 
 	TYPE
 		Fixed* = OpenTypeInt.Fixed;
@@ -1348,12 +1352,33 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 		END
 	END EnumOutline;
 
+
+	PROCEDURE SharpenC(VAR x0,x1,a0,a1: INTEGER);
+	BEGIN
+		IF x0=x1 THEN 
+			a0 := 0; a1 := 0; INC(x1)
+		ELSIF ((x1-x0) = 1) & (a0 # 0) THEN
+			
+			IF 40H-a0 > a1 THEN 
+				a0 := 0; 
+				(*a1 := 0;*)
+				(*DEC(a0,a1); a1 := 0;*)
+			ELSE 
+				(*a0 := 0; *) a1 := 0; (* INC(x0); *) INC(x1);
+				(*INC(a1, 40H-a0); a0 := 3FH;*)
+			END;
+		END;
+	END SharpenC;
+	
 	PROCEDURE EnumRow (row: INTEGER; beg, end: F26D6; VAR data: OpenTypeScan.EnumData);
-		VAR x0, a0, x1, a1: INTEGER;
+	VAR x0, a0, x1, a1: INTEGER;
 	BEGIN
 		WITH data: RasterData DO
 			x0 := SHORT(beg DIV 40H); a0 := SHORT(beg MOD 40H);
-			x1 := SHORT(end DIV 40H); a1 := SHORT(beg MOD 40H);
+			x1 := SHORT(end DIV 40H); a1 := SHORT(end MOD 40H);
+			
+			IF SharpenContours THEN SharpenC(x0,x1,a0,a1) END;
+			
 			IF x0 < x1 THEN
 				IF a0 # 0 THEN
 					data.rect(x0, row, x0+1, row+1, 4*(40H-a0), data);
@@ -1376,7 +1401,10 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 	BEGIN
 		WITH data: RasterData DO
 			y0 := SHORT(beg DIV 40H); a0 := SHORT(beg MOD 40H);
-			y1 := SHORT(end DIV 40H); a1 := SHORT(beg MOD 40H);
+			y1 := SHORT(end DIV 40H); a1 := SHORT(end MOD 40H);
+
+			IF SharpenContours THEN SharpenC(y0,y1,a0,a1) END;
+
 			IF y0 < y1 THEN
 				IF a0 # 0 THEN
 					data.rect(col, y0, col+1, y0+1, 4*(40H-a0), data);
@@ -1389,7 +1417,7 @@ MODULE OpenType;	(** AUTHOR "eos, PL"; PURPOSE "Bluebottle port of OpenType"; *)
 					data.rect(col, y1, col+1, y1+1, 4*a1, data)
 				END
 			ELSIF a0 < a1 THEN
-				data.rect(col, y0, col+1, y0+1, 4*(a1 - a0), data)
+				data.rect(col, y0, col+1, y0+1, 4*(a1 - a0) , data)
 			END
 		END
 	END EnumCol;
@@ -1580,5 +1608,3 @@ BEGIN
 	Identity[0] := 10000H; Identity[1] := 0;
 	Identity[2] := 0; Identity[3] := 10000H
 END OpenType.
-
-SystemTools.FreeDownTo OpenType ~

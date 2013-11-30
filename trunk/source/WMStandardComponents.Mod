@@ -807,7 +807,7 @@ TYPE
  		VAR a, b, c : WMGraphics.Image; aw, bw, cw : LONGINT;
  		BEGIN
 			IF imgDefault # NIL THEN
-				RETURN WMGraphics.IsBitmapHit(x, y, 64, imgDefault)
+				RETURN WMGraphics.IsScaledBitmapHit (x,y,bounds.GetWidth(), bounds.GetHeight(), 64,imgDefault);
 			ELSE
 	 			GetHorizontalImages(a, b, c);
 		 		IF a # NIL THEN aw := a.width ELSE aw := 0 END;
@@ -3031,6 +3031,7 @@ BEGIN
 	NEW(PrototypeFont, NIL, NewString("Font"), NewString("Font"));
 	PrototypeFont.Set(WMGraphics.GetDefaultFont());
 	NEW(PrototypeTextColor, NIL, NewString("TextColor"), NewString("text color")); plLabel.Add(PrototypeTextColor);
+	PrototypeTextColor.Set(0FFH);
 	NEW(PrototypeAlignH, NIL, NewString("AlignH"), NewString("horizontal alignment")); plLabel.Add(PrototypeAlignH);
 	PrototypeAlignH.Set(WMGraphics.AlignLeft);
 	NEW(PrototypeAlignV, NIL, NewString("AlignV"), NewString("vertical alignment")); plLabel.Add(PrototypeAlignV);

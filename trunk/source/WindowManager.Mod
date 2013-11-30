@@ -1389,8 +1389,8 @@ TYPE
 		enableMMEmulation : BOOLEAN;
 
 		(* double click support *)
-		lastTime: LONGINT;
-		prevKeys: SET;
+		lastTime, lastX, lastY: LONGINT;
+		prevKeys: SET; inDoubleClick: BOOLEAN;
 	(*CONST
 		DoubleClick = 400 (* ms *);*)
 
@@ -1399,6 +1399,9 @@ TYPE
 			Inputs.mouse.Register(SELF);
 			threshold := t; speedup := s;
 			enableMMEmulation := TRUE;
+			prevKeys := {};
+			lastTime := Kernel.GetTicks()-DoubleClick;
+			inDoubleClick := FALSE;
 		END Init;
 
 		PROCEDURE Handle(VAR msg: Inputs.Message);
@@ -1424,16 +1427,21 @@ TYPE
 
 				WITH msg: Inputs.AbsMouseMsg DO
 					x := msg.x;  y := msg.y;  z := msg.z;
-
 					IF (DoubleClick > 0) & (msg.keys = {0}) & (prevKeys = {}) THEN
 						time := Kernel.GetTicks();
-						IF time - lastTime < DoubleClick THEN
+						IF (time - lastTime < DoubleClick) & (ABS(msg.x-lastX) < 3) & (ABS(msg.y-lastY) <3) THEN
 							msg.keys := {1}; lastTime := time-DoubleClick;
+							inDoubleClick := TRUE;
 						ELSE
-							lastTime := time;
+							lastTime := time; lastX := x; lastY := msg.y;
 						END;
+					ELSIF inDoubleClick & (msg.keys = {0}) THEN 
+						msg.keys := {1}; 
+						(* no change after double click -- avoid sending a click event right after a double click event *)
+					ELSE
+						inDoubleClick := FALSE;
 					END;
-					prevKeys := msg.keys;
+					prevKeys := msg.keys ;
 
 					IF msg.dx # 0 THEN dx := msg.dx;  INC( x, dx );
 					ELSE x := msg.x;  dx := x - msg.x;

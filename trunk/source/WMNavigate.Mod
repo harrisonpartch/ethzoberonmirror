@@ -1668,7 +1668,8 @@ VAR window : WMWindowManager.Window; newWidth, newHeight : LONGINT;
 BEGIN {EXCLUSIVE}
 	manager.lock.AcquireWrite;
 	window := manager.GetFocusOwner();
-	IF (window.flags * {WMWindowManager.FlagNavigation, WMWindowManager.FlagHidden, WMWindowManager.FlagNoResizing} = {}) THEN
+	
+	IF (window # NIL) & (window.flags * {WMWindowManager.FlagNavigation, WMWindowManager.FlagHidden, WMWindowManager.FlagNoResizing} = {}) THEN
 		IF (window.GetWidth() = width) & (window.GetHeight() = height) THEN
 			manager.SetWindowPos(window, window.normalBounds.l, window.normalBounds.t);
 			newWidth := window.normalBounds.r - window.normalBounds.l;

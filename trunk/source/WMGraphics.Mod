@@ -805,6 +805,11 @@ BEGIN
 	END
 END IsBitmapHit;
 
+PROCEDURE IsScaledBitmapHit*(x,y,w,h,threshold: LONGINT; img: Raster.Image): BOOLEAN;
+BEGIN
+	RETURN IsBitmapHit(x*img.width DIV w, y*img.height DIV h, threshold,img);
+END IsScaledBitmapHit;
+
 PROCEDURE ClearCache*;
 BEGIN
 	imgCache.Clear;

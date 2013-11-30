@@ -746,10 +746,18 @@ TYPE
 			doCall := TRUE;
 		END Call;
 
+		PROCEDURE HandleTimeout;
+		BEGIN{EXCLUSIVE}
+			dead := TRUE;
+		END HandleTimeout;
+
 		PROCEDURE Terminate;
+		VAR timer:Objects.Timer;
 		BEGIN
 			BEGIN {EXCLUSIVE} alive := FALSE; END;
 			(* release monitor lock *)
+			NEW(timer);
+			Objects.SetTimeout(timer, HandleTimeout, 100);
 			BEGIN {EXCLUSIVE} AWAIT(dead); END;
 		END Terminate;
 
