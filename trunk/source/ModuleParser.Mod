@@ -319,6 +319,7 @@ TYPE
 	VAR
 		ident*: InfoItem;
 		vis*: SHORTINT;
+		initializer*: InfoItem;
 	END IdentDef;
 
 	IdentList* = OBJECT (NodeList)
@@ -1266,6 +1267,11 @@ TYPE
 				NextSymbol;
 			ELSE
 				identDef.vis := Private;
+			END;
+			IF symbol.token = FoxScanner.Becomes THEN
+				NextSymbol;
+				NEW(identDef.initializer);
+				ConstExprP(FoxScanner.Colon, FoxScanner.Comma, identDef.initializer);
 			END;
 		END IdentDefP;
 

@@ -505,7 +505,7 @@ PACKAGE Compiler ARCHIVE "Compiler.zip" SOURCE "CompilerSrc.zip" DESCRIPTION "Ac
 	FoxBasic.Mod  FoxProgTools.Mod  FoxScanner.Mod FoxSyntaxTree.Mod FoxGlobal.Mod
 	FoxActiveCells.Mod FoxHardware.Mod FoxFormats.Mod FoxPrintout.Mod
 	FoxParser.Mod  FoxSemanticChecker.Mod
-	FoxBackend.Mod FoxSections.Mod FoxBinaryCode.Mod
+	FoxBackend.Mod FoxSections.Mod FoxBinaryCode.Mod FoxFrontend.Mod FoxOberonFrontend.Mod
 	FoxCompiler.Mod FoxFingerPrinter.Mod  FoxInterfaceComparison.Mod FoxTextualSymbolFile.Mod FoxBinarySymbolFile.Mod
 	FoxIntermediateCode.Mod FoxIntermediateBackend.Mod FoxCodeGenerators.Mod
 	FoxBinaryObjectFile.Mod FoxGenericObjectFile.Mod

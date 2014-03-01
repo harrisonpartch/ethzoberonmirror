@@ -4201,7 +4201,7 @@ BEGIN
 	PTVAllowTextSelection.Set(TRUE);
 	NEW(PTVAllowPiemenu, NIL, Strings.NewString("allowPiemenu"),
 		Strings.NewString("if set to true, a mouse right-click opens the pie menu"));
-	PTVAllowPiemenu.Set(FALSE);
+	PTVAllowPiemenu.Set(TRUE);
 	NEW(PTVWrapMode, NIL, Strings.NewString("wrapMode"), Strings.NewString("Set text wrapping mode"));
 	PTVWrapMode.Set(WrapWord);
 	NEW(PTVfirstLine, NIL, Strings.NewString("firstLine"),

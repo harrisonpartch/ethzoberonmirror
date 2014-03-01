@@ -1094,7 +1094,8 @@ TYPE
 				| ']':     s := RightBracket;  GetNextCharacter
 				| '{':     s := LeftBrace;  GetNextCharacter
 				| '}':     s := RightBrace;  GetNextCharacter
-
+				| '!':     s := ExclamationMark; GetNextCharacter; 
+				| '^':     s := Arrow; GetNextCharacter; 
 
 				| 'A'..'Z': s := Identifier; GetIdentifier( symbol );
 				| 'a'..'z': s := Identifier; GetIdentifier( symbol);

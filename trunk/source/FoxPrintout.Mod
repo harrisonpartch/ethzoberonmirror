@@ -1002,12 +1002,18 @@ TYPE
 				IF (x.access # SyntaxTree.Hidden) THEN
 					Comments(x.comment,x,FALSE);
 					PrintSymbol(x);
+					IF x.initializer # NIL THEN
+						w.String( " := " ); Expression (x.initializer);
+					END;
 					w.String( ": " );
 					Type(x.type);
 					Comments(x.comment,x,TRUE);
 				ELSIF mode>SourceCode THEN
 					Comments(x.comment,x,FALSE);
 					PrintSymbol(x);
+					IF x.initializer # NIL THEN
+						w.String( " := " ); Expression (x.initializer);
+					END;
 					Comments(x.comment,x,TRUE);
 				END
 			END;
@@ -1277,16 +1283,15 @@ TYPE
 		PROCEDURE ImportList(x: SyntaxTree.Import);
 		VAR first: BOOLEAN;
 		BEGIN
-			Indent;  Keyword("IMPORT " );
 			first := TRUE;
 			WHILE(x # NIL) DO
 				IF x.direct & (x.module # NIL) OR (mode > SymbolFile) THEN
-					IF ~first THEN w.String(", ") ELSE first := FALSE END;
+					IF ~first THEN w.String(", ") ELSE Indent; Keyword("IMPORT "); first := FALSE END;
 					Symbol(x);
 				END;
 				x := x.nextImport;
 			END;
-			w.String( ";" );
+			IF ~first THEN w.String( ";" ); END;
 		END ImportList;
 
 		PROCEDURE VisitBuiltin(x: SyntaxTree.Builtin);

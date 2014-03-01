@@ -2793,7 +2793,8 @@ MODULE Raster; (** non-portable *)	(* eos, TF  **)
 	PROCEDURE Put* (img: Image; x, y: LONGINT; pix: Pixel; VAR mode: Mode);
 		VAR bit: LONGINT; adr: ADDRESS;
 	BEGIN
-		ASSERT((0 <= x) & (x < img.width) & (0 <= y) & (y < img.height), 100);
+		(*ASSERT((0 <= x) & (x < img.width) & (0 <= y) & (y < img.height), 100);*) (*avoid a HALT if roundoff errors from higher levels occur here*)
+		IF (0 > x) OR (x >= img.width) OR (0 > y) & (y >= img.height) THEN RETURN END;
 		bit := x * img.fmt.bpp; adr := img.adr + y * img.bpr + bit DIV 8; bit := bit MOD 8;
 		Bind(mode, PixelFormat, img.fmt);
 		mode.transfer(mode, ADDRESSOF(pix[0]), 0, adr, bit, 1)

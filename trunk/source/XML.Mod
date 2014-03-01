@@ -95,7 +95,8 @@ TYPE
 		PROCEDURE RemoveContent0(c: Content): BOOLEAN;
 		VAR cur : Content;
 		BEGIN
-			ASSERT(c # NIL);
+			(*ASSERT(c # NIL);*)
+			IF c=NIL THEN RETURN FALSE END;(*PH 12/13*)
 			IF (first # NIL) THEN
 				IF (first = c) THEN
 					IF (first.next # NIL) THEN first.next.previous := NIL; END;
@@ -1312,7 +1313,8 @@ TYPE
 
 		PROCEDURE RemoveContent*(content : Content);
 		BEGIN
-			ASSERT(content # NIL);
+			(*ASSERT(content # NIL);*)
+			IF content=NIL THEN RETURN END; (*PH 12/13: removing nothing is logically correct *)
 			RemoveContent^(content);
 			IF (content IS Element) THEN
 				IF (content(Element).parent = SELF) THEN

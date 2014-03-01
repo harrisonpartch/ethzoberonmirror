@@ -388,7 +388,8 @@ TYPE
 
 		PROCEDURE RemoveContent*(c : XML.Content);
 		BEGIN
-			ASSERT(c # NIL);
+			(*ASSERT(c # NIL);*)
+			IF c = NIL THEN RETURN END; (*PH 12/13: seems logically more correct*)
 			Acquire;
 			RemoveContent^(c);
 			Release;

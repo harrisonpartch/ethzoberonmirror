@@ -201,7 +201,11 @@ TYPE
 			ELSE
 				IF root.bmadr = 0 THEN GetDC( root ) END;
 				InitFrameBuffer( root.bmadr, disp.width * disp.height * format, disp.width * disp.format);  Transfer^( buf, ofs, stride, x, y, w, h, op );
-				IF op = Displays.set THEN ToWindow( root, x, y, w, h, root.dx, root.dy );  END;
+				IF Displays.reverse THEN
+					IF op = Displays.set THEN ToWindow( root, disp.width-x-w,disp.height-y-h, w, h, root.dx, root.dy );  END;
+				ELSE
+					IF op = Displays.set THEN ToWindow( root, x, y, w, h, root.dx, root.dy );  END;
+				END;
 			END;
 
 		END Transfer;
@@ -446,9 +450,9 @@ VAR
 	VAR m: AosInputs.AbsMouseMsg;  oldx, oldy: LONGINT;  keys: SET; ret: Kernel32.BOOL;
 	BEGIN
 		(* User32.SetCursor(hCurrentCursor);*)
-		oldx := win.track.X;  oldy := win.track.Y;  win.track.X := SHORT( lParam MOD ASH( 1, 16 ) ) - win.dx;
+		oldx := win.track.X;  oldy := win.track.Y;  
+		win.track.X := SHORT( lParam MOD ASH( 1, 16 ) ) - win.dx;
 		win.track.Y := SHORT( (* win.height-*) ASH( lParam, -16 ) - 1 ) - win.dy;
-
 		m.x := win.track.X;  m.y := win.track.Y;  m.z := win.track.Z;
 
 		m.dx := 0;  m.dy := 0;  m.dz := 0;

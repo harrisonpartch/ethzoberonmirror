@@ -251,6 +251,9 @@ TYPE
 		(** symbols *)
 		PROCEDURE VisitSymbol*(x: Symbol);
 		BEGIN HALT(100) (* abstract *) END VisitSymbol;
+		
+		PROCEDURE VisitModule*(x: Module);
+		BEGIN HALT(100) (* abstract *) END VisitModule;
 
 		PROCEDURE VisitTypeDeclaration*(x: TypeDeclaration);
 		BEGIN HALT(100) (* abstract *) END VisitTypeDeclaration;
@@ -2968,6 +2971,7 @@ TYPE
 		untraced-: BOOLEAN;
 		useRegister-: BOOLEAN; registerNumber-: LONGINT;
 		modifiers-: Modifier;
+		initializer-: Expression;
 
 		usedAsReference-: BOOLEAN;
 
@@ -2981,6 +2985,7 @@ TYPE
 			useRegister := FALSE;
 			registerNumber := -1;
 			usedAsReference := FALSE;
+			initializer := NIL;
 		END InitVariable;
 
 		PROCEDURE UsedAsReference*;
@@ -3007,6 +3012,10 @@ TYPE
 		PROCEDURE SetModifiers*(flag: Modifier);
 		BEGIN SELF.modifiers := flag;
 		END SetModifiers;
+
+		PROCEDURE SetInitializer*(initializer: Expression);
+		BEGIN SELF.initializer := initializer;
+		END SetInitializer;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -4718,6 +4727,11 @@ TYPE
 			lastScope := c;
 			INC(numberScopes);
 		END AddScope;
+
+		PROCEDURE Accept*(v: Visitor);
+		VAR position: LONGINT;
+		BEGIN position := SELF.position; v.VisitModule(SELF)
+		END Accept;
 
 	END Module;
 

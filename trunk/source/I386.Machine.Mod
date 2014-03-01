@@ -7,7 +7,7 @@ IMPORT SYSTEM, Trace;
 CONST
 	Version = "A2 Revision 5387 (23.08.2013)";
 
-	MaxCPU* = 8;	(** maximum number of processors (up to 16) *)
+	MaxCPU* = 32;	(** maximum number of processors (up to 256) *)
 
 	DefaultObjectFileExtension* = ".Obx";
 
@@ -186,7 +186,7 @@ CONST
 TYPE
 	Vendor* = ARRAY 13 OF CHAR;
 
-	IDMap* = ARRAY 16 OF SHORTINT;
+	IDMap* = ARRAY 256 OF SHORTINT;
 
 TYPE
 	Stack* = RECORD	(** values are read-only *)
@@ -433,7 +433,6 @@ CODE {SYSTEM.i386}
 	LEA EBX, map
 	MOV EAX, [EAX]
 	SHR EAX, 24
-	AND EAX, 15
 	MOV AL, [EBX+EAX]
 END ID;
 
@@ -3314,6 +3313,7 @@ BEGIN
 END GlobalGetTimestamp;
 
 PROCEDURE ParseProcessor(adr: ADDRESS);
+CONST Enabled = 24; BootProcessor = 25;
 VAR id, idx, signature, family, feat, ver, log: LONGINT; flags: SET; string : ARRAY 8 OF CHAR;
 BEGIN
 	SYSTEM.GET(adr, SYSTEM.VAL (LONGINT, flags));
@@ -3323,29 +3323,31 @@ BEGIN
 	family := ASH(signature, -8) MOD 10H;
 	SYSTEM.GET (adr+8, feat);
 	idx := -1;
-	IF (family # 0) & (signature MOD 1000H # 0FFFH) & (24 IN flags) & (id < LEN(idMap)) & (idMap[id] = -1) THEN
-		IF 25 IN flags THEN idx := 0	(* boot processor *)
+	IF (family # 0) & (signature MOD 1000H # 0FFFH) & (Enabled IN flags) & (id < LEN(idMap)) & (idMap[id] = -1) THEN
+		IF BootProcessor IN flags THEN idx := 0	(* boot processor *)
 		ELSIF numProcessors < maxProcessors THEN idx := numProcessors; INC(numProcessors)
 		ELSE	(* skip *)
 		END
 	END;
 	IF idx # -1 THEN apicVer[idx] := ver; idMap[id] := SHORT(SHORT(idx)) END;
-	Trace.String("   Processor "); Trace.Int(id, 1);
-	Trace.String(", APIC"); Trace.Hex(ver, -3);
-	Trace.String(", ver "); Trace.Int(family, 1);
-	Trace.Char("."); Trace.Int(ASH(signature, -4) MOD 10H, 1);
-	Trace.Char("."); Trace.Int(signature MOD 10H, 1);
-	Trace.String(", features "); Trace.Hex(feat, 9);
-	Trace.String(", ID "); Trace.Int(idx, 1);
-	IF (threadsPerCore > 1) THEN Trace.String(" ("); Trace.Int(threadsPerCore, 0); Trace.String(" threads)"); END;
-	Trace.Ln;
-	IF (threadsPerCore > 1)  THEN
+	IF TraceVerbose THEN
+		Trace.String("   Processor "); Trace.Int(id, 1);
+		Trace.String(", APIC"); Trace.Hex(ver, -3);
+		Trace.String(", ver "); Trace.Int(family, 1);
+		Trace.Char("."); Trace.Int(ASH(signature, -4) MOD 10H, 1);
+		Trace.Char("."); Trace.Int(signature MOD 10H, 1);
+		Trace.String(", features "); Trace.Hex(feat, 9);
+		Trace.String(", ID "); Trace.Int(idx, 1);
+		IF (threadsPerCore > 1) THEN Trace.String(" ("); Trace.Int(threadsPerCore, 0); Trace.String(" threads)"); END;
+		Trace.Ln;
+	END;
+	IF (threadsPerCore > 1) & (Enabled IN flags) THEN
 		GetConfig("DisableHyperthreading", string);
 		IF (string = "1") THEN
 			Trace.String("Machine: Hyperthreading disabled."); Trace.Ln;
 			RETURN;
 		END;
-		log := (LSH(CPUID1(), -16) MOD 256);
+		log := (LSH(CPUID1(), -16) MOD 256) DIV coresPerProcessor;
 		WHILE log > 1 DO
 			INC(id); DEC(log);
 			IF numProcessors < maxProcessors THEN
@@ -3529,9 +3531,11 @@ VAR id: LONGINT; state: State;
 BEGIN	(* running at kernel level with interrupts on *)
 	InitAPIC;
 	id := ID();	(* timeslicing is disabled, as we are running at kernel level *)
-	Acquire (TraceOutput);
-	Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn (" running");
-	Release (TraceOutput);
+	IF TraceVerbose THEN
+		Acquire (TraceOutput);
+		Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn (" running");
+		Release (TraceOutput);
+	END;
 	IF TraceProcessor & traceProcessor & (id = numProcessors-1) THEN
 		DEC(numProcessors)	(* exclude from rest of activity *)
 	ELSE
@@ -3540,9 +3544,11 @@ BEGIN	(* running at kernel level with interrupts on *)
 	(* synchronize with boot processor - end of mutual exclusion *)
 	started[id] := TRUE;
 	IF TraceProcessor & ~(id IN allProcessors) THEN
-		Acquire (TraceOutput);
-		Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn (" tracing");
-		Release (TraceOutput);
+		IF TraceVerbose THEN
+			Acquire (TraceOutput);
+			Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn (" tracing");
+			Release (TraceOutput);
+		END;
 		LOOP
 			IF traceProcessorProc # NIL THEN traceProcessorProc(id, state) END;
 			SpinHint
@@ -3552,9 +3558,11 @@ BEGIN	(* running at kernel level with interrupts on *)
 	WHILE stopped DO SpinHint END;
 	(* now fully functional, including storage allocation *)
 	AtomicExcl(ipcBusy, id);	(* ack *)
-	Acquire (TraceOutput);
-	Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn(" scheduling");
-	Release (TraceOutput);
+	IF TraceVerbose THEN
+		Acquire (TraceOutput);
+		Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn(" scheduling");
+		Release (TraceOutput);
+	END;
 	ASSERT(id = ID());	(* still running on same processor *)
 	start;
 END StartMP;
@@ -3615,7 +3623,9 @@ BEGIN
 		SYSTEM.PUT (page0Adr + 467H, ASH(phys, 16-4));
 		PutNVByte(15, 0AX);	(* shutdown status byte *)
 		(* attempt to start another processor *)
-		Acquire(TraceOutput); Trace.String("   P0 starting P"); Trace.Int(i, 1); Trace.Ln; Release(TraceOutput);
+		IF TraceVerbose THEN
+			Acquire(TraceOutput); Trace.String("   P0 starting P"); Trace.Int(i, 1); Trace.Ln; Release(TraceOutput);
+		END;
 		StartProcessor(phys, revIDmap[i], apicVer[i] >= 10H);	(* try booting processor i *)
 		(* wait for CPU to become active *)
 		timer := ticks + 5000;	(* ~5s timeout *)
@@ -3623,11 +3633,12 @@ BEGIN
 		(* end of mutual exclusion *)
 		Acquire(TraceOutput);
 		IF started[i] THEN
-			Trace.String("   P0 recognized P"); Trace.Int(i, 1);
+			IF TraceVerbose THEN
+				Trace.String("   P0 recognized P"); Trace.Int(i, 1); Trace.Ln;
+			END;
 		ELSE
-			Trace.String("   P0 timeout on P"); Trace.Int(i, 1);
+			Trace.String("   P0 timeout on P"); Trace.Int(i, 1); Trace.Ln;
 		END;
-		Trace.Ln;
 		Release(TraceOutput);
 	END;
 	SYSTEM.PUT (page0Adr + 467H, SYSTEM.VAL (LONGINT, 0));

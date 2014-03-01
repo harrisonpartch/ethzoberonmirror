@@ -594,7 +594,9 @@ TYPE
 					END;
 					designator := SyntaxTree.NewParameterDesignator( position,designator,expressionList);
 				ELSIF Optional( Scanner.Period ) THEN
-					IF Peek(Scanner.Size) (* special rule: support for SYSTEM.SIZE *) THEN
+					CASE symbol.identifierString[0] OF
+						"a".."z", "A" .. "Z":
+					(*IF Peek(Scanner.Size) (* special rule: support for SYSTEM.SIZE *) THEN*)
 						identifier := symbol.identifier; NextSymbol;
 					ELSE
 						identifier := Identifier(position);
@@ -1870,6 +1872,7 @@ TYPE
 				variable := SyntaxTree.NewVariable( position, varname );
 				CommentSymbol(variable);
 				IF Optional(Scanner.LeftBrace) THEN variable.SetModifiers(Flags()) END;
+				IF Optional(Scanner.Becomes) THEN variable.SetInitializer (Expression()) END;
 				variable.SetAccess(access);
 				scope.AddVariable(variable);
 			UNTIL ~Optional( Scanner.Comma );

@@ -29,6 +29,7 @@ TYPE
 			filterEdit.text.onTextChanged.Add(TextChanged);
 			filterEdit.multiLine.Set(FALSE);
 			filterEdit.tv.showBorder.Set(TRUE);
+			filterEdit.tv.textAlignV.Set(WMGraphics.AlignCenter);
 
 			NEW(list);
 			list.alignment.Set(WMComponents.AlignClient);

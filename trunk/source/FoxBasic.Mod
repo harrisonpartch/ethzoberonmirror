@@ -1510,7 +1510,7 @@ TYPE
 		BEGIN Indent; w.String(x)
 		END String;
 
-		PROCEDURE Int*( x, wd: LONGINT );
+		PROCEDURE Int*( x: HUGEINT; wd: LONGINT );
 		BEGIN Indent; w.Int(x,wd)
 		END Int;
 
@@ -2001,6 +2001,14 @@ VAR
 		ELSE NEW(diagnostics,w); RETURN diagnostics
 		END;
 	END GetDiagnostics;
+	
+	PROCEDURE GetDefaultDiagnostics*(): Diagnostics.Diagnostics;
+	VAR w: Streams.Writer;
+	BEGIN
+		NEW(w, KernelLog.Send,128);
+		RETURN GetDiagnostics(w);
+	END GetDefaultDiagnostics;
+	
 
 	PROCEDURE InitWindowWriter;
 	VAR install: PROCEDURE;
@@ -2134,7 +2142,7 @@ VAR
 	END GetTracingDiagnostics;
 
 	PROCEDURE InitTable32;
-	CONST poly = SHORT(0EDB88320H);
+	CONST poly = LONGINT(0EDB88320H);
 	VAR n, c, k: LONGINT;
 	BEGIN
 		FOR n := 0 TO 255 DO

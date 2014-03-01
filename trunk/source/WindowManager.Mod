@@ -1405,7 +1405,7 @@ TYPE
 		END Init;
 
 		PROCEDURE Handle(VAR msg: Inputs.Message);
-		VAR dx, dy, dz: LONGINT; modifierFlags : SET; time: LONGINT;
+		VAR dx, dy, dz, nx, ny, nz: LONGINT; modifierFlags : SET; time: LONGINT;
 		BEGIN {EXCLUSIVE}
 			IF (msg IS Inputs.MouseMsg) THEN
 				WITH msg: Inputs.MouseMsg DO
@@ -1426,14 +1426,25 @@ TYPE
 			ELSIF (msg IS Inputs.AbsMouseMsg) THEN
 
 				WITH msg: Inputs.AbsMouseMsg DO
-					x := msg.x;  y := msg.y;  z := msg.z;
+					IF Displays.reverse THEN
+						nx := view.display.width-msg.x-1;
+						ny := view.display.height-msg.y-1;
+						dx := -msg.dx;
+						dy := -msg.dy;
+					ELSE
+						nx := msg.x;  
+						ny := msg.y;  
+						dx := msg.dx;
+						dy := msg.dy;
+					END;
+					nz := msg.z; dz := msg.dz;
 					IF (DoubleClick > 0) & (msg.keys = {0}) & (prevKeys = {}) THEN
 						time := Kernel.GetTicks();
-						IF (time - lastTime < DoubleClick) & (ABS(msg.x-lastX) < 3) & (ABS(msg.y-lastY) <3) THEN
+						IF (time - lastTime < DoubleClick) & (ABS(nx-lastX) < 3) & (ABS(ny-lastY) <3) THEN
 							msg.keys := {1}; lastTime := time-DoubleClick;
 							inDoubleClick := TRUE;
 						ELSE
-							lastTime := time; lastX := x; lastY := msg.y;
+							lastTime := time; lastX := nx; lastY := ny;
 						END;
 					ELSIF inDoubleClick & (msg.keys = {0}) THEN 
 						msg.keys := {1}; 
@@ -1443,11 +1454,15 @@ TYPE
 					END;
 					prevKeys := msg.keys ;
 
-					IF msg.dx # 0 THEN dx := msg.dx;  INC( x, dx );
-					ELSE x := msg.x;  dx := x - msg.x;
+					IF dx # 0 THEN INC( x, dx );
+					ELSE dx := nx-x; x:= nx;
 					END;
-					IF msg.dy # 0 THEN dy := msg.dy;  INC( y, dy );  ELSE y := msg.y;  dy := y - msg.y;  END;
-					IF msg.dz # 0 THEN dz := msg.dz;  INC( z, dz );  ELSE z := msg.z;  dz := z - msg.z END;
+					IF dy # 0 THEN INC( y, dy );  
+					ELSE dy := ny - y;  y := ny;
+					END;
+					IF dz # 0 THEN INC( z, dz );  
+					(*ELSE dz := nz - z; z := nz;*)
+					END;
 
 					IF (ABS( dx ) > threshold) OR (ABS( dy ) > threshold) THEN dx := dx * speedup DIV 10;  dy := dy * speedup DIV 10
 					END;

@@ -132,7 +132,7 @@ TYPE
 		VAR
 			node : WMTrees.TreeNode;
 			name, string : Strings.String;
-			caption : ARRAY 128 OF CHAR;
+			caption : ARRAY 512 OF CHAR;
 			enum : XMLObjects.Enumerator;
 			p : ANY; i, len : LONGINT;
 			id: Strings.String;

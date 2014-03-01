@@ -12,7 +12,7 @@ TYPE
 		prototype : Property;
 		nonDefault : BOOLEAN;
 		list : PropertyList; (* contains the list, the property is added to *)
-		timestamp : LONGINT; (* incremented when property state is changed *)
+		timestamp : LONGINT; (* incremented when property state is changed; *)
 		repository: Repositories.Repository;
 
 		object : Repositories.Component;
@@ -200,7 +200,7 @@ TYPE
 		PROCEDURE SetPrototype*(prototype : Property);
 		BEGIN
 			SELF.prototype := prototype;
-			INC(timestamp);
+			Stamp;
 		END SetPrototype;
 
 		PROCEDURE HasPrototype*() : BOOLEAN;
@@ -225,6 +225,11 @@ TYPE
 			END
 		END GetName;
 
+		PROCEDURE Stamp*;
+		BEGIN (* need protection? *)
+			INC(timestamp)
+		END Stamp;
+		
 		PROCEDURE GetTimestamp*() : LONGINT;
 		BEGIN
 			RETURN timestamp;
@@ -240,7 +245,7 @@ TYPE
 		PROCEDURE Changed*; (** PROTECTED *)
 		BEGIN
 			IF list # NIL THEN list.Changed(SELF) END;
-			INC(timestamp);
+			Stamp;
 		END Changed;
 
 		PROCEDURE AcquireWrite*;
@@ -267,7 +272,7 @@ TYPE
 		BEGIN
 			IF (nonDefault = FALSE) THEN
 				nonDefault := TRUE;
-				INC(timestamp);
+				Stamp;
 			END;
 		END NotDefault;
 
@@ -591,7 +596,7 @@ TYPE
 		BEGIN
 			AcquireWrite;
 			SELF.min := min; SELF.max := max; bounded := TRUE;
-			INC(timestamp);
+			Stamp;
 			Set(value);
 			ReleaseWrite
 		END SetBounds;
@@ -610,7 +615,7 @@ TYPE
 			AcquireWrite;
 			IF isBounded # bounded THEN
 				bounded := isBounded;
-				INC(timestamp);
+				Stamp;
 				Set(value);
 			END;
 			ReleaseWrite
@@ -628,7 +633,7 @@ TYPE
 			AcquireWrite;
 			IF isSilent # silent THEN
 				silent := isSilent;
-				INC(timestamp);
+				Stamp;
 			END;
 			ReleaseWrite
 		END SetSilent;
@@ -713,7 +718,7 @@ TYPE
 					IF s # NIL THEN Strings.StrToInt(s^, value); Set(value) END
 				END
 			END;
-			INC(timestamp);
+			Stamp;
 			ReleaseWrite
 		END FromXML;
 
@@ -759,7 +764,7 @@ TYPE
 		BEGIN
 			AcquireWrite;
 			SELF.min := min; SELF.max := max; bounded := TRUE;
-			INC(timestamp);
+			Stamp;
 			Set(value);
 			ReleaseWrite
 		END SetBounds;
@@ -778,7 +783,7 @@ TYPE
 			AcquireWrite;
 			IF isBounded # bounded THEN
 				bounded := isBounded;
-				INC(timestamp);
+				Stamp;
 				Set(value);
 			END;
 			ReleaseWrite
@@ -796,7 +801,7 @@ TYPE
 			AcquireWrite;
 			IF isSilent # silent THEN
 				silent := isSilent;
-				INC(timestamp);
+				Stamp;
 			END;
 			ReleaseWrite
 		END SetSilent;
@@ -900,7 +905,7 @@ TYPE
 					IF s # NIL THEN Strings.StrToFloat(s^, value); Set(value) END
 				END
 			END;
-			INC(timestamp);
+			Stamp;
 			ReleaseWrite
 		END FromXML;
 
@@ -1229,7 +1234,7 @@ TYPE
 					IF s # NIL THEN Strings.HexStrToInt(s^, value, res) END; NotDefault
 				END
 			END;
-			INC(timestamp);
+			Stamp;
 			ReleaseWrite
 		END FromXML;
 
@@ -1579,7 +1584,7 @@ TYPE
 					END
 				END
 			END;
-			INC(timestamp);
+			Stamp;
 			ReleaseWrite
 		END FromXML;
 
@@ -1790,7 +1795,7 @@ TYPE
 					END
 				END
 			END;
-			INC(timestamp);
+			Stamp;
 			ReleaseWrite
 		END FromXML;
 
@@ -2034,7 +2039,7 @@ TYPE
 	PropertyList* = OBJECT
 	VAR
 		properties : PropertyArray;
-		nofProperties : LONGINT;
+		nofProperties- : LONGINT;
 		onPropertyChanged- : WMEvents.EventSource;
 		onLinkChanged-: WMEvents.EventSource;
 		lock : Locks.RWLock;

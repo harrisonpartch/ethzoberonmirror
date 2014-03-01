@@ -280,7 +280,7 @@ VAR
 				context.error.String( "cannot handle volumes with more than one extent (yet) " ); context.error.Ln;
 			END;
 		ELSE
-			context.error.String( "GetPhyiscalDrive: no success, probably the drive is already physical" ); context.error.Ln;
+			context.error.String( "GetPhysicalDrive: no success, probably the drive is already physical" ); context.error.Ln;
 		END;
 	END GetPhysicalDrive;
 

@@ -86,24 +86,96 @@ CONST
 	*)
 
 (* global proper procedures *)
-Assert*= Scanner.EndOfText+1; Copy*= Assert+1; Dec*= Copy+1; Excl*= Dec+1; Halt*= Excl+1; Inc*= Halt+1; Incl*= Inc+1; New*= Incl+1; Dispose*= New+1; GetProcedure*= Dispose+1; Connect*= GetProcedure+1; Delegate*= Connect+1; Read*= Delegate+1; Write*= Read+1; Reshape*= Write+1;
+Assert*= Scanner.EndOfText+1; Copy*= Assert+1; Dec*= Copy+1; 
+Excl*= Dec+1; Halt*= Excl+1; Inc*= Halt+1; Incl*= Inc+1; New*= Incl+1; 
+Dispose*= New+1; GetProcedure*= Dispose+1; Connect*= GetProcedure+1; 
+Delegate*= Connect+1; Read*= Delegate+1; Write*= Read+1; Reshape*= Write+1;
 (* global functions *)
-Abs*= Reshape+1; Cap*= Abs+1; Chr*= Cap+1; Chr32*= Chr+1; Entier*= Chr32+1; EntierH*= Entier+1; Incr*= EntierH+1; Len*= Incr+1; Long*= Len+1; Max*= Long+1; Min*= Max+1; Odd*= Min+1; Ord*= Odd+1; Ord32*= Ord+1; Short*= Ord32+1; Size*= Short+1; Sum*= Size+1; Dim*= Sum+1; Cas*= Dim+1; First*= Cas+1; Last*= First+1; Step*= Last+1; Re*= Step+1; Im*= Re+1; Ash*= Im+1; Lsh*= Ash+1; Rot*= Lsh+1;
+Abs*= Reshape+1; Cap*= Abs+1; Chr*= Cap+1; Chr32*= Chr+1; 
+Entier*= Chr32+1; EntierH*= Entier+1; Incr*= EntierH+1; Len*= Incr+1; 
+Long*= Len+1; Max*= Long+1; Min*= Max+1; Odd*= Min+1; Ord*= Odd+1; 
+Ord32*= Ord+1; Short*= Ord32+1; Size*= Short+1; Sum*= Size+1; 
+Dim*= Sum+1; Cas*= Dim+1; First*= Cas+1; Last*= First+1; 
+Step*= Last+1; Re*= Step+1; Im*= Re+1; Ash*= Im+1; Lsh*= Ash+1; Rot*= Lsh+1;
 (* system proper procedures *)
-systemGet*= Rot+1; systemPut*= systemGet+1; systemMove*= systemPut+1; systemNew*= systemMove+1; systemRef*= systemNew+1; systemTypeCode*= systemRef+1; systemHalt*= systemTypeCode+1; systemPut8*= systemHalt+1; systemPut16*= systemPut8+1; systemPut32*= systemPut16+1; systemPut64*= systemPut32+1; systemTrace*= systemPut64+1;
+systemGet*= Rot+1; systemPut*= systemGet+1; systemMove*= systemPut+1; 
+systemNew*= systemMove+1; systemRef*= systemNew+1; 
+systemTypeCode*= systemRef+1; systemHalt*= systemTypeCode+1; 
+systemPut8*= systemHalt+1; systemPut16*= systemPut8+1; 
+systemPut32*= systemPut16+1; systemPut64*= systemPut32+1; systemTrace*= systemPut64+1;
 (* system functions *)
-systemAdr*= systemTrace+1; systemSize*= systemAdr+1; systemBit*= systemSize+1; systemGet64*= systemBit+1; systemGet32*= systemGet64+1; systemGet16*= systemGet32+1; systemGet8*= systemGet16+1; systemVal*= systemGet8+1; systemMsk*= systemVal+1;
+systemAdr*= systemTrace+1; systemSize*= systemAdr+1; systemBit*= systemSize+1; 
+systemGet64*= systemBit+1; systemGet32*= systemGet64+1; systemGet16*= systemGet32+1; 
+systemGet8*= systemGet16+1; systemVal*= systemGet8+1; systemMsk*= systemVal+1;
 (* for active cells *)
 Send*= systemMsk+1; Receive*= Send+1;
 (* for backend specific extensions *)
 systemSpecial*= Receive+1;
 (* compatibility with Oberon07 -- other mappings: LSL -> LSH, FLOOR -> Entier, Pack und Unpk currently unsupported *)
-Asr*= systemSpecial+1; Ror*= Asr+1; Flt*= Ror+1; Conversion*= Flt+1; DotTimesPlus*= Conversion+1; AtMulDec*= DotTimesPlus+1; AtMulInc*= AtMulDec+1; DecMul*= AtMulInc+1; IncMul*= DecMul+1; end*= IncMul+1;
+Asr*= systemSpecial+1; Ror*= Asr+1; Flt*= Ror+1; Conversion*= Flt+1; 
+DotTimesPlus*= Conversion+1; AtMulDec*= DotTimesPlus+1; 
+AtMulInc*= AtMulDec+1; DecMul*= AtMulInc+1; IncMul*= DecMul+1; 
+endFox*= IncMul+1;
 
 	VectorCapability* = 0;
 	FloatingPointCapability*= 1;
 	EngineCapability*= 2;
 	TRMSCapability*= 3;
+CONST    
+    (* LYNX extensions *)
+
+    (* different naming schema to satisfy FoxScanner when parsing imports *)
+    LynxChar* = "@lynx_char";
+    LynxSbyte* = "@lynx_sbyte";
+    LynxShort* = "@lynx_short";
+    LynxInt* = "@lynx_int";
+    LynxLong* = "@lynx_long";
+    LynxFloat* = "@lynx_float";
+    LynxDouble* = "@lynx_double";
+    LynxBool* = "@lynx_bool";
+    LynxObject* = "@lynx_object";
+    LynxString* = "@lynx_string";
+
+    LynxNewobj* = "lynx@newobj";
+    LynxNewarr* = "lynx@newarr";
+    LynxAsop* = "lynx@asop";
+    LynxUnop* = "lynx@unop";
+    LynxBinop* = "lynx@binop";
+    LynxSend* = "lynx@send";
+    LynxReceive* = "lynx@receive";
+    LynxRecvnb* = "lynx@recvnb";
+    LynxConnect* = "lynx@connect";
+    LynxDelegate* = "lynx@delegate";
+    LynxNewsel* = "lynx@newsel";
+    LynxAddsel* = "lynx@addsel";
+    LynxSelect* = "lynx@select";
+    LynxSelidx* = "lynx@selidx";
+
+    LynxOpAdd* = 1;
+    LynxOpSub* = 2;
+    LynxOpMul* = 3;
+    LynxOpDiv* = 4;
+    LynxOpRem* = 5;
+    LynxOpAnd* = 6;
+    LynxOpOr* = 7;
+    LynxOpXor* = 8;
+    LynxOpShl* = 9;
+    LynxOpShr* = 10;
+    LynxOpNot* = 11;
+
+    SymLynxNewobj* = endFox;
+    SymLynxNewarr* = endFox + 1;
+    SymLynxAsop* = endFox + 2;
+    SymLynxUnop* = endFox + 3;
+    SymLynxBinop* = endFox + 4;
+    SymLynxRecvnb* = endFox + 5;
+
+    SymLynxNewsel* = endFox + 6;
+    SymLynxAddsel* = endFox + 7;
+    SymLynxSelect* = endFox + 8;
+    SymLynxSelidx* = endFox + 9;
+
+    end = endFox + 10;
 
 VAR
 	(* names *)
@@ -490,6 +562,13 @@ TYPE
 			RETURN size
 		END AlignedSizeOf;
 
+(* LYNX+ *)
+        PROCEDURE IsLynx*(): BOOLEAN;
+        BEGIN
+            RETURN TRUE;
+        END IsLynx;
+(* -LYNX *)
+
 	END System;
 
 	PROCEDURE BuildScopes(system: System);
@@ -680,6 +759,47 @@ TYPE
 		NewBuiltin(systemTrace,"TRACE",system.globalScope,TRUE);
 		NewBuiltin(Reshape,"RESHAPE",system.globalScope,TRUE);
 
+		(*!
+
+       (* Following is LYNX version: *)
+
+        IF minBits = 8 THEN
+            system.characterType := Character16;
+        END;
+
+
+        (* LYNX builtin types *)
+        DeclareLynxType(system.characterType, LynxChar, system.globalScope);
+        DeclareLynxType(system.shortintType, LynxSbyte, system.globalScope);
+        DeclareLynxType(system.integerType, LynxShort, system.globalScope);
+        DeclareLynxType(system.longintType, LynxInt, system.globalScope);
+        DeclareLynxType(system.hugeintType, LynxLong, system.globalScope);
+        DeclareLynxType(system.realType, LynxFloat, system.globalScope);
+        DeclareLynxType(system.longrealType, LynxDouble, system.globalScope);
+        DeclareLynxType(system.booleanType, LynxBool, system.globalScope);
+        (* TODO: object, string *)
+
+        (* LYNX global functions *)
+        NewBuiltin(SymLynxNewobj, LynxNewobj, system.globalScope, TRUE);
+        NewBuiltin(SymLynxNewarr, LynxNewarr, system.globalScope, TRUE);
+        NewBuiltin(SymLynxAsop, LynxAsop, system.globalScope, TRUE);
+        NewBuiltin(SymLynxUnop, LynxUnop, system.globalScope, TRUE);
+        NewBuiltin(SymLynxBinop, LynxBinop, system.globalScope, TRUE);
+        NewBuiltin(SymLynxRecvnb, LynxRecvnb, system.globalScope, TRUE);
+
+        (* 
+            LynxCompiler will register builtins for send/receive/connect/delegate
+            under "lynx@*" names but with their original Fox numeric identifiers,
+            so that no modifications will be required in the semantic checker and
+            intermediate backend.
+        *)
+
+        NewBuiltin(SymLynxNewsel, LynxNewsel, system.globalScope, TRUE);
+        NewBuiltin(SymLynxAddsel, LynxAddsel, system.globalScope, TRUE);
+        NewBuiltin(SymLynxSelect, LynxSelect, system.globalScope, TRUE);
+        NewBuiltin(SymLynxSelidx, LynxSelidx, system.globalScope, TRUE);
+	*)
+	
 	END SetDefaultDeclarations;
 
 	PROCEDURE OperatorDefined*(system: System; op: LONGINT; defined: BOOLEAN);
@@ -776,6 +896,15 @@ TYPE
 		DeclareType0(type,nameU,scope[Scanner.Uppercase]);
 		DeclareType0(type,nameL,scope[Scanner.Lowercase]);
 	END DeclareType;
+
+    (* LYNX+ *)
+    PROCEDURE DeclareLynxType*(
+        type: SyntaxTree.Type; CONST name: ARRAY OF CHAR; CONST scope: ARRAY OF SyntaxTree.ModuleScope);
+    BEGIN
+        DeclareType0(type, name, scope[Scanner.Uppercase]);
+        DeclareType0(type, name, scope[Scanner.Lowercase]);
+    END DeclareLynxType;
+    (* -LYNX *)
 
 	PROCEDURE NewConstant0(CONST name: ARRAY OF CHAR; int: LONGINT; type: SyntaxTree.Type; in: SyntaxTree.Scope);
 	VAR constant: SyntaxTree.Constant; value: SyntaxTree.IntegerValue;duplicate: BOOLEAN;
@@ -1157,12 +1286,24 @@ TYPE
 		ELSE RETURN Integer64
 		END;
 	END GetSignedIntegerType;
-
+	
+	PROCEDURE GetIntegerType*(system: System; this: HUGEINT): SyntaxTree.IntegerType;
+	BEGIN
+		IF IsSignedInteger(this,8) THEN RETURN Integer8
+		ELSIF IsUnsignedInteger(this,8) THEN RETURN Unsigned8
+		ELSIF IsSignedInteger(this, 16) THEN RETURN Integer16
+		ELSIF IsUnsignedInteger(this,16) THEN RETURN Unsigned16
+		ELSIF IsSignedInteger(this, 32) THEN RETURN Integer32
+		ELSIF IsUnsignedInteger(this,32) THEN RETURN Unsigned32
+		ELSE RETURN Integer64
+		END;
+	END GetIntegerType;
+	
 	PROCEDURE NewIntegerValue*(system: System; position: LONGINT; hugeint: HUGEINT): SyntaxTree.Value;
 	VAR value: SyntaxTree.IntegerValue;
 	BEGIN
 		value := SyntaxTree.NewIntegerValue(position,hugeint);
-		value.SetType(GetSignedIntegerType(system,hugeint));
+		value.SetType(GetIntegerType(system,hugeint));
 		RETURN value
 	END NewIntegerValue;
 
@@ -1204,17 +1345,22 @@ TYPE
 	BEGIN
 		fromSize := system.SizeOf(from); toSize := system.SizeOf(to);
 		distance := -1;
-		IF (from IS SyntaxTree.CharacterType) & (to IS SyntaxTree.CharacterType) OR
-			(from IS SyntaxTree.IntegerType) & (to IS SyntaxTree.IntegerType) OR
-			(from IS SyntaxTree.FloatType) & (to IS SyntaxTree.FloatType) THEN
+		IF (from IS SyntaxTree.IntegerType) & (to IS SyntaxTree.IntegerType) & (toSize >= fromSize) THEN
+			IF from(SyntaxTree.IntegerType).signed # to(SyntaxTree.IntegerType).signed THEN
+				IF (toSize=fromSize) & to(SyntaxTree.IntegerType).signed THEN 
+					distance := MIN(LONGINT) 
+				ELSE
+					INC(distance,2);
+				END;
+			END;
 			WHILE toSize >= fromSize DO
 				toSize := toSize DIV 2; INC(distance);
 			END;
-
-			IF from IS SyntaxTree.IntegerType THEN
-				IF from(SyntaxTree.IntegerType).signed # to(SyntaxTree.IntegerType).signed THEN
-					IF to(SyntaxTree.IntegerType).signed THEN distance := MAX(LONGINT) ELSE INC(distance, 4) END;
-				END;
+		ELSIF (from IS SyntaxTree.CharacterType) & (to IS SyntaxTree.CharacterType) & (toSize >= fromSize)  OR
+			(from IS SyntaxTree.FloatType) & (to IS SyntaxTree.FloatType) & (toSize >= fromSize) 
+		THEN
+			WHILE toSize >= fromSize DO
+				toSize := toSize DIV 2; INC(distance);
 			END;
 		ELSIF (from IS SyntaxTree.IntegerType) & (to IS SyntaxTree.FloatType) THEN
 			IF toSize = 64 THEN distance := 1 ELSE distance := 0 END;

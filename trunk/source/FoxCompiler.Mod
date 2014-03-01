@@ -5,7 +5,7 @@ IMPORT
 	Basic := FoxBasic, Scanner := FoxScanner, Parser := FoxParser,
 	SemanticChecker := FoxSemanticChecker, SyntaxTree := FoxSyntaxTree, Formats := FoxFormats,
 	Streams, Commands,Diagnostics, Options, Kernel, Printout := FoxPrintout, Backend := FoxBackend,Strings, Global := FoxGlobal,
-	ActiveCells := FoxActiveCells, Hardware := FoxHardware,
+	ActiveCells := FoxActiveCells, Hardware := FoxHardware, Frontend := FoxFrontend,
 	Files;
 
 CONST
@@ -25,12 +25,14 @@ CONST
 	ChangeCase*=12;
 
 	DefaultBackend = "AMD";
+	DefaultFrontend = "Oberon";
 
 TYPE
 	SectionName = ARRAY 256 OF CHAR; (*! move *)
 
 	CompilerOptions*= RECORD
 		flags*: SET;
+		frontend*: Frontend.Frontend;
 		backend*: Backend.Backend;
 		symbolFile*: Formats.SymbolFileFormat;
 		objectFile*: Formats.ObjectFileFormat;
@@ -89,8 +91,6 @@ TYPE
 			VAR importCache: SyntaxTree.ModuleScope): BOOLEAN;
 	VAR
 		module: SyntaxTree.Module;
-		scanner: Scanner.Scanner;
-		parser: Parser.Parser;
 		checker: SemanticChecker.Checker;
 		warnings: SemanticChecker.Warnings;
 		printer: Printout.Printer;
@@ -160,7 +160,6 @@ TYPE
 
 		IF (options.objectFile # NIL) & (options.objectFile.ForceModuleBodies()) THEN INCL(flags, ForceModuleBodies) END;
 
-		scanner := Scanner.NewScanner(source,reader,position,diagnostics);
 		IF ActiveCellsFlag IN flags THEN
 			NEW(activeCellsSpecification, "", diagnostics, log);
 			IF (system # NIL) THEN
@@ -173,12 +172,11 @@ TYPE
 			Global.NewBuiltin(Global.Delegate,"DELEGATE",system.globalScope,FALSE);
 			IF options.activeCellsBackend = NIL THEN FinalMessage(TRUE,"could not install activeCells backend"); RETURN FALSE END;
 		END;
-		parser := Parser.NewParser( scanner, diagnostics );
-		IF ActiveCellsFlag IN flags THEN parser.ActiveCellsSupport END;
+		options.frontend.Initialize(diagnostics, reader, source, position, ActiveCellsFlag IN flags);
 		REPEAT
 			(** first phase: scan and parse **)
-			module := parser.Module();
-			IF parser.error THEN
+			module := options.frontend.Parse();
+			IF options.frontend.Error() THEN 
 				FinalMessage(TRUE," could not be compiled (parser errors).");
 				RETURN FALSE;
 			END;
@@ -298,7 +296,7 @@ TYPE
 			ELSE
 				FinalMessage(FALSE, " done.");
 			END;
-		UNTIL (SingleModule IN flags) OR ~parser.NextModule();
+		UNTIL (SingleModule IN flags) OR options.frontend.Done();
 
 
 		RETURN TRUE;
@@ -328,6 +326,7 @@ TYPE
 		options.Add("i","info",Options.Flag);
 		options.Add(0X,"oberon07",Options.Flag);
 		options.Add("b","backend",Options.String);
+		options.Add("F","frontEnd",Options.String);
 		options.Add("f","findPC",Options.String);
 		options.Add(0X,"singleModule",Options.Flag);
 		options.Add(0X, "symbolFile", Options.String);
@@ -354,6 +353,18 @@ TYPE
 			END;
 		ELSE compilerOptions.backend := Backend.GetBackendByName(DefaultBackend);
 			IF compilerOptions.backend = NIL THEN Error("default backend could not be installed"); result := FALSE END;
+		END;
+		
+		IF options.GetString("F", name) THEN
+			IF name = "" THEN compilerOptions.frontend := NIL
+			ELSE
+				compilerOptions.frontend := Frontend.GetFrontendByName(name);
+				IF (compilerOptions.frontend = NIL)  THEN
+					Error("backend could not be installed"); result := FALSE;
+				END;
+			END;
+		ELSE compilerOptions.frontend := Frontend.GetFrontendByName(DefaultFrontend);
+			IF compilerOptions.frontend = NIL THEN Error("default frontend could not be installed"); result := FALSE END;
 		END;
 
 		IF options.GetString("objectFile",name) THEN

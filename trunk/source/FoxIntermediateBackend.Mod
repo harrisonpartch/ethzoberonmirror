@@ -733,6 +733,7 @@ TYPE
 				variable := scope.firstVariable;
 				WHILE variable # NIL DO
 					IF TypeNeedsInitialization(variable.type) THEN RETURN TRUE END;
+					IF variable.initializer # NIL THEN RETURN TRUE END;
 					variable := variable.nextVariable;
 				END;
 				RETURN FALSE
@@ -2084,6 +2085,26 @@ TYPE
 				RETURN IntermediateCode.Immediate(addressType,size)
 			END;
 		END GetDynamicSize;
+		
+		PROCEDURE GetSizeFromTag(tag: IntermediateCode.Operand): IntermediateCode.Operand;
+		VAR result: IntermediateCode.Operand;
+		BEGIN
+			MakeMemory(result, tag, addressType, 0);
+			RETURN result
+		END GetSizeFromTag;
+		
+		PROCEDURE GetArrayOfBytesSize(e: SyntaxTree.Expression; tag: IntermediateCode.Operand): IntermediateCode.Operand;
+		VAR parameter: SyntaxTree.Parameter;
+		BEGIN
+			IF (e IS SyntaxTree.SymbolDesignator) & (e(SyntaxTree.SymbolDesignator).symbol IS SyntaxTree.Parameter) THEN
+				parameter := e(SyntaxTree.SymbolDesignator).symbol(SyntaxTree.Parameter);
+				IF (parameter.kind IN {SyntaxTree.VarParameter,SyntaxTree.ConstParameter}) & (parameter.type.resolved IS SyntaxTree.RecordType) THEN RETURN GetSizeFromTag(tag) END;
+			ELSIF e IS SyntaxTree.DereferenceDesignator THEN
+				IF (e.type.resolved IS SyntaxTree.RecordType) THEN RETURN GetSizeFromTag(tag) END;
+			END;
+			RETURN GetDynamicSize(e.type, tag);
+		END GetArrayOfBytesSize;
+		
 
 		(*
 		to find imported symbol. not needed ?
@@ -3502,7 +3523,7 @@ TYPE
 
 			IF IsArrayOfSystemByte(parameter.type) THEN
 				Designate(expression,operand);
-				tmp := GetDynamicSize(type,operand.tag);
+				tmp := GetArrayOfBytesSize(expression,operand.tag);
 				ReleaseIntermediateOperand(operand.tag);
 				operand.tag := tmp;
 				IF callingConvention = SyntaxTree.OberonCallingConvention  THEN
@@ -4166,7 +4187,7 @@ TYPE
 			designator: SyntaxTree.Designator;
 			procedureType: SyntaxTree.ProcedureType;
 			formalParameter: SyntaxTree.Parameter;
-			noPush: Label;
+			noPush, end: Label;
 			operand: Operand;
 			reg, size, mem, mask, dest: IntermediateCode.Operand;
 			saved: RegisterEntry;
@@ -4536,20 +4557,27 @@ TYPE
 					Emit(Push(position,operand.tag));
 				END;
 				parametersSize := ProcedureParametersSize(system,symbol(SyntaxTree.Procedure));
+				ReleaseParameterRegisters();
+				Emit(Call(position,operand.op,parametersSize));
 			ELSIF (symbol IS SyntaxTree.Variable) OR (symbol IS SyntaxTree.Parameter) THEN
+				parametersSize := ParametersSize(system,procedureType,FALSE);
 				IF (procedureType.isDelegate) THEN (* push self pointer only if procedure is a method *)
 					noPush := NewLabel();
+					end := NewLabel();
 					BreqL(noPush,operand.tag,nil);
 					Emit(Push(position,operand.tag));
+					ReleaseParameterRegisters();
+					Emit(Call(position,operand.op,parametersSize));
+					BrL(end); 
 					SetLabel(noPush);
+					Emit(Call(position,operand.op,parametersSize-ToMemoryUnits(system,addressType.sizeInBits)));
+					SetLabel(end);
+				ELSE
+					ReleaseParameterRegisters();
+					Emit(Call(position,operand.op,parametersSize));				
 				END;
-				parametersSize := ParametersSize(system,procedureType,FALSE);
 			ELSE HALT(200);
 			END;
-
-			ReleaseParameterRegisters();
-
-			Emit(Call(position,operand.op,parametersSize));
 
 			IF procedureType.noReturn THEN
 				Emit(Trap(position,NoReturnTrap));
@@ -4980,15 +5008,6 @@ TYPE
 				END;
 			END Integer;
 
-			PROCEDURE Hex64(op: IntermediateCode.Operand);
-			BEGIN
-				IF GetProcedure("HIntHex") THEN
-					Emit(Push(position,op));
-					Emit(Push(position,IntermediateCode.Immediate(int32,16)));
-					CallProcedure;
-				END;
-			END Hex64;
-
 			PROCEDURE Float(op: IntermediateCode.Operand);
 			BEGIN
 				IF GetProcedure("HIntHex") THEN
@@ -5077,14 +5096,10 @@ TYPE
 					ELSE
 						Evaluate(expression,res);
 						IF expression.type.resolved IS SyntaxTree.IntegerType THEN
-							IF res.op.type.sizeInBits = IntermediateCode.Bits64 THEN
-								Hex64(res.op); String("H");
-							ELSE
-								IF res.op.type.sizeInBits < IntermediateCode.Bits32 THEN
-									Convert(res.op,int32);
-								END;
-								Integer(res.op);
+							IF res.op.type.sizeInBits < IntermediateCode.Bits64 THEN
+								Convert(res.op,int64);
 							END;
+							Integer(res.op);
 						ELSIF expression.type.resolved IS SyntaxTree.BooleanType THEN
 							Boolean(res.op);
 						ELSIF expression.type.resolved IS SyntaxTree.SetType THEN
@@ -5101,6 +5116,8 @@ TYPE
 						ELSIF expression.type.resolved IS SyntaxTree.SizeType THEN
 							Address(res.op);String("H");
 						ELSIF (expression.type.resolved IS SyntaxTree.PointerType) OR IsPointerToRecord(expression.type,recordType) THEN
+							Address(res.op);String("H");
+						ELSIF (expression.type.resolved IS SyntaxTree.ProcedureType) THEN
 							Address(res.op);String("H");
 						ELSE HALT(200);
 						END;
@@ -5165,7 +5182,7 @@ TYPE
 		END InitFields;
 
 		PROCEDURE InitVariable(VAR variable: SyntaxTree.Variable);
-		VAR type: SyntaxTree.Type; operand: Operand; tmp: IntermediateCode.Operand;
+		VAR type: SyntaxTree.Type; operand: Operand; tmp: IntermediateCode.Operand; reference: SyntaxTree.Expression;
 		BEGIN
 			type := variable.type.resolved;
 			IF (type IS SyntaxTree.MathArrayType) THEN
@@ -5183,6 +5200,12 @@ TYPE
 				END;
 			ELSE
 				Symbol(variable,operand);
+				IF variable.initializer # NIL THEN
+					reference := SyntaxTree.NewSymbolDesignator(variable.initializer.position,NIL,variable);
+					reference.SetType(variable.type.resolved);
+					reference.SetAssignable(TRUE);
+					Assign(reference,variable.initializer);
+				END;
 				InitFields(type, operand.op,0);
 				ReleaseOperand(operand);
 			END;
@@ -5244,7 +5267,7 @@ TYPE
 				Emit(Mov(position,reg,dim));
 				Emit(Mul(position,reg,reg,IntermediateCode.Immediate(addressType,ToMemoryUnits(system,2*addressType.sizeInBits))));
 				Emit(Add(position,reg,reg,base));
-				MakeMemory(mem,reg,addressType,offset);
+				MakeMemory(mem, reg, addressType, offset);
 				ReleaseIntermediateOperand(reg);
 				Emit(Mov(position,mem,value));
 				ReleaseIntermediateOperand(mem);
@@ -9843,6 +9866,9 @@ TYPE
 			noRuntimeChecks := options.GetFlag("noRuntimeChecks");
 			noAsserts := options.GetFlag("noAsserts");
 			IF options.GetFlag("newObjectFile") THEN newObjectFile := TRUE END;
+			IF options.GetString("objectFile",string) & (string = "Minos") THEN 
+				simpleMetaData := TRUE
+			END;
 			IF options.GetString("metaData",string) THEN
 				IF string = "simple" THEN simpleMetaData := TRUE
 				ELSIF string ="full" THEN simpleMetaData := FALSE
@@ -10072,7 +10098,7 @@ TYPE
 		ELSIF type IS SyntaxTree.AnyType THEN
 			RETURN TRUE (*! potentially is a pointer to record, treat it this way?? *)
 		ELSE
-			HALT(200)
+			RETURN FALSE
 		END;
 	END IsPointerToRecord;
 

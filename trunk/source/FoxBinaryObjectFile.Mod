@@ -99,7 +99,7 @@ CONST
 
 	ofEUEnd = 0X;
 	ofEURecord = 1X;
-	ofEUProcFlag = SHORT(080000000H);
+	ofEUProcFlag = LONGINT(080000000H);
 
 	(** system calls *)
 	DefaultNofSysCalls = 12;
@@ -622,7 +622,7 @@ TYPE
 			p: Section; procedure: SyntaxTree.Procedure; procedureType : SyntaxTree.ProcedureType;
 			prev,tail: Fixup; firstOffset: LONGINT; name: SyntaxTree.IdentifierString; fixups, i: LONGINT; fixup: Fixup;
 		CONST
-			FixupSentinel = SHORT(0FFFFFFFFH);
+			FixupSentinel = LONGINT(0FFFFFFFFH);
 
 
 			PROCEDURE FixupList(l,prev: Fixup; VAR tail: Fixup);
@@ -1032,7 +1032,7 @@ TYPE
 		VAR
 			p: Section; procedure: SyntaxTree.Procedure; procedureType: SyntaxTree.ProcedureType; i, counter: LONGINT; temp: LONGINT; fixup: Fixup; fixups: LONGINT;
 		CONST
-			FixupSentinel = SHORT(0FFFFFFFFH);
+			FixupSentinel = LONGINT(0FFFFFFFFH);
 
 			(* Insert fixup list into code *)
 			PROCEDURE FixupList(l: Fixup): LONGINT;
@@ -2097,7 +2097,7 @@ TYPE
 
 			PROCEDURE Link(first: Fixup);
 			VAR this,prev: LONGINT;fixup: Fixup;
-			CONST Sentinel = SHORT(0FFFFFFFFH);
+			CONST Sentinel = LONGINT(0FFFFFFFFH);
 			BEGIN
 				fixup := first;
 				prev := -1;

@@ -7775,3 +7775,30 @@ positive: use local variable as value and as reference (optimizer test)
 	BEGIN
 		T;
 	END Test.
+
+positive: pass record size to array of system.byte with dynamic dize for varpars and dereferences
+
+	MODULE Test; 
+
+	IMPORT SYSTEM;
+
+	TYPE Base = RECORD END;
+	TYPE Record = RECORD(Base) a,b,c: LONGINT END
+
+	PROCEDURE TestS(VAR a: ARRAY OF SYSTEM.BYTE);
+	BEGIN
+		ASSERT(LEN(a) = SIZEOF(Record));
+	END TestS;
+
+	PROCEDURE TestI(VAR a: Base);
+	BEGIN
+		TestS(a);
+	END TestI;
+
+	VAR a: POINTER TO Base; b: POINTER TO Record; c: Record;
+	BEGIN
+		NEW(b); a := b;
+		TestS(a^);
+		TestI(a^);
+		TestI(c);
+	END Test.

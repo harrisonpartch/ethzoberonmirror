@@ -5,7 +5,7 @@ MODULE UsbTouchscreen;  (** AUTHOR "felixf"; PURPOSE "USB Touchscreen drivers"; 
 **)
 
 IMPORT
-	SYSTEM, KernelLog, Modules, Inputs, Usbdi, UsbHid, HidParser := UsbHidParser, UsbHidReport, UsagePage := UsbHidUP, Displays, Plugins, Objects, Kernel;
+	Usb (* for init of Usbdi.drivers ! *), SYSTEM, KernelLog, Modules, Inputs, Usbdi, UsbHid, HidParser := UsbHidParser, UsbHidReport, UsagePage := UsbHidUP, Displays, Plugins, Objects, Kernel;
 
 CONST
 	Trace= FALSE;
@@ -330,7 +330,8 @@ VAR hidDriver : HidDriver;
 BEGIN
 	hidDriver := NIL;
 	IF (dev.descriptor.idVendor = 3EBH) & (dev.descriptor.idProduct =201CH) THEN
-		NEW(hidDriver); hidDriver.minX := 0; hidDriver.minY := 0; hidDriver.maxX := 16274; hidDriver.maxY := 12152
+		NEW(hidDriver); hidDriver.minX := 0; hidDriver.minY := 0; hidDriver.maxX := 16274; hidDriver.maxY := 12152;
+		installed := TRUE;
 	END;
 	RETURN hidDriver;
 END Probe;
@@ -344,7 +345,8 @@ VAR hidDriver : HidDriver;
 BEGIN
 	hidDriver := NIL;
 	IF (dev.descriptor.idVendor = 19E2H) & (dev.descriptor.idProduct =2533H) THEN
-		NEW(hidDriver); hidDriver.minX := 0; hidDriver.minY := 0; hidDriver.maxX := 1366; hidDriver.maxY := 768
+		NEW(hidDriver); hidDriver.minX := 0; hidDriver.minY := 0; hidDriver.maxX := 1366; hidDriver.maxY := 768;
+		installed := TRUE;
 	END;
 	RETURN hidDriver;
 END Probe2;
@@ -353,20 +355,29 @@ END Probe2;
 PROCEDURE Cleanup;
 BEGIN
 	Usbdi.drivers.Remove("Atmel");
+	Usbdi.drivers.Remove("UnknownVendorTS");
 END Cleanup;
 
 PROCEDURE InstallCDT975*;
 BEGIN
-	Usbdi.drivers.Add(Probe, "Atmel", "CDT 9.75", 10);
+	Usbdi.drivers.Add(Probe, "Atmel", "CDT 9.75", 0);
 END InstallCDT975;
 
 PROCEDURE InstallUnknown1*;
 BEGIN
-	Usbdi.drivers.Add(Probe2, "UnknownVendorTS", "Touchscreen", 10);
+	Usbdi.drivers.Add(Probe2, "UnknownVendorTS", "Touchscreen", 0);
 END InstallUnknown1;
 
+PROCEDURE Install*;
+BEGIN
+END Install;
+
+VAR installed-: BOOLEAN;
 
 BEGIN
+	installed := FALSE;
+	InstallCDT975;
+	InstallUnknown1;
 	Modules.InstallTermHandler(Cleanup);
 END UsbTouchscreen.
 

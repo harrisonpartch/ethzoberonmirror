@@ -1,6 +1,6 @@
 MODULE V24;		(** AUTHOR "F.Necati"; PURPOSE "V24 serial lines"; *)
 
-IMPORT Unix, Log := KernelLog, Serials, Objects;
+IMPORT Unix, Log := KernelLog, Serials, Objects, Commands, Strings;
 	
 CONST
 	(* modem lines  bits *)
@@ -38,10 +38,9 @@ TYPE
 		 fd: LONGINT;
 		 portname: ARRAY 16 OF CHAR;
 		 
-		PROCEDURE & Init*( port: LONGINT );
+		PROCEDURE & Init*( port: LONGINT; CONST name: ARRAY OF CHAR );
 		BEGIN 
-			portname := "/dev/ttySx";
-			portname[ 9]:= CHR( port + ORD("0") );
+			COPY(name, portname);
 			fd := 0;
 		END Init;
 		
@@ -281,22 +280,32 @@ TYPE
 		
 	END Port;
 
-
-
 	PROCEDURE Install*();
 	VAR i: LONGINT;
 		port: Port;
 		name, ttyname: ARRAY 16 OF CHAR;
 	BEGIN
 		FOR i := 0 TO NumberOfPorts - 1 DO
-			NEW( port, i );
 			name:="COM ";
 			name[3]:= CHR( i + ORD("1") );
 			ttyname:="/dev/ttySx";
-			ttyname[ 9]:= CHR( i + ORD("0") );		
+			ttyname[ 9]:= CHR( i + ORD("0") );
+			NEW( port, i , ttyname);
 			Serials.RegisterOnboardPort( i+1 , port, name, ttyname);
 		END;
 	END Install;
+	
+	PROCEDURE Map*(context: Commands.Context);
+	VAR	number: LONGINT; name, ttyname: ARRAY 16 OF CHAR; port: Port;
+	BEGIN
+		IF context.arg.GetInteger(number, FALSE) & context.arg.GetString(ttyname) THEN
+			name := "COM";
+			Strings.AppendInt(name, number);
+			NEW(port, number, ttyname); 
+			Serials.RegisterOnboardPort( number, port, name, ttyname);
+		END;
+	END Map;
+	
 
 	PROCEDURE Initialize;
 	BEGIN
@@ -314,6 +323,7 @@ BEGIN
 END V24.
 
 V24.Install ~ 
+V24.Map 5 ttyUSB0 ~ 
 
 Serials.Show ~ 
 
