@@ -564,7 +564,7 @@ VAR f: Files.File;
 BEGIN
 	Kernel.SetTimer(logtime, 0);
 	f := Files.New("EtherNet.Log");  f.Set(log, 0); Files.Register(f);	(* tcpdump compatible log file *)
-	Files.WriteLInt(log, SHORT(0A1B2C3D4H));  Files.WriteInt(log, 2);
+	Files.WriteLInt(log, LONGINT(0A1B2C3D4H));  Files.WriteInt(log, 2);
 	Files.WriteInt(log, 4);  Files.WriteLInt(log, 0);  Files.WriteLInt(log, 0);
 	Files.WriteLInt(log, 1514);  Files.WriteLInt(log, 1);
 	logging := TRUE;

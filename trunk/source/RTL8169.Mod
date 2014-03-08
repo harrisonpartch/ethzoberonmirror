@@ -330,8 +330,8 @@ TYPE
 			Write32(44H, SYSTEM.VAL(LONGINT, s));
 
 			(* set multicast filter: receive everything *)
-			Write32(08H, SHORT(0FFFFFFFFH));
-			Write32(08H + 4, SHORT(0FFFFFFFFH));
+			Write32(08H, LONGINT(0FFFFFFFFH));
+			Write32(08H + 4, LONGINT(0FFFFFFFFH));
 		END ConfigRx;
 
 		PROCEDURE SetTimer(val: LONGINT);

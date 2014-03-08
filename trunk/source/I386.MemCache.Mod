@@ -89,7 +89,7 @@ BEGIN
 	ASSERT((physAdr MOD PS = 0) & (size MOD PS = 0) & (size # 0));
 	IF (physAdr >= M) OR (physAdr < 0) THEN
 		k := size; WHILE k > 0 DO k := ASH(k, 1) END;	(* shift highest set bit into bit 31 *)
-		IF k = SHORT(80000000H) THEN	(* only one bit was set => size is power of 2 *)
+		IF k = 80000000H THEN	(* only one bit was set => size is power of 2 *)
 			IF physAdr MOD size = 0 THEN
 				Machine.Acquire(Machine.Memory);	(* hack *)
 				IF Machine.MTTR IN Machine.features THEN	(* MTTRs supported *)

@@ -21,7 +21,7 @@ CONST
 	MinIPHdrLen*= 20;
 	MaxIPHdrLen* = 60;
 	TOS = 10X; (* type-of-service on outgoing datagrams *)
-	BroadcastAdr = SHORT(0FFFFFFFFH);
+	BroadcastAdr = LONGINT(0FFFFFFFFH);
 
 TYPE
 	ARPEntry = POINTER TO RECORD

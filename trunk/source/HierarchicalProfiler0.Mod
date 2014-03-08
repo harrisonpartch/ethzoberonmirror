@@ -23,7 +23,7 @@ PROCEDURE HandleTimer(id: LONGINT; CONST state: Machine.State);
 VAR process : Objects.Process;
 BEGIN
 	process := Objects.running[id];
-	callback(id, process, state.PC, state.BP, state.SP, SHORT(0FFFFFFFFH));
+	callback(id, process, state.PC, state.BP, state.SP, LONGINT(0FFFFFFFFH));
 END HandleTimer;
 
 (** Start profiling. If the profiler is already running, it is stopped and the sample data is discarded before re-starting it *)

@@ -351,7 +351,7 @@ TYPE
 			(* put data *)
 			PutToDPD(dn, dphys);
 			(* set "end" marker *)
-			INC(dpd.frag[i-1].dataLen, SHORT(80000000H));
+			INC(dpd.frag[i-1].dataLen, LONGINT(80000000H));
 
 			len := h3len + h4len + len +14;	(* now len is total packet length including headers *)
 			ASSERT((len >= 14) & (len <= MaxPkt));	(* packet size *)
@@ -589,11 +589,11 @@ BEGIN
 		FOR i := 1 TO n DO
 			upd.frag[i].dataPhysAdr := Machine.Ensure32BitAddress (phys[i-1].adr); upd.frag[i].dataLen := Machine.Ensure32BitAddress (phys[i-1].size)
 		END;
-		INC(upd.frag[n].dataLen, SHORT(80000000H)); (* end of buffer marker *)
+		INC(upd.frag[n].dataLen, LONGINT(80000000H)); (* end of buffer marker *)
 	ELSE
 		(* no buffer available at the moment. only header can be received. *)
 		upd.frag[0].dataLen := 14; (* ethernet header *)
-		INC(upd.frag[0].dataLen, SHORT(80000000H)); (* end of buffer marker *)
+		INC(upd.frag[0].dataLen, LONGINT(80000000H)); (* end of buffer marker *)
 	END;
 	upd.buffer := buffer; (* attach buffer reference *)
 END BufferToUPD;

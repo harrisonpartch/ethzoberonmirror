@@ -23,10 +23,10 @@ CONST
 	ErrFileNotFound* = 100;
 	ErrNoISOImage* = 101;
 
-	White = SHORT(0FFFFFFFFH);
+	White = 0FFFFFFFFH;
 	Black = 0000000FFH;
-	LightGray = SHORT(0C8C8C8FFH);
-	DarkGray = SHORT(0A0A0A0FFH);
+	LightGray = (0C8C8C8FFH);
+	DarkGray = (0A0A0A0FFH);
 
 TYPE
 	String = Strings.String;

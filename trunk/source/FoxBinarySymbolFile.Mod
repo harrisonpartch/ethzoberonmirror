@@ -1261,6 +1261,7 @@ TYPE
 							type := enumerationType;
 							enumerationType.SetEnumerationBase(baseType);
 							EnumerationList(enumerationScope);
+					ELSE
 					END;
 
 					IF name # "" THEN

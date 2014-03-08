@@ -38,13 +38,13 @@ TYPE
 			Init^(suite);
 			NEW(content);
 			loadProc := LoadPage;
-			colors[0] := SHORT(0FF0000FFH);	(* Red *)
+			colors[0] := LONGINT(0FF0000FFH);	(* Red *)
 			colors[1] := 0FF00FFH;		(* Green *)
 			colors[2] := 0FFFFH;			(* Blue *)
-			colors[3] := SHORT(0FFFF00FFH);	(*Yellow *)
-			colors[4] := SHORT(0FF00FFFFH);	(* Magenta *)
+			colors[3] := LONGINT(0FFFF00FFH);	(*Yellow *)
+			colors[4] := LONGINT(0FF00FFFFH);	(* Magenta *)
 			colors[5] := 0FFFFFFH;		(* Cyan *)
-			colors[6] := SHORT(0FFFFFFFFH);	(* White *)
+			colors[6] := LONGINT(0FFFFFFFFH);	(* White *)
 			colors[7] := 0FFH			   (* Black *)
 		END Init;
 
@@ -71,7 +71,7 @@ TYPE
 				TextUtilities.StrToText(text, 0, "The requested page is not available.");
 				(* Yellow text *)
 				NEW(attributes);
-				attributes.color := SHORT(0FFFF00FFH);
+				attributes.color := LONGINT(0FFFF00FFH);
 				attributes.bgcolor := 0FFH;
 				pos := text.GetLength();
 				text.SetAttributes(0, pos, attributes);
@@ -83,7 +83,7 @@ TYPE
 				TextUtilities.StrToText(text, pos, "Try another page number.");
 				(* White text *)
 				NEW(attributes);
-				attributes.color := SHORT(0FFFFFFFFH);
+				attributes.color := LONGINT(0FFFFFFFFH);
 				attributes.bgcolor := 0FFH;
 				text.SetAttributes(pos, 24, attributes);
 				text.ReleaseWrite;

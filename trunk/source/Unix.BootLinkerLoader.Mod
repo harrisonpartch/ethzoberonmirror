@@ -37,23 +37,23 @@ CONST
 	EUEnd = 0;  EURecord = 1;  EUobjScope = 0;  EUrecScope = 1;  EUerrScope = -1;
 	EUProcFlagBit = 31;
 
-	Sentinel = SHORT(0FFFFFFFFH);
+	Sentinel = LONGINT(0FFFFFFFFH);
 
 
 TYPE
 	ObjHeader = RECORD  (* data in object file header *)
-				entries			: LONGINT;
-				commands		: LONGINT;
-				pointers			: LONGINT;
+				entries		: LONGINT;
+				commands	: LONGINT;
+				pointers		: LONGINT;
 				types			: LONGINT;
 				modules		: LONGINT;
 				links			: LONGINT;
-				dataLinks		: LONGINT;
+				dataLinks	: LONGINT;
 				refSize, codeSize, dataSize, constSize	: LONGINT;
-				exTableLen		: LONGINT;
+				exTableLen	: LONGINT;
 				procs			: LONGINT;
-				maxPtrs			: LONGINT;
-				staticTdSize		: LONGINT;
+				maxPtrs		: LONGINT;
+				staticTdSize	: LONGINT;
 				crc				: LONGINT;
 				name			: Modules.Name;
 			END;
@@ -61,7 +61,7 @@ TYPE
 	LinkRec = RECORD
 				mod	: LONGINT;
 				entry	: LONGINT;
-				link		: SIZE;
+				link	: SIZE;
 			END;
 
 	DataLinkRec = RECORD

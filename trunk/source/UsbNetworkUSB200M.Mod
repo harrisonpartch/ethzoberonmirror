@@ -144,7 +144,7 @@ CONST
 	RX = 0;
 	TX = 1;
 
-	TxPadBytes = SHORT(0FFFF0000H);
+	TxPadBytes = LONGINT(0FFFF0000H);
 
 	UsbHeaderSize = 4;
 
@@ -262,7 +262,7 @@ TYPE
 			(* 14 Byte Ethernet Frame Header (destination address - source address - Frame type *)
 			SYSTEM.MOVE(ADDRESSOF(dst[0]), txBufferAdr + 4, 6);
 			SYSTEM.MOVE(ADDRESSOF(linkDevice.local[0]), txBufferAdr + 10, 6);
-			SYSTEM.PUT16(txBufferAdr + 16, ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
+			SYSTEM.PUT16(txBufferAdr + 16, ROT(SYSTEM.VAL(INTEGER, LONGINT(type)), 8));
 
 			i := UsbNetwork.EthernetHeaderSize + UsbHeaderSize;
 			(* Network Layer Header *)
