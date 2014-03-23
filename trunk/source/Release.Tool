@@ -181,7 +181,6 @@ BUILDS
 		EXCLUDEPACKAGES ""
 		DISABLED "FALSE"
 	}
-
 	LinuxAos {
 		INCLUDE "UNIX LINUX"
 		COMPILER "Compiler.Compile"
@@ -193,6 +192,17 @@ BUILDS
 		EXCLUDEPACKAGES "OberonVoyager OberonAnts"
 		DISABLED "FALSE"
 	}
+	LinuxAos64 {
+		INCLUDE "UNIX LINUX"
+		COMPILER "Compiler.Compile"
+		COMPILEOPTIONS "--bits=64"
+		TARGET "AMD"
+		EXTENSION "Obj"
+		SYMBOLEXTENSION "Obj"
+		PATH "./"
+		EXCLUDEPACKAGES "OberonVoyager OberonAnts"
+		DISABLED "FALSE"
+	}	
 	DarwinAos {
 		INCLUDE "UNIX DARWIN"
 		COMPILER "Compiler.Compile"

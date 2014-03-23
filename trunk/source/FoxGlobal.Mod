@@ -1290,9 +1290,10 @@ TYPE
 	PROCEDURE GetIntegerType*(system: System; this: HUGEINT): SyntaxTree.IntegerType;
 	BEGIN
 		IF IsSignedInteger(this,8) THEN RETURN Integer8
-		ELSIF IsUnsignedInteger(this,8) THEN RETURN Unsigned8
+				(* system.SizeOf(...) = 8 : detect special backends with no sizes smaller than 32 *)
+		ELSIF (system.SizeOf(Unsigned8) =  8) & IsUnsignedInteger(this,8) THEN RETURN Unsigned8
 		ELSIF IsSignedInteger(this, 16) THEN RETURN Integer16
-		ELSIF IsUnsignedInteger(this,16) THEN RETURN Unsigned16
+		ELSIF (system.SizeOf(Unsigned16) = 16) & IsUnsignedInteger(this,16) THEN RETURN Unsigned16
 		ELSIF IsSignedInteger(this, 32) THEN RETURN Integer32
 		ELSIF IsUnsignedInteger(this,32) THEN RETURN Unsigned32
 		ELSE RETURN Integer64
