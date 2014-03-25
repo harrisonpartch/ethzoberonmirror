@@ -37,29 +37,30 @@ CONST
 
 
 VAR
-	
+	(* timer *)
 	timerActivity		: TimerActivity;
 	timers				: Timer;  
 	timerListMutex	: Unix.Mutex_t;
 	
-	finalizerCaller	: FinalizerCaller;
-	finCaller			: Process;
+	(* processes *)
+	mainProcess	: Process;	(* runs the GC *)
+	root-	: Process;	(*!  Anchor of all instantiated threads in system *)
+	stacksize: LONGINT;		(* stack size of active objects, adjustable via boot parameter *)
 	
-	mainProcess	: Process;
+	processList		: Unix.Mutex_t;
+	createProcess	: Unix.Mutex_t;
+	startProcess	: Unix.Mutex_t;
+	childrunning		: Unix.Condition_t;
 	
-	processes-: Process;	(*!  Anchor of all instantiated threads in system *)
-	processListMutex: Unix.Mutex_t;
-	
-	createmtx: Unix.Mutex_t;
-	startProcess: Unix.Mutex_t;
-	childrunning: Unix.Condition_t;
 	newProcess: Process;
 	nextPID: LONGINT;
 	
+	(* garbage colletion *)
 	gcFinished: Unix.Condition_t; igc: Unix.Mutex_t;
 	collect: BOOLEAN;
+	finalizerCaller	: FinalizerCaller;
+	finCaller			: Process;
 	
-	stacksize: LONGINT;		(* stack size of active objects, adjustable by boot parameter *)
 	
 	(* the dummy parameters assure proper stack alignment when compiled with 
 		option "\A" or "--darwinHost" *)
@@ -191,12 +192,12 @@ TYPE
 	
 	Process* = OBJECT (Heaps.RootObject)
 	VAR
-		thrId				: Unix.Thread_t;
-		processLink-		: Process;	(* next in list of all processes *)
-		stackBottom-	: ADDRESS;
+		threadId			: Unix.Thread_t;
+		nextProcess-	: Process;	(* next in list of all processes *)
+		stackBottom	-	: ADDRESS;
 		SP-				: ADDRESS;	(* SP value at last NEW *)
 		id-				: LONGINT;
-		proc			: Body;
+		body			: Body;
 		mode-			: LONGINT;
 		flags-			: SET;
 		priority-		: LONGINT;	(* only effective if Aos is running SUID root *)
@@ -204,7 +205,7 @@ TYPE
 		obj-			: ProtectedObject;	(* associated active object *)
 		condition-	: Condition;   		(* awaited process' condition *)
 		condFP-		: ADDRESS;			(* awaited process' condition's context *)
-		cond			: Unix.Condition_t;	(* gets signaled when condition yields true *)
+		continue		: Unix.Condition_t;	(* gets signaled when condition yields true *)
 		waitingOn-	: ProtectedObject;
 		procID-		: LONGINT;			(* processor ID where running, not used in UnixAos *)
 		state-			: Machine.State;		(* not used in UnixAos! *)
@@ -222,7 +223,7 @@ TYPE
 					INC( sp, AddrSize )  
 				END;
 			END;
-			Heaps.Mark( processLink ) 
+			Heaps.Mark( nextProcess ) 
 		END FindRoots;
 				
 		PROCEDURE Cancel;
@@ -231,14 +232,14 @@ TYPE
 			IF SELF = CurrentProcess() THEN  Exit
 			ELSE
 				Machine.Acquire( Machine.X11 );  (* let the thread to be killed first finish its last I/O, if any *)
-				mtxLock( processListMutex );
-					pt := NIL; t := processes;  kt := 0;
-					WHILE (t # NIL ) & (t # SELF) DO  pt := t;  t := t.processLink  END;
+				mtxLock( processList );
+					pt := NIL; t := root;  kt := 0;
+					WHILE (t # NIL ) & (t # SELF) DO  pt := t;  t := t.nextProcess  END;
 					IF t = SELF THEN
-						kt := thrId;
-						IF pt = NIL THEN  processes := t.processLink  ELSE  pt.processLink := t.processLink  END;
+						kt := threadId;
+						IF pt = NIL THEN  root := t.nextProcess  ELSE  pt.nextProcess := t.nextProcess  END;
 					END;
-				mtxUnlock( processListMutex );
+				mtxUnlock( processList );
 				IF kt # 0 THEN  thrKill( kt )  END;
 				Machine.Release( Machine.X11 );
 			END
@@ -246,14 +247,14 @@ TYPE
 
 		PROCEDURE GetPriority( ): LONGINT;
 		BEGIN
-			RETURN thrGetPriority( thrId ) 
+			RETURN thrGetPriority( threadId ) 
 		END GetPriority;
 
 		PROCEDURE SetPriority( prio: LONGINT );
 		VAR pr: LONGINT;
 		BEGIN
 			pr := max( Machine.prioLow, min( prio, Machine.prioHigh ) );
-			thrSetPriority( thrId, pr );	(* works only if SUID root *)
+			thrSetPriority( threadId, pr );	(* works only if SUID root *)
 			priority := GetPriority( )	
 		END SetPriority;
 				
@@ -261,14 +262,14 @@ TYPE
 		PROCEDURE & Initialize( obj: ProtectedObject;  bodyProc: Body;  prio: LONGINT; fl: SET; stacksize: LONGINT);
 		VAR  thr: Unix.Thread_t;
 		BEGIN
-			SELF.obj := obj;  condition := NIL;  cond := conInit(0);
+			SELF.obj := obj;  condition := NIL;  continue := conInit(0);
 			flags := fl;
 			priority := prio;
-			processLink := NIL;
-			IF processes # NIL THEN
+			nextProcess := NIL;
+			IF root # NIL THEN
 				newProcess := SELF;
 				ASSERT( bodyProc # NIL );
-				proc := bodyProc;  
+				body := bodyProc;  
 				mtxLock( startProcess );
 					thr := thrStart( BodyStarter, stacksize );
 					conWait( childrunning, startProcess );
@@ -277,9 +278,9 @@ TYPE
 			ELSE 
 				stackBottom := Glue.stackBottom;  
 				SP := Machine.CurrentSP( );
-				thrId := thrThis(0);
+				threadId := thrThis(0);
 				id := 0;  nextPID := 1;
-				processes := SELF;
+				root := SELF;
 				mainProcess := SELF;
 				mode := Running;
 			END;
@@ -294,16 +295,15 @@ TYPE
 	BEGIN
 		mtxLock( startProcess );
 			p := newProcess;  newProcess := NIL;
-			p.thrId := thrThis(0);  
+			p.threadId := thrThis(0);  
 			p.id := nextPID;  INC( nextPID );
 			p.SP := Machine.CurrentSP(  );  
 			p.stackBottom := Machine.CurrentBP( );
 			S.GET( p.stackBottom, prevBP );
 			S.PUT( prevBP, S.VAL( ADDRESS, 0 ) );	(* for terminating Reflection.StackTraceBack *)
-			(* processes # NIL *)
-			mtxLock( processListMutex );
-				p.processLink := processes;  processes := p;
-			mtxUnlock( processListMutex );
+			mtxLock( processList );
+				p.nextProcess := root;  root := p;
+			mtxUnlock( processList );
 			conSignal( childrunning );
 		mtxUnlock( startProcess );
 
@@ -312,7 +312,7 @@ TYPE
 			res := Unix.sigsetjmp( ADDRESSOF( p.state0[0] ), 1 );
 		END;
 		p.mode := Running;
-		p.proc( p.obj );
+		p.body( p.obj );
 		p.mode := Terminated;
 		Exit
 	END BodyStarter;
@@ -331,11 +331,11 @@ TYPE
 	PROCEDURE CreateProcess*( body: Body;  priority: LONGINT;  flags: SET;  obj: ProtectedObject );
 	VAR p: Process;  hdr: ObjectHeader;
 	BEGIN
-		mtxLock( createmtx );
+		mtxLock( createProcess );
 		S.GET( S.VAL( ADDRESS, obj ) + Heaps.HeapBlockOffset, hdr );  InitProtHeader( hdr );
 		IF priority = 0 THEN  priority := Normal  END;
 		NEW( p, obj, body, priority, flags, stacksize ) ;	(* execute BodyStarter as new (posix or solaris) thread *)
-		mtxUnlock( createmtx );
+		mtxUnlock( createProcess );
 		RegisterFinalizer( obj, FinalizeActiveObj )
 	END CreateProcess;
 
@@ -371,8 +371,8 @@ TYPE
 		Put( hdr.awaitingCond, p );
 		
 		hdr.lockedBy := c;
-		IF c # NIL THEN  conSignal( c.cond )  ELSE  conSignal( hdr.enter )  END;
-		conWait( p.cond, hdr.mtx );   
+		IF c # NIL THEN  conSignal( c.continue )  ELSE  conSignal( hdr.enter )  END;
+		conWait( p.continue, hdr.mtx );   
 		
 		p.mode := Running;  hdr.lockedBy := p;  p.waitingOn := NIL
 	END Await;
@@ -384,7 +384,7 @@ TYPE
 		IF hdr.awaitingCond.head # NIL THEN  c := FindCondition( hdr.awaitingCond )  END;
 		
 		hdr.lockedBy := c;
-		IF c # NIL THEN  conSignal( c.cond )  ELSE  conSignal( hdr.enter )  END;
+		IF c # NIL THEN  conSignal( c.continue )  ELSE  conSignal( hdr.enter )  END;
 		mtxUnlock( hdr.mtx );
 	END Unlock;
 	
@@ -457,10 +457,10 @@ TYPE
 	VAR me: Unix.Thread_t;  p: Process;
 	BEGIN
 		me := thrThis(0);
-		mtxLock( processListMutex );
-		p := processes;
-		WHILE (p # NIL ) & (p.thrId # me) DO  p := p.processLink  END;
-		mtxUnlock( processListMutex );
+		mtxLock( processList );
+		p := root;
+		WHILE (p # NIL ) & (p.threadId # me) DO  p := p.nextProcess  END;
+		mtxUnlock( processList );
 		RETURN p
 	END CurrentProcess;
 
@@ -522,14 +522,13 @@ TYPE
 	PROCEDURE FinalizeActiveObj( obj: ANY );
 	VAR p: Process;
 	BEGIN
-		mtxLock( processListMutex );
-			p := processes;
-			WHILE (p # NIL) & (p.obj # obj) DO p := p.processLink  END;
-		mtxUnlock( processListMutex );
+		mtxLock( processList );
+			p := root;
+			WHILE (p # NIL) & (p.obj # obj) DO p := p.nextProcess  END;
+		mtxUnlock( processList );
 		IF (p # NIL) & (p.obj = obj) THEN
 			p.mode := Terminated;
-			conDestroy( p.cond );
-			p.cond := 0;
+			conDestroy( p.continue );  p.continue := 0;
 			FinalizeProtObject( obj );
 			p.Cancel
 		END;
@@ -549,8 +548,8 @@ TYPE
 	VAR p: Process;
 	BEGIN
 		p := obj(Process);
-		IF p.cond # 0 THEN
-			conDestroy( p.cond );  p.cond := 0
+		IF p.continue # 0 THEN
+			conDestroy( p.continue );  p.continue := 0
 		END
 	END FinalizeProcess;
 	
@@ -560,13 +559,13 @@ TYPE
 	BEGIN
 		me := CurrentProcess();
 		me.mode := Terminated;
-		mtxLock( processListMutex );
-			prev := NIL;  p := processes;
-			WHILE (p # NIL ) & (p # me) DO  prev := p;  p := p.processLink  END;
+		mtxLock( processList );
+			prev := NIL;  p := root;
+			WHILE (p # NIL ) & (p # me) DO  prev := p;  p := p.nextProcess  END;
 			IF p = me THEN
-				IF prev = NIL THEN  processes := p.processLink  ELSE  prev.processLink := p.processLink  END;
+				IF prev = NIL THEN  root := p.nextProcess  ELSE  prev.nextProcess := p.nextProcess  END;
 			END;
-		mtxUnlock( processListMutex );
+		mtxUnlock( processList );
 		thrExit(0)
 	END Exit;
 
@@ -647,20 +646,20 @@ TYPE
 	PROCEDURE SuspendActivities;
 	VAR t: Process;  
 	BEGIN
-		t := processes;
+		t := root;
 		WHILE t # NIL DO
-			IF (t # mainProcess) & (t # finCaller) THEN  thrSuspend( t.thrId )  END;
-			t := t.processLink
+			IF (t # mainProcess) & (t # finCaller) THEN  thrSuspend( t.threadId )  END;
+			t := t.nextProcess
 		END;
 	END SuspendActivities;
 
 	PROCEDURE ResumeActivities;
 	VAR t: Process;  
 	BEGIN
-		t := processes;
+		t := root;
 		WHILE t # NIL DO
-			IF (t # mainProcess) & (t # finCaller) THEN  thrResume( t.thrId )  END;
-			t := t.processLink
+			IF (t # mainProcess) & (t # finCaller) THEN  thrResume( t.threadId )  END;
+			t := t.nextProcess
 		END;
 	END ResumeActivities;
 	
@@ -668,8 +667,8 @@ TYPE
 	PROCEDURE SaveSP;   (* save current SP for usage by the GC *)
 	VAR me: Unix.Thread_t;  t: Process;
 	BEGIN
-		me := thrThis(0);  t := processes;
-		WHILE (t # NIL ) & (t.thrId # me) DO  t := t.processLink  END;
+		me := thrThis(0);  t := root;
+		WHILE (t # NIL ) & (t.threadId # me) DO  t := t.nextProcess  END;
 		IF t # NIL THEN  t.SP := Machine.CurrentSP( )  END
 	END SaveSP;
 	
@@ -786,7 +785,7 @@ TYPE
 		Unix.Dlsym( 0, "thrSetPriority",	ADDRESSOF( thrSetPriority ) );
 		Unix.Dlsym( 0, "thrKill",				ADDRESSOF( thrKill ) );
 		
-		createmtx := mtxInit( 0 );  processListMutex := mtxInit( 0 );
+		createProcess := mtxInit( 0 );  processList := mtxInit( 0 );
 		startProcess := mtxInit(0);  childrunning := conInit(0); 
 		
 		collect := FALSE;
