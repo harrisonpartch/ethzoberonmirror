@@ -64,9 +64,9 @@ TYPE
 
 	TouchscreenState = POINTER TO RECORD
 		x,y: UsbHidReport.UsageTuple;
+		minX, maxX, minY, maxY: LONGINT;
 		tipSwitch, inRange: UsbHidReport.UsageTuple;
-		prevX, prevZ: LONGINT;
-		prevS: BOOLEAN;
+		prev: BOOLEAN;
 	END;
 
 	(*Handling keyboard devices*)
@@ -483,7 +483,9 @@ TYPE
 			pipe := device.GetPipe(endpoint);
 			IF pipe = NIL THEN RETURN FALSE END;
 
-			IF InitializeMouseDriver() = TRUE THEN
+			IF InitializeTouchscreenDriver()=TRUE THEN
+				canManage := TRUE;
+			ELSIF InitializeMouseDriver() = TRUE THEN
 				canManage := TRUE;
 			END;
 
@@ -499,9 +501,6 @@ TYPE
 				canManage := TRUE;
 			END;
 
-			IF InitializeTouchscreenDriver()=TRUE THEN
-				canManage := TRUE;
-			END;
 
 			IF (canManage) THEN
 
@@ -710,25 +709,29 @@ TYPE
 		PROCEDURE HandleTouchscreenDriver;
 		VAR
 			mm : 			Inputs.AbsMouseMsg;
-			x,y: LONGINT;
+			x,y: LONGINT; 
+			displayWidth, displayHeight: LONGINT;
 		BEGIN
-			x := touchscreenState.x.usageValue;
-			y := touchscreenState.y.usageValue;
-
+			getDisplayDimensions(displayWidth, displayHeight); 
+			x := (touchscreenState.x.usageValue-touchscreenState.minX) * displayWidth DIV (touchscreenState.maxX-touchscreenState.minX +1);
+			y := (touchscreenState.y.usageValue-touchscreenState.minY) * displayHeight DIV  (touchscreenState.maxY -touchscreenState.minY + 1);
+			
 			IF (touchscreenState.tipSwitch.usageValue#0) THEN mm.keys := mm.keys + {0}; END;
-			(* these dimensions are very specific to the respective model. Implement a separate driver in UsbTouchscreen.Mod ! *)
 			mm.x := x; mm.y := y;
-			TRACE(x,y,mm.keys);
 
-			IF (0 IN mm.keys) &  ~touchscreenState.prevS THEN
-				(* patch window manager issue: expects that the mouse is there without button pressed previously... *)
-				EXCL(mm.keys, 0);
+			IF ~(0 IN mm.keys) THEN (* up event  *)
+				touchscreenState.prev := FALSE;
 				Inputs.mouse.Handle(mm);
-				INCL(mm.keys, 0);
+			ELSIF (0 IN mm.keys) THEN (* down event or pointer move *)
+				IF ~touchscreenState.prev THEN
+					(* artificial initial up event in order to set mouse coordinates like with a "real" mouse before sending the down event *)
+					touchscreenState.prev := TRUE;
+					EXCL(mm.keys, 0);
+					Inputs.mouse.Handle(mm);
+				END;
+				(* down event or pointer event *)
+				Inputs.mouse.Handle(mm);
 			END;
-
-			Inputs.mouse.Handle(mm);
-			touchscreenState.prevS := 0 IN mm.keys;
 		END HandleTouchscreenDriver;
 
 		(**
@@ -1144,10 +1147,20 @@ TYPE
 			mouseCollection := reportManager.GetCollection(0DH, 04H);
 			IF (mouseCollection#NIL) THEN
 				NEW(touchscreenState);
+				touchscreenState.prev := FALSE;
 				touchscreenState.x 		:= reportManager.GetUsage(UsagePage.GenericDesktopPage, 30H, mouseCollection,temp);
+				touchscreenState.minX := temp.logicalMinimum;
+				touchscreenState.maxX := temp.logicalMaximum;
 				touchscreenState.y 		:= reportManager.GetUsage(UsagePage.GenericDesktopPage, 31H, mouseCollection,temp);
+				touchscreenState.minY := temp.logicalMinimum;
+				touchscreenState.maxY := temp.logicalMaximum;
 				touchscreenState.tipSwitch := reportManager.GetUsage(0DH, 042H, mouseCollection,temp);
 				touchscreenState.inRange := reportManager.GetUsage(0DH, 032H, mouseCollection,temp);
+				KernelLog.String("Touchscreen device registered with ");
+				KernelLog.String("minX = "); KernelLog.Int(touchscreenState.minX,1); 
+				KernelLog.String(", maxX = "); KernelLog.Int(touchscreenState.maxX,1); 
+				KernelLog.String(", minY = "); KernelLog.Int(touchscreenState.minY,1); 
+				KernelLog.String(", maxY = "); KernelLog.Int(touchscreenState.maxY,1); KernelLog.Ln;
 				RETURN TRUE;
 			ELSE
 				RETURN FALSE;
@@ -1488,7 +1501,24 @@ END Cleanup;
 PROCEDURE Install*;
 END Install;
 
+TYPE 
+	DimensionGetter= PROCEDURE {DELEGATE} (VAR w,h: LONGINT);
+VAR
+	getDisplayDimensions: DimensionGetter;
+
+PROCEDURE DefaultDisplayDimensions(VAR w,h: LONGINT);
 BEGIN
+	w := 1024; h := 768;
+END DefaultDisplayDimensions;
+
+PROCEDURE InstallDisplayDimensions*(poller: DimensionGetter); (* for touchscreen coordinate transformation*)
+BEGIN
+	getDisplayDimensions := poller;
+END InstallDisplayDimensions;
+
+
+BEGIN
+	getDisplayDimensions := DefaultDisplayDimensions;
 	Modules.InstallTermHandler(Cleanup);
 	Usbdi.drivers.Add(Probe, Name, Description, 10);
 END UsbHidDriver.

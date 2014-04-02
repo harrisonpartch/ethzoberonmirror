@@ -1040,7 +1040,7 @@ VAR
 	PROCEDURE InitKernelRoutines;
 	VAR i: LONGINT;
 	BEGIN
-		FOR i := 0 TO 10 DO  KernelRoutines[0].adr := 0  END;
+		FOR i := 0 TO 10 DO  KernelRoutines[i].adr := 0  END;
 		KernelRoutines[0].name := "NewRec";
 		KernelRoutines[1].name := "NewSys";
 		KernelRoutines[2].name := "NewArr";

@@ -5,7 +5,7 @@ MODULE UsbTouchscreen;  (** AUTHOR "felixf"; PURPOSE "USB Touchscreen drivers"; 
 **)
 
 IMPORT
-	Usb (* for init of Usbdi.drivers ! *), SYSTEM, KernelLog, Modules, Inputs, Usbdi, UsbHid, HidParser := UsbHidParser, UsbHidReport, UsagePage := UsbHidUP, Displays, Plugins, Objects, Kernel;
+	Usb (* for init of Usbdi.drivers ! *), SYSTEM, KernelLog, Modules, Inputs, Usbdi, UsbHid, UsbHidDriver, HidParser := UsbHidParser, UsbHidReport, UsagePage := UsbHidUP, Displays, Plugins, Objects, Kernel;
 
 CONST
 	Trace= FALSE;
@@ -368,14 +368,34 @@ BEGIN
 	Usbdi.drivers.Add(Probe2, "UnknownVendorTS", "Touchscreen", 0);
 END InstallUnknown1;
 
+VAR display: Displays.Display;
+
+PROCEDURE GetDisplayDimensions (VAR w,h: LONGINT);
+VAR o: Plugins.Plugin;
+BEGIN
+			IF display = NIL THEN
+				o := Displays.registry.Get("");
+				IF o # NIL THEN display := o(Displays.Display) END;
+			END;
+			IF display # NIL THEN
+				w := display.width; h := display.height
+			ELSE
+				w := 1024; h := 768
+			END;
+END GetDisplayDimensions;
+			
+			
 PROCEDURE Install*;
 BEGIN
+	UsbHidDriver.InstallDisplayDimensions(GetDisplayDimensions);
 END Install;
 
 VAR installed-: BOOLEAN;
 
 BEGIN
+	display := NIL; 
 	installed := FALSE;
+	Install;
 	InstallCDT975;
 	InstallUnknown1;
 	Modules.InstallTermHandler(Cleanup);

@@ -36,7 +36,7 @@ TYPE
 	Port* = OBJECT (Serials.Port)
 	VAR
 		 fd: LONGINT;
-		 portname: ARRAY 16 OF CHAR;
+		 portname: ARRAY 128 OF CHAR;
 		 
 		PROCEDURE & Init*( port: LONGINT; CONST name: ARRAY OF CHAR );
 		BEGIN 
@@ -283,7 +283,7 @@ TYPE
 	PROCEDURE Install*();
 	VAR i: LONGINT;
 		port: Port;
-		name, ttyname: ARRAY 16 OF CHAR;
+		name, ttyname: ARRAY 128 OF CHAR;
 	BEGIN
 		FOR i := 0 TO NumberOfPorts - 1 DO
 			name:="COM ";
@@ -296,7 +296,7 @@ TYPE
 	END Install;
 	
 	PROCEDURE Map*(context: Commands.Context);
-	VAR	number: LONGINT; name, ttyname: ARRAY 16 OF CHAR; port: Port;
+	VAR	number: LONGINT; name, ttyname: ARRAY 128 OF CHAR; port: Port;
 	BEGIN
 		IF context.arg.GetInteger(number, FALSE) & context.arg.GetString(ttyname) THEN
 			name := "COM";
