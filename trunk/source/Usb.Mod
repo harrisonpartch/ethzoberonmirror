@@ -296,16 +296,17 @@ TYPE
 			Machine.AtomicInc(nbrOfTopologyEvents);
 		END Register;
 
-		(* Remove this device from the hub it is connected to and remove its driver if installed *)
+		(*  this device from the hub it is connected to and remove its driver if installed *)
 		PROCEDURE Remove*;
-		VAR n : LONGINT;
+		VAR n : LONGINT;device: UsbDevice;
 		BEGIN {EXCLUSIVE}
 			IF hubFlag THEN
 				FOR n := 0 TO nbrOfPorts - 1 DO
 					IF deviceAtPort[n] # NIL THEN
+						device := deviceAtPort[n];
+						deviceAtPort[n] := NIL; (* avoid recursion *)
 						deviceAtPort[n].SetState(StateDisconnected);
 						deviceAtPort[n].Remove;
-						deviceAtPort[n] := NIL;
 						IF parent = SELF THEN (* Root hub: only disable ports on root hubs *) controller.DisablePort(n); END;
 					END;
 				END;

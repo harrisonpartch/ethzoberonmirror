@@ -7,6 +7,7 @@ MODULE UsbHidDriver;  (** AUTHOR "ottigerm"; PURPOSE "USB HID Parser"; *)
  *	Mouse:		2 axis, 1 mouse wheel, up to 32 buttons
  *	Keyboard	incl. consumer keys
  *	Joystick		x, y, z, rx, ry, rz and one slider axis, one coolie hat and arbitrary many buttons
+ *  Touchscreen x,y
  *
  * Usage:
  *	UsbHidDriver.Install ~ load this driver
@@ -46,8 +47,11 @@ CONST
 	MouseSpeed = 50;
 	MouseWheelSpeed = 3;
 	MouseAcceleration = 0;
+	
+	
 
 TYPE
+
 	MouseState = POINTER TO RECORD
 		(* mouse msg can hold up to 32 buttons *)
 		buttons:			ARRAY 32 OF UsbHidReport.UsageTuple;
@@ -403,7 +407,7 @@ TYPE
 	END;
 
 	(*the hid driver*)
-	HidDriver= OBJECT (UsbHid.HidDriver);
+	HidDriver*= OBJECT (UsbHid.HidDriver);
 	VAR
 		(*itemParser is responsible for parsing the usb hid report descriptor*)
 		itemParser 	: HidParser.ItemParser;
@@ -521,6 +525,8 @@ TYPE
 
 			RETURN TRUE;
 		END Connect;
+
+		
 
 		(*called when detaching a usb hid device*)
 		PROCEDURE Disconnect;
@@ -662,6 +668,11 @@ TYPE
 			END;
 		END HandleHidEvent;
 
+		PROCEDURE IsTouchscreen*(): BOOLEAN;
+		BEGIN
+			RETURN touchscreenState # NIL
+		END IsTouchscreen;
+		
 		(**
 		 * Is called by handleHidEvent when mouse device is found
 		 *)
@@ -1513,7 +1524,11 @@ END DefaultDisplayDimensions;
 
 PROCEDURE InstallDisplayDimensions*(poller: DimensionGetter); (* for touchscreen coordinate transformation*)
 BEGIN
-	getDisplayDimensions := poller;
+	IF poller # NIL THEN
+		getDisplayDimensions := poller;
+	ELSE 
+		getDisplayDimensions := DefaultDisplayDimensions;
+	END;
 END InstallDisplayDimensions;
 
 
