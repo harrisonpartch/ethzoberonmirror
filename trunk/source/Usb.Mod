@@ -305,8 +305,8 @@ TYPE
 					IF deviceAtPort[n] # NIL THEN
 						device := deviceAtPort[n];
 						deviceAtPort[n] := NIL; (* avoid recursion *)
-						deviceAtPort[n].SetState(StateDisconnected);
-						deviceAtPort[n].Remove;
+						device.SetState(StateDisconnected);
+						device.Remove;
 						IF parent = SELF THEN (* Root hub: only disable ports on root hubs *) controller.DisablePort(n); END;
 					END;
 				END;
