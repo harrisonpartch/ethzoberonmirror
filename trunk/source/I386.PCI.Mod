@@ -48,6 +48,8 @@ MODULE PCI;	(** non-portable *)
 			DataBufferAdr: LONGINT
 		END;
 
+		Pci* = RECORD bus*, device*, function*: LONGINT END;
+
 	VAR
 		Bios32Def: RECORD
 			sig: ARRAY 4 OF CHAR;
@@ -478,6 +480,34 @@ BEGIN
 		KernelLog.Enter; KernelLog.String("PCI: Not available (Disabled by user)."); KernelLog.Exit;
 	END;
 END Show;
+
+	PROCEDURE StartIterate*(VAR pci: Pci);
+	BEGIN pci.bus := 0; pci.device := 0; pci.function := 0
+	END StartIterate;
+
+	PROCEDURE Iterate*(VAR pci: Pci): BOOLEAN;
+	VAR hdrType,res: LONGINT; multifunction: BOOLEAN;
+	BEGIN
+		IF pci.function = 0 THEN
+			(* check if multi-function device *)
+			res := ReadConfigDword(pci.bus, pci.device, pci.function, 0CH, hdrType);
+			multifunction := 23 IN SYSTEM.VAL(SET, hdrType);
+		ELSE multifunction := TRUE
+		END;
+		INC(pci.function);
+		
+		IF ~multifunction OR (pci.function >= 8) THEN
+			pci.function := 0;
+			INC(pci.device);
+			IF pci.device >= 32 THEN
+				pci.device := 0;
+				INC(pci.bus);
+				IF pci.bus > 255 THEN RETURN FALSE END;
+			END;
+		END;
+		RETURN TRUE
+	END Iterate;
+
 
 PROCEDURE PCIDisabled() : BOOLEAN;
 VAR string : ARRAY 2 OF CHAR;

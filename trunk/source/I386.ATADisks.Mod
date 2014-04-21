@@ -2241,6 +2241,24 @@ BEGIN
 	END;
 END ScanPCIClass;
 
+PROCEDURE ScanIterate;
+VAR pci: PCI.Pci; res,r0,r8,class: LONGINT;
+BEGIN
+	PCI.StartIterate(pci);
+	WHILE PCI.Iterate(pci) DO
+	 	res := PCI.ReadConfigDword(pci.bus, pci.device, pci.function, 0, r0);
+		IF r0 # LONGINT(0FFFFFFFFH) THEN
+			res := PCI.ReadConfigDword(pci.bus, pci.device, pci.function, 8, r8);
+			class := r8 DIV 100H MOD 1000000H;
+			IF (class DIV 10000H = 01H) (* mass storage *)
+				(*(class >= 010100H) & (class <= 0101FFH) OR (class >= 010600H) & (class <= 0106FFH)
+				OR (class >= 010400H) & (class <= 0104FFH) OR (class >= 018000H) & (class <= 0180FFH) *) THEN
+				IdentifyController(pci.bus, pci.device, pci.function);
+			END
+		END;
+	END;
+END ScanIterate;
+
 PROCEDURE IdentifyControllers;
 VAR
 	class: LONGINT;
@@ -2280,6 +2298,8 @@ BEGIN
 		NEW(c, 170H, 370H, 0, 15);
 		AddController(c);
 	ELSIF ~ParseConfigString(str) THEN
+		ScanIterate; (* much faster *)
+		(*
 		Show("Scanning PCI bus for IDE & SATA class devices ..."); KernelLog.Ln;
 		FOR class := 010100H TO 0101FFH DO ScanPCIClass(class); END;	(* IDE *)
 		FOR class := 010600H TO 0106FFH DO ScanPCIClass(class); END;	(* SATA *)
@@ -2291,6 +2311,7 @@ BEGIN
 			Show("Scanning PCI bus for PCI mass storage class devices..."); KernelLog.Ln;
 			FOR class := 018000H TO 0180FFH DO ScanPCIClass(class); END;	(* Mass Storage *)
 		END;
+		*)
 	END;
 END IdentifyControllers;
 
