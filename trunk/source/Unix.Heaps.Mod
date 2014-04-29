@@ -28,7 +28,7 @@ CONST
 	
 	MaxMarkDepth = 8000;
 
-	ThruputBarrier = Machine.MemBlockSize DIV 4 * 3;
+	ThruputBarrier = Machine.MemBlockSize * 2;
 
 	(* ----------------- object finalization ------------------------------*)
 
@@ -1056,7 +1056,7 @@ VAR
 		ClearFreeLists;
 		freeLists[MaxFreeLists].first := S.VAL( FreeBlock, block );
 		
-		Machine.ExpandHeap( 0, 2*Machine.MemBlockSize - BlockSize, S.VAL( ADDRESS, frBlock ), adr2 );
+		Machine.ExpandHeap( 0, 4*Machine.MemBlockSize - 2*BlockSize, S.VAL( ADDRESS, frBlock ), adr2 );
 		IF frBlock # NIL  THEN  freeLists[MaxFreeLists].first.next := frBlock  END;
 
 		heapSize := GetHeapSize();

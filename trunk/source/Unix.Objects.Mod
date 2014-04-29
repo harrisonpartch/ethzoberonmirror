@@ -51,7 +51,7 @@ VAR
 	createProcess	: Unix.Mutex_t;
 	startProcess	: Unix.Mutex_t;
 	childrunning		: Unix.Condition_t;
-	
+		
 	newProcess: Process;
 	nextPID: LONGINT;
 	
@@ -161,16 +161,15 @@ TYPE
 		n: Heaps.FinalizerNode;  start: BOOLEAN;
 	
 		PROCEDURE Start;
-		BEGIN {EXCLUSIVE}
+		BEGIN 
 			start := TRUE
 		END Start;
 		
 	BEGIN {ACTIVE, SAFE, PRIORITY(High)}
 		finCaller := CurrentProcess( );  start := FALSE;
 		LOOP 
-			BEGIN {EXCLUSIVE}
-				AWAIT( start );  start := FALSE;
-			END;
+			REPEAT Sleep( 50 ) UNTIL start;
+			start := FALSE;
 			LOOP
 				n := Heaps.GetFinalizer();
 				IF n = NIL THEN EXIT END;
@@ -179,7 +178,7 @@ TYPE
 				END;
 				IF n.finalizer # NIL THEN
 					n.finalizer(n.objStrong)	(* may acquire locks *)
-				END
+				END;
 			END;
 			Machine.Release( Machine.GC )
 		END
@@ -675,15 +674,11 @@ TYPE
 	
 	PROCEDURE CollectGarbage;
 	BEGIN
-		Machine.Acquire( Machine.X11 );
 		Machine.Acquire( Machine.Heaps );
 		SuspendActivities;
 		Heaps.CollectGarbage( Modules.root );
 		Machine.Release( Machine.Heaps );
-		Machine.Release( Machine.X11 );
-		
-		finalizerCaller.Start;
-		thrSleep( 2 );	(* advance the finalizerCaller without having priority *)	
+		finalizerCaller.Start;	
 		ResumeActivities;
 	END CollectGarbage;
 	
@@ -787,7 +782,7 @@ TYPE
 		
 		createProcess := mtxInit( 0 );  processList := mtxInit( 0 );
 		startProcess := mtxInit(0);  childrunning := conInit(0); 
-		
+				
 		collect := FALSE;
 		igc := mtxInit( 0 );  gcFinished := conInit( 0 ); 
 							

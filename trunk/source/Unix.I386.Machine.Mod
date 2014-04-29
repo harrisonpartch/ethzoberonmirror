@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5500)";
+	Version = "Aos (rev.5541)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -19,7 +19,7 @@ CONST
 	SizeSize = SIZEOF( SIZE );
 	
 	BlockSize = 32;
-	MemBlockSize* = 64*1024*1024;
+	MemBlockSize* = 32*1024*1024;
 	
 	TraceOutput* = 0;	(* Trace output *)
 	Memory* = 1;		(*!  Virtual memory management, stack and page allocation,  not used in UnixAos *)
@@ -67,14 +67,14 @@ VAR
 	
 	features-, features2 : SET;
 	MMXSupport-	: BOOLEAN;
-	SSESupport-	: BOOLEAN;
+	SSESupport-		: BOOLEAN;
 	SSE2Support-	: BOOLEAN;
 	SSE3Support-	: BOOLEAN;
 	SSSE3Support-	: BOOLEAN;
 	SSE41Support-	: BOOLEAN;
 	SSE42Support-	: BOOLEAN;
 	SSE5Support-	: BOOLEAN;
-	AVXSupport-	: BOOLEAN;
+	AVXSupport-		: BOOLEAN;
 	
 	ticks*: LONGINT;	(** timer ticks. Use Kernel.GetTicks() to read, don't write *)
 	
@@ -93,17 +93,17 @@ VAR
 	
 	thrInitialize	: PROCEDURE {REALTIME, C} ( VAR low, high: LONGINT ): BOOLEAN;
 	
-	mtxInit-	: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Mutex_t;
+	mtxInit-		: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Mutex_t;
 	mtxDestroy	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
-	mtxLock	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
+	mtxLock		: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
 	mtxUnlock	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
 	
-	conInit-	: PROCEDURE {REALTIME, C}  ( dummy: LONGINT ): Unix.Condition_t;
+	conInit-		: PROCEDURE {REALTIME, C}  ( dummy: LONGINT ): Unix.Condition_t;
 	conDestroy	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
-	conWait	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t;  mtx: Unix.Mutex_t );
+	conWait		: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t;  mtx: Unix.Mutex_t );
 	conSignal	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
 	
-	thrSleep-	: PROCEDURE {REALTIME, C} ( ms: LONGINT );
+	thrSleep-		: PROCEDURE {REALTIME, C} ( ms: LONGINT );
 	thrThis-		: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Thread_t;
 	
 	saveSP*	: PROCEDURE;		(* save SP for usage by GC *)
@@ -126,7 +126,7 @@ VAR
 	BEGIN
 		cur := memBlockHead;
 		prev := NIL;
-		WHILE (cur # NIL) & LessThan( cur.startAdr, memBlock.startAdr ) DO
+		WHILE (cur # NIL) & (cur.startAdr < memBlock.startAdr) DO
 			prev := cur;
 			cur := cur.next
 		END;
@@ -174,8 +174,8 @@ VAR
 	PROCEDURE ExpandHeap*( dummy: LONGINT; size: SIZE; VAR beginBlockAdr, endBlockAdr: ADDRESS );
 	VAR mBlock: MemoryBlock;  alloc, s: SIZE;  a, adr: ADDRESS; 
 	BEGIN 
-		IF size < (MemBlockSize - BlockSize)  THEN  alloc := MemBlockSize  
-		ELSE  alloc := size + BlockSize;
+		IF size < (MemBlockSize - (2*BlockSize))  THEN  alloc := MemBlockSize  
+		ELSE  alloc := size + (2*BlockSize);
 		END;  
 		INC( alloc, (-alloc) MOD Unix.PageSize );
 		
@@ -196,7 +196,7 @@ VAR
 			
 			ASSERT( (mBlock.beginBlockAdr + AddrSize) MOD BlockSize = 0 );  
 
-			s := adr + alloc - mBlock.beginBlockAdr; 
+			s := adr + alloc - mBlock.beginBlockAdr - BlockSize; 
 			DEC( s, s MOD BlockSize );  
 			ASSERT( s >= size );  
 			mBlock.endBlockAdr := mBlock.beginBlockAdr + s; 
@@ -238,6 +238,7 @@ VAR
 		highFree := 0
 	END GetFreeK;
 
+
 (* Compare two unsigned addresses *)
 PROCEDURE {REALTIME} -LessThan* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
@@ -270,6 +271,7 @@ CODE {SYSTEM.i386}
 	CMP EAX, EBX
 	SETAE AL
 END GreaterOrEqual;
+
 
 (** Fill "size" bytes at "destAdr" with "filler". "size" must be multiple of 4. *)
 PROCEDURE {REALTIME} Fill32* (destAdr: ADDRESS; size: SIZE; filler: LONGINT);
@@ -470,7 +472,7 @@ VAR mb: MemoryBlock;
 BEGIN
 	mb := memBlockHead;  
 	WHILE mb # NIL DO
-		IF GreaterOrEqual( p, mb.beginBlockAdr ) & LessOrEqual( p, mb.endBlockAdr ) THEN  RETURN TRUE  END;  
+		IF (p >= mb.beginBlockAdr) & (p <= mb.endBlockAdr) THEN  RETURN TRUE  END;  
 		mb := mb.next;  
 	END;  
 	RETURN FALSE  
@@ -489,7 +491,7 @@ END Is32BitAddress;
 (** -- Atomic operations -- *)
 
 (** Atomic INC(x). *)
-PROCEDURE -AtomicInc*(VAR 	x: LONGINT);
+PROCEDURE -AtomicInc*(VAR x: LONGINT);
 CODE {SYSTEM.i386}
 	POP EAX
 	LOCK
