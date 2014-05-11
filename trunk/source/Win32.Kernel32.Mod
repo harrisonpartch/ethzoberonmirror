@@ -20,7 +20,7 @@ CONST
 	GenericWrite* = 30;  GenericRead* = 31;
 
 	(** file sharing *)
-	FileShareRead* = 0;  FileShareWrite* = 1;
+	FileShareRead* = 0;  FileShareWrite* = 1; FileShareDelete*=2;
 
 	(** file creation *)
 	CreateAlways* = 2;  OpenExisting* = 3;

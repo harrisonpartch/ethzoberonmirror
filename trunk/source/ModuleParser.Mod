@@ -763,6 +763,7 @@ TYPE
 				NEW(fpSection.identList, fpSection);
 				NEW(fpSection.identList.identDef);
 				IdentDefP(fpSection.identList.identDef);
+				SysFlag;
 				(*
 				fpSection.identList.ident.name := Strings.NewString(name);
 				fpSection.identList.ident.pos := symbol.start;

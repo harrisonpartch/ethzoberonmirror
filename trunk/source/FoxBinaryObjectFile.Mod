@@ -1736,12 +1736,16 @@ TYPE
 				procedureType := procedure.type(SyntaxTree.ProcedureType);
 				variable := procedure.procedureScope.firstVariable;
 				WHILE(variable # NIL) DO
-					OutPointers(variable.offsetInBits DIV 8,variable.type,numberPointers);
+					IF ~(variable.untraced) THEN
+						OutPointers(variable.offsetInBits DIV 8,variable.type,numberPointers);
+					END;
 					variable := variable.nextVariable
 				END;
 				parameter := procedureType.firstParameter;
 				WHILE(parameter # NIL) DO
-					OutPointers(parameter.offsetInBits DIV 8,parameter.type,numberPointers);
+					IF ~(parameter.untraced) THEN
+						OutPointers(parameter.offsetInBits DIV 8,parameter.type,numberPointers);
+					END;
 					parameter := parameter.nextParameter;
 				END;
 				(*

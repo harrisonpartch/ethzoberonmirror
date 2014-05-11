@@ -42,6 +42,7 @@ CONST
 	(* 13-..: Floopy *)
 
 	IOCTL_DISK_GET_DRIVE_GEOMETRY = 00070000H;  VOLUME_GET_VOLUME_DISK_EXTENTS = 00560000H;
+	FSCTL_LOCK_VOLUME = 90018H; FSCTL_UNLOCK_VOLUME = 9001CH; FSCTL_DISMOUNT_VOLUME = 90020H;
 
 TYPE
 
@@ -67,6 +68,8 @@ TYPE
 
 			large.LowPart := poslow;  large.HighPart := poshigh;
 
+			IF ~LockVolume(handle) THEN END;
+			
 			bool := SetFilePointer( handle, poslow, poshigh, Kernel32.FileBegin );
 			IF bool = -1 THEN res := BlockNumberInvalid;  HALT( 101 );  RETURN;  END;
 
@@ -93,6 +96,8 @@ TYPE
 				END;
 			ELSE res := Disks.Unsupported;
 			END;
+			
+			IF ~UnlockVolume(handle) THEN END;
 
 			IF Disks.Stats THEN
 				IF op = Disks.Read THEN
@@ -223,6 +228,31 @@ VAR
 	BEGIN
 		done := DeviceIoControl( handle, IOCTL_DISK_GET_DRIVE_GEOMETRY, NIL , 0, pdg, SIZEOF( DISK_GEOMETRY ), returned, NIL );  RETURN done > 0;
 	END GetDiskGeometry;
+	
+	(* lock, unlock and dismount only works on volumes specified as "X:". It does not work with PhysicalDrive.
+	
+	 *)
+	PROCEDURE LockVolume(handle: Kernel32.HANDLE): BOOLEAN;
+	VAR done,returned: LONGINT;
+	BEGIN
+		done := DeviceIoControl(handle, FSCTL_LOCK_VOLUME, NIL,0, NIL, 0, returned, NIL); 
+		RETURN done > 0;
+	END LockVolume;
+	
+	PROCEDURE UnlockVolume(handle: Kernel32.HANDLE): BOOLEAN;
+	VAR done,returned: LONGINT;
+	BEGIN
+		done := DeviceIoControl(handle, FSCTL_UNLOCK_VOLUME, NIL,0, NIL, 0, returned, NIL); 
+		RETURN done > 0;
+	END UnlockVolume;
+	
+	PROCEDURE DismountVolume(handle: Kernel32.HANDLE): BOOLEAN;
+	VAR done,returned: LONGINT;
+	BEGIN
+		done := DeviceIoControl(handle, FSCTL_DISMOUNT_VOLUME, NIL,0, NIL, 0, returned, NIL); 
+		RETURN done > 0;
+	END DismountVolume;
+	
 
 	PROCEDURE AppendInt( VAR name: ARRAY OF CHAR;  i: LONGINT );
 	VAR str: ARRAY 8 OF CHAR;
@@ -234,7 +264,7 @@ VAR
 	VAR devname: ARRAY 256 OF CHAR;  tflags: SET; errorcode : LONGINT;
 	BEGIN
 		Strings.Concat( "\\.\", name, devname );
-		IF Disks.ReadOnly IN flags THEN tflags := {Kernel32.GenericRead} ELSE tflags := {Kernel32.GenericWrite,Kernel32.GenericRead} END;
+		IF Disks.ReadOnly IN flags THEN tflags := {Kernel32.GenericRead} ELSE tflags := {2 (* Kernel32.GenericDelete *), Kernel32.GenericWrite,Kernel32.GenericRead} END;
 		handle := Kernel32.CreateFile( devname, tflags, {Kernel32.FileShareRead, Kernel32.FileShareWrite}, NIL , Kernel32.OpenExisting, {}, Kernel32.NULL );
 		IF (handle = Kernel32.InvalidHandleValue) THEN
 			errorcode := Kernel32.GetLastError();
@@ -307,6 +337,7 @@ VAR
 
 		IF diskname[1] = ":" THEN drive := ORD(CAP(diskname[0]))-ORD("A"); ELSE drive := -1 END;
 		IF OpenVolume( handle, flags, diskname, context) THEN
+			IF DismountVolume(handle) THEN END;
 			GetPhysicalDrive( handle, flags,diskname, context );
 			IF ~GetDiskGeometry( handle, pdg ) THEN
 				Kernel32.CloseHandle( handle );
@@ -384,6 +415,7 @@ where
 - DriveName can be one of "A:" to "Z:" or "PhysicalDriveX" where X has to be replaced by the physical drive number.
 A drive name such as "C:" is matched to a PhysicalDriveX name, if appropriate.
 It is better to use the "X:" format because the system can in general then perform an automatic unregistering if the device is becoming unavailable in Windows.
+- If "PhysicalDriveX" is used to specify the drive, the logical volumes associated with it will not be dismounted, which can mean that write operations are unsuccesful 
 - A volume is inserted read-only unless the optional parameter "RW" is provided.
 
 To access the partitions of the drive you may use the Partition Tool.

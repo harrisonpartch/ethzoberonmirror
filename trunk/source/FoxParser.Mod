@@ -1584,6 +1584,7 @@ TYPE
 			REPEAT
 				name := Identifier(position);
 				parameter := SyntaxTree.NewParameter(position,procedureType,name,kind);
+				IF Optional(Scanner.LeftBrace) THEN parameter.SetModifiers(Flags()) END;
 				procedureType.AddParameter(parameter);
 				IF Optional(Scanner.Equal) THEN
 					parameter.SetDefaultValue(Expression());
