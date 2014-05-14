@@ -594,7 +594,7 @@ END Yield;
 PROCEDURE SwitchToState(new: Process; VAR state: Machine.State);
 BEGIN
 	(* simulate return from SwitchTo - MOV ESP, EBP; POP EBP; RET 8 *)
-	state.SP := new.state.BP+AddressSize*4;	(* AddressSize*4 is effect of POP, RET AddressSize*2 *)
+	state.SP := new.state.BP+AddressSize*2;	(* AddressSize*2 is effect of POP, RET *)
 	SYSTEM.GET (new.state.BP, state.BP);	(* effect of POP *)
 	SYSTEM.GET (new.state.BP + AddressSize, state.PC);	(* effect of RET *)
 END SwitchToState;
@@ -1159,16 +1159,14 @@ BEGIN
 	END;
 	SYSTEM.PUT (sp-1*AddressSize, obj); (* self parameter for body *)
 	SYSTEM.PUT (sp-2*AddressSize, terminate); (* return address for body *)
-		(* the following will be popped by SwitchTo exit code or Machine.JumpToUserLevel *)
-	(*SYSTEM.PUT (sp-3*AddressSize, NIL);*)	(* parameter for SwitchTo (ADR(running)) *)
-	(*SYSTEM.PUT (sp-4*AddressSize, NIL);*)	(* parameter for SwitchTo (new) *)
-	SYSTEM.PUT (sp-5*AddressSize, body); (* return address for SwitchTo (body entry point) *)
-	SYSTEM.PUT (sp-6*AddressSize, NIL);	(* end of dynamic link list (FP value at entry to body) *)
+	(* the following will be popped by SwitchTo exit code or Machine.JumpToUserLevel *)
+	SYSTEM.PUT (sp-3*AddressSize, body); (* return address for SwitchTo (body entry point) *)
+	SYSTEM.PUT (sp-4*AddressSize, NIL);	(* end of dynamic link list (FP value at entry to body) *)
 	t.sseAdr := ADDRESSOF(t.sse) + ((-ADDRESSOF(t.sse)) MOD 16);
 	IF Machine.SSESupport THEN Machine.SSESaveMin(t.sseAdr)
 	ELSE Machine.FPUSaveMin(t.sse)	(* inherit FPU state of caller *)
 	END;
-	t.state.BP := sp-6*AddressSize;
+	t.state.BP := sp-4*AddressSize;
 	t.state.SP := t.state.BP;
 	t.state.PC := 0; (* indicating that process is not running yet *)
 	(* set up exception handling *)

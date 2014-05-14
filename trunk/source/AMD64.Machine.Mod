@@ -2279,7 +2279,7 @@ L1:
 	IRETQ	; switch to level 3 and continue at following instruction
 L2:
 	POP RBP	; from level 3 stack (refer to AosActive.NewProcess)
-	RET 16	; jump to body of first active object; cf. Objects.NewProcess
+	RET	; jump to body of first active object; cf. Objects.NewProcess
 END JumpToUserLevel;
 
 (* should ensure that a given address can be represented in the legacy 4GB address space
@@ -2636,15 +2636,11 @@ entry:
 loop:	; call all handlers for the interrupt
 	MOV RCX, RSP
 	PUSH RAX	; save ptr for table
+	PUSH QWORD [RAX + 12]	; delegate
 	PUSH RDX	; TAG(state)
 	PUSH RCX	; ADR(state)
-	MOV RBX, [RAX + 12]	; check for delegate
-	CMP RBX, 0
-	JE nodelegate
-	PUSH RBX	; object pointer for DELEGATE
-
-nodelegate:
 	CALL QWORD [RAX+4]	; call handler
+	ADD RSP, 24
 	CLI	; handler may have re-enabled interrupts
 	POP RAX
 	ADD RAX, SizeOfHandlerRec
@@ -2719,15 +2715,11 @@ entry:
 loop:	; call all handlers for the interrupt
 	MOV RCX, RSP
 	PUSH RAX	; save ptr for linked list
+	PUSH QWORD [RAX + 12]	; delegate
 	PUSH RDX	; TAG(state)
 	PUSH RCX	; ADR(state)
-	MOV RBX, [RAX + 12]	; check for delegate
-	CMP RBX, 0
-	JE nodelegate
-	PUSH RBX	; object pointer for DELEGATE
-
-nodelegate:
 	CALL QWORD [RAX + 4]	; call handler
+	ADD RSP, 24
 	CLI	; handler may have re-enabled interrupts
 	POP RAX
 	ADD RAX, SizeOfHandlerRec

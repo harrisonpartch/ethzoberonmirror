@@ -2272,7 +2272,7 @@ L1:
 	IRETD					; switch to level 3 and continue at following instruction
 L2:
 	POP EBP				; from level 3 stack (refer to Objects.NewProcess)
-	RET 8					; jump to body of first active object
+	RET					; jump to body of first active object
 END JumpToUserLevel;
 
 PROCEDURE Ensure32BitAddress*(adr: ADDRESS): LONGINT;
@@ -2639,14 +2639,11 @@ entry:
 loop:					; call all handlers for the interrupt
 	MOV ECX, ESP
 	PUSH EAX			; save ptr for table
+	PUSH DWORD [EAX+8]	; delegate
 	PUSH stateTag		; TAG(state)
 	PUSH ECX			; ADR(state)
-	MOV EBX, [EAX+8]
-	CMP EBX, 0
-	JE nodelegate
-	PUSH EBX			; object pointer for DELEGATE
-nodelegate:
 	CALL DWORD [EAX+4]	; call handler
+	ADD ESP, 12
 	CLI					; handler may have re-enabled interrupts
 	POP EAX
 	ADD EAX, 12
@@ -2697,14 +2694,11 @@ skip2:
 loop:					; call all handlers for the interrupt
 	MOV ECX, ESP
 	PUSH EAX			; save ptr for linked list
+	PUSH DWORD [EAX+8]	; delegate
 	PUSH stateTag		; TAG(state)
 	PUSH ECX			; ADR(state)
-	MOV EBX, [EAX+8]
-	CMP EBX, 0
-	JE nodelegate
-	PUSH EBX			; object pointer for DELEGATE
-nodelegate:
 	CALL DWORD [EAX+4]	; call handler
+	ADD ESP, 12
 	CLI					; handler may have re-enabled interrupts
 	POP EAX
 	ADD EAX, 12

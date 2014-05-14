@@ -1327,15 +1327,8 @@ TYPE
 		END EmitLeave;
 
 		PROCEDURE EmitExit(CONST instruction: IntermediateCode.Instruction);
-		VAR parSize: LONGINT; operand: Assembler.Operand;
 		BEGIN
-			parSize := SHORT(instruction.op1.intValue);
-			IF parSize = 0 THEN
-				emitter.Emit0(InstructionSet.opRET)
-			ELSE
-				operand := Assembler.NewImm16(instruction.op1.intValue );
-				emitter.Emit1(InstructionSet.opRET,operand)
-			END;
+			emitter.Emit0(InstructionSet.opRET);
 			IF fpStackPointer # 0 THEN Error(instruction.textPosition,"compiler implementation error: fp stack not cleared") END;
 		END EmitExit;
 
@@ -1859,7 +1852,7 @@ TYPE
 		END EmitResultFPU;
 
 		PROCEDURE EmitCall(CONST instruction: IntermediateCode.Instruction);
-		VAR fixup: Sections.Section;  target: Assembler.Operand; op: Assembler.Operand;
+		VAR fixup: Sections.Section;  target, op, parSize: Assembler.Operand;
 			code: SyntaxTree.Code; emitterFixup,newFixup: BinaryCode.Fixup; resolved: BinaryCode.Section; pc: LONGINT;
 		BEGIN
 			IF fpStackPointer # 0 THEN Error(instruction.textPosition,"compiler implementation error: fp stack not cleared before call") END;
@@ -1882,10 +1875,14 @@ TYPE
 					Assembler.InitOffset32(target,instruction.op1.intValue);
 					Assembler.SetSymbol(target,instruction.op1.symbol.name,instruction.op1.symbol.fingerprint,instruction.op1.offset,0);
 					emitter.Emit1(InstructionSet.opCALL,target);
+					Assembler.InitOffset32(parSize,instruction.op2.intValue);
+					IF parSize.val # 0 THEN emitter.Emit2(InstructionSet.opADD,opSP,parSize) END;
 				END;
 			ELSE
 				MakeOperand(instruction.op1,Low,op,NIL);
 				emitter.Emit1(InstructionSet.opCALL,op);
+				Assembler.InitOffset32(parSize,instruction.op2.intValue);
+				IF parSize.val # 0 THEN emitter.Emit2(InstructionSet.opADD,opSP,parSize) END;
 			END;
 		END EmitCall;
 

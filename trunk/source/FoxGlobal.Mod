@@ -358,7 +358,7 @@ TYPE
 			ELSE
 				offset := SELF.offsetFirstParameter;
 			END;
-			IF nestedProcedure OR (procedureType.isDelegate) THEN
+			IF nestedProcedure THEN
 				INC(offset,addressSize); (* parameter offset of static link *) (*! check alternative: add hidden parameter *)
 			END;
 
@@ -390,6 +390,9 @@ TYPE
 					INC(offset,size);
 					parameter := parameter.nextParameter;
 				END;
+			END;
+			IF (procedureType.isDelegate) THEN
+				INC(offset,addressSize); (* parameter offset of delegate *)
 			END;
 			procedureType.SetParameterOffset(offset);
 			RETURN TRUE

@@ -660,7 +660,7 @@ BEGIN
 	log.Exit;
 END LogResponseHeader;
 
-PROCEDURE WriteRequestLine*(VAR s: Streams.Writer; maj, min : LONGINT; method : LONGINT; uri, host : ARRAY OF CHAR);
+PROCEDURE WriteRequestLine*(s: Streams.Writer; maj, min : LONGINT; method : LONGINT; uri, host : ARRAY OF CHAR);
 VAR name: ARRAY 32 OF CHAR;
 BEGIN
 	GetMethodName(method, name);
@@ -670,6 +670,7 @@ BEGIN
 	s.Ln();
 	IF host # "" THEN s.String("Host: "); s.String(host); s.Ln() END
 END WriteRequestLine;
+
 
 PROCEDURE GetReasonPhrase*(code: LONGINT; VAR phrase: ARRAY OF CHAR);
 BEGIN
@@ -801,44 +802,45 @@ BEGIN
 END GetPath;
 
 PROCEDURE SplitHTTPAdr*(url : ARRAY OF CHAR; VAR host, path: ARRAY OF CHAR; VAR port: LONGINT): BOOLEAN;
-VAR i, j : LONGINT;
+VAR i, j, dotpos : LONGINT;
 BEGIN
-	port := 80;
+	(*assuming HTTP or HTTPS*)
 	IF LEN(url) < 7 THEN RETURN FALSE END;
-
-	IF (url[4] = ":") & (url[5] = "/") & (url[6] = "/") THEN
-		(* get host *)
-		i := 7; j := 0;
-		WHILE (url[i] # ":") & (url[i] # "/") & (url[i] # 0X) DO
-			IF j < LEN(host) - 1 THEN host[j] := url[i] ELSE RETURN FALSE END;
-			 INC(i); INC(j);
-			 IF i = LEN(url) THEN RETURN FALSE END
-		END;
-		host[j] := 0X;
-		(* get port *)
-		IF url[i] = ":" THEN
-			port := 0;
-			INC(i);
-			WHILE (i < LEN(url)) & (ORD(url[i]) >= ORD("0")) & (ORD(url[i]) <= ORD("9"))  DO
-				port := port * 10 + (ORD(url[i]) - ORD("0"));
-				INC(i)
-			END
-		END;
-
-		j := 0;
-		WHILE (i < LEN(url)) & (url[i] # 0X) DO
-			IF j < LEN(host) - 1 THEN path[j] := url[i] ELSE RETURN FALSE END;
-			 INC(i); INC(j);
-			 IF i = LEN(url) THEN RETURN FALSE END
-		END;
-		path[j] := 0X;
-		RETURN TRUE
+	
+	IF (url[4] = ":") & (url[5] = "/") & (url[6] = "/") THEN dotpos:=4; port:=HTTPPort;
+	ELSIF (url[5] = ":") & (url[6] = "/") & (url[7] = "/") THEN dotpos:=5; port:=HTTPSPort;
 	ELSE RETURN FALSE
-	END
+	END;
+	
+	(* get host *)
+	i := dotpos+3; j := 0;
+	WHILE (url[i] # ":") & (url[i] # "/") & (url[i] # 0X) DO
+		IF j < LEN(host) - 1 THEN host[j] := url[i] ELSE RETURN FALSE END;
+		 INC(i); INC(j);
+		 IF i = LEN(url) THEN RETURN FALSE END
+	END;
+	host[j] := 0X;
+	(* get port *)
+	IF url[i] = ":" THEN
+		port := 0;
+		INC(i);
+		WHILE (i < LEN(url)) & (ORD(url[i]) >= ORD("0")) & (ORD(url[i]) <= ORD("9"))  DO
+			port := port * 10 + (ORD(url[i]) - ORD("0"));
+			INC(i)
+		END
+	END;
+	j := 0;
+	WHILE (i < LEN(url)) & (url[i] # 0X) DO
+		IF j < LEN(host) - 1 THEN path[j] := url[i] ELSE RETURN FALSE END;
+		 INC(i); INC(j);
+		 IF i = LEN(url) THEN RETURN FALSE END
+	END;
+	path[j] := 0X;
+	RETURN TRUE
 END SplitHTTPAdr;
 
 END WebHTTP.
 
 
 
-System.Free WebHTTP~
+SystemTools.FreeDownTo WebHTTP~

@@ -21,6 +21,7 @@ CONST
 
 	Log = FALSE;
 
+
 TYPE
 	Name* = ARRAY 64 OF CHAR;
 
@@ -334,6 +335,7 @@ TYPE
 		REPEAT
 			Objects.SetTimeout(timeout, HandleTimeout, Timeout);
 			WebHTTP.ParseRequest(in, request, res, log);
+			IF Log THEN WebHTTP.LogRequestHeader(log,request) END;
 			Objects.CancelTimeout(timeout);
 			IF (client.state = TCP.Established) THEN
 				IF (Strings.Pos("hunked", request.transferencoding) > 0) THEN
@@ -711,6 +713,7 @@ FREE THE SERVER
 SystemTools.Free WebHTTPServerTools WebDefaultSSMP WebSSMPPlugin WebHTTPServer  WebHTTP~
 
 System.State WebHTTPServer~
+SystemTools.FreeDownTo WebHTTPServer ~
 
 FILES
 TFLog.Mod WebHTTP.Mod WebSSMPPlugin.Mod WebDefaultSSMP.Mod WebHTTPServer.Mod WebWormWatch.Mod public.form.html public.info.ssmp~

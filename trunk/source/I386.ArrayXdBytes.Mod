@@ -794,6 +794,7 @@ TYPE
 		CODE {SYSTEM.i386}
 			PUSH	[EBP+adr]	;
 			CALL	[EBP+calladr]	;
+			ADD	ESP, 4
 		END PushAdrAndCall;
 
 	BEGIN
@@ -814,6 +815,7 @@ TYPE
 			PUSH	[EBP+src]	;
 			PUSH	[EBP+dest]
 			CALL	[EBP+calladr]	;
+			ADD	ESP, 8
 		END PushAdrAndCall2;
 
 	BEGIN
@@ -833,6 +835,7 @@ TYPE
 			PUSH	[EBP+right]	;
 			PUSH	[EBP+dest]	;
 			CALL	[EBP+calladr]	;
+			ADD	ESP, 12
 		END PushAdrAndCall3;
 
 	BEGIN

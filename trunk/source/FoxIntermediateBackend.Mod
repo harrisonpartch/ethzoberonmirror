@@ -424,7 +424,6 @@ TYPE
 			procedureType: SyntaxTree.ProcedureType;
 			pc: LONGINT;
 			stackSize: LONGINT;
-			parSize: LONGINT;
 			name: Basic.SegmentedName; ir: IntermediateCode.Section;
 			null,size,src,dest,fp: IntermediateCode.Operand;
 			cc: LONGINT;
@@ -533,11 +532,6 @@ TYPE
 			END;
 
 			cc := procedureType.callingConvention;
-			IF cc = SyntaxTree.CCallingConvention THEN
-				parSize := 0
-			ELSE
-				parSize := ProcedureParametersSize(system,x);
-			END;
 
 			IF scope.body # NIL THEN
 				IF implementationVisitor.emitLabels THEN ir.Emit(LabelInstruction(scope.body.position)) END;
@@ -575,9 +569,6 @@ TYPE
 								INC(registerNumber);
 								formalParameter := formalParameter.prevParameter;
 							END;
-						END;
-						IF (registerNumber < system.registerParameters) & (procedureType.callingConvention # SyntaxTree.CCallingConvention) THEN
-							parSize := system.registerParameters*system.addressSize
 						END;
 					END;
 					ir.EnterValidPAF;
@@ -632,7 +623,7 @@ TYPE
 
 					IF (procedureType.returnType = NIL) OR (scope.body.code # NIL)  THEN
 						ir.Emit(Leave(x.position,cc));
-						ir.Emit(Exit(x.position,parSize, procedureType.pcOffset,cc));
+						ir.Emit(Exit(x.position,procedureType.pcOffset,cc));
 					ELSE
 						ir.Emit(Trap(x.position,ReturnTrap));
 					END
@@ -645,7 +636,7 @@ TYPE
 				IF implementationVisitor.usedRegisters # NIL THEN D.TraceBack END;
 				ir.ExitValidPAF;
 				ir.Emit(Leave(x.position,cc));
-				ir.Emit(Exit(x.position,parSize, procedureType.pcOffset,cc));
+				ir.Emit(Exit(x.position,procedureType.pcOffset,cc));
 			END;
 			Scope(scope);
 			Signature;
@@ -809,7 +800,7 @@ TYPE
 
 			IF hasDynamicOperatorDeclarations THEN
 				implementationVisitor.operatorInitializationCodeSection.Emit(Leave(-1,0));
-				implementationVisitor.operatorInitializationCodeSection.Emit(Exit(-1,0, 0,0));
+				implementationVisitor.operatorInitializationCodeSection.Emit(Exit(-1,0,0));
 			END;
 
 			IF backend.profile THEN
@@ -4188,7 +4179,7 @@ TYPE
 			procedureType: SyntaxTree.ProcedureType;
 			formalParameter: SyntaxTree.Parameter;
 			noPush, end: Label;
-			operand: Operand;
+			operand, returnValue: Operand;
 			reg, size, mem, mask, dest: IntermediateCode.Operand;
 			saved: RegisterEntry;
 			symbol: SyntaxTree.Symbol;
@@ -4393,80 +4384,6 @@ TYPE
 				END;
 			END;
 
-			(* determine if a structured return type is needed *)
-			structuredReturnType := StructuredReturnType(procedureType);
-
-			IF structuredReturnType THEN
-				IF resultDesignator  # NIL THEN
-					d := resultDesignator;
-				ELSE
-					variable := GetTemporaryVariable(procedureType.returnType, FALSE);
-					d := SyntaxTree.NewSymbolDesignator(-1,NIL,variable);
-					d.SetType(variable.type);
-				END;
-				IF (procedureType.returnType.resolved IS SyntaxTree.RecordType) THEN
-					Designate(d,operand);
-					returnTypeSize := system.SizeOf(procedureType.returnType.resolved);
-					size := IntermediateCode.Immediate(addressType,ToMemoryUnits(system,returnTypeSize));
-			 		Emit(Push(position,size));
-			 		Emit(Push(position,operand.op));
-			 		ReleaseOperand(operand);
-				ELSE
-					PushParameter(d,procedureType.returnParameter,procedureType.callingConvention, FALSE, dummy,-1)
-		 		END;
-		 	END;
-
-			firstWriteBackCall := NIL; (* reset write-back call list *)
-
-			IF procedureType.callingConvention # SyntaxTree.OberonCallingConvention THEN
-				passByRegister := system.registerParameters > 0;
-				registerNumber := 0;
-				formalParameter := procedureType.lastParameter;
-				FOR i := parameters.Length() - 1 TO 0 BY -1 DO
-					actualParameter := parameters.GetExpression(i);
-					PrepareParameter(actualParameter, formalParameter);
-					IF passByRegister & (i < system.registerParameters) THEN
-						IF ~PassInRegister(formalParameter) THEN
-							Error(actualParameter.position,"cannot be passed by register")
-						ELSE
-							PushParameter(actualParameter, formalParameter, procedureType.callingConvention, FALSE, dummy,i);
-						END;
-						INC(registerNumber);
-					ELSE
-						PushParameter(actualParameter, formalParameter, procedureType.callingConvention, FALSE, dummy,-1);
-					END;
-					formalParameter := formalParameter.prevParameter;
-				END;
-				IF passByRegister & (registerNumber > 0) THEN
-					stackSize := ToMemoryUnits(system,system.registerParameters*addressType.sizeInBits);
-					Emit(Sub(position,sp,sp,IntermediateCode.Immediate(addressType,stackSize)));
-				END;
-			ELSE
-				hasDynamicOperands := FALSE;
-				formalParameter := procedureType.firstParameter;
-				FOR i := 0 TO parameters.Length() - 1 DO
-					actualParameter := parameters.GetExpression(i);
-
-					IF formalParameter # NIL THEN (* TENTATIVE *)
-						PrepareParameter(actualParameter, formalParameter);
-
-						IF isCallOfDynamicOperator  & IsStrictlyPointerToRecord(formalParameter.type) & (formalParameter.access # SyntaxTree.Hidden) THEN (* TODO: remove hidden parameters *)
-							ASSERT(i < 2);
-							hasDynamicOperands := TRUE;
-							PushParameter(actualParameter, formalParameter, procedureType.callingConvention, TRUE, parameterBackups[i],-1)
-						ELSE
-							IF passByRegister & (registerNumber > 0) THEN
-								stackSize := ToMemoryUnits(system,registerNumber*addressType.sizeInBits);
-								Emit(Sub(position,sp,sp,IntermediateCode.Immediate(addressType,stackSize)));
-							END;
-							passByRegister := FALSE;
-							PushParameter(actualParameter, formalParameter, procedureType.callingConvention, FALSE, dummy,-1);
-						END;
-						formalParameter := formalParameter.nextParameter;
-					END;
-				END;
-			END;
-
 			IF x.left IS SyntaxTree.SupercallDesignator THEN
 				symbol := x.left(SyntaxTree.SupercallDesignator).left(SyntaxTree.SymbolDesignator).symbol;
 			ELSIF x.left IS SyntaxTree.IndexDesignator THEN
@@ -4546,38 +4463,113 @@ TYPE
 			END;
 
 			IF symbol IS SyntaxTree.Procedure THEN
-				IF (symbol.scope IS SyntaxTree.ProcedureScope) THEN (* nested procedure *)
-					GetBaseRegister(reg,currentScope,symbol.scope); (* static link, may be fp or [fp+8] (if nested proc calls itself) *)
-					Emit(Push(position,reg));
-					ReleaseIntermediateOperand(reg);
-				END;
 				IF x.left IS SyntaxTree.SupercallDesignator THEN
 					Emit(Push(position,operand.tag));
 				ELSIF (procedureType.isDelegate) THEN
 					Emit(Push(position,operand.tag));
 				END;
-				parametersSize := ProcedureParametersSize(system,symbol(SyntaxTree.Procedure));
-				ReleaseParameterRegisters();
-				Emit(Call(position,operand.op,parametersSize));
 			ELSIF (symbol IS SyntaxTree.Variable) OR (symbol IS SyntaxTree.Parameter) THEN
-				parametersSize := ParametersSize(system,procedureType,FALSE);
 				IF (procedureType.isDelegate) THEN (* push self pointer only if procedure is a method *)
-					noPush := NewLabel();
-					end := NewLabel();
-					BreqL(noPush,operand.tag,nil);
 					Emit(Push(position,operand.tag));
-					ReleaseParameterRegisters();
-					Emit(Call(position,operand.op,parametersSize));
-					BrL(end); 
-					SetLabel(noPush);
-					Emit(Call(position,operand.op,parametersSize-ToMemoryUnits(system,addressType.sizeInBits)));
-					SetLabel(end);
-				ELSE
-					ReleaseParameterRegisters();
-					Emit(Call(position,operand.op,parametersSize));				
 				END;
 			ELSE HALT(200);
 			END;
+			
+			ReleaseIntermediateOperand(operand.tag);
+			operand.tag := emptyOperand;
+
+			(* determine if a structured return type is needed *)
+			structuredReturnType := StructuredReturnType(procedureType);
+
+			IF structuredReturnType THEN
+				IF resultDesignator  # NIL THEN
+					d := resultDesignator;
+				ELSE
+					variable := GetTemporaryVariable(procedureType.returnType, FALSE);
+					d := SyntaxTree.NewSymbolDesignator(-1,NIL,variable);
+					d.SetType(variable.type);
+				END;
+				IF (procedureType.returnType.resolved IS SyntaxTree.RecordType) THEN
+					Designate(d,returnValue);
+					returnTypeSize := system.SizeOf(procedureType.returnType.resolved);
+					size := IntermediateCode.Immediate(addressType,ToMemoryUnits(system,returnTypeSize));
+			 		Emit(Push(position,size));
+			 		Emit(Push(position,returnValue.op));
+			 		ReleaseOperand(returnValue);
+				ELSE
+					PushParameter(d,procedureType.returnParameter,procedureType.callingConvention, FALSE, dummy,-1)
+		 		END;
+		 	END;
+
+			firstWriteBackCall := NIL; (* reset write-back call list *)
+
+			IF procedureType.callingConvention # SyntaxTree.OberonCallingConvention THEN
+				passByRegister := system.registerParameters > 0;
+				registerNumber := 0;
+				formalParameter := procedureType.lastParameter;
+				FOR i := parameters.Length() - 1 TO 0 BY -1 DO
+					actualParameter := parameters.GetExpression(i);
+					PrepareParameter(actualParameter, formalParameter);
+					IF passByRegister & (i < system.registerParameters) THEN
+						IF ~PassInRegister(formalParameter) THEN
+							Error(actualParameter.position,"cannot be passed by register")
+						ELSE
+							PushParameter(actualParameter, formalParameter, procedureType.callingConvention, FALSE, dummy,i);
+						END;
+						INC(registerNumber);
+					ELSE
+						PushParameter(actualParameter, formalParameter, procedureType.callingConvention, FALSE, dummy,-1);
+					END;
+					formalParameter := formalParameter.prevParameter;
+				END;
+				IF passByRegister & (registerNumber > 0) THEN
+					stackSize := ToMemoryUnits(system,system.registerParameters*addressType.sizeInBits);
+					Emit(Sub(position,sp,sp,IntermediateCode.Immediate(addressType,stackSize)));
+				END;
+			ELSE
+				hasDynamicOperands := FALSE;
+				formalParameter := procedureType.firstParameter;
+				FOR i := 0 TO parameters.Length() - 1 DO
+					actualParameter := parameters.GetExpression(i);
+
+					IF formalParameter # NIL THEN (* TENTATIVE *)
+						PrepareParameter(actualParameter, formalParameter);
+
+						IF isCallOfDynamicOperator  & IsStrictlyPointerToRecord(formalParameter.type) & (formalParameter.access # SyntaxTree.Hidden) THEN (* TODO: remove hidden parameters *)
+							ASSERT(i < 2);
+							hasDynamicOperands := TRUE;
+							PushParameter(actualParameter, formalParameter, procedureType.callingConvention, TRUE, parameterBackups[i],-1)
+						ELSE
+							IF passByRegister & (registerNumber > 0) THEN
+								stackSize := ToMemoryUnits(system,registerNumber*addressType.sizeInBits);
+								Emit(Sub(position,sp,sp,IntermediateCode.Immediate(addressType,stackSize)));
+							END;
+							passByRegister := FALSE;
+							PushParameter(actualParameter, formalParameter, procedureType.callingConvention, FALSE, dummy,-1);
+						END;
+						formalParameter := formalParameter.nextParameter;
+					END;
+				END;
+			END;
+
+			IF symbol IS SyntaxTree.Procedure THEN
+				IF (symbol.scope IS SyntaxTree.ProcedureScope) THEN (* nested procedure *)
+					GetBaseRegister(reg,currentScope,symbol.scope); (* static link, may be fp or [fp+8] (if nested proc calls itself) *)
+					Emit(Push(position,reg));
+					ReleaseIntermediateOperand(reg);
+				END;
+				parametersSize := ProcedureParametersSize(system,symbol(SyntaxTree.Procedure));
+			ELSIF (symbol IS SyntaxTree.Variable) OR (symbol IS SyntaxTree.Parameter) THEN
+				parametersSize := ParametersSize(system,procedureType,FALSE);
+			END;
+			
+			ReleaseParameterRegisters();
+			IF (procedureType.callingConvention = SyntaxTree.WinAPICallingConvention) OR (procedureType.callingConvention = SyntaxTree.CCallingConvention) THEN
+				Emit(Call(position,operand.op,0));
+			ELSE
+				Emit(Call(position,operand.op,parametersSize));
+			END;
+			ReleaseOperand(operand);
 
 			IF procedureType.noReturn THEN
 				Emit(Trap(position,NoReturnTrap));
@@ -4587,7 +4579,6 @@ TYPE
 				return := NewRegisterOperand(IntermediateCode.GetType(system,procedureType.returnType));
 				Emit(Result(position,return));
 			END;
-			ReleaseOperand(operand);
 
 			IF procedureType.callingConvention = SyntaxTree.CCallingConvention THEN
 				IF passByRegister & (registerNumber > 0) & (registerNumber < system.registerParameters) THEN (* allocated space for all registers *)
@@ -4849,7 +4840,7 @@ TYPE
 			IntermediateCode.InitImmediate(reg, IntermediateCode.GetType(system,system.longintType), numberProcedures);
 			profileInit.EmitAt(profileInitPatchPosition,Push(position,reg));
 			profileInit.Emit(Leave(position,0));
-			profileInit.Emit(Exit(position,0, 0,0));
+			profileInit.Emit(Exit(position,0,0));
 		END ProfilerPatchInit;
 
 		(** if operator can be overloaded dynamically, emit code that registers it in the runtime **)
@@ -6056,14 +6047,14 @@ TYPE
 					constructor := GetConstructor(p0.type.resolved(SyntaxTree.PointerType).pointerBase.resolved(SyntaxTree.RecordType));
 					IF constructor # NIL THEN
 						(*! should be unified with ProcedureCallDesignator *)
+						Emit(Push(position,pointer));
+						ReleaseIntermediateOperand(pointer);
 						formalParameter := constructor.type(SyntaxTree.ProcedureType).firstParameter;
 						FOR i := 1 TO x.parameters.Length()-1 DO
 							PushParameter(x.parameters.GetExpression(i), formalParameter,SyntaxTree.OberonCallingConvention, FALSE, dummy,-1);
 							formalParameter := formalParameter.nextParameter;
 						END;
 						(* static call of the constructor *)
-						Emit(Push(position,pointer));
-						ReleaseIntermediateOperand(pointer);
 						Global.GetSymbolSegmentedName(constructor,name);
 						ASSERT(~constructor.isInline);
 						IF constructor.scope.ownerModule # module.module THEN
@@ -6803,7 +6794,7 @@ TYPE
 
 		PROCEDURE VisitSelfDesignator(x: SyntaxTree.SelfDesignator);
 		VAR basereg: IntermediateCode.Operand; scope: SyntaxTree.Scope; dest: IntermediateCode.Operand;
-			moduleSection: IntermediateCode.Section; moduleOffset: LONGINT;
+			moduleSection: IntermediateCode.Section; moduleOffset, parametersSize: LONGINT;
 		BEGIN
 			IF Trace THEN TraceEnter("VisitSelfDesignator") END;
 			dest := destination; destination := emptyOperand;
@@ -6827,7 +6818,8 @@ TYPE
 				GetBaseRegister(basereg,currentScope,scope);
 				InitOperand(result,ModeReference);
 				result.op := basereg;
-				IntermediateCode.AddOffset(result.op,ToMemoryUnits(system,2*addressType.sizeInBits));
+				parametersSize := ProcedureParametersSize(system,scope(SyntaxTree.ProcedureScope).ownerProcedure);
+				IntermediateCode.AddOffset(result.op,ToMemoryUnits(system,addressType.sizeInBits)+parametersSize);
 				(* tag must be loaded when dereferencing SELF pointer *)
 			END;
 			destination := dest;
@@ -7869,7 +7861,7 @@ TYPE
 			parameter: SyntaxTree.Parameter;
 			procedure: SyntaxTree.Procedure;
 			procedureType: SyntaxTree.ProcedureType;
-			parSize, returnTypeOffset: LONGINT;
+			returnTypeOffset: LONGINT;
 			delegate: BOOLEAN;
 			map: SymbolMap;
 		BEGIN
@@ -8001,12 +7993,9 @@ TYPE
 				IF locked THEN Lock(FALSE) END;
 				IF profile THEN ProfilerEnterExit(numberProcedures,FALSE) END;
 			END;
-			IF procedureType.callingConvention = SyntaxTree.CCallingConvention THEN parSize := 0
-			ELSE parSize := ProcedureParametersSize(system,procedure);
-			END;
 
 			Emit(Leave(position,procedure.type(SyntaxTree.ProcedureType).callingConvention));
-			Emit(Exit(position,parSize, procedure.type(SyntaxTree.ProcedureType).pcOffset,procedure.type(SyntaxTree.ProcedureType).callingConvention));
+			Emit(Exit(position,procedure.type(SyntaxTree.ProcedureType).pcOffset,procedure.type(SyntaxTree.ProcedureType).callingConvention));
 			IF Trace THEN TraceExit("VisitReturnStatement") END;
 		END VisitReturnStatement;
 
@@ -8087,7 +8076,7 @@ TYPE
 		END StatementSequence;
 
 		PROCEDURE PushSelfPointer;
-		VAR scope: SyntaxTree.Scope;  op: Operand; moduleSection: IntermediateCode.Section; moduleOffset: LONGINT;
+		VAR scope: SyntaxTree.Scope;  op: Operand; moduleSection: IntermediateCode.Section; moduleOffset, parametersSize: LONGINT;
 		BEGIN
 			scope := currentScope;
 			WHILE(scope.outerScope IS SyntaxTree.ProcedureScope) DO
@@ -8104,7 +8093,8 @@ TYPE
 				END;
 			ELSE
 				GetBaseRegister(op.op,currentScope,scope);
-				IntermediateCode.AddOffset(op.op,ToMemoryUnits(system,2*addressType.sizeInBits));
+				parametersSize := ProcedureParametersSize(system,scope(SyntaxTree.ProcedureScope).ownerProcedure);
+				IntermediateCode.AddOffset(op.op,ToMemoryUnits(system,addressType.sizeInBits)+parametersSize);
 				IntermediateCode.MakeMemory(op.op,addressType);
 			END;
 			Emit(Push(position,op.op));
@@ -8146,7 +8136,6 @@ TYPE
 		VAR (*  inline: Sections.CellNet; symbol: SyntaxTree.Symbol; *)
 			in, out: IntermediateCode.Rules; statement: SyntaxTree.Statement; i: LONGINT; operand,par: Operand; str: POINTER TO ARRAY OF CHAR;
 				result, mem: IntermediateCode.Operand; scope: SyntaxTree.Scope; procedureType: SyntaxTree.ProcedureType; return: IntermediateCode.Operand;
-				parSize: LONGINT;
 				procedure: SyntaxTree.Procedure;
 				map: SymbolMap;
 		BEGIN
@@ -8235,10 +8224,7 @@ TYPE
 				IF currentIsInline THEN RETURN END;
 
 				Emit(Leave(position,procedureType(SyntaxTree.ProcedureType).callingConvention));
-				IF procedureType.callingConvention = SyntaxTree.CCallingConvention THEN parSize := 0
-				ELSE parSize := ProcedureParametersSize(system,procedure);
-				END;
-				Emit(Exit(position,parSize, procedureType(SyntaxTree.ProcedureType).pcOffset,procedureType(SyntaxTree.ProcedureType).callingConvention));
+				Emit(Exit(position,procedureType(SyntaxTree.ProcedureType).pcOffset,procedureType(SyntaxTree.ProcedureType).callingConvention));
 				ReleaseIntermediateOperand(return);
 			END;
 
@@ -10299,14 +10285,13 @@ TYPE
 		RETURN instruction
 	END Leave;
 
-	PROCEDURE Exit(position: LONGINT;parSize: LONGINT; pcOffset: LONGINT; callingConvention: LONGINT): IntermediateCode.Instruction;
-	VAR op1, op2, op3: IntermediateCode.Operand;
+	PROCEDURE Exit(position: LONGINT;pcOffset: LONGINT; callingConvention: LONGINT): IntermediateCode.Instruction;
+	VAR op1, op2: IntermediateCode.Operand;
 	VAR instruction: IntermediateCode.Instruction;
 	BEGIN
-		IntermediateCode.InitNumber(op1,parSize);
-		IntermediateCode.InitNumber(op2,pcOffset);
-		IntermediateCode.InitNumber(op3,callingConvention);
-		IntermediateCode.InitInstruction(instruction, position, IntermediateCode.exit,op1,op2,op3);
+		IntermediateCode.InitNumber(op1,pcOffset);
+		IntermediateCode.InitNumber(op2,callingConvention);
+		IntermediateCode.InitInstruction(instruction, position, IntermediateCode.exit,op1,op2,emptyOperand);
 		RETURN instruction
 	END Exit;
 
