@@ -70,16 +70,16 @@ VAR
 	mtxUnlock:	PROCEDURE {REALTIME, C}  ( mtx: Unix.Mutex_t );
 
 	conInit: 		PROCEDURE {REALTIME, C}  ( dummy: LONGINT ): Unix.Condition_t;
-	conDestroy: 	PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
+	conDestroy:	PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
 	conWait: 		PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t;  mtx: Unix.Mutex_t );
 	conSignal: 	PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
 	
 	thrStart: 			PROCEDURE {REALTIME, C} ( p: PROCEDURE;  stackLen: LONGINT ): Unix.Thread_t;
 	thrThis: 			PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Thread_t;
-	thrSleep: 		PROCEDURE {REALTIME, C} ( ms: LONGINT );
+	thrSleep: 			PROCEDURE {REALTIME, C} ( ms: LONGINT );
 	thrYield: 			PROCEDURE {REALTIME, C} ( dummy: LONGINT );
 	thrExit: 			PROCEDURE {REALTIME, C} ( dummy: LONGINT );
-	thrSuspend: 	PROCEDURE {REALTIME, C} ( t: Unix.Thread_t );
+	thrSuspend: 		PROCEDURE {REALTIME, C} ( t: Unix.Thread_t );
 	thrResume: 		PROCEDURE {REALTIME, C} ( t: Unix.Thread_t );
 	thrSetPriority: 	PROCEDURE {REALTIME, C} ( t: Unix.Thread_t;  prio: LONGINT );
 	thrGetPriority: 	PROCEDURE {REALTIME, C} ( t: Unix.Thread_t ): LONGINT;
@@ -197,17 +197,17 @@ TYPE
 		SP-				: ADDRESS;	(* SP value at last NEW *)
 		id-				: LONGINT;
 		body			: Body;
-		mode-			: LONGINT;
+		mode-		: LONGINT;
 		flags-			: SET;
 		priority-		: LONGINT;	(* only effective if Aos is running SUID root *)
 		succ			: Process;   		  	(* in ProcessQueue *)
 		obj-			: ProtectedObject;	(* associated active object *)
-		condition-	: Condition;   		(* awaited process' condition *)
+		condition-	: Condition;   			(* awaited process' condition *)
 		condFP-		: ADDRESS;			(* awaited process' condition's context *)
 		continue		: Unix.Condition_t;	(* gets signaled when condition yields true *)
 		waitingOn-	: ProtectedObject;
-		procID-		: LONGINT;			(* processor ID where running, not used in UnixAos *)
-		state-			: Machine.State;		(* not used in UnixAos! *)
+		procID-		: LONGINT;				(* processor ID where running, not used in UnixAos *)
+		state-			: Machine.State;		(*! not used in UnixAos! *)
 		state0	: ARRAY 2048 OF CHAR;		(* thread state at body start, used for restart after trap *)
 					
 				
@@ -275,6 +275,7 @@ TYPE
 				mtxUnlock( startProcess );
 				RegisterFinalizer( SELF, FinalizeProcess );
 			ELSE 
+				(* first process *)
 				stackBottom := Glue.stackBottom;  
 				SP := Machine.CurrentSP( );
 				threadId := thrThis(0);
@@ -363,8 +364,7 @@ TYPE
 		S.GET( S.VAL( ADDRESS, obj ) + Heaps.HeapBlockOffset, hdr );  c := NIL;
 		IF hdr.awaitingCond.head # NIL THEN  c := FindCondition( hdr.awaitingCond )  END;
 		
-		p := CurrentProcess();  p.succ := NIL;
-		p.condition := cond;  p.condFP := slink;   
+		p := CurrentProcess();  p.succ := NIL;  p.condition := cond;  p.condFP := slink;   
 		p.waitingOn := obj;  p.mode := AwaitingCond;
 		
 		Put( hdr.awaitingCond, p );
@@ -458,7 +458,7 @@ TYPE
 		me := thrThis(0);
 		mtxLock( processList );
 		p := root;
-		WHILE (p # NIL ) & (p.threadId # me) DO  p := p.nextProcess  END;
+		WHILE (p # NIL) & (p.threadId # me) DO  p := p.nextProcess  END;
 		mtxUnlock( processList );
 		RETURN p
 	END CurrentProcess;
@@ -595,7 +595,7 @@ TYPE
 				timers := t.next
 			ELSE
 				p := timers;  x := p.next;
-				WHILE (x # NIL) &(x # t)  DO  p := x;  x := p.next  END;
+				WHILE (x # NIL) & (x # t)  DO  p := x;  x := p.next  END;
 				IF x = t THEN  p.next := t.next  END
 			END;
 			t.next := NIL
@@ -608,7 +608,7 @@ TYPE
 	BEGIN
 		mtxLock( timerListMutex ); 
 		p := NIL;  x := timers;
-		WHILE (x # NIL) &(x.trigger < t.trigger)  DO  p := x;  x := p.next  END;
+		WHILE (x # NIL) & (x.trigger < t.trigger)  DO  p := x;  x := p.next  END;
 		t.next := x;
 		IF p = NIL THEN  timers := t  ELSE   p.next := t  END;
 		mtxUnlock( timerListMutex )
@@ -616,7 +616,7 @@ TYPE
 
 	PROCEDURE SetTimeout*( t: Timer;  h: EventHandler;  ms: LONGINT );
 	BEGIN
-		ASSERT(( t # NIL ) & ( h # NIL ));
+		ASSERT( ( t # NIL) & ( h # NIL) );
 		Remove( t );  
 		IF ms < 1 THEN ms := 1 END;
 		t.trigger := Machine.ticks + ms;  t.handler := h;
@@ -626,7 +626,7 @@ TYPE
 
 	PROCEDURE SetTimeoutAt*( t: Timer;  h: EventHandler;  ms: LONGINT );
 	BEGIN
-		ASSERT(( t # NIL ) & ( h # NIL ));
+		ASSERT( (t # NIL) & (h # NIL) );
 		Remove( t );
 		t.trigger := ms;  t.handler := h;
 		Insert( t );
@@ -747,18 +747,11 @@ TYPE
 	END Convert;
 
 	PROCEDURE Init;
-	VAR
-		lock		: PROCEDURE ( obj: ProtectedObject;  exclusive: BOOLEAN );
-		unlock	: PROCEDURE ( obj: ProtectedObject;  dummy: BOOLEAN );
-		await		: PROCEDURE ( cond: Condition;  slink: ADDRESS;  obj: ProtectedObject;  flags: SET );
-		create	: PROCEDURE ( body: Body;  priority: LONGINT;  flags: SET;  obj: ProtectedObject );
 	BEGIN
-		lock := Lock;  unlock := Unlock;  await := Await;  create := CreateProcess;
-
-		Modules.kernelProc[3] := S.VAL( ADDRESS, create);	(* 250 *)
-		Modules.kernelProc[4] := S.VAL( ADDRESS, await);	(* 249 *)
-		Modules.kernelProc[6] := S.VAL( ADDRESS, lock);		(* 247 *)
-		Modules.kernelProc[7] := S.VAL( ADDRESS, unlock);	(* 246 *)
+		Modules.kernelProc[3] := ADDRESSOF( CreateProcess );	(* 250 *)
+		Modules.kernelProc[4] := ADDRESSOF( Await);		(* 249 *)
+		Modules.kernelProc[6] := ADDRESSOF( Lock);		(* 247 *)
+		Modules.kernelProc[7] := ADDRESSOF( Unlock);	(* 246 *)
 
 		Unix.Dlsym( 0, "mtxInit",		ADDRESSOF( mtxInit ) );
 		Unix.Dlsym( 0, "mtxDestroy",	ADDRESSOF( mtxDestroy ) );
@@ -769,12 +762,12 @@ TYPE
 		Unix.Dlsym( 0, "conWait",		ADDRESSOF( conWait ) );
 		Unix.Dlsym( 0, "conSignal",	ADDRESSOF( conSignal ) );
 		
-		Unix.Dlsym( 0, "thrStart",		ADDRESSOF( thrStart ) );
+		Unix.Dlsym( 0, "thrStart",	ADDRESSOF( thrStart ) );
 		Unix.Dlsym( 0, "thrThis",		ADDRESSOF( thrThis ) );
-		Unix.Dlsym( 0, "thrSleep",		ADDRESSOF( thrSleep ) );
-		Unix.Dlsym( 0, "thrYield",		ADDRESSOF( thrYield ) );
+		Unix.Dlsym( 0, "thrSleep",	ADDRESSOF( thrSleep ) );
+		Unix.Dlsym( 0, "thrYield",	ADDRESSOF( thrYield ) );
 		Unix.Dlsym( 0, "thrExit",		ADDRESSOF( thrExit ) );
-		Unix.Dlsym( 0, "thrSuspend",	ADDRESSOF( thrSuspend ) );
+		Unix.Dlsym( 0, "thrSuspend",			ADDRESSOF( thrSuspend ) );
 		Unix.Dlsym( 0, "thrResume",			ADDRESSOF( thrResume ) );
 		Unix.Dlsym( 0, "thrGetPriority",	ADDRESSOF( thrGetPriority ) );
 		Unix.Dlsym( 0, "thrSetPriority",	ADDRESSOF( thrSetPriority ) );

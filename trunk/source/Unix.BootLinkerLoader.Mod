@@ -15,7 +15,7 @@ IMPORT S := SYSTEM, Heaps := BootLinkerHeaps, Modules := BootLinkerModules, Stre
 CONST	
 	AddrSize = SIZEOF( ADDRESS );
 
-	ObjSuffix* = ".Obj";
+	ObjSuffix* = ".Obj";  BuildDirectory* = "NewAos";
 
 	Ok = 0;
 	FileNotFound = 3401;
@@ -1020,7 +1020,8 @@ VAR
 		m := Modules.root;  res := Ok;
 		WHILE (m # NIL ) & (name # m.name) DO  m := m.next  END;
 		IF m = NIL THEN
-			COPY( name, fname );  Strings.Append( fname, ObjSuffix );
+			fname := BuildDirectory;  Strings.Append( fname, "/" );
+			Strings.Append( fname, name );  Strings.Append( fname, ObjSuffix );
 			f := Files.Old( fname );
 			IF f = NIL THEN
 				msg := " file not found: ";  Strings.Append( msg, fname ); 

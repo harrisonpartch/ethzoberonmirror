@@ -660,7 +660,7 @@ TYPE
 		END SameType;
 
 		PROCEDURE CompatibleTo*(to: Type): BOOLEAN;
-		BEGIN RETURN (to IS AddressType) OR (to IS SizeType) OR (to IS IntegerType) & (to.sizeInBits >= sizeInBits)
+		BEGIN RETURN (to IS AddressType) OR (to IS SizeType) OR (to IS IntegerType) & (to.sizeInBits >= sizeInBits) OR (to IS PointerType) & to(PointerType).isUnsafe
 		END CompatibleTo;
 
 		PROCEDURE Accept*(v: Visitor);
@@ -1251,11 +1251,15 @@ TYPE
 		VAR
 			modifiers-: Modifier; (* set by the parser *)
 			pointerBase-: Type;
+			isUnsafe-: BOOLEAN;
+			isDisposable-: BOOLEAN;
 
 		PROCEDURE & InitPointerType(position: LONGINT; scope: Scope);
 		BEGIN
 			modifiers := NIL;
 			pointerBase := NIL;
+			isUnsafe := FALSE;
+			isDisposable := FALSE;
 			InitType(position);
 			SELF.scope := scope;
 			hasPointers := TRUE;
@@ -1269,6 +1273,16 @@ TYPE
 		BEGIN
 			pointerBase := type;
 		END SetPointerBase;
+
+		PROCEDURE SetUnsafe*(unsafe: BOOLEAN);
+		BEGIN
+			isUnsafe := unsafe;
+		END SetUnsafe;
+
+		PROCEDURE SetDisposable*(disposable: BOOLEAN);
+		BEGIN
+			isDisposable := disposable;
+		END SetDisposable;
 
 		PROCEDURE Extends*(this: Type): BOOLEAN;
 		VAR result: BOOLEAN; extension, base: Type;
@@ -1291,7 +1305,7 @@ TYPE
 		END Extends;
 
 		PROCEDURE SameType*(this: Type): BOOLEAN;
-		BEGIN	RETURN (SELF = this) OR (this IS PointerType) & (this(PointerType).pointerBase.SameType(pointerBase.resolved))
+		BEGIN	RETURN (SELF = this) OR (this IS PointerType) & (this(PointerType).pointerBase.SameType(pointerBase.resolved) & (this(PointerType).isUnsafe = isUnsafe))
 		END SameType;
 
 		PROCEDURE CompatibleTo*(to: Type): BOOLEAN;
@@ -4031,18 +4045,25 @@ TYPE
 			blockModifiers-: Modifier;
 			isExclusive-: BOOLEAN;
 			isRealtime-: BOOLEAN;
+			isUnchecked-: BOOLEAN;
 
 		PROCEDURE & InitStatementBlock( position: LONGINT ; outer: Statement);
 		BEGIN
 			InitStatement( position ,outer);  statements := NIL;  blockModifiers := NIL;
 			isExclusive := FALSE;
 			isRealtime := FALSE;
+			isUnchecked := FALSE;
 		END InitStatementBlock;
 
 		PROCEDURE SetRealtime*(b: BOOLEAN);
 		BEGIN
 			isRealtime := b
 		END SetRealtime;
+
+		PROCEDURE SetUnchecked*(unchecked: BOOLEAN);
+		BEGIN
+			isUnchecked := unchecked
+		END SetUnchecked;
 
 		PROCEDURE SetModifier*(modifier: Modifier);
 		BEGIN

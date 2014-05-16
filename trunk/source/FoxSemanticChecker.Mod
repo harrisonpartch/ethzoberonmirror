@@ -667,7 +667,7 @@ TYPE
 			IF TypeNeedsResolution(x) THEN
 				modifiers := x.modifiers;
 				x.SetRealtime(HasFlag(modifiers,Global.NameRealtime, position));
-				CheckModifiers(modifiers, TRUE);
+				x.SetDisposable(HasFlag(modifiers,Global.NameDisposable, position));
 				(* inheritance cycle check
 					example:
 					A=POINTER TO RECORD(B) END;
@@ -677,7 +677,11 @@ TYPE
 					recordType := x.pointerBase(SyntaxTree.RecordType);
 					recordBaseType := ResolveType(recordType.baseType);
 					recordType.SetBaseType(recordBaseType);
+					IF ~recordType.isObject THEN
+						x.SetUnsafe(HasFlag(modifiers,Global.NameUnsafe,position));
+					END;
 				END;
+				CheckModifiers(modifiers, TRUE);
 				typeFixes.Add(x,currentScope);
 				x.SetState(SyntaxTree.Resolved);
 			END;
@@ -747,6 +751,7 @@ TYPE
 					Error(this.position,Diagnostics.Invalid,"unexpected expression");
 				END;
 				this.Resolved;
+				position := this.position;
 				RETURN TRUE
 			ELSE
 				RETURN FALSE
@@ -897,6 +902,9 @@ TYPE
 							Then the type descriptor of G contains: A|B|C|D|E|F|G|0|0|0...
 							while the type decriptor of D contains: A|B|C|D|0|0|0|0|0|0...
 						*)
+					END;
+					IF (x.pointerType # NIL) & (resolved IS SyntaxTree.PointerType) & (x.pointerType.isDisposable # resolved(SyntaxTree.PointerType).isDisposable) THEN
+						Error(position,Diagnostics.Invalid,"invalid inheritance of disposable types");
 					END;
 				END;
 				Declarations(x.recordScope);
@@ -5034,6 +5042,8 @@ TYPE
 				ELSIF (id = Global.Dispose) & CheckArity(1,1) THEN
 					IF ~IsPointerType(parameter0.type) THEN
 						Error(parameter0.position,Diagnostics.Invalid,"is not a pointer")
+					ELSIF ~IsDisposable(parameter0.type) THEN
+						Error(parameter0.position,Diagnostics.Invalid,"is not disposable")
 					ELSIF CheckVariable(parameter0) THEN (* ok *)
 					END
 				(* ---- GETPROCEDURE ----- *)
@@ -7551,6 +7561,12 @@ TYPE
 						recordBody.SetRealtime(TRUE);
 						block.SetRealtime(TRUE);
 					END;
+				ELSIF name=Global.NameUnchecked THEN
+					IF block.isUnchecked THEN
+						Error(position,Diagnostics.Invalid,"duplicate unchecked flag")
+					ELSE
+						block.SetUnchecked(TRUE);
+					END;
 				ELSE
 					Error(position,Diagnostics.Invalid,"unknown block modifier");
 				END;
@@ -8225,7 +8241,7 @@ TYPE
 
 			ELSIF to IS SyntaxTree.PointerType THEN
 				result := IsPointerType(this) & (IsTypeExtension(to,this) OR ((to(SyntaxTree.PointerType).pointerBase.resolved IS SyntaxTree.ArrayType) & SameType(to,this)))
-				     & (~to.isRealtime OR this.isRealtime) OR (this IS SyntaxTree.NilType)
+				     & (~to.isRealtime OR this.isRealtime) OR (this IS SyntaxTree.NilType) OR (this IS SyntaxTree.AddressType) & to(SyntaxTree.PointerType).isUnsafe;
 			ELSIF to IS SyntaxTree.ProcedureType THEN
 				result := (this IS SyntaxTree.NilType) OR (this IS SyntaxTree.ProcedureType) & SameType(to(SyntaxTree.ProcedureType),this(SyntaxTree.ProcedureType))
 					& (~(this(SyntaxTree.ProcedureType).isDelegate) OR (to(SyntaxTree.ProcedureType).isDelegate))
@@ -8814,6 +8830,10 @@ TYPE
 		RETURN result
 	END IsPointerType;
 
+	PROCEDURE IsDisposable*(type: SyntaxTree.Type): BOOLEAN;
+	BEGIN
+		RETURN (type # NIL) & (type.resolved IS SyntaxTree.PointerType) & (type.resolved(SyntaxTree.PointerType).isDisposable)
+	END IsDisposable;
 
 	PROCEDURE IsPointerToRecord(type: SyntaxTree.Type): BOOLEAN;
 	VAR result: BOOLEAN;

@@ -7,7 +7,7 @@ MODULE BootLinker;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 
 
 IMPORT S := SYSTEM, Heaps := BootLinkerHeaps,  Modules := BootLinkerModules, Loader := BootLinkerLoader, 
-		Commands, Streams, Files;
+		Commands, Streams, Files, Strings;
 
 VAR
 	out: Streams.Writer;
@@ -59,21 +59,22 @@ VAR
 	CONST
 		Ok = 0;
 	VAR 
-		bootFileName, moduleName: Modules.Name;
+		fileName, moduleName, fullPath: Modules.Name;
 		token: ARRAY 8 OF CHAR;
 		m: Modules.Module;
 		res: LONGINT;  msg: ARRAY 128 OF CHAR;
 	BEGIN
 		out := context.out;  error := context.error;
 		
-		IF ~context.arg.GetString( bootFileName ) OR 
+		IF ~context.arg.GetString( fileName ) OR 
 		    ~context.arg.GetString( token ) OR 
 		    (token # ":=") THEN
 			error.String( "wrong parameter(s), terminating" ); error.Ln;  
 			error.Update;  RETURN
 		END;
 		
-		out.String( "UnixAos BootLinker creating " );  out.String( bootFileName );  out.Ln;
+		fullPath := Loader.BuildDirectory; Strings.Append( fullPath, "/" ); Strings.Append( fullPath, fileName );
+		out.String( "UnixAos BootLinker creating " );  out.String( fullPath );  out.Ln;
 		
 		Heaps.Initialize( context.error );
 		Modules.Initialize( context.error );;
@@ -100,7 +101,7 @@ VAR
 				Modules.AssignAddress( "Modules", "ptrOffsets", S.VAL( ADDRESS, Modules.ptrOffsets ) );
 				Modules.AssignValue( "Modules", "numPtrs", Modules.numPtrs );
 
-				OutBootfile( bootFileName )  
+				OutBootfile( fullPath )  
 			END;
 			out.Ln
 		ELSE  

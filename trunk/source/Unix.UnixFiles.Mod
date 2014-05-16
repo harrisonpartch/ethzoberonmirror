@@ -4,7 +4,7 @@ MODULE UnixFiles;   (** AUTHOR "gf"; PURPOSE "Unix file systems" *)
 
 (*  derived fron (SPARCOberon) Files.Mod by J. Templ 1.12. 89/14.05.93 *)
 
-IMPORT S := SYSTEM, Unix, Machine, Heaps, Kernel, Modules, Log := KernelLog, Files;
+IMPORT S := SYSTEM, Unix, Machine, Heaps, Objects, Kernel, Modules, Log := KernelLog, Files;
 
 
 CONST
@@ -864,7 +864,7 @@ TYPE
 	PROCEDURE AwaitFinalizing;
 	BEGIN
 		(* wait until finalizers have finished! (Cleanup)*)
-		WHILE Machine.lock[Machine.GC] = 'Y' DO  Machine.thrSleep( 10 )  END;
+		WHILE Machine.lock[Machine.GC] = 'Y' DO  Objects.Sleep( 10 )  END;
 	END AwaitFinalizing;
 
 
