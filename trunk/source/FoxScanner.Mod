@@ -592,7 +592,8 @@ TYPE
 			dig: ARRAY 24 OF CHAR;
 			f: LONGREAL;  expCh: CHAR;  neg, long: BOOLEAN;
 			result: Token;
-			hugeint, tenh: HUGEINT;
+			hugeint, tenh, number: HUGEINT;
+			digits: LONGINT;
 
 			(** 10^e **)
 			PROCEDURE Ten( e: LONGINT ): LONGREAL;
@@ -618,6 +619,7 @@ TYPE
 			BEGIN
 				IF ch <= "9" THEN RETURN ORD( ch ) - ORD( "0" )
 				ELSIF ch <= "F" THEN RETURN ORD( ch ) - ORD( "A" ) + 10
+				ELSIF ch <= "f" THEN RETURN ORD( ch ) - ORD( "a" ) + 10
 				ELSE Error( Basic.NumberIllegalCharacter );  RETURN 0
 				END
 			END Hexadecimal;
@@ -625,6 +627,25 @@ TYPE
 		BEGIN  (* ("0" <= ch) & (ch <= "9") *)
 			result := Number;
 			i := 0;  m := 0;  n := 0;  d := 0;  si := 0;  long := FALSE;
+			
+			IF (ch = "0") & (reader.Peek() = "x") THEN (* hex number *)
+				digits := 0;
+				GetNextCharacter; GetNextCharacter;
+				WHILE (ch >= "0") & (ch <= "9") OR (ch >= "a") & (ch <="f") OR (ch >= "A") & (ch <= "F") DO
+					number := number * 10H + Hexadecimal(ch);
+					INC(digits);
+					GetNextCharacter;
+				END;
+				symbol.hugeint := number;
+				symbol.integer := SHORT(number);
+				IF digits > MaxHexDigits THEN
+					symbol.numberType := Hugeint
+				ELSE
+					symbol.numberType := Integer
+				END;
+				RETURN result;
+			END;
+			
 			LOOP  (* read mantissa *)
 				IF ("0" <= ch) & (ch <= "9") OR (d = 0) & ("A" <= ch) & (ch <= "F") THEN
 					IF (m > 0) OR (ch # "0") THEN  (* ignore leading zeros *)
