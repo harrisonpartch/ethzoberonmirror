@@ -82,9 +82,9 @@ AddressSize*3	first entry
 *)
 
 	(* virtual memory layout. no area will cross the 2G boundary, to avoid LONGINT sign problems. *)
-	MapAreaAdr = SHORT(80000000H);	(* dynamic mappings: bottom part of 2G..4G *)
+	MapAreaAdr = (80000000H);	(* dynamic mappings: bottom part of 2G..4G *)
 	MapAreaSize = 64*M;
-	IntelAreaAdr = SHORT(0FEE00000H);	(* reserved by Intel for APIC: 4G-18M..4G-18M+4K *)
+	IntelAreaAdr = (0FEE00000H);	(* reserved by Intel for APIC: 4G-18M..4G-18M+4K *)
 	IntelAreaSize = 00001000H;
 	StackAreaAdr = MapAreaAdr+MapAreaSize;	(* stacks: middle part of 2G..4G *)
 	StackAreaSize = IntelAreaAdr-StackAreaAdr;
@@ -747,16 +747,16 @@ BEGIN
 					END;
 				ELSIF (vendor = "AuthenticAMD") THEN
 					(* CPUID extended function 1 returns: largest extended function *)
-					CPUID(SHORT(80000000H), eax, ebx, ecx, edx);
+					CPUID((80000000H), eax, ebx, ecx, edx);
 					largestFunction := SYSTEM.VAL(LONGINT, eax - {31}); (* remove sign *)
 					IF (largestFunction >= 8) THEN
 						(* CPUID extended function 8 returns: *)
-						CPUID(SHORT(80000008H), eax, ebx, ecx, edx);
+						CPUID((80000008H), eax, ebx, ecx, edx);
 						coresPerProcessor := SYSTEM.VAL(LONGINT, ecx * {0..7}) + 1;
 						threadsPerCore := logicalProcessorCount DIV coresPerProcessor;
 					ELSIF (largestFunction >= 1) THEN
 						(* CPUID extended function 1 returns CmpLegacy bit in ecx *)
-						CPUID(SHORT(80000001H), eax, ebx, ecx, edx);
+						CPUID((80000001H), eax, ebx, ecx, edx);
 						IF 1 IN ecx THEN (* CmpLegacy bit set -> no hyperthreading *)
 							coresPerProcessor := logicalProcessorCount;
 							threadsPerCore := 1;
@@ -1023,7 +1023,7 @@ END AllocateDMA;
 
 (* Check if the specified address is RAM. *)
 PROCEDURE IsRAM(adr: ADDRESS): BOOLEAN;
-CONST Pattern1 = SHORT(0BEEFC0DEH); Pattern2 = SHORT(0AA55FF00H);
+CONST Pattern1 = (0BEEFC0DEH); Pattern2 = (0AA55FF00H);
 VAR save, x: LONGINT; ok: BOOLEAN;
 BEGIN
 	ok := FALSE;
@@ -1082,7 +1082,7 @@ BEGIN
 	GetConfig("ExtMemSize", s);	(* in MB *)
 	IF s[0] # 0X THEN	(* override detection *)
 		i := 0;
-		memTop := ExtMemAdr + LONG (StrToInt(i, s)) * M
+		memTop := ExtMemAdr +  (StrToInt(i, s)) * M
 	END;
 
 	pml4Base := GetPML4Base ();
@@ -2279,7 +2279,7 @@ L1:
 	IRETQ	; switch to level 3 and continue at following instruction
 L2:
 	POP RBP	; from level 3 stack (refer to AosActive.NewProcess)
-	RET 16	; jump to body of first active object; cf. Objects.NewProcess
+	RET	; jump to body of first active object; cf. Objects.NewProcess
 END JumpToUserLevel;
 
 (* should ensure that a given address can be represented in the legacy 4GB address space
@@ -2636,15 +2636,11 @@ entry:
 loop:	; call all handlers for the interrupt
 	MOV RCX, RSP
 	PUSH RAX	; save ptr for table
+	PUSH QWORD [RAX + 12]	; delegate
 	PUSH RDX	; TAG(state)
 	PUSH RCX	; ADR(state)
-	MOV RBX, [RAX + 12]	; check for delegate
-	CMP RBX, 0
-	JE nodelegate
-	PUSH RBX	; object pointer for DELEGATE
-
-nodelegate:
 	CALL QWORD [RAX+4]	; call handler
+	ADD RSP, 24
 	CLI	; handler may have re-enabled interrupts
 	POP RAX
 	ADD RAX, SizeOfHandlerRec
@@ -2719,15 +2715,11 @@ entry:
 loop:	; call all handlers for the interrupt
 	MOV RCX, RSP
 	PUSH RAX	; save ptr for linked list
+	PUSH QWORD [RAX + 12]	; delegate
 	PUSH RDX	; TAG(state)
 	PUSH RCX	; ADR(state)
-	MOV RBX, [RAX + 12]	; check for delegate
-	CMP RBX, 0
-	JE nodelegate
-	PUSH RBX	; object pointer for DELEGATE
-
-nodelegate:
 	CALL QWORD [RAX + 4]	; call handler
+	ADD RSP, 24
 	CLI	; handler may have re-enabled interrupts
 	POP RAX
 	ADD RAX, SizeOfHandlerRec
@@ -3479,7 +3471,7 @@ BEGIN
 		END;
 		IF featureMP[0] # 0X THEN	(* pre-defined configuration *)
 			Trace.String("   Default config "); Trace.Int(ORD(featureMP[0]), 1); Trace.Ln;
-			localAPIC := SHORT(0FEE00000H);
+			localAPIC := (0FEE00000H);
 			apicVer[0] := 0; apicVer[1] := 0
 		ELSE	(* configuration defined in table *)
 			MapPhysical(adr, 68*1024, adr);	(* 64K + 4K header *)

@@ -1028,7 +1028,7 @@ TYPE
 			dead := FALSE; alive := TRUE;
 
 			NEW(mainpanel);
-			mainpanel.bounds.SetExtents(WindowWidth, WindowHeight); mainpanel.fillColor.Set(SHORT(0FFFFFFFFH));
+			mainpanel.bounds.SetExtents(WindowWidth, WindowHeight); mainpanel.fillColor.Set(LONGINT(0FFFFFFFFH));
 
 			NEW(buttonpanel);
 			buttonpanel.fillColor.Set(0F0F0F0FH);

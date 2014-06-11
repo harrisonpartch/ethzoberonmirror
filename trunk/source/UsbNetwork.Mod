@@ -38,7 +38,7 @@ TYPE
 			RETURN controller.linkStatus;
 		END Linked;
 
-		PROCEDURE DoSend(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
+		PROCEDURE DoSend(dst: Network.LinkAdr; type: LONGINT; CONST l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
 		BEGIN
 			controller.SendFrame(dst, type, l3hdr, l4hdr, data, h3len, h4len, dofs, dlen);
 		END DoSend;
@@ -77,7 +77,7 @@ TYPE
 
 		(** Interface to be implemented by actual network controller driver *)
 
-		PROCEDURE SendFrame*(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT); (* abstract *)
+		PROCEDURE SendFrame*(dst: Network.LinkAdr; type: LONGINT; CONST l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT); (* abstract *)
 		BEGIN {EXCLUSIVE} HALT(301); END SendFrame;
 
 		PROCEDURE GetLinkAddress*(VAR linkAddress : Network.LinkAdr; VAR res : LONGINT); (* abstract *)

@@ -13,7 +13,7 @@ Config strings:
 The Init program is a 8086 machine code program in hexadecimal.  It has to initialize the specified display mode, possibly by making display BIOS calls, and leave the 32-bit physical address of the frame buffer in DX:CX.
 *)
 
-IMPORT SYSTEM, Machine, KernelLog, MemCache, Displays, Strings;
+IMPORT SYSTEM, Machine, KernelLog, MemCache, Displays, Strings, Commands, Options;
 
 VAR
 	d: Displays.Display;
@@ -30,8 +30,14 @@ BEGIN
 	RETURN v
 END GetVal;
 
-PROCEDURE Install*;
-	(* BEGIN IF d # NIL THEN Displays.main := d END*)
+PROCEDURE Install*(context: Commands.Context);
+VAR options: Options.Options;
+BEGIN
+	NEW(options);
+	options.Add("r", "reverse", Options.Flag);
+	IF options.Parse(context.arg, context.error) THEN
+		IF options.GetFlag("r") THEN Displays.Reverse() END;
+	END;
 END Install;
 
 PROCEDURE InitPalette;
@@ -92,6 +98,6 @@ BEGIN
 END Init;
 
 BEGIN
-	Init; Install
+	Init;
 END DisplayLinear.
 

@@ -232,7 +232,9 @@ TYPE
 		VAR first: BOOLEAN;
 		BEGIN
 			first := TRUE;
+			IF x.isUnsafe THEN Flag(Global.NameUnsafe,first) END;
 			IF x.isRealtime THEN Flag(Global.NameRealtime,first) END;
+			IF x.isDisposable THEN Flag(Global.NameDisposable,first) END;
 			FlagEnd(first);
 		END PointerFlags;
 
@@ -246,7 +248,7 @@ TYPE
 				IF (pointerBase IS SyntaxTree.RecordType) & (pointerBase(SyntaxTree.RecordType).isObject) THEN
 					VisitRecordType(pointerBase(SyntaxTree.RecordType))
 				ELSE
-					Keyword("POINTER "); Flags((*x.flags*)); Keyword("TO " );  Type(x.pointerBase)
+					Keyword("POINTER "); PointerFlags(x); Keyword("TO " );  Type(x.pointerBase);
 				END;
 			END;
 		END VisitPointerType;
@@ -268,6 +270,7 @@ TYPE
 		PROCEDURE VisitCellType(x: SyntaxTree.CellType);
 		BEGIN
 			Keyword("CELL ");
+			Modifiers(x.modifiers);
 			IF x.firstParameter # NIL THEN ParameterList(x.firstParameter) END;
 			Scope(x.cellScope);
 
@@ -286,7 +289,7 @@ TYPE
 		BEGIN
 			IF x.isObject THEN
 				Keyword("OBJECT ");
-				IF x.pointerType # NIL THEN Flags((*x.pointerType.flags*)) END;
+				IF x.pointerType # NIL THEN PointerFlags(x.pointerType) END;
 				IF info THEN
 					BeginComment; w.String("ObjectType");
 
@@ -863,12 +866,13 @@ TYPE
 				ELSIF ch = Scanner.LF THEN (* ignore *)
 				ELSIF ch = Scanner.TAB THEN w.String("\t")
 				ELSIF ch = '\' THEN w.String("\\")
-				ELSIF ch = '"' THEN w.String(\"\\\""); (* \" *)
+				ELSIF ch = '"' THEN w.String('"""'); (* *)
 				ELSE w.Char(ch)
 				END;
 				INC( i );
 			END;
 			w.Char('"');
+			w.Char('\');
 		END VisitStringValue;
 
 		PROCEDURE VisitNilValue(x: SyntaxTree.NilValue);
@@ -909,13 +913,9 @@ TYPE
 			ELSE
 				Identifier(x.name)
 			END;
+
 			IF SyntaxTree.PublicWrite IN x.access THEN w.String( "*" )
-			ELSIF SyntaxTree.PublicRead IN x.access THEN
-				IF x IS SyntaxTree.Variable THEN
-					w.String( "-" )
-				ELSIF ~(x IS SyntaxTree.Parameter) THEN
-					w.String("*")
-				END
+			ELSIF SyntaxTree.PublicRead IN x.access THEN w.String( "-" )
 			ELSIF x.access = {} THEN ASSERT(mode > SourceCode);
 				IF info THEN BeginComment; w.String("<- hidden"); EndComment  END;
 			END;
@@ -1004,12 +1004,18 @@ TYPE
 				IF (x.access # SyntaxTree.Hidden) THEN
 					Comments(x.comment,x,FALSE);
 					PrintSymbol(x);
+					IF x.initializer # NIL THEN
+						w.String( " := " ); Expression (x.initializer);
+					END;
 					w.String( ": " );
 					Type(x.type);
 					Comments(x.comment,x,TRUE);
 				ELSIF mode>SourceCode THEN
 					Comments(x.comment,x,FALSE);
 					PrintSymbol(x);
+					IF x.initializer # NIL THEN
+						w.String( " := " ); Expression (x.initializer);
+					END;
 					Comments(x.comment,x,TRUE);
 				END
 			END;
@@ -1279,16 +1285,15 @@ TYPE
 		PROCEDURE ImportList(x: SyntaxTree.Import);
 		VAR first: BOOLEAN;
 		BEGIN
-			Indent;  Keyword("IMPORT " );
 			first := TRUE;
 			WHILE(x # NIL) DO
 				IF x.direct & (x.module # NIL) OR (mode > SymbolFile) THEN
-					IF ~first THEN w.String(", ") ELSE first := FALSE END;
+					IF ~first THEN w.String(", ") ELSE Indent; Keyword("IMPORT "); first := FALSE END;
 					Symbol(x);
 				END;
 				x := x.nextImport;
 			END;
-			w.String( ";" );
+			IF ~first THEN w.String( ";" ); END;
 		END ImportList;
 
 		PROCEDURE VisitBuiltin(x: SyntaxTree.Builtin);
@@ -1835,6 +1840,8 @@ VAR
 			debug.Symbol(a(SyntaxTree.Symbol))
 		ELSIF a IS SyntaxTree.Statement THEN
 			debug.Statement(a(SyntaxTree.Statement))
+		ELSIF a IS SyntaxTree.StatementSequence THEN
+			debug.StatementSequence(a(SyntaxTree.StatementSequence));
 		ELSIF a IS SyntaxTree.Scope THEN
 			scope := a(SyntaxTree.Scope);
 			WHILE(scope # NIL) DO

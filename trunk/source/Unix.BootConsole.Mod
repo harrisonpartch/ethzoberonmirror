@@ -129,19 +129,19 @@ VAR
 		Unix.GetArgval( "-x", cmd );
 		IF cmd # "" THEN  	
 			Machine.VerboseLog;
-      			ci := 0;
-	      		IF GetName( modName ) & GetName( cmdName ) THEN  
-	      			IF Glue.debug # {} THEN
+			ci := 0;
+			IF GetName( modName ) & GetName( cmdName ) THEN  
+				IF Glue.debug # {} THEN
 					Trace.String( "Starting " );
 					Trace.String( modName );  Trace.Char( "." );  Trace.String( cmdName );
 					Trace.Ln
 				END;
 				NEW( appl, modName, cmdName );
-      				RETURN TRUE  
-      			ELSE  
-      				(* invalid command string*)
-      				Unix.exit( 1 )
-      			END
+				RETURN TRUE  
+			ELSE  
+				(* invalid command string*)
+				Unix.exit( 1 )
+			END
 		END;
 		RETURN FALSE
 	END TryCommand;

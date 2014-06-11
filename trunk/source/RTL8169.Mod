@@ -75,7 +75,7 @@ TYPE
 			RETURN ctrl.linkStatus;
 		END Linked;
 
-		PROCEDURE DoSend*(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
+		PROCEDURE DoSend*(dst: Network.LinkAdr; type: LONGINT; CONST l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
 		BEGIN
 			ctrl.SendFrame(dst, type, l3hdr, l4hdr, data, h3len, h4len, dofs, dlen);
 		END DoSend;
@@ -230,7 +230,7 @@ TYPE
 			END;
 		END Init;
 
-		PROCEDURE SendFrame(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
+		PROCEDURE SendFrame(dst: Network.LinkAdr; type: LONGINT; CONST l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
 		VAR
 			txLen, offset, type4: LONGINT;
 			bufBase: ADDRESS;
@@ -330,8 +330,8 @@ TYPE
 			Write32(44H, SYSTEM.VAL(LONGINT, s));
 
 			(* set multicast filter: receive everything *)
-			Write32(08H, SHORT(0FFFFFFFFH));
-			Write32(08H + 4, SHORT(0FFFFFFFFH));
+			Write32(08H, LONGINT(0FFFFFFFFH));
+			Write32(08H + 4, LONGINT(0FFFFFFFFH));
 		END ConfigRx;
 
 		PROCEDURE SetTimer(val: LONGINT);

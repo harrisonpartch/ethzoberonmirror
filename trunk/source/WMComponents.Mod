@@ -388,7 +388,8 @@ TYPE
 
 		PROCEDURE RemoveContent*(c : XML.Content);
 		BEGIN
-			ASSERT(c # NIL);
+			(*ASSERT(c # NIL);*)
+			IF c = NIL THEN RETURN END; (*PH 12/13: seems logically more correct*)
 			Acquire;
 			RemoveContent^(c);
 			Release;
@@ -1713,6 +1714,16 @@ TYPE
 			IF (command # NIL) THEN HandleEvent(event, SELF, command); END;
 		END CheckPointerEvent;
 
+		PROCEDURE CheckPointerUpEvent(x, y, z : LONGINT; keys : SET);
+		VAR event : PointerEvent; command : Strings.String;
+		BEGIN
+			ASSERT(IsCallFromSequencer());
+			event.x := x; event.y := y; event.z := z; event.keys := keys;
+
+			command := GetAttributeValue("onRelease");
+			IF (command # NIL) THEN HandleEvent(event, SELF, command); END;
+		END CheckPointerUpEvent;
+
 		PROCEDURE InEditBounds(x,y: LONGINT): LONGINT;
 		CONST Border = 8;
 		VAR left, right, top, bottom: LONGINT;
@@ -1937,8 +1948,12 @@ TYPE
 							IF extPointerLeave # NIL THEN extPointerLeave(handled) END;
 							IF ~handled THEN PointerLeave END
 						END;
-						IF ~parentEditMode & (msg.flags * {0, 1, 2} # {}) & (msg.msgSubType = Messages.MsgSubPointerDown) THEN
-							CheckPointerEvent(msg.x, msg.y, msg.z, msg.flags);
+						IF ~parentEditMode & (msg.flags * {0, 1, 2} # {}) THEN
+							IF (msg.msgSubType = Messages.MsgSubPointerDown) THEN
+								CheckPointerEvent(msg.x, msg.y, msg.z, msg.flags);
+							ELSIF msg.msgSubType = Messages.MsgSubPointerUp  THEN
+								CheckPointerUpEvent(msg.x, msg.y, msg.z, msg.flags);
+							END;
 						END;
 					END;
 				ELSE

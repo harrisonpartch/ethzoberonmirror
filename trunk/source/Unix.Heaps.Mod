@@ -28,7 +28,7 @@ CONST
 	
 	MaxMarkDepth = 8000;
 
-	ThruputBarrier = Machine.MemBlockSize DIV 4 * 3;
+	ThruputBarrier = Machine.MemBlockSize * 2;
 
 	(* ----------------- object finalization ------------------------------*)
 
@@ -60,9 +60,6 @@ CONST
 	SysOfs = 24;  	(*! p mod 16 = 8 ! *)
 	ProtTypeBit* = 31;   (** flags in TypeDesc, low bits reserved for extLevel *)
 
-	MarkBit* = 0;  ArrayBit* = 1;  FreeBit* = 2;  SubObjBit* = 3;  ProtObjBit* = 4;
-	FlagBits* = {MarkBit, ArrayBit, FreeBit, SubObjBit, ProtObjBit};
-
 TYPE
 	FreeBlock = POINTER TO RECORD
 				tag: ADDRESS;  (* = ADDRESSOF( size ) *)
@@ -82,7 +79,7 @@ TYPE
 			
 	ProtRecBlock* = POINTER TO ProtRecBlockDesc;
 	ProtRecBlockDesc* = RECORD 
-		recSize: SIZE;	(* needed by SizeOf(blk) in Sweep *)
+		recSize-: SIZE;	(* needed by SizeOf(blk) in Sweep *)
 		
 		awaitingLock*:	ProcessQueue;	(* unused in UnixAos *)
 		awaitingCond*: ProcessQueue;
@@ -1000,23 +997,22 @@ VAR
 	(*
 	(* for debugging the static linker output *)
 	PROCEDURE BlockInfo( block: ADDRESS );
-	VAR tag: SET;  lastElem: ADDRESS;  recSize, blockSize: SIZE;
-		tag0, ttag: ADDRESS;
+	VAR 
+		lastElem: ADDRESS;  recSize, blockSize: SIZE;
+		tag0, ttag, tag: ADDRESS;
 	BEGIN
 		S.GET( block, tag );
-		S.GET( S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} ), recSize );
-		tag0 := S.VAL( ADDRESS, tag - {ArrayBit, MarkBit} );
+		tag0 := tag DIV 4 * 4 );
+		S.GET( tag0, recSize );
 		Trace.Hex( block, -8 );  Trace.Char( ' ' );  Trace.Hex( tag0, -8 ); Trace.Char( ' ' );
-		IF ArrayBit IN tag THEN
+		IF ODD( tag DIV 2 ) THEN
 			S.GET( block + AddrSize, lastElem );
 			blockSize := lastElem + recSize - block;
 			INC( blockSize, (-blockSize) MOD BlockSize );
-			
 			Trace.String( "array of " );  WriteType( tag0 )
 		ELSE
 			blockSize := recSize + AddrSize;
 			INC( blockSize, (-blockSize) MOD BlockSize );
-			
 			IF tag0 # block + AddrSize THEN  
 				WriteType( tag0 )
 			ELSE
@@ -1060,7 +1056,7 @@ VAR
 		ClearFreeLists;
 		freeLists[MaxFreeLists].first := S.VAL( FreeBlock, block );
 		
-		Machine.ExpandHeap( 0, 2*Machine.MemBlockSize - BlockSize, S.VAL( ADDRESS, frBlock ), adr2 );
+		Machine.ExpandHeap( 0, 4*Machine.MemBlockSize - 2*BlockSize, S.VAL( ADDRESS, frBlock ), adr2 );
 		IF frBlock # NIL  THEN  freeLists[MaxFreeLists].first.next := frBlock  END;
 
 		heapSize := GetHeapSize();

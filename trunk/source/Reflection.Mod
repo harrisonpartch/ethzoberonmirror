@@ -11,6 +11,11 @@ CONST
 	Sep = "  ";
 	SepLen = 2;
 
+	LineDelay = 0; (* set this value to the number of cycles of an empty for loop that the reflection should wait after a new line
+					 * useful for screen racing when no persistent trace medium is available
+					 * no timer mechanism used because at low level tracing this may exactly not be available because IRQs do not work any more or so.
+					 *)
+
 TYPE
 	Variable* = RECORD
 		adr-: ADDRESS;
@@ -204,7 +209,7 @@ VAR
 		IF newObjectFile THEN
 			IF found THEN
 				startpc := tstart; proc := pos;
-			ELSE proc := -1 
+			ELSE proc := -1
 			END;
 		END;
 		RETURN proc
@@ -259,6 +264,14 @@ VAR
 		RETURN success
 	END FindProcByName;
 
+	PROCEDURE Wait(w: Streams.Writer);
+	VAR i: LONGINT;
+	BEGIN
+		IF LineDelay > 0 THEN
+			FOR i := 0 TO LineDelay DO END;
+			w.Update
+		END;
+	END Wait;
 
 	(* Display variables. *)
 	PROCEDURE Variables(w: Streams.Writer; refs: Modules.Bytes; refpos: LONGINT; base: ADDRESS);
@@ -270,7 +283,7 @@ VAR
 			IF name[0] = 0X THEN EXIT END;
 			(* write name *)
 			IF (col # 0 ) & (v.n > 1) & (v.type # 15) THEN	(* Ln before array (except string) *)
-				w.Ln; col := 0
+				w.Ln; col := 0; Wait(w);
 			END;
 			w.String(Sep); w.String(name); w.Char("=");
 			j := 0; WHILE name[j] # 0X DO INC(j) END;
@@ -289,12 +302,12 @@ VAR
 				WriteVar(w, v, col);	(* write value *)
 				IF etc THEN w.String("..."); INC(col, 3) END;
 				IF ~dense THEN
-					w.Ln; col := 0;
+					w.Ln; col := 0; Wait(w);
 				END;
 			END;
-			IF col > MaxCols THEN w.Ln; col := 0 END
+			IF col > MaxCols THEN w.Ln; col := 0; Wait(w); END
 		END;
-		IF col # 0 THEN w.Ln END
+		IF col # 0 THEN w.Ln; Wait(w) END
 	END Variables;
 
 	(** Write the state of the specified module. *)
@@ -303,7 +316,7 @@ VAR
 	BEGIN
 		InitVar(mod, refs, refpos, base);
 		IF refpos # -1 THEN
-			w.String("State "); w.String(mod.name); w.Char(":"); w.Ln;
+			w.String("State "); w.String(mod.name); w.Char(":"); w.Ln; Wait(w);
 			Variables(w, refs, refpos, base)
 		END
 	END ModuleState;
@@ -341,6 +354,7 @@ VAR
 			w.String(" pc="); w.Int(LONGINT(pc),1); w.String(" ["); w.Address (pc); w.String("H]");
 			w.String(" = "); w.Int(LONGINT(startpc),1);  w.String(" + "); w.Int(LONGINT(pc-startpc),1);
 			w.String(" crc="); w.Hex(mod.crc,-8);
+			Wait(w);
 		END
 	END WriteProc0;
 
@@ -548,13 +562,13 @@ VAR
 			m := Modules.ThisModuleByAdr0(pc);
 			IF (ShowAllProcs OR (m # NIL) OR (count = 0)) & (bp # 0) & (bp >= stacklow) & (bp <= stackhigh) THEN
 				IF CheckHeapAddress( pc ) THEN
-					WriteProc0(w, m, pc, bp, refs, refpos, base); w.Ln;	w.Update;
+					WriteProc0(w, m, pc, bp, refs, refpos, base); w.Ln;Wait(w); w.Update;
 					IF long & (~overflow OR (count > 0)) THEN	(* show variables *)
 						IF refpos # -1 THEN Variables(w, refs, refpos, base) END;
 						IF (m # NIL) & (base # m.sb) & (count = 0) THEN ModuleState(w, m) END
 					END;
 				ELSE
-					w.String( "Unknown external procedure, pc = " );  w.Address( pc );  w.Ln
+					w.String( "Unknown external procedure, pc = " );  w.Address( pc );  w.Ln; Wait(w);
 				END;
 				SYSTEM.GET(bp + SIZEOF(ADDRESS), pc);	(* return addr from stack *)
 				SYSTEM.GET(bp, bp);	(* follow dynamic link *)

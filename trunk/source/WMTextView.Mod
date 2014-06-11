@@ -672,6 +672,9 @@ TYPE
 		highlighter : SyntaxHighlighter.Highlighter;
 		state : SyntaxHighlighter.State;
 		fontCache : FontCache;
+		
+		(** vertical centering -- momentarily only working for a single line *)
+		textAlignV-: WMProperties.Int32Property;
 
 		showLineNumbers- : WMProperties.BooleanProperty;
 		showLineNumbersI : BOOLEAN;
@@ -777,6 +780,7 @@ TYPE
 			lineNumberFont := NIL; lineNumberFont10 := NIL;
 			NEW(indicateTabs, PTVIndicateTabs, NIL, NIL); properties.Add(indicateTabs);
 			NEW(clBgCurrentLine, PTVclBgCurrentLine, NIL, NIL); properties.Add(clBgCurrentLine);
+			NEW(textAlignV, PVTtextAlignV, NIL, NIL); properties.Add(textAlignV);
 
 			(* events *)
 			NEW(onLinkClicked, SELF, PTVonLinkClick, PTVonLinkClickInfo, SELF.StringToCompCommand); events.Add(onLinkClicked);
@@ -1038,6 +1042,8 @@ TYPE
 				indicateTabsI := indicateTabs.Get(); Invalidate;
 			ELSIF (property = clBgCurrentLine) THEN
 				clBgCurrentLineI := clBgCurrentLine.Get(); Invalidate;
+			ELSIF (property = textAlignV) THEN
+				Invalidate;
 			ELSIF (property = lineNumberColor) OR (property = lineNumberBgColor) THEN
 				lineNumberColorI := lineNumberColor.Get();
 				lineNumberBgColorI := lineNumberBgColor.Get();
@@ -2618,7 +2624,7 @@ TYPE
 		END RenderAboveTextMarkers;
 
 		PROCEDURE Draw*(canvas : WMGraphics.Canvas);
-		VAR la, lb, i, top, t : LONGINT; cliprect : WMRectangles.Rectangle; cstate : WMGraphics.CanvasState;
+		VAR la, lb, i, top, t, b : LONGINT; cliprect : WMRectangles.Rectangle; cstate : WMGraphics.CanvasState;
 		BEGIN
 			ASSERT(layout # NIL);
 			canvas.SaveState(cstate);
@@ -2646,6 +2652,13 @@ TYPE
 			END;
 
 			top := bordersI.t;
+			IF (la = lb) & (textAlignV.Get() = WMGraphics.AlignCenter) THEN 
+				t := bordersI.t;
+				b := bounds.GetHeight()-bordersI.b;	
+				top :=  (t+b- layout.lines[la].height) DIV 2 (*- layout.lines[la].ascent*);
+				(* something is wrong with ascent and height here, does not comply with the notions in fonts *)
+			END;
+		
 			FOR i := firstLineI TO la - 1 DO
 				top := top + (layout.lines[i].height);
 				CheckParagraphBegin(i, top);
@@ -2800,13 +2813,20 @@ TYPE
 			END;
 			IF canStart & (2 IN keys) THEN openFile := TRUE; SetInterclick(InterclickCancelled); END;
 			IF keys * {0, 1, 2} = {0, 1, 2} THEN AbortStart END;
+
 			IF allowPiemenu.Get() & (keys * {0, 1, 2} = {2}) THEN
 				text.AcquireRead;
 				ViewToTextPos(x, y, pos);
 				cursor.SetPosition(pos);
 				text.ReleaseRead;
-				ShowContextMenu(x, y) END;
-			IF allowTextSelection.Get() & (keys * {0, 1, 2} = {0}) THEN
+				ShowContextMenu(x, y)
+			END;
+
+			IF allowTextSelection.Get() &
+			( (keys * {0, 1, 2} = {0})  (* left mouse for select *)
+			   OR (keys * {0, 1, 2} = {1}) & doubleclickedWord  (* remove selection when double clicking *)
+			   OR (keys * {0,1,2} = {2}) & (~allowPiemenu.Get())) (* right mouse for selection if pie menu is not enabled *)
+			THEN
 				AbortStart;
 				text.AcquireRead;
 				ViewToTextPos(x, y, pos);
@@ -3577,6 +3597,35 @@ TYPE
 
 		PROCEDURE FindCommandRange*(pos: LONGINT; VAR start, end, nofLastSelections : LONGINT);
 		VAR ch : LONGINT; string : ARRAY 23 OF CHAR; i : LONGINT; sDoCommands, lastWasTilde : BOOLEAN;
+			escapeString: ARRAY 32 OF LONGINT; escapePos: LONGINT; escape: BOOLEAN;
+
+			(* note: this simple algorithm can be emplyed if  the substring to be implicitly searched for does not contain its first character *)
+			PROCEDURE String(escape: BOOLEAN; CONST escapeString: ARRAY OF LONGINT);
+			VAR done: BOOLEAN; escapePos: LONGINT;
+			BEGIN
+				done := FALSE; escapePos := -1;
+				REPEAT
+					utilreader.ReadCh(ch);
+					IF ch = ORD('"') THEN
+						IF escape THEN
+							escapePos := 0;
+						ELSE
+							 done := TRUE
+						END;
+					ELSIF escapePos >= 0 THEN
+						IF escapeString[escapePos] = 0 THEN
+							IF ch =ORD("\") THEN done := TRUE
+							ELSE escapePos := -1
+							END;
+						ELSIF escapeString[escapePos] # ch THEN
+							escapePos := -1;
+						ELSE
+							INC(escapePos);
+						END;
+					END;
+				UNTIL done OR utilreader.eot;
+			END String;
+
 		BEGIN
 			nofLastSelections := 0;
 			text.AcquireRead;
@@ -3589,6 +3638,18 @@ TYPE
 			utilreader.SetDirection(1); utilreader.SetPosition(start);
 			REPEAT
 				utilreader.ReadCh(ch);
+
+				IF ch = ORD('"') THEN
+					escapeString[escapePos] := 0;
+					String(escape, escapeString);
+				ELSIF ch =ORD("\") THEN
+					escape := TRUE;
+					escapePos := 0;
+				ELSIF escape THEN
+					IF TextUtilities.IsWhiteSpace(ch,text.isUTF) THEN escape := FALSE
+					ELSE escapeString[escapePos] := ch; INC(escapePos);
+					END;
+				END;
 
 				(* check whether the command is SystemTools.DoCommands *)
 				IF (i < 22) THEN
@@ -4051,7 +4112,7 @@ VAR
 
 	PTVIsMultiLine, PTVIsPassword, PTVShowBorder, PTValwaysShowCursor, PTVShowLabels : WMProperties.BooleanProperty;
 	PTVAllowCommandExecution, PTVAllowTextSelection, PTVAllowPiemenu : WMProperties.BooleanProperty;
-	PTVWrapMode, PTVMouseWheelScrollSpeed : WMProperties.Int32Property;
+	PTVWrapMode, PTVMouseWheelScrollSpeed, PVTtextAlignV : WMProperties.Int32Property;
 	PTVfirstLine, PTVleftShift, PTVPasswordChar : WMProperties.Int32Property;
 	PTVdefaultTextColor, PTVdefaultTextBgColor : WMProperties.ColorProperty;
 	PTVborders : WMProperties.RectangleProperty;
@@ -4170,7 +4231,23 @@ BEGIN
 	PTVHighlighting.Set(NIL);
 	NEW(PTVclBgCurrentLine, NIL, Strings.NewString("ClBgCurrentLine"), Strings.NewString("Background color of currently edited line"));
 	PTVclBgCurrentLine.Set(0);
+	NEW(PVTtextAlignV, NIL, Strings.NewString("TextAlignV"), Strings.NewString("vertical Text Alignment"));
+	PVTtextAlignV.Set(WMGraphics.AlignTop);
 END InitPrototypes;
+
+
+PROCEDURE EnablePiemenu*;
+BEGIN
+	PTVAllowPiemenu.Set( TRUE );
+	KernelLog.String( "Piemenu enabled" );  KernelLog.Ln
+END EnablePiemenu;
+
+PROCEDURE DisablePiemenu*;
+BEGIN
+	PTVAllowPiemenu.Set( FALSE );
+	KernelLog.String( "Piemenu disabled" );  KernelLog.Ln
+END DisablePiemenu;
+
 
 PROCEDURE TextViewFactory*() : XML.Element;
 VAR e : TextView;

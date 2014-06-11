@@ -5,9 +5,9 @@ MODULE Machine;	(** AUTHOR "pjm"; PURPOSE "Bootstrapping, configuration and mach
 IMPORT SYSTEM, Trace;
 
 CONST
-	Version = "A2 Revision 4186 (17.06.2011)";
+	Version = "A2 Revision 5387 (23.08.2013)";
 
-	MaxCPU* = 8;	(** maximum number of processors (up to 16) *)
+	MaxCPU* = 32;	(** maximum number of processors (up to 256) *)
 
 	DefaultObjectFileExtension* = ".Obx";
 
@@ -18,7 +18,7 @@ CONST
 
 	HeapAdr = 100000H;
 
-	MaxMemTop = SHORT(80000000H);
+	MaxMemTop = 80000000H;
 
 	DefaultDMASize = 20;	(* default size of ISA DMA area in KB *)
 
@@ -81,9 +81,9 @@ AddressSize*3	first entry
 *)
 
 	(* virtual memory layout. no area will cross the 2G boundary, to avoid LONGINT sign problems. *)
-	MapAreaAdr = SHORT(80000000H);	(* dynamic mappings: bottom part of 2G..4G *)
+	MapAreaAdr = 80000000H;	(* dynamic mappings: bottom part of 2G..4G *)
 	MapAreaSize = 64*M;
-	IntelAreaAdr = SHORT(0FEE00000H);	(* reserved by Intel for APIC: 4G-18M..4G-18M+4K *)
+	IntelAreaAdr = 0FEE00000H;	(* reserved by Intel for APIC: 4G-18M..4G-18M+4K *)
 	IntelAreaSize = 00001000H;
 	StackAreaAdr = MapAreaAdr+MapAreaSize;	(* stacks: middle part of 2G..4G *)
 	StackAreaSize = IntelAreaAdr-StackAreaAdr;
@@ -186,7 +186,7 @@ CONST
 TYPE
 	Vendor* = ARRAY 13 OF CHAR;
 
-	IDMap* = ARRAY 16 OF SHORTINT;
+	IDMap* = ARRAY 256 OF SHORTINT;
 
 TYPE
 	Stack* = RECORD	(** values are read-only *)
@@ -433,7 +433,6 @@ CODE {SYSTEM.i386}
 	LEA EBX, map
 	MOV EAX, [EAX]
 	SHR EAX, 24
-	AND EAX, 15
 	MOV AL, [EBX+EAX]
 END ID;
 
@@ -480,7 +479,7 @@ CODE {SYSTEM.i386}
 END GreaterOrEqual;
 
 (** Fill "size" bytes at "destAdr" with "filler". "size" must be multiple of 4. *)
-PROCEDURE Fill32* (destAdr: ADDRESS; size: SIZE; filler: LONGINT);
+PROCEDURE Fill32* (destAdr: ADDRESS; size: SIZE; filler: ADDRESS);
 CODE {SYSTEM.i386}
 	MOV EDI, [EBP+destAdr]
 	MOV ECX, [EBP+size]
@@ -759,9 +758,9 @@ CONST
 	SSE2Flag = 26;
 	SSE3Flag = 0; (*IN features2 from ECX*) (*PH 04/11*)
 	SSSE3Flag =9;
-	SSE41Flag =19; 
+	SSE41Flag =19;
 	SSE42Flag =20;
-	SSE5Flag = 11; 
+	SSE5Flag = 11;
 	AVXFlag = 28;
 BEGIN
 	SSE2Support := FALSE;
@@ -816,7 +815,7 @@ CODE {SYSTEM.i386, SYSTEM.Privileged}
 END DisableEmulation;
 
 (** CPU identification *)
-PROCEDURE CPUID*(function : LONGINT; VAR eax, ebx, ecx, edx : SET);
+PROCEDURE CPUID*(function : ADDRESS; VAR eax, ebx, ecx, edx : SET);
 CODE {SYSTEM.i386, SYSTEM.Pentium}
 	MOV EAX, [EBP+function]	; CPUID function parameter
 
@@ -924,16 +923,16 @@ BEGIN
 					END;
 				ELSIF (vendor = "AuthenticAMD") THEN
 					(* CPUID extended function 1 returns: largest extended function *)
-					CPUID(SHORT(80000000H), eax, ebx, ecx, edx);
+					CPUID(80000000H, eax, ebx, ecx, edx);
 					largestFunction := SYSTEM.VAL(LONGINT, eax - {31}); (* remove sign *)
 					IF (largestFunction >= 8) THEN
 						(* CPUID extended function 8 returns: *)
-						CPUID(SHORT(80000008H), eax, ebx, ecx, edx);
+						CPUID(80000008H, eax, ebx, ecx, edx);
 						coresPerProcessor := SYSTEM.VAL(LONGINT, ecx * {0..7}) + 1;
 						threadsPerCore := logicalProcessorCount DIV coresPerProcessor;
 					ELSIF (largestFunction >= 1) THEN
 						(* CPUID extended function 1 returns CmpLegacy bit in ecx *)
-						CPUID(SHORT(80000001H), eax, ebx, ecx, edx);
+						CPUID(80000001H, eax, ebx, ecx, edx);
 						IF 1 IN ecx THEN (* CmpLegacy bit set -> no hyperthreading *)
 							coresPerProcessor := logicalProcessorCount;
 							threadsPerCore := 1;
@@ -1210,8 +1209,8 @@ END AllocateDMA;
 
 (* Check if the specified address is RAM. *)
 PROCEDURE IsRAM(adr: ADDRESS): BOOLEAN;
-CONST Pattern1 = SHORT(0BEEFC0DEH); Pattern2 = SHORT(0AA55FF00H);
-VAR save, x: LONGINT; ok: BOOLEAN;
+CONST Pattern1 = 0BEEFC0DEH; Pattern2 = 0AA55FF00H;
+VAR save, x: ADDRESS; ok: BOOLEAN;
 BEGIN
 	ok := FALSE;
 	SYSTEM.GET (adr, save);
@@ -2273,7 +2272,7 @@ L1:
 	IRETD					; switch to level 3 and continue at following instruction
 L2:
 	POP EBP				; from level 3 stack (refer to Objects.NewProcess)
-	RET 8					; jump to body of first active object
+	RET					; jump to body of first active object
 END JumpToUserLevel;
 
 PROCEDURE Ensure32BitAddress*(adr: ADDRESS): LONGINT;
@@ -2640,14 +2639,11 @@ entry:
 loop:					; call all handlers for the interrupt
 	MOV ECX, ESP
 	PUSH EAX			; save ptr for table
+	PUSH DWORD [EAX+8]	; delegate
 	PUSH stateTag		; TAG(state)
 	PUSH ECX			; ADR(state)
-	MOV EBX, [EAX+8]
-	CMP EBX, 0
-	JE nodelegate
-	PUSH EBX			; object pointer for DELEGATE
-nodelegate:
 	CALL DWORD [EAX+4]	; call handler
+	ADD ESP, 12
 	CLI					; handler may have re-enabled interrupts
 	POP EAX
 	ADD EAX, 12
@@ -2671,6 +2667,25 @@ entry:
 ;	CALL traceInterruptIn
 
 	MOV EBX, [ESP+32]	; EBX = int number
+
+	CMP BL, IRQ0 + 7 ; if irq=7 then check for spurious interrupt on master
+	JNE skip1
+	MOV    AL, 0BH
+	OUT    IntA0, AL
+	IN    AL, IntA0
+	BT    AX, 7
+	JNC    end
+skip1:
+	CMP BL, IRQ8 + 7  ; if irq=15 then check for spurious interrupt on slave
+	JNE skip2
+	MOV    AL, 0BH
+	OUT    IntB0, AL
+	IN    AL, IntB0
+	BT    AX, 7
+	MOV AL, 20H
+	JNC    irq0 ; acknowledge IRQ on master
+
+skip2:
 	IMUL EBX, EBX, MaxNumHandlers
 	IMUL EBX, EBX, 12
 	LEA EAX, intHandler
@@ -2679,14 +2694,11 @@ entry:
 loop:					; call all handlers for the interrupt
 	MOV ECX, ESP
 	PUSH EAX			; save ptr for linked list
+	PUSH DWORD [EAX+8]	; delegate
 	PUSH stateTag		; TAG(state)
 	PUSH ECX			; ADR(state)
-	MOV EBX, [EAX+8]
-	CMP EBX, 0
-	JE nodelegate
-	PUSH EBX			; object pointer for DELEGATE
-nodelegate:
 	CALL DWORD [EAX+4]	; call handler
+	ADD ESP, 12
 	CLI					; handler may have re-enabled interrupts
 	POP EAX
 	ADD EAX, 12
@@ -2704,12 +2716,14 @@ nodelegate:
 	OUT IntB0, AL		; 2nd controller
 irq0:
 	OUT IntA0, AL		; 1st controller
-
+end:
 	POPAD				; now EBP = error code
 	POP EBP			; now EBP = INT
 	POP EBP			; now EBP = caller EBP
 	IRETD
 END FieldIRQ;
+
+
 
 (* LoadIDT - Load interrupt descriptor table *)
 PROCEDURE LoadIDT(base: ADDRESS; size: SIZE);
@@ -3293,6 +3307,7 @@ BEGIN
 END GlobalGetTimestamp;
 
 PROCEDURE ParseProcessor(adr: ADDRESS);
+CONST Enabled = 24; BootProcessor = 25;
 VAR id, idx, signature, family, feat, ver, log: LONGINT; flags: SET; string : ARRAY 8 OF CHAR;
 BEGIN
 	SYSTEM.GET(adr, SYSTEM.VAL (LONGINT, flags));
@@ -3302,29 +3317,31 @@ BEGIN
 	family := ASH(signature, -8) MOD 10H;
 	SYSTEM.GET (adr+8, feat);
 	idx := -1;
-	IF (family # 0) & (signature MOD 1000H # 0FFFH) & (24 IN flags) & (id < LEN(idMap)) & (idMap[id] = -1) THEN
-		IF 25 IN flags THEN idx := 0	(* boot processor *)
+	IF (family # 0) & (signature MOD 1000H # 0FFFH) & (Enabled IN flags) & (id < LEN(idMap)) & (idMap[id] = -1) THEN
+		IF BootProcessor IN flags THEN idx := 0	(* boot processor *)
 		ELSIF numProcessors < maxProcessors THEN idx := numProcessors; INC(numProcessors)
 		ELSE	(* skip *)
 		END
 	END;
 	IF idx # -1 THEN apicVer[idx] := ver; idMap[id] := SHORT(SHORT(idx)) END;
-	Trace.String("   Processor "); Trace.Int(id, 1);
-	Trace.String(", APIC"); Trace.Hex(ver, -3);
-	Trace.String(", ver "); Trace.Int(family, 1);
-	Trace.Char("."); Trace.Int(ASH(signature, -4) MOD 10H, 1);
-	Trace.Char("."); Trace.Int(signature MOD 10H, 1);
-	Trace.String(", features "); Trace.Hex(feat, 9);
-	Trace.String(", ID "); Trace.Int(idx, 1);
-	IF (threadsPerCore > 1) THEN Trace.String(" ("); Trace.Int(threadsPerCore, 0); Trace.String(" threads)"); END;
-	Trace.Ln;
-	IF (threadsPerCore > 1)  THEN
+	IF TraceVerbose THEN
+		Trace.String("   Processor "); Trace.Int(id, 1);
+		Trace.String(", APIC"); Trace.Hex(ver, -3);
+		Trace.String(", ver "); Trace.Int(family, 1);
+		Trace.Char("."); Trace.Int(ASH(signature, -4) MOD 10H, 1);
+		Trace.Char("."); Trace.Int(signature MOD 10H, 1);
+		Trace.String(", features "); Trace.Hex(feat, 9);
+		Trace.String(", ID "); Trace.Int(idx, 1);
+		IF (threadsPerCore > 1) THEN Trace.String(" ("); Trace.Int(threadsPerCore, 0); Trace.String(" threads)"); END;
+		Trace.Ln;
+	END;
+	IF (threadsPerCore > 1) & (Enabled IN flags) THEN
 		GetConfig("DisableHyperthreading", string);
 		IF (string = "1") THEN
 			Trace.String("Machine: Hyperthreading disabled."); Trace.Ln;
 			RETURN;
 		END;
-		log := (LSH(CPUID1(), -16) MOD 256);
+		log := (LSH(CPUID1(), -16) MOD 256) DIV coresPerProcessor;
 		WHILE log > 1 DO
 			INC(id); DEC(log);
 			IF numProcessors < maxProcessors THEN
@@ -3359,7 +3376,7 @@ BEGIN
 		END;
 		IF featureMP[0] # 0X THEN	(* pre-defined configuration *)
 			Trace.String("   Default config "); Trace.Int(ORD(featureMP[0]), 1); Trace.Ln;
-			localAPIC := SHORT(0FEE00000H);
+			localAPIC := 0FEE00000H;
 			apicVer[0] := 0; apicVer[1] := 0
 		ELSE	(* configuration defined in table *)
 			MapPhysical(adr, 68*1024, adr);	(* 64K + 4K header *)
@@ -3508,9 +3525,11 @@ VAR id: LONGINT; state: State;
 BEGIN	(* running at kernel level with interrupts on *)
 	InitAPIC;
 	id := ID();	(* timeslicing is disabled, as we are running at kernel level *)
-	Acquire (TraceOutput);
-	Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn (" running");
-	Release (TraceOutput);
+	IF TraceVerbose THEN
+		Acquire (TraceOutput);
+		Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn (" running");
+		Release (TraceOutput);
+	END;
 	IF TraceProcessor & traceProcessor & (id = numProcessors-1) THEN
 		DEC(numProcessors)	(* exclude from rest of activity *)
 	ELSE
@@ -3519,9 +3538,11 @@ BEGIN	(* running at kernel level with interrupts on *)
 	(* synchronize with boot processor - end of mutual exclusion *)
 	started[id] := TRUE;
 	IF TraceProcessor & ~(id IN allProcessors) THEN
-		Acquire (TraceOutput);
-		Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn (" tracing");
-		Release (TraceOutput);
+		IF TraceVerbose THEN
+			Acquire (TraceOutput);
+			Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn (" tracing");
+			Release (TraceOutput);
+		END;
 		LOOP
 			IF traceProcessorProc # NIL THEN traceProcessorProc(id, state) END;
 			SpinHint
@@ -3531,9 +3552,11 @@ BEGIN	(* running at kernel level with interrupts on *)
 	WHILE stopped DO SpinHint END;
 	(* now fully functional, including storage allocation *)
 	AtomicExcl(ipcBusy, id);	(* ack *)
-	Acquire (TraceOutput);
-	Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn(" scheduling");
-	Release (TraceOutput);
+	IF TraceVerbose THEN
+		Acquire (TraceOutput);
+		Trace.String ("   P"); Trace.Int(id, 1); Trace.StringLn(" scheduling");
+		Release (TraceOutput);
+	END;
 	ASSERT(id = ID());	(* still running on same processor *)
 	start;
 END StartMP;
@@ -3594,7 +3617,9 @@ BEGIN
 		SYSTEM.PUT (page0Adr + 467H, ASH(phys, 16-4));
 		PutNVByte(15, 0AX);	(* shutdown status byte *)
 		(* attempt to start another processor *)
-		Acquire(TraceOutput); Trace.String("   P0 starting P"); Trace.Int(i, 1); Trace.Ln; Release(TraceOutput);
+		IF TraceVerbose THEN
+			Acquire(TraceOutput); Trace.String("   P0 starting P"); Trace.Int(i, 1); Trace.Ln; Release(TraceOutput);
+		END;
 		StartProcessor(phys, revIDmap[i], apicVer[i] >= 10H);	(* try booting processor i *)
 		(* wait for CPU to become active *)
 		timer := ticks + 5000;	(* ~5s timeout *)
@@ -3602,11 +3627,12 @@ BEGIN
 		(* end of mutual exclusion *)
 		Acquire(TraceOutput);
 		IF started[i] THEN
-			Trace.String("   P0 recognized P"); Trace.Int(i, 1);
+			IF TraceVerbose THEN
+				Trace.String("   P0 recognized P"); Trace.Int(i, 1); Trace.Ln;
+			END;
 		ELSE
-			Trace.String("   P0 timeout on P"); Trace.Int(i, 1);
+			Trace.String("   P0 timeout on P"); Trace.Int(i, 1); Trace.Ln;
 		END;
-		Trace.Ln;
 		Release(TraceOutput);
 	END;
 	SYSTEM.PUT (page0Adr + 467H, SYSTEM.VAL (LONGINT, 0));

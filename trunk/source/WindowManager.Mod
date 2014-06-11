@@ -1378,6 +1378,9 @@ TYPE
 		KernelLog.String("WindowManager: Window manager closed"); KernelLog.Ln;
 	END WindowManager;
 
+VAR
+	DoubleClick: LONGINT;
+TYPE
 	MouseObj = OBJECT (Inputs.Sink)
 	VAR
 		view : ViewPort;
@@ -1385,15 +1388,24 @@ TYPE
 		threshold, speedup: LONGINT;
 		enableMMEmulation : BOOLEAN;
 
+		(* double click support *)
+		lastTime, lastX, lastY: LONGINT;
+		prevKeys: SET; inDoubleClick: BOOLEAN;
+	(*CONST
+		DoubleClick = 400 (* ms *);*)
+
 		PROCEDURE &Init*(t, s:LONGINT);
 		BEGIN
 			Inputs.mouse.Register(SELF);
 			threshold := t; speedup := s;
 			enableMMEmulation := TRUE;
+			prevKeys := {};
+			lastTime := Kernel.GetTicks()-DoubleClick;
+			inDoubleClick := FALSE;
 		END Init;
 
 		PROCEDURE Handle(VAR msg: Inputs.Message);
-		VAR dx, dy, dz: LONGINT; modifierFlags : SET;
+		VAR dx, dy, dz, nx, ny, nz: LONGINT; modifierFlags : SET; time: LONGINT;
 		BEGIN {EXCLUSIVE}
 			IF (msg IS Inputs.MouseMsg) THEN
 				WITH msg: Inputs.MouseMsg DO
@@ -1414,13 +1426,43 @@ TYPE
 			ELSIF (msg IS Inputs.AbsMouseMsg) THEN
 
 				WITH msg: Inputs.AbsMouseMsg DO
-					x := msg.x;  y := msg.y;  z := msg.z;
-
-					IF msg.dx # 0 THEN dx := msg.dx;  INC( x, dx );
-					ELSE x := msg.x;  dx := x - msg.x;
+					IF Displays.reverse THEN
+						nx := view.display.width-msg.x-1;
+						ny := view.display.height-msg.y-1;
+						dx := -msg.dx;
+						dy := -msg.dy;
+					ELSE
+						nx := msg.x;  
+						ny := msg.y;  
+						dx := msg.dx;
+						dy := msg.dy;
 					END;
-					IF msg.dy # 0 THEN dy := msg.dy;  INC( y, dy );  ELSE y := msg.y;  dy := y - msg.y;  END;
-					IF msg.dz # 0 THEN dz := msg.dz;  INC( z, dz );  ELSE z := msg.z;  dz := z - msg.z END;
+					nz := msg.z; dz := msg.dz;
+					IF (DoubleClick > 0) & (msg.keys = {0}) & (prevKeys = {}) THEN
+						time := Kernel.GetTicks();
+						IF (time - lastTime < DoubleClick) & (ABS(nx-lastX) < 3) & (ABS(ny-lastY) <3) THEN
+							msg.keys := {1}; lastTime := time-DoubleClick;
+							inDoubleClick := TRUE;
+						ELSE
+							lastTime := time; lastX := nx; lastY := ny;
+						END;
+					ELSIF inDoubleClick & (msg.keys = {0}) THEN 
+						msg.keys := {1}; 
+						(* no change after double click -- avoid sending a click event right after a double click event *)
+					ELSE
+						inDoubleClick := FALSE;
+					END;
+					prevKeys := msg.keys ;
+
+					IF dx # 0 THEN INC( x, dx );
+					ELSE dx := nx-x; x:= nx;
+					END;
+					IF dy # 0 THEN INC( y, dy );  
+					ELSE dy := ny - y;  y := ny;
+					END;
+					IF dz # 0 THEN INC( z, dz );  
+					(*ELSE dz := nz - z; z := nz;*)
+					END;
 
 					IF (ABS( dx ) > threshold) OR (ABS( dy ) > threshold) THEN dx := dx * speedup DIV 10;  dy := dy * speedup DIV 10
 					END;
@@ -1524,6 +1566,7 @@ VAR
 	defaultMouse : MouseObj;
 	CharToUnicode: ARRAY 256 OF LONGINT; (** mapping from Oberon character codes to Unicodes **)
 	t : Kernel.Timer;
+
 
 PROCEDURE Min(a, b:LONGINT):LONGINT;
 BEGIN
@@ -1655,11 +1698,23 @@ BEGIN
 	session.CheckChain(TRUE);
 END TraceChain;
 
+PROCEDURE SetDoubleClick*(context: Commands.Context);
+VAR options: Options.Options; speed: LONGINT;
+BEGIN
+	NEW(options);
+	options.Add("s","speed",Options.Integer);
+	IF options.Parse(context.arg, context.error) THEN
+		IF options.GetInteger("speed", speed) THEN
+			DoubleClick := speed
+		END;
+	END;
+END SetDoubleClick;
 
 BEGIN
 	WMFontManager.Install;
 	InitCharMaps;
 	Modules.InstallTermHandler(CleanUp);
+	DoubleClick := 500;
 	NEW(t);
 END WindowManager.
 

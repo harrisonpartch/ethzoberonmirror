@@ -144,7 +144,7 @@ CONST
 	RX = 0;
 	TX = 1;
 
-	TxPadBytes = SHORT(0FFFF0000H);
+	TxPadBytes = LONGINT(0FFFF0000H);
 
 	UsbHeaderSize = 4;
 
@@ -245,7 +245,7 @@ TYPE
 
 		gpioConfiguration : SET;
 
-		PROCEDURE SendFrame*(dst: Network.LinkAdr; type: LONGINT; VAR l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
+		PROCEDURE SendFrame*(dst: Network.LinkAdr; type: LONGINT; CONST l3hdr, l4hdr, data: ARRAY OF CHAR;  h3len, h4len, dofs, dlen: LONGINT);
 		VAR status : Usbdi.Status; i, packetSize, padLength : LONGINT;
 		BEGIN {EXCLUSIVE}
 			(* 4 Byte USB header *)
@@ -262,7 +262,7 @@ TYPE
 			(* 14 Byte Ethernet Frame Header (destination address - source address - Frame type *)
 			SYSTEM.MOVE(ADDRESSOF(dst[0]), txBufferAdr + 4, 6);
 			SYSTEM.MOVE(ADDRESSOF(linkDevice.local[0]), txBufferAdr + 10, 6);
-			SYSTEM.PUT16(txBufferAdr + 16, ROT(SYSTEM.VAL(INTEGER, SHORT(type)), 8));
+			SYSTEM.PUT16(txBufferAdr + 16, ROT(SYSTEM.VAL(INTEGER, LONGINT(type)), 8));
 
 			i := UsbNetwork.EthernetHeaderSize + UsbHeaderSize;
 			(* Network Layer Header *)

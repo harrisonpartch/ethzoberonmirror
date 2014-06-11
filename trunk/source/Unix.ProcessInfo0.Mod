@@ -12,13 +12,13 @@ VAR thread : Objects.Process; length : LONGINT;
 BEGIN
 	nofProcesses := 0;
 	length := LEN(array);
-	thread := Objects.processes;
+	thread := Objects.root;
 	WHILE (thread # NIL) & (nofProcesses < length) DO
 		IF (thread.mode # Objects.Terminated) THEN
 			array[nofProcesses] := thread(Objects.Process);
 			INC(nofProcesses);
 		END;
-		thread := thread.processLink;
+		thread := thread.nextProcess;
 	END;
 END GetProcesses;
 
@@ -26,10 +26,10 @@ PROCEDURE GetProcess*(id : LONGINT) : Objects.Process;
 VAR process, thread : Objects.Process; 
 BEGIN
 	process := NIL;
-	thread := Objects.processes;
+	thread := Objects.root;
 	WHILE (thread # NIL) & (process = NIL) DO
 		IF thread.id = id THEN process := thread; END;
-		thread := thread.processLink;
+		thread := thread.nextProcess;
 	END;
 	RETURN process;
 END GetProcess;

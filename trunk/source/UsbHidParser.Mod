@@ -706,7 +706,7 @@ TYPE
 				|4:
 					IF(data>=80000000H) THEN
 						(*unhappy with that expression but could not write data - 100000000H*)
-						returnValue := data- SHORT(0FFFFFFFFH) - SHORT(0FFFFFFFFH) - 2;
+						returnValue := data- LONGINT(0FFFFFFFFH) - LONGINT(0FFFFFFFFH) - 2;
 					END;
 				ELSE
 				returnValue := 0;

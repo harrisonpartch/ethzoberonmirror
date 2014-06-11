@@ -32,7 +32,7 @@ CONST
 
 	Stats* = FALSE;	  (* maintain statistical counters *)
 	TraceVerbose = FALSE;	(* write out verbose trace info *)
-	StrongChecks = FALSE;	(* strong sanity checks *)
+	StrongChecks = TRUE;	(* strong sanity checks *)
 	VeryConservative = FALSE;	(* temp - be very conservative about stack-based pointers *)
 	YieldTrick = FALSE;	(* avoid yield when no ready process available *)
 
@@ -379,6 +379,8 @@ VAR
 		process: Process
 	END;
 
+	processingIRQ: ARRAY NumIRQ OF BOOLEAN;
+
 	rootedProcesses: ARRAY NumPriorities OF Process; (* list of potential processes that are not traced by GC when processing the ready queues, since GC only traces processes with
 	                                                                                      priorities Low ... High in ready queues. The potentially not traced processes are rooted here and traced by the GC *)
 
@@ -592,7 +594,7 @@ END Yield;
 PROCEDURE SwitchToState(new: Process; VAR state: Machine.State);
 BEGIN
 	(* simulate return from SwitchTo - MOV ESP, EBP; POP EBP; RET 8 *)
-	state.SP := new.state.BP+AddressSize*4;	(* AddressSize*4 is effect of POP, RET AddressSize*2 *)
+	state.SP := new.state.BP+AddressSize*2;	(* AddressSize*2 is effect of POP, RET *)
 	SYSTEM.GET (new.state.BP, state.BP);	(* effect of POP *)
 	SYSTEM.GET (new.state.BP + AddressSize, state.PC);	(* effect of RET *)
 END SwitchToState;
@@ -794,8 +796,26 @@ END GetCpuCycles;
 PROCEDURE FieldIRQ(VAR state: Machine.State);
 VAR t: Process; id: LONGINT; new: Process; preempt: BOOLEAN;
 BEGIN
-	Machine.Sti ();	(* avoid Processors.StopAll deadlock when waiting for locks below (remove this) *)
 	Machine.DisableIRQ(state.INT);	(* do this before acknowledging irq *)
+
+	IF StrongChecks THEN
+		IF processingIRQ[state.INT-MinIRQ] THEN
+			Trace.String("IRQ recursion "); Trace.Int(state.INT,1); Trace.Ln;
+			RETURN
+		ELSE
+			processingIRQ[state.INT-MinIRQ] := TRUE;
+		END;
+	END;
+	
+	(* if the reenabling of interrupts cannot be circumvented, then it is REQUIRED to acknowledge interrupts
+		BEFORE reenabling. Otherwise spurious IRQs cannot be identified as such.
+		Please note that this particular problem with spurious IRQs cannot observed on many machines but IF it is observed
+		then the machine will behave unexpected. Very hard to debug and trace!
+
+		Machine.Ack(state.INT); 
+		Machine.Sti ();	(* avoid Processors.StopAll deadlock when waiting for locks below (remove this) *)
+	*)
+	
 	Machine.Acquire(Machine.Objects);
 	t := interrupt[state.INT-MinIRQ].process;
 	IF StrongChecks THEN ASSERT(t.mode = AwaitingEvent) END;
@@ -866,6 +886,7 @@ BEGIN
 		Machine.Acquire(Machine.Objects);
 		ASSERT(running[Machine.ID ()] = t); (* strong check *)
 		t.mode := AwaitingEvent;
+		processingIRQ[int-MinIRQ] := FALSE;
 		Machine.EnableIRQ(int);
 		SwitchToNew
 	END
@@ -1134,20 +1155,18 @@ BEGIN
 	(* initialize the stack *)
 	Machine.NewStack(t.stack, t, sp);
 	IF VeryConservative THEN
-		Machine.Fill32(t.stack.adr, sp-t.stack.adr, SHORT(0D0D0DEADH))
+		Machine.Fill32(t.stack.adr, sp-t.stack.adr, 0D0D0DEADH)
 	END;
 	SYSTEM.PUT (sp-1*AddressSize, obj); (* self parameter for body *)
 	SYSTEM.PUT (sp-2*AddressSize, terminate); (* return address for body *)
-		(* the following will be popped by SwitchTo exit code or Machine.JumpToUserLevel *)
-	(*SYSTEM.PUT (sp-3*AddressSize, NIL);*)	(* parameter for SwitchTo (ADR(running)) *)
-	(*SYSTEM.PUT (sp-4*AddressSize, NIL);*)	(* parameter for SwitchTo (new) *)
-	SYSTEM.PUT (sp-5*AddressSize, body); (* return address for SwitchTo (body entry point) *)
-	SYSTEM.PUT (sp-6*AddressSize, NIL);	(* end of dynamic link list (FP value at entry to body) *)
+	(* the following will be popped by SwitchTo exit code or Machine.JumpToUserLevel *)
+	SYSTEM.PUT (sp-3*AddressSize, body); (* return address for SwitchTo (body entry point) *)
+	SYSTEM.PUT (sp-4*AddressSize, NIL);	(* end of dynamic link list (FP value at entry to body) *)
 	t.sseAdr := ADDRESSOF(t.sse) + ((-ADDRESSOF(t.sse)) MOD 16);
 	IF Machine.SSESupport THEN Machine.SSESaveMin(t.sseAdr)
 	ELSE Machine.FPUSaveMin(t.sse)	(* inherit FPU state of caller *)
 	END;
-	t.state.BP := sp-6*AddressSize;
+	t.state.BP := sp-4*AddressSize;
 	t.state.SP := t.state.BP;
 	t.state.PC := 0; (* indicating that process is not running yet *)
 	(* set up exception handling *)
@@ -1695,6 +1714,7 @@ BEGIN
 	gcBarrier := {};
 	FOR i := 0 TO Machine.MaxCPU - 1 DO running[i] := NIL END;
 	FOR i := 0 TO NumPriorities - 1 DO rootedProcesses[i] := NIL END;
+	FOR i := 0 TO NumIRQ-1 DO processingIRQ[i] := FALSE END;
 	nextProcessID := 0; Machine.ticks := 0;
 	traceProcess := NIL;
 	lock := Lock; unlock := Unlock; await := Await; create := CreateProcess;

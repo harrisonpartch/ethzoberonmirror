@@ -99,6 +99,7 @@ CONST
 	fpTypeChannel = 23;
 	fpTypeComplex = 24;
 	fpTypeLongcomplex = 25;
+	fpTypeModule=26;
 
 	fpTypeBasic=1;
 	fpTypeStaticArray=2;
@@ -1101,6 +1102,64 @@ TYPE
 		BEGIN
 			VisitProcedure(x) (* same finger print as a procedure *)
 		END VisitOperator;
+		
+		PROCEDURE VisitModule(x: SyntaxTree.Module);
+		VAR fingerprint, symbolFingerPrint: FingerPrint; deep: BOOLEAN; fp: LONGINT; symbol: SyntaxTree.Symbol; scope: SyntaxTree.ModuleScope;
+		BEGIN
+			fingerprint := x.fingerprint;
+			deep := SELF.deep;
+
+			IF Trace THEN TraceEnter("Record"); END;
+
+			IF ~fingerprint.shallowAvailable THEN
+				IF Trace THEN TraceIndent; D.Str("Module Enter Shallow "); D.Ln; END;
+				SELF.deep := FALSE;
+				fp := 0;
+				FPNumber(fp, fpTypeModule); 
+				FPName(fp,x.name);
+
+				IF Trace THEN TraceIndent; D.Str("Module Name ");D.Hex(fp,-8);  D.Ln; END;
+
+				fingerprint.shallow := fp;
+				fingerprint.shallowAvailable := TRUE;
+				x.SetFingerPrint(fingerprint);
+				SELF.deep := deep;
+				IF Trace THEN TraceIndent; D.Str("Module Shallow Done "); TraceFP(fingerprint); D.Ln;  END;
+			END;
+
+			IF deep & ~fingerprint.deepAvailable THEN
+				IF Trace THEN TraceIndent; D.Str("Module Enter Deep "); D.Ln; END;
+				fingerprint.private := fingerprint.shallow;
+				fingerprint.public := fingerprint.shallow;
+				
+				scope := x.moduleScope;
+				IF Trace THEN TraceIndent; D.Str("RecordType before methods"); TraceFP(fingerprint); D.Ln; END;
+
+				symbol := scope.firstSymbol;
+				WHILE symbol # NIL DO
+					IF symbol.access * SyntaxTree.Public # {} THEN
+						symbolFingerPrint := SymbolFP(symbol);
+						FPNumber(fingerprint.private,symbolFingerPrint.shallow);
+						FPNumber(fingerprint.public,symbolFingerPrint.shallow);
+					END;
+					symbol := symbol.nextSymbol;
+				END;
+
+				IF Trace THEN TraceIndent; D.Str("Module Exit Deep "); TraceFP(fingerprint); D.Ln;  END;
+
+				(*
+				ASSERT(fingerprint.private # 0,100);
+				ASSERT(fingerprint.public # 0,101);
+				*)
+				fingerprint.deepAvailable := TRUE;
+				x.SetFingerPrint(fingerprint);
+			END;
+
+			SELF.fingerprint := fingerprint;
+
+			IF Trace THEN TraceExit("Record",fingerprint); END;
+
+		END VisitModule;
 
 		PROCEDURE VisitSymbol(x: SyntaxTree.Symbol);
 		BEGIN
@@ -1108,7 +1167,6 @@ TYPE
 			fingerprint.shallowAvailable := TRUE;
 			x.SetFingerPrint(fingerprint);
 		END VisitSymbol;
-
 
 		PROCEDURE TraceIndent;
 		VAR i: LONGINT;

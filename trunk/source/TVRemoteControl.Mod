@@ -11,7 +11,7 @@ CONST
 	ButtonHeight = 30;
 	ButtonsPerRow = 3;
 
-	ButtonCol = SHORT(0FF00008FH);
+	ButtonCol = 0FF00008FH;
 
 TYPE
 	(** Remote control window *)

@@ -1165,6 +1165,7 @@ TYPE
 				filenameEdit.tv.showBorder.Set(TRUE);
 				filenameEdit.tv.borders.Set(WMRectangles.MakeRect(3,3,1,1));
 				filenameEdit.tv.commandCaller := SELF;
+				filenameEdit.tv.textAlignV.Set(WMGraphics.AlignCenter);
 				filenameEdit.onEnter.Add(LoadHandler);
 				filenameEdit.onEscape.Add(FilenameEditEscapeHandler);
 				resizerPanel.AddContent(filenameEdit);
@@ -1215,6 +1216,7 @@ TYPE
 				toolbar.AddContent(redoBtn);
 
 				NEW(optionsEdit); optionsEdit.tv.showBorder.Set(TRUE); optionsEdit.tv.borders.Set(WMRectangles.MakeRect(3,3,1,1));
+				optionsEdit.tv.textAlignV.Set(WMGraphics.AlignCenter);
 				optionsEdit.alignment.Set(WMComponents.AlignClient); optionsEdit.multiLine.Set(FALSE);
 				optionsEdit.bounds.SetWidth(80); optionsEdit.fillColor.Set(0FFFFFFFFH);
 				optionsEdit.SetAsString(settings.defaultCompilerOptions);

@@ -181,7 +181,6 @@ BUILDS
 		EXCLUDEPACKAGES ""
 		DISABLED "FALSE"
 	}
-
 	LinuxAos {
 		INCLUDE "UNIX LINUX"
 		COMPILER "Compiler.Compile"
@@ -193,6 +192,17 @@ BUILDS
 		EXCLUDEPACKAGES "OberonVoyager OberonAnts"
 		DISABLED "FALSE"
 	}
+	LinuxAos64 {
+		INCLUDE "UNIX LINUX"
+		COMPILER "Compiler.Compile"
+		COMPILEOPTIONS "--bits=64"
+		TARGET "AMD"
+		EXTENSION "Obj"
+		SYMBOLEXTENSION "Obj"
+		PATH "./"
+		EXCLUDEPACKAGES "OberonVoyager OberonAnts"
+		DISABLED "FALSE"
+	}	
 	DarwinAos {
 		INCLUDE "UNIX DARWIN"
 		COMPILER "Compiler.Compile"
@@ -505,7 +515,7 @@ PACKAGE Compiler ARCHIVE "Compiler.zip" SOURCE "CompilerSrc.zip" DESCRIPTION "Ac
 	FoxBasic.Mod  FoxProgTools.Mod  FoxScanner.Mod FoxSyntaxTree.Mod FoxGlobal.Mod
 	FoxActiveCells.Mod FoxHardware.Mod FoxFormats.Mod FoxPrintout.Mod
 	FoxParser.Mod  FoxSemanticChecker.Mod
-	FoxBackend.Mod FoxSections.Mod FoxBinaryCode.Mod
+	FoxBackend.Mod FoxSections.Mod FoxBinaryCode.Mod FoxFrontend.Mod FoxOberonFrontend.Mod
 	FoxCompiler.Mod FoxFingerPrinter.Mod  FoxInterfaceComparison.Mod FoxTextualSymbolFile.Mod FoxBinarySymbolFile.Mod
 	FoxIntermediateCode.Mod FoxIntermediateBackend.Mod FoxCodeGenerators.Mod
 	FoxBinaryObjectFile.Mod FoxGenericObjectFile.Mod
@@ -533,6 +543,7 @@ PACKAGE ApplicationsMini ARCHIVE "ApplicationsMini.zip" SOURCE "ApplicationsMini
 	ProcessInfo.Mod
 
 	SystemTools.Mod
+	Reboot.Mod # Tool to reboot machine after delay (and write system reboot time to file)
 
 	WIN { Win32.WinApplications.Mod }
 
@@ -671,6 +682,7 @@ PACKAGE ApplicationsMini ARCHIVE "ApplicationsMini.zip" SOURCE "ApplicationsMini
 	CryptoBigNumbers.Mod CryptoBase64.Mod CryptoUtils.Mod CryptoCiphers.Mod CryptoARC4.Mod
 	CryptoDES.Mod CryptoDES3.Mod 
 	CryptoHashes.Mod CryptoMD5.Mod CryptoSHA1.Mod CryptoSHA256.Mod
+	CryptoKeccakF1600.Mod CryptoKeccakSponge.Mod CryptoSHA3.Mod
 	CryptoPrimes.Mod CryptoDSA.Mod CryptoDiffieHellman.Mod
 	CryptoAES.Mod
 	CryptoBlowfish.Mod
@@ -1270,7 +1282,9 @@ PACKAGE Contributions ARCHIVE "Contributions.zip" SOURCE "ContributionsSrc.zip" 
 	WIN { Win32.VfW.Mod RasterPixelFormats.Mod VideoExample.Mod TestVideo.Mod}
 
 	WMOverlay.Mod WMOverlay.tar
-
+	
+	# Oberon pretty printing
+	PrettyPrint.Mod  PrettyPrintHighlighter.XML
 
 	NbrInt8.Mod NbrInt16.Mod NbrInt32.Mod I386.NbrInt64.Mod NbrInt.Mod NbrRat.Mod
 	I386.NbrRe32.Mod I386.NbrRe64.Mod NbrRe.Mod NbrCplx.Mod NbrStrings.Mod

@@ -78,6 +78,7 @@ VAR
 				|8: w.String("ASSERT failed")
 				|9: w.String("array dimension error")
 				|14: w.String("out of memory")
+				|16: w.String("procedure returned")
 				ELSE
 					IF (exc.halt > MAX(INTEGER)+1) OR (exc.halt < MIN(INTEGER)) THEN
 						w.String("module freed?")

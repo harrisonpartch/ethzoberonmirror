@@ -251,6 +251,9 @@ TYPE
 		(** symbols *)
 		PROCEDURE VisitSymbol*(x: Symbol);
 		BEGIN HALT(100) (* abstract *) END VisitSymbol;
+		
+		PROCEDURE VisitModule*(x: Module);
+		BEGIN HALT(100) (* abstract *) END VisitModule;
 
 		PROCEDURE VisitTypeDeclaration*(x: TypeDeclaration);
 		BEGIN HALT(100) (* abstract *) END VisitTypeDeclaration;
@@ -356,6 +359,15 @@ TYPE
 			SELF.position := position;
 			SELF.prefix := prefix; SELF.suffix := suffix;
 		END InitQualifiedIdentifier;
+
+		PROCEDURE GetName*(VAR name: Basic.SegmentedName);
+		VAR s: ARRAY 64 OF CHAR;
+		BEGIN
+			Basic.InitSegmentedName(name);
+			IF prefix # invalidIdentifier THEN Basic.SuffixSegmentedName(name, prefix) END;
+			Basic.SuffixSegmentedName(name, suffix)
+		END GetName;
+
 
 	END QualifiedIdentifier;
 
@@ -648,7 +660,7 @@ TYPE
 		END SameType;
 
 		PROCEDURE CompatibleTo*(to: Type): BOOLEAN;
-		BEGIN RETURN (to IS AddressType) OR (to IS SizeType) OR (to IS IntegerType) & (to.sizeInBits >= sizeInBits)
+		BEGIN RETURN (to IS AddressType) OR (to IS SizeType) OR (to IS IntegerType) & (to.sizeInBits >= sizeInBits) OR (to IS PointerType) & to(PointerType).isUnsafe
 		END CompatibleTo;
 
 		PROCEDURE Accept*(v: Visitor);
@@ -1239,11 +1251,15 @@ TYPE
 		VAR
 			modifiers-: Modifier; (* set by the parser *)
 			pointerBase-: Type;
+			isUnsafe-: BOOLEAN;
+			isDisposable-: BOOLEAN;
 
 		PROCEDURE & InitPointerType(position: LONGINT; scope: Scope);
 		BEGIN
 			modifiers := NIL;
 			pointerBase := NIL;
+			isUnsafe := FALSE;
+			isDisposable := FALSE;
 			InitType(position);
 			SELF.scope := scope;
 			hasPointers := TRUE;
@@ -1257,6 +1273,16 @@ TYPE
 		BEGIN
 			pointerBase := type;
 		END SetPointerBase;
+
+		PROCEDURE SetUnsafe*(unsafe: BOOLEAN);
+		BEGIN
+			isUnsafe := unsafe;
+		END SetUnsafe;
+
+		PROCEDURE SetDisposable*(disposable: BOOLEAN);
+		BEGIN
+			isDisposable := disposable;
+		END SetDisposable;
 
 		PROCEDURE Extends*(this: Type): BOOLEAN;
 		VAR result: BOOLEAN; extension, base: Type;
@@ -1279,7 +1305,7 @@ TYPE
 		END Extends;
 
 		PROCEDURE SameType*(this: Type): BOOLEAN;
-		BEGIN	RETURN (SELF = this) OR (this IS PointerType) & (this(PointerType).pointerBase.SameType(pointerBase.resolved))
+		BEGIN	RETURN (SELF = this) OR (this IS PointerType) & (this(PointerType).pointerBase.SameType(pointerBase.resolved) & (this(PointerType).isUnsafe = isUnsafe))
 		END SameType;
 
 		PROCEDURE CompatibleTo*(to: Type): BOOLEAN;
@@ -1536,7 +1562,7 @@ TYPE
 			firstParameter-,lastParameter-: Parameter; numberParameters-: LONGINT;  (* parameters *)
 			returnParameter-: Parameter; (* not really necessary in syntax tree but very handy for backends *)
 
-			isDelegate-,isInterrupt-,noPAF-: BOOLEAN;
+			isDelegate-,isInterrupt-,noPAF-,noReturn-: BOOLEAN;
 			pcOffset-: LONGINT; (* PC offset: used for ARM interrupt procedures *)
 			callingConvention-: LONGINT;
 			stackAlignment-: LONGINT;
@@ -1560,6 +1586,9 @@ TYPE
 		BEGIN SELF.noPAF := noPAF
 		END SetNoPAF;
 
+		PROCEDURE SetNoReturn*(noReturn: BOOLEAN);
+		BEGIN SELF.noReturn := noReturn
+		END SetNoReturn;
 
 		PROCEDURE SetPcOffset*(pcOffset: LONGINT);
 		BEGIN SELF.pcOffset := pcOffset
@@ -1640,6 +1669,7 @@ TYPE
 				WITH this: ProcedureType DO
 					result := (returnType = NIL) & (this.returnType = NIL) OR (returnType # NIL) & (this.returnType # NIL) & returnType.SameType(this.returnType.resolved);
 					result := result & (callingConvention = this.callingConvention);
+					result := result & (noReturn = this.noReturn);
 					IF result THEN
 						p1 := firstParameter; p2 := this.firstParameter;
 						WHILE (p1 # NIL) & (p2 # NIL) & (p1.access # Hidden) & (p2.access # Hidden) & (p1.kind = p2.kind) & (p1.type.SameType(p2.type) OR (p2.type.resolved # NIL) & p1.type.SameType(p2.type.resolved)) DO
@@ -2692,6 +2722,26 @@ TYPE
 		BEGIN	SELF.value := value
 		END SetValue;
 
+		PROCEDURE Append*(CONST value: String);
+		VAR new: String; len: LONGINT;
+		BEGIN
+			len := Strings.Length(SELF.value^) + Strings.Length(value^) + 1;
+			IF LEN(SELF.value) < len THEN
+				NEW(new, len);
+				COPY(SELF.value^, new^);
+				SELF.value := new
+			END;
+			Strings.Append(SELF.value^, value^);
+			length := len
+		END Append;
+
+		PROCEDURE AppendChar*(CONST ch: CHAR);
+		VAR v: String;
+		BEGIN
+			NEW(v,2); v[0] := ch;
+			Append(v);
+		END AppendChar;
+
 		PROCEDURE Clone(): Expression;
 		VAR copy: StringValue;
 		BEGIN
@@ -2935,6 +2985,9 @@ TYPE
 		untraced-: BOOLEAN;
 		useRegister-: BOOLEAN; registerNumber-: LONGINT;
 		modifiers-: Modifier;
+		initializer-: Expression;
+
+		usedAsReference-: BOOLEAN;
 
 		PROCEDURE & InitVariable*( position: LONGINT;  name: Identifier);
 		BEGIN
@@ -2945,7 +2998,15 @@ TYPE
 			modifiers := NIL;
 			useRegister := FALSE;
 			registerNumber := -1;
+			usedAsReference := FALSE;
+			initializer := NIL;
 		END InitVariable;
+
+		PROCEDURE UsedAsReference*;
+		BEGIN
+			usedAsReference := TRUE
+		END UsedAsReference;
+
 
 		PROCEDURE SetUntraced*(u: BOOLEAN);
 		BEGIN untraced := u
@@ -2965,6 +3026,10 @@ TYPE
 		PROCEDURE SetModifiers*(flag: Modifier);
 		BEGIN SELF.modifiers := flag;
 		END SetModifiers;
+
+		PROCEDURE SetInitializer*(initializer: Expression);
+		BEGIN SELF.initializer := initializer;
+		END SetInitializer;
 
 		PROCEDURE Accept*(v: Visitor);
 		VAR position: LONGINT;
@@ -2991,7 +3056,7 @@ TYPE
 		BEGIN
 			InitSymbol( position, name );
 			SELF.kind := kind;
-			IF kind = ConstParameter THEN access := access * ReadOnly  END;
+			IF kind = ConstParameter THEN access := access END;
 			nextParameter := NIL;
 			SELF.ownerType := ownerType;
 			modifiers := NIL;
@@ -3980,18 +4045,25 @@ TYPE
 			blockModifiers-: Modifier;
 			isExclusive-: BOOLEAN;
 			isRealtime-: BOOLEAN;
+			isUnchecked-: BOOLEAN;
 
 		PROCEDURE & InitStatementBlock( position: LONGINT ; outer: Statement);
 		BEGIN
 			InitStatement( position ,outer);  statements := NIL;  blockModifiers := NIL;
 			isExclusive := FALSE;
 			isRealtime := FALSE;
+			isUnchecked := FALSE;
 		END InitStatementBlock;
 
 		PROCEDURE SetRealtime*(b: BOOLEAN);
 		BEGIN
 			isRealtime := b
 		END SetRealtime;
+
+		PROCEDURE SetUnchecked*(unchecked: BOOLEAN);
+		BEGIN
+			isUnchecked := unchecked
+		END SetUnchecked;
 
 		PROCEDURE SetModifier*(modifier: Modifier);
 		BEGIN
@@ -4643,6 +4715,12 @@ TYPE
 			modifiers := NIL;
 		END InitModule;
 
+		PROCEDURE SetCase*(case: LONGINT);
+		BEGIN
+			SELF.case := case
+		END SetCase;
+
+
 		PROCEDURE SetCellNet*(isCellNet: BOOLEAN);
 		BEGIN SELF.isCellNet := isCellNet
 		END SetCellNet;
@@ -4670,6 +4748,11 @@ TYPE
 			lastScope := c;
 			INC(numberScopes);
 		END AddScope;
+
+		PROCEDURE Accept*(v: Visitor);
+		VAR position: LONGINT;
+		BEGIN position := SELF.position; v.VisitModule(SELF)
+		END Accept;
 
 	END Module;
 

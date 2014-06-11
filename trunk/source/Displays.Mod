@@ -19,6 +19,8 @@ CONST
 	(*alpha = 0C0000000H;	(** alpha blending. *)*)
 
 	BufSize = 65536;
+VAR
+	reverse*:BOOLEAN;
 
 TYPE
 	Display* = OBJECT (Plugins.Plugin)
@@ -31,29 +33,63 @@ TYPE
 
 		(** Transfer a block of pixels in "raw" display format to (op = set) or from (op = get) the display.  Pixels in the rectangular area are transferred from left to right and top to bottom.  The pixels are transferred to or from "buf", starting at "ofs".  The line byte increment is "stride", which may be positive, negative or zero. *)
 		PROCEDURE Transfer*(VAR buf: ARRAY OF CHAR; ofs, stride, x, y, w, h, op: LONGINT);
-		VAR bufadr, buflow, bufhigh, dispadr: ADDRESS;
+		VAR bufadr, buflow, bufhigh, dispadr,w0,b,d: ADDRESS;
 		BEGIN
 			IF w > 0 THEN
 				ASSERT(fbadr # 0);
 				bufadr := ADDRESSOF(buf[ofs]);
 				dispadr := fbadr + y * fbstride + x * format;
+				IF reverse THEN
+				dispadr := fbadr + (height-y-1) * fbstride + (width-x-1) * format;
+				END;
+				
 				ASSERT((dispadr >= fbadr) & ((y+h-1)*fbstride + (x+w-1)*format <=  fbsize));	(* display index check *)
 				w := w * format;	(* convert to bytes *)
 				CASE op OF
 					set:
+						IF reverse THEN
+						WHILE h > 0 DO
+							w0 := w DIV format; b:= bufadr; d := dispadr;
+							WHILE w0 > 0 DO
+								SYSTEM.MOVE(b, d, format);
+								INC(b,format);
+								DEC(d, format);
+								DEC(w0);
+							END;
+							INC(bufadr, stride); DEC(dispadr, fbstride);
+							DEC(h)
+						END
+						ELSE
 						WHILE h > 0 DO
 							SYSTEM.MOVE(bufadr, dispadr, w);
 							INC(bufadr, stride); INC(dispadr, fbstride);
 							DEC(h)
 						END
+						END;
 					|get:
+						IF reverse THEN
+						buflow := ADDRESSOF(buf[0]); bufhigh := buflow + LEN(buf);
+						WHILE h > 0 DO
+							ASSERT((bufadr >= buflow) & (bufadr+w <= bufhigh));	(* index check *)
+							w0 := w DIV format; b:= bufadr; d := dispadr;
+							WHILE w0 > 0 DO
+								SYSTEM.MOVE(d, b, format);
+								INC(b,format);
+								DEC(d, format);
+								DEC(w0);
+							END;
+							INC(bufadr, stride); DEC(dispadr, fbstride);
+							DEC(h)
+						END;
+						ELSE
 						buflow := ADDRESSOF(buf[0]); bufhigh := buflow + LEN(buf);
 						WHILE h > 0 DO
 							ASSERT((bufadr >= buflow) & (bufadr+w <= bufhigh));	(* index check *)
 							SYSTEM.MOVE(dispadr, bufadr, w);
 							INC(bufadr, stride); INC(dispadr, fbstride);
 							DEC(h)
-						END
+						END;
+						END;
 					ELSE (* skip *)
 				END
 			END
@@ -240,9 +276,15 @@ BEGIN {EXCLUSIVE}
 	END
 END Copy0;
 
+PROCEDURE Reverse*;
+BEGIN
+	reverse := ~reverse;
+END Reverse;
+
 BEGIN
 	NEW(registry, "Displays", "Display drivers");
-	buf := NIL
+	buf := NIL;
+	reverse := FALSE;
 END Displays.
 
 (**

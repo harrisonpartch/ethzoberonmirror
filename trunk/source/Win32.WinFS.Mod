@@ -384,7 +384,10 @@ TYPE
 		VAR ret: Kernel32.BOOL;
 		BEGIN {EXCLUSIVE}
 			ConvertChar( name, Files.PathDelimiter, PathDelimiter );  ret := Kernel32.CreateDirectory( name, NIL );
-			IF ret # 0 THEN res := 0 ELSE res := 1 END
+			IF ret # 0 THEN 
+				res := 0 
+			ELSIF Kernel32.GetLastError() = 183 (*ERROR_ALREADY_EXISTS*) THEN res := Files.FileAlreadyExists;
+			ELSE res := 1 END
 		END CreateDirectory0;
 
 		PROCEDURE RemoveDirectory0( name: ARRAY OF CHAR;  force: BOOLEAN;  VAR key, res: LONGINT );

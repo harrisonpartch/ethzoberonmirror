@@ -96,8 +96,12 @@ CONST
 		sfTypeObject = 17;
 		sfTypeAddress= 18;
 		sfTypeSize = 19;
+		sfTypeUnsigned8=20;
+		sfTypeUnsigned16=21;
+		sfTypeUnsigned32=22;
+		sfTypeUnsigned64=23;
 
-		sfLastType = sfTypeSize;
+		sfLastType = 23;
 		sfMod1 =  sfLastType+1;
 
 		sfModOther=2DH;
@@ -134,12 +138,6 @@ CONST
 		sfTypeComplex = 46H;
 		sfTypeLongcomplex = 47H;
 
-		(*
-		sfTypeUnsigned8=48H;
-		sfTypeUnsigned16=49H;
-		sfTypeUnsigned32=4AH;
-		sfTypeUnsigned64=4BH;
-		*)
 
 		(* workaround: handle inlined operators *)
 		sfInline = 0ABH;
@@ -1072,7 +1070,7 @@ TYPE
 				callingConvention: LONGINT;
 
 			BEGIN
-				visibility := SyntaxTree.ReadOnly; flags := {};
+				visibility := SyntaxTree.Public + SyntaxTree.Protected + SyntaxTree.Internal; flags := {};
 
 				IF tag <= 0 THEN (* TypeReference = number:RawNum(<0) *)
 					type := NewTypeReference(-tag);
@@ -1263,6 +1261,7 @@ TYPE
 							type := enumerationType;
 							enumerationType.SetEnumerationBase(baseType);
 							EnumerationList(enumerationScope);
+					ELSE
 					END;
 
 					IF name # "" THEN
@@ -1497,7 +1496,7 @@ TYPE
 						IF TraceImport IN Trace  THEN  D.Str("alias:"); D.Str(name); D.Ln  END;
 						typeDeclaration := SyntaxTree.NewTypeDeclaration(-1,SyntaxTree.NewIdentifier(name));
 						typeDeclaration.SetDeclaredType(type);
-						visibility := SyntaxTree.ReadOnly; (*SyntaxTree.Public+SyntaxTree.Protected+SyntaxTree.Internal;*)
+						visibility := SyntaxTree.Public+SyntaxTree.Protected+SyntaxTree.Internal;
 						typeDeclaration.SetAccess(visibility);
 						typeDeclaration.SetState(SyntaxTree.Resolved);
 						IF ~(type IS SyntaxTree.BasicType) THEN
@@ -1534,12 +1533,10 @@ TYPE
 			InitBasic(system.integerType, sfTypeInteger);
 			InitBasic(system.longintType, sfTypeLongint);
 			InitBasic(system.hugeintType, sfTypeHugeint);
-			(*
 			InitBasic(Global.Unsigned8, sfTypeUnsigned8);
 			InitBasic(Global.Unsigned16, sfTypeUnsigned16);
 			InitBasic(Global.Unsigned32, sfTypeUnsigned32);
 			InitBasic(Global.Unsigned64, sfTypeUnsigned64);
-			*)
 			InitBasic(Global.Float32, sfTypeReal);
 			InitBasic(Global.Float64, sfTypeLongreal);
 			InitBasic(system.setType, sfTypeSet);
@@ -1625,9 +1622,7 @@ TYPE
 				ELSIF type = Global.Char32 THEN w.RawNum(ORD(v(SyntaxTree.CharacterValue).value));
 				*)
 				ELSIF (type IS SyntaxTree.IntegerType) & (type.sizeInBits = 64) THEN w.RawHInt(v(SyntaxTree.IntegerValue).hvalue);
-				(*
 				ELSIF (type IS SyntaxTree.IntegerType) & (type.sizeInBits = 32) & ~type(SyntaxTree.IntegerType).signed  THEN w.RawHInt(v(SyntaxTree.IntegerValue).hvalue);
-				*)
 				ELSIF (type IS SyntaxTree.IntegerType) & (type.sizeInBits <= 32)  THEN w.RawNum(v(SyntaxTree.IntegerValue).value);
 				ELSIF type IS SyntaxTree.SetType THEN   w.RawNum(SYSTEM.VAL(LONGINT,v(SyntaxTree.SetValue).value));
 				ELSIF type IS SyntaxTree.FloatType THEN
@@ -1788,7 +1783,7 @@ TYPE
 									D.Str("Type / Basic / Hugeint"); D.Ln
 								END;
 							END;
-						(*ELSE
+						ELSE
 							IF size = 8 THEN
 								w.RawNum(sfTypeUnsigned8);
 								IF TraceExport IN Trace THEN
@@ -1809,7 +1804,6 @@ TYPE
 									D.Str("Type / Basic / Unsigned64"); D.Ln
 								END;
 							END;
-						*)
 						END;
 					ELSIF type IS SyntaxTree.FloatType THEN
 						IF size = 32 THEN
@@ -1866,7 +1860,7 @@ TYPE
 						END;
 
 					ELSIF type IS SyntaxTree.AddressType THEN w.RawNum(sfTypeAddress) (*! compatibility with PACO *)
-					ELSIF type IS SyntaxTree.SizeType THEN w.RawNum(sfTypeLongint)
+					ELSIF type IS SyntaxTree.SizeType THEN w.RawNum(sfTypeSize)
 					ELSE HALT(100)
 					END;
 				ELSIF type IS SyntaxTree.StringType THEN (* special case BasicType : StringType *)

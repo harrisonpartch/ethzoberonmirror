@@ -5,12 +5,16 @@ MODULE BootLinkerModules;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 
 (* based on Oberon for Windows bootlinker (MH) and  MIPS bootlinker (RC) *)
 
-
+(*! BootLinker specific parts are surrounded by: 
+	(*! begin =============================*)
+	(*! ============================== end *)
+*)
+	
 IMPORT S := SYSTEM, Heaps := BootLinkerHeaps, Streams;
 
 
 CONST
-	AdrSize = SIZEOF( ADDRESS );
+	AddrSize = SIZEOF( ADDRESS );
 
 	MaxTags* = 16;   (* in type descriptor *)
 	
@@ -119,27 +123,22 @@ TYPE
 	
 	
 VAR
-	root*{UNTRACED}: Module;
+	root*: Module;
 	
-	modTag-, expTag-, ptrElemTag*, procTableEntryTag-, procOffsetEntryTag-, ptrTableTag-, tdTag-: ADDRESS;
+	modTag-, expTag-, ptrElemTag*, tdTag-: ADDRESS;
 	
-	procOffsets-{UNTRACED}: ProcOffsetTable;	(* global table containing procedure code offsets and pointer offsets, sorted in ascending order of procedure code offsets *)
+	procOffsets-: ProcOffsetTable;	(* global table containing procedure code offsets and pointer offsets, sorted in ascending order of procedure code offsets *)
 	numProcs-: LONGINT;			(* number of entries in procOffsets *)
-	ptrOffsets-{UNTRACED}: PtrTable;
+	ptrOffsets-: PtrTable;
 	numPtrs-: LONGINT;
 
-	error: Streams.Writer;
+	
 
-(*	PROCEDURE ShowTag( a: ADDRESS; name: ARRAY OF CHAR );
-	VAR i: LONGINT; v: LONGINT;
-	BEGIN
-		error.String( name ); error.Ln;
-		FOR i := 0 TO 6 DO
-			S.GET( a, v ); INC( a, 4 );  error.Hex( a, 8);  error.String(": ");  error.Hex( v, -8 );  error.Ln
-		END;
-		error.Ln;  error.Update
-	END ShowTag;
-	*)
+
+(*! begin =============================================================*)
+
+VAR
+	error: Streams.Writer;
 	
 	PROCEDURE MakeTD;
 		(* create temporary type tags which are needed for loading the  *)
@@ -148,16 +147,12 @@ VAR
 	VAR 
 		exp: ExportPtr;  mod: Module;
 		ptr: POINTER TO RECORD a: ANY  END; 
-		proc: ProcTable;  procOfs: ProcOffsetTable;
-		td: TypeDesc;  pTab: PtrTable;
+		td: TypeDesc;  
 	BEGIN
-		NEW( exp );  S.GET( S.VAL( ADDRESS, exp ) - AdrSize, expTag );		
-		NEW( td );  S.GET( S.VAL( ADDRESS, td ) - AdrSize, tdTag );		
-		NEW( mod );  S.GET( S.VAL( ADDRESS, mod ) - AdrSize, modTag );	
-		NEW( ptr );  S.GET( S.VAL( ADDRESS, ptr ) - AdrSize, ptrElemTag );
-		NEW( proc, 1 );  S.GET( S.VAL( ADDRESS, proc ) - AdrSize, procTableEntryTag );
-		NEW( procOfs, 1 );  S.GET( S.VAL( ADDRESS, procOfs ) - AdrSize, procOffsetEntryTag );		
-		NEW( pTab, 1 );  S.GET( S.VAL( ADDRESS, pTab ) - AdrSize, ptrTableTag );		
+		NEW( exp );  S.GET( S.VAL( ADDRESS, exp ) - AddrSize, expTag );		
+		NEW( td );  S.GET( S.VAL( ADDRESS, td ) - AddrSize, tdTag );		
+		NEW( mod );  S.GET( S.VAL( ADDRESS, mod ) - AddrSize, modTag );	
+		NEW( ptr );  S.GET( S.VAL( ADDRESS, ptr ) - AddrSize, ptrElemTag );
 	END MakeTD;
 
 
@@ -167,9 +162,9 @@ VAR
 		PROCEDURE PatchExport( VAR scope: ExportDesc;  tag: ADDRESS );
 		VAR i: LONGINT;  t: ADDRESS;
 		BEGIN
-			S.GET( S.VAL( ADDRESS, scope.dsc ) - AdrSize, t );
+			S.GET( S.VAL( ADDRESS, scope.dsc ) - AddrSize, t );
 			IF t # tag THEN
-				S.PUT( S.VAL( ADDRESS, scope.dsc ) - AdrSize, tag );  i := 0;
+				S.PUT( S.VAL( ADDRESS, scope.dsc ) - AddrSize, tag );  i := 0;
 				WHILE i < scope.exports DO
 					IF scope.dsc[i].exports > 0 THEN  PatchExport( scope.dsc[i], tag )  END;
 					INC( i )
@@ -178,15 +173,15 @@ VAR
 		END PatchExport;
 	
 	BEGIN
-		S.PUT( S.VAL( ADDRESS, m.typeInfo ) - AdrSize, ptrElemTag + 2(*ArrayBit*) );
+		S.PUT( S.VAL( ADDRESS, m.typeInfo ) - AddrSize, ptrElemTag + 2(*ArrayBit*) );
 		FOR i := 0 TO LEN( m.typeInfo ) -1 DO
-			S.PUT( S.VAL( ADDRESS, m.typeInfo[i] ) - AdrSize, tdTag );
+			S.PUT( S.VAL( ADDRESS, m.typeInfo[i] ) - AddrSize, tdTag );
 		END;
-		S.PUT( S.VAL( ADDRESS, m.module ) - AdrSize, ptrElemTag + 2(*ArrayBit*) );
+		S.PUT( S.VAL( ADDRESS, m.module ) - AddrSize, ptrElemTag + 2(*ArrayBit*) );
 		FOR i := 0 TO LEN( m.module ) -1 DO
-			S.PUT( S.VAL( ADDRESS, m.module[i] ) - AdrSize, modTag );
+			S.PUT( S.VAL( ADDRESS, m.module[i] ) - AddrSize, modTag );
 		END;
-		S.PUT( S.VAL( ADDRESS, m ) - AdrSize,  modTag );
+		S.PUT( S.VAL( ADDRESS, m ) - AddrSize,  modTag );
 		PatchExport( m.export, expTag + 2(*ArrayBit*) );
 	END FixTypeDescs;
 
@@ -200,10 +195,8 @@ VAR
 			IF name = "TypeDesc" THEN  tdTag := m.typeInfo[i].tag;  INC( n )  END;
 			IF name = "Module" THEN  modTag := m.typeInfo[i].tag;  INC( n )  END;
 			IF name = "ExportDesc" THEN  expTag := m.typeInfo[i].tag;  INC( n )  END;
-			IF name = "ProcTableEntry" THEN  procTableEntryTag := m.typeInfo[i].tag;  INC( n )  END;
-			IF name = "ProcOffsetEntry" THEN  procOffsetEntryTag := m.typeInfo[i].tag;  INC( n )  END;
 		END;
-		IF n # 5 THEN
+		IF n # 3 THEN
 			error.Ln;
 			error.String( "### not all expected types found in module 'Modules'" );  error.Ln;
 		END;
@@ -212,12 +205,11 @@ VAR
 		WHILE x # NIL DO  FixTypeDescs( x );  x := x.next  END;
 	END TreatModules;
 	
-	
-	
+(*! ============================================================= end *)	
 	
 	
 
-	PROCEDURE RefReadNum( VAR pos: LONGINT;  VAR i: LONGINT );
+	PROCEDURE RefReadNum( VAR pos: ADDRESS;  VAR i: LONGINT );
 	VAR n: LONGINT;  shift: SHORTINT;  x: CHAR;
 	BEGIN
 		shift := 0;  n := 0;  S.GET( pos, x );  INC( pos );
@@ -228,7 +220,7 @@ VAR
 	END RefReadNum;
 	
 
-	PROCEDURE RefReadName( VAR pos: LONGINT;  VAR n: ARRAY OF CHAR );
+	PROCEDURE RefReadName( VAR pos: ADDRESS;  VAR n: ARRAY OF CHAR );
 	VAR i: INTEGER;  ch: CHAR;
 	BEGIN
 		i := 0;
@@ -236,16 +228,17 @@ VAR
 	END RefReadName;
 	
 
-	PROCEDURE RefReadChar( VAR pos: LONGINT;  VAR ch: CHAR );
+	PROCEDURE RefReadChar( VAR pos: ADDRESS;  VAR ch: CHAR );
 	BEGIN
 		S.GET( pos, ch );  INC( pos );
 	END RefReadChar;
 	
 
-	PROCEDURE ProcByName*( CONST pname: ARRAY OF CHAR;  m: Module ): LONGINT;
+	PROCEDURE ProcByName*( CONST pname: ARRAY OF CHAR;  m: Module ): ADDRESS;
 	CONST mBodyTag = 0F8X;  ProcRefTag = 0F9X;  VarTag = 1X;  VarParTag = 3X;
 	VAR 
-		pos, refend, adr, t, size, tdAdr: LONGINT;  ch: CHAR;  name: ARRAY 128 OF CHAR; 
+		pos, refend: ADDRESS; 
+		adr, t, size, tdAdr: LONGINT;  ch: CHAR;  name: ARRAY 128 OF CHAR; 
 		newObjectFile: BOOLEAN;
 	BEGIN
 		IF pname = "" THEN  RETURN 0  END;
@@ -334,19 +327,20 @@ VAR
 
 
 
+
+(*! begin =============================================================*)
+
 	(* GetNum - Get a compressed refblk number. *)
 
 	PROCEDURE GetNum( refs: Bytes;  VAR i, num: LONGINT );
 	VAR n, s: LONGINT;  x: CHAR;
 	BEGIN
-		s := 0;  n := 0;
-		x := refs[i];  INC(i);
+		s := 0;  n := 0;  x := refs[i];  INC(i);
 		WHILE ORD(x) >= 128 DO
-			INC(n, ASH(ORD(x) - 128, s));
-			INC(s, 7);
+			INC( n, ASH( ORD(x) - 128, s ) );  INC( s, 7 );
 			x := refs[i];  INC(i)
 		END;
-		num := n + ASH(ORD(x) MOD 64 - ORD(x) DIV 64 * 64, s)
+		num := n + ASH( ORD(x) MOD 64 - ORD(x) DIV 64 * 64, s )
 	END GetNum;
 	
 
@@ -363,7 +357,7 @@ VAR
 			IF (type >= 81H) OR (type = 16H) OR (type = 1DH) THEN
 				GetNum( refs, i, t )	(* dim/tdadr *)
 			END;
-			GetNum( refs, i, adr );
+			GetNum( refs, i, adr );	
 			j := 0;  REPEAT s[j] := refs[i];  INC(i);  INC(j) UNTIL s[j-1] = 0X;
 			IF s = name THEN found := TRUE
 			ELSIF i < m THEN mode := refs[i];  INC(i)
@@ -378,6 +372,7 @@ VAR
 	END VarByName;
 	
 	
+
 	PROCEDURE AssignValue*( CONST modName, varName: ARRAY OF CHAR; value: LONGINT );
 	VAR m: Module; ofs: SIZE;
 	BEGIN
@@ -419,7 +414,7 @@ VAR
 			END
 		END
 	END AssignAddress;
-
+	
 
 	PROCEDURE RelocateProcOffsets*;	
 	VAR i, j: LONGINT; a: ADDRESS;
@@ -427,7 +422,7 @@ VAR
 		FOR i := 0 TO numProcs - 1 DO
 			a := ADDRESSOF( procOffsets[i].data.pcFrom );  j := 0;
 			REPEAT
-				Heaps.Relocate( a );  INC( a, AdrSize );  INC( j )
+				Heaps.Relocate( a );  INC( a, AddrSize );  INC( j )
 			UNTIL j = 4
 		END
 	END RelocateProcOffsets;
@@ -440,6 +435,13 @@ VAR
 		*)
 	END RelocatePtrOffsets;
 	
+
+	PROCEDURE NewSysArray( VAR p: ANY; numElems, elemSize: LONGINT);
+	BEGIN
+		Heaps.NewSys( p, Heaps.ArraySize( numElems, elemSize, 1 ) );
+		S.PUT( S.VAL( ADDRESS, p ) + 3*AddrSize, numElems );	(* dimension *)
+	END NewSysArray;
+
 	
 	PROCEDURE Initialize*( w: Streams.Writer );
 	BEGIN
@@ -447,14 +449,14 @@ VAR
 		
 		MakeTD;
 		
-		Heaps.NewArr( S.VAL( ANY, procOffsets ), procOffsetEntryTag, InitTableLen, 1 );
+		NewSysArray( S.VAL( ANY, procOffsets ), InitTableLen, SIZEOF( ProcOffsetEntry ) );
 		numProcs := 0; 
-		Heaps.NewArr( S.VAL( ANY, ptrOffsets ), ptrTableTag, InitPtrTableLen, 1 );
+		NewSysArray( S.VAL( ANY, ptrOffsets ), InitPtrTableLen, AddrSize );
 		numPtrs := 0; 
 		root := NIL
 	END Initialize;
 	
-
+(*! ============================================================= end *)
 
 END BootLinkerModules.
 

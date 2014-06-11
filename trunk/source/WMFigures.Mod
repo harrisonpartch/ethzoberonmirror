@@ -1,9 +1,7 @@
-MODULE WMFigures; (** AUTHOR "staubesv, modif PH"; PURPOSE "Geometric shapes"; *)
+MODULE WMFigures; (** AUTHOR "Patrick Hunziker, staubesv, gadgets source"; PURPOSE "Geometric shapes"; *)
 
 IMPORT
-	KernelLog, Streams,
-	Math, Strings, XML, XMLObjects,
-	WMRectangles, WMGraphics, WMGraphicUtilities, WMProperties, WMComponents;
+	KernelLog, Streams, Math, Strings, XML, WMRectangles, WMGraphics, WMGraphicUtilities, WMProperties, WMComponents;
 
 CONST
 	(* Figure.state *)
@@ -13,18 +11,16 @@ CONST
 	Reshape*=3;
 	Arrow*=4;
 
-	PointOffset = 2; PointSize = 6; (* size of the control points. Currently not related to Effects.gravity *)
+	PointSize = 6; (* size of the control points. Currently not related to Effects.gravity *)
 
 TYPE
-
 	Point* = POINTER TO RECORD
 		x, y : LONGINT;
 		previous, next : Point;
 		END;
 
 TYPE
-
-	Figure* = OBJECT(WMComponents.VisualComponent)
+	Figure* = OBJECT(WMComponents.VisualComponent) 
 	VAR
 		width- : WMProperties.Int32Property;
 		color-, clHover- : WMProperties.ColorProperty;
@@ -33,13 +29,17 @@ TYPE
 		reshape-: WMProperties.BooleanProperty;
 		arrow-: WMProperties.BooleanProperty;
 
-		points : Point;
+		points- : Point;
 		nofPoints : LONGINT;
 
-		hover, selected : Point;
+		hover, selected:WMProperties.Property;
+		selectedLine:BOOLEAN;
 		mouseOver:BOOLEAN;
 
 		lastKeys, state : SET;
+		
+		oldx,oldy:LONGINT;
+		PArray: WMProperties.PropertyArray;
 
 		PROCEDURE &Init*;
 		BEGIN
@@ -53,286 +53,336 @@ TYPE
 			NEW(filled, PrototypeFilled, NIL, NIL); properties.Add(filled);
 			NEW(clHover, PrototypeclHover, NIL, NIL); properties.Add(clHover);
 			state := {};
-			IF closed.Get() THEN INCL(state,Closed) ELSE EXCL(state,Closed);  END; 
-			IF filled.Get() THEN INCL(state,Filled) ELSE EXCL(state,Filled); END;
-			IF reshape.Get() THEN INCL(state,Reshape) ELSE EXCL(state,Reshape); END;
-			IF arrow.Get() THEN INCL(state,Arrow) ELSE EXCL(state,Arrow); END;
+			IF closed.Get() THEN INCL(state,Closed)  END; 
+			IF filled.Get() THEN INCL(state,Filled) END;
+			IF reshape.Get() THEN INCL(state,Reshape) END;
+			IF arrow.Get() THEN INCL(state,Arrow) END;
 			points := NIL;
 			nofPoints := 0;
 			hover := NIL;
 			selected := NIL;
 			lastKeys := {};
+			RecachePoints;
+			Normalize;
 		END Init;
 		
-		PROCEDURE PropertyChanged(sender, property : ANY);
-		VAR bool: BOOLEAN;
+		PROCEDURE AddPoint*(x, y : LONGINT);
+		VAR 
+			s: ARRAY 16 OF CHAR;
+			pp:WMProperties.PointProperty; 
+		BEGIN
+			Strings.IntToStr(nofPoints,s);
+			NEW(pp,NIL,Strings.NewString(s),NIL);  
+			Acquire;
+			properties.Add(pp);
+			Release;
+			pp.SetCoordinate(x,y); 
+			(*pp.Changed; *)(* overkill ?*)
+			RecachePoints;
+			Normalize;
+			Invalidate;
+		END AddPoint;
+
+		(* x,y in Figure coordinates, which may change when adding new points etc. Remember that PointProperty is in (stable) parent coordinates*)
+		PROCEDURE MovePoint*(point: WMProperties.Property; fx, fy: LONGINT);
+		BEGIN
+			point(WMProperties.PointProperty).SetCoordinate(fx+bounds.GetLeft(), fy+bounds.GetTop()); 
+			Invalidate;
+		END MovePoint;
+		
+		PROCEDURE RemovePoint*(fx, fy : LONGINT);
+		VAR 
+			pp:WMProperties.Property; 
+		BEGIN
+			pp:=ThisPoint(fx,fy);
+			IF pp#NIL THEN
+				Acquire;
+				properties.Remove(pp);
+				Release;
+			END;
+			RecachePoints;
+			Normalize;
+			Invalidate;
+		END RemovePoint;
+		
+		(** Return point located at mouse position mx. my, which are in Figure coordinates that change, e.g. when points are added. (NIL if no point at location). *)
+		PROCEDURE ThisPoint*(fx, fy : LONGINT): WMProperties.Property;
+		VAR  i:LONGINT; px,py: LONGINT;
+		BEGIN
+			i:=0;
+			WHILE i<LEN(PArray) DO
+				IF (PArray[i]#NIL)&(PArray[i] IS WMProperties.PointProperty) THEN
+					PArray[i](WMProperties.PointProperty).GetCoordinate(px,py);
+					IF Invicinity(fx, fy, px-bounds.GetLeft(), py-bounds.GetTop()) THEN  RETURN PArray[i] END;
+				END;
+				INC(i);
+			END;
+			RETURN NIL;
+		END ThisPoint;
+		
+		(** Return point Nr 'index' .  Negative numbers are counted top-down.  *)
+		PROCEDURE IndexedPoint*(index : LONGINT): WMProperties.Property;
+		VAR  i,j:LONGINT; 
+		BEGIN
+			i:=0; j:=0;
+			IF index >=0 THEN
+				WHILE i<LEN(PArray) DO
+					IF (PArray[i]#NIL)&(PArray[i] IS WMProperties.PointProperty) THEN
+						IF j=index THEN RETURN PArray[i]
+						ELSE INC(j)
+						END;
+					END;
+					INC(i);
+				END;
+			ELSE 
+				i:=LEN(PArray)-1; j:=1; index:=-index;
+				WHILE i>=0 DO
+					IF (PArray[i]#NIL)&(PArray[i] IS WMProperties.PointProperty) THEN
+						IF j=index THEN RETURN PArray[i]
+						ELSE INC(j)
+						END;
+					END;
+					DEC(i);
+				END;
+			END;
+			RETURN NIL;
+		END IndexedPoint;
+		
+		PROCEDURE MoveFigure*(dx,dy:LONGINT);
+		VAR i,x,y:LONGINT;
+		BEGIN	
+			Acquire;
+			IF PArray#NIL THEN PArray:=properties.Enumerate(); END;
+			IF PArray=NIL THEN RETURN END;
+			FOR i:=0 TO LEN(PArray)-1 DO
+				IF (PArray[i]#NIL) & (PArray[i] IS WMProperties.PointProperty) THEN
+					PArray[i](WMProperties.PointProperty).GetCoordinate(x, y); 
+					PArray[i](WMProperties.PointProperty).SetCoordinate(x+dx, y+dy);
+				END;
+			END;
+			Release;
+			Invalidate;
+		END MoveFigure;
+
+		(* fx,fy in Figure coordinate system, NOT in parent coordinates*)
+		PROCEDURE PointerDown*(fx, fy : LONGINT; keys : SET);
+		BEGIN
+			lastKeys := keys;
+			IF (0 IN keys) THEN
+				oldx:=fx+bounds.GetLeft(); oldy:=fy+bounds.GetTop();
+				selected := ThisPoint(fx, fy);
+				IF (selected # NIL) THEN Invalidate ELSE selectedLine:=TRUE; mouseOver:=FALSE END;
+			END;
+			Invalidate;
+		END PointerDown;
+
+		PROCEDURE PointerUp*(fx, fy : LONGINT; keys : SET);
+		VAR dx,dy,bt,bl:LONGINT;
+		BEGIN
+			bl:=bounds.GetLeft(); 
+			bt:=bounds.GetTop();
+			IF (keys={0}) & reshape.Get()  THEN
+				IF (selected # NIL) THEN MovePoint(selected, fx, fy); selected := NIL;
+				ELSE  
+					dx:=fx+bl-oldx; oldx:=fx+bl; 
+					dy:=fy+bt-oldy; oldy:=fy+bt;
+					MoveFigure(dx, dy); 
+					selectedLine:=FALSE;
+				END;
+			END;
+			(*IF (2 IN lastKeys) & ~(2 IN keys) THEN
+				IF reshape.Get() THEN EXCL(state, Reshape); ELSE INCL(state, Reshape); END;(*??xxx*)
+			ELS*)
+			IF reshape.Get() & (EditPoints IN state) & (1 IN lastKeys) & ~(1 IN keys)  THEN
+				AddPoint(fx, fy); (* Invalidate;*)(*!partly functional - wrong coordinates*)
+			ELSIF reshape.Get() & (EditPoints IN state) & (lastKeys={0,2}) & (keys#{0,2}) THEN
+				RemovePoint(fx,fy); 
+			ELSE(* PointerUp^(x, y, keys);*)
+			END;
+			selectedLine:=FALSE;
+			selected:=NIL;
+		END PointerUp;
+		
+		PROCEDURE PointerMove*(fx, fy : LONGINT; keys : SET);
+		VAR dx,dy,bl,bt:LONGINT; pp:WMProperties.Property;
+		BEGIN
+			IF reshape.Get() & (keys={0}) (*(Reshape IN state)*) & (selected # NIL) THEN 
+				MovePoint(selected, fx, fy);
+			ELSIF reshape.Get() & (keys={0}) (* (Reshape IN state)*) & selectedLine THEN 
+				bl:=bounds.GetLeft(); 
+				bt:=bounds.GetTop();
+				dx:=fx+bl-oldx; oldx:=fx+bl;
+				dy:=fy+bt-oldy; oldy:=fy+bt;
+				MoveFigure(dx, dy);
+			ELSE
+				(*bl:=bounds.GetLeft(); 
+				bt:=bounds.GetTop();
+				PointerMove^(fx+bl, fy+bt, keys);
+				pp := ThisPoint(fx+bl, fy+bt);
+				hover:=pp;
+				mouseOver := ~mouseOver; *)
+			END;
+		END PointerMove;
+		
+				(* Is X, Y somewhere inside the polygon defined by p ? *)
+		PROCEDURE Inside*(X, Y: LONGINT): BOOLEAN;
+		END Inside;
+		
+		(** Return if the line is hit at (x, y) in parent coordinates *)
+		PROCEDURE IsHit*(x, y: LONGINT): BOOLEAN; 
+		END IsHit;		
+		
+		PROCEDURE PropertyChanged*(sender, property : ANY);
 		BEGIN
 			IF (property = color) THEN Invalidate;
 			ELSIF (property = width) THEN Invalidate;
 			ELSIF (property = clHover) THEN Invalidate;
 			ELSIF (property = closed) THEN IF closed.Get() THEN INCL(state,Closed) ELSE EXCL(state,Closed);  END; Invalidate;
-			ELSIF (property = filled) THEN	IF filled.Get() THEN INCL(state,Filled) ELSE EXCL(state,Filled); END; Invalidate;
+			ELSIF (property = filled) THEN IF filled.Get() THEN INCL(state,Filled) ELSE EXCL(state,Filled); END; Invalidate;
 			ELSIF (property = reshape) THEN IF reshape.Get() THEN INCL(state,Reshape) ELSE EXCL(state,Reshape); END; Invalidate;
 			ELSIF (property = arrow) THEN IF arrow.Get() THEN INCL(state,Arrow) ELSE EXCL(state,Arrow); END; Invalidate;
-			ELSE 	PropertyChanged^(sender, property);
+			ELSIF property IS WMProperties.PointProperty THEN Invalidate; RecachePoints; Normalize; 
+			ELSIF property=properties THEN RecachePoints; Invalidate; Normalize; PropertyChanged^(sender, property); (*?*)
+			ELSE  PropertyChanged^(sender, property); (* e.g, handling bounds by parent *)
 			END;
 		END PropertyChanged;
+		
+		(*
+		PROCEDURE RecacheProperties;
+		BEGIN
+			RecachePoints;
+			RecacheProperties^;
+			
+		END RecacheProperties;
+		*)
+		
+	
+		PROCEDURE AddDisplayPoint(x, y : LONGINT);
+		VAR point, p : Point; 
+		BEGIN
+			NEW(point); point.x := x; point.y := y; point.previous := NIL; point.next := NIL;
+			IF (points = NIL) THEN points := point;
+			ELSE
+				p := points;
+				WHILE (p.next # NIL) DO p := p.next; END;
+				p.next := point; point.previous := p;
+			END;
+			INC(nofPoints);
+		END AddDisplayPoint;
+		
+		PROCEDURE MoveDisplayPoints(dx, dy : LONGINT); 
+		VAR p : Point;
+		BEGIN
+			p := points;
+			WHILE (p # NIL) DO	p.x := p.x + dx; p.y := p.y + dy; p := p.next; END;
+		END MoveDisplayPoints;
 
-		PROCEDURE Normalize(VAR newBounds : WMRectangles.Rectangle);
+		PROCEDURE Normalize; 
+		VAR p:Point; rect: WMRectangles.Rectangle;
+		BEGIN
+			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT); rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
+			p:=points;
+			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
+				rect.l:=MIN(rect.l, p.x-PointSize DIV 2 -1); rect.r:=MAX(rect.r, p.x+PointSize DIV 2+1);  (*compute bounds*)
+				rect.t:=MIN(rect.t, p.y-PointSize DIV 2 -1); rect.b:=MAX(rect.b, p.y+PointSize DIV 2+1);
+				p:=p.next; 
+			END;
+			p:=points;
+			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
+				p.x:=p.x-rect.l; p.y:=p.y-rect.t; 
+				p:=p.next; 
+			END;
+			bounds.Set(rect);
 		END Normalize;
 
 		PROCEDURE Scale;
 		END Scale;
 
-		PROCEDURE AddControlPoint(x, y : LONGINT);
-		VAR point, p : Point; 
-		BEGIN
-			NEW(point);
-			point.x := x; point.y := y;
-			point.previous := NIL; point.next := NIL;
-			Acquire;
-			IF (points = NIL) THEN
-				points := point;
-			ELSE
-				p := points;
-				WHILE (p.next # NIL) DO p := p.next; END;
-				p.next := point;
-				point.previous := p;
-			END;
-			INC(nofPoints);
-			Release;
-		END AddControlPoint;
-
-		PROCEDURE RemoveControlPoint(point : Point);
-		BEGIN
-			ASSERT(point # NIL);
-			Acquire;
-			IF (point.previous # NIL) THEN point.previous.next := point.next; END;
-			IF (point.next # NIL) THEN point.next.previous := point.previous; END;
-			point.next := NIL; point.previous := NIL;
-			Release;
-		END RemoveControlPoint;
-
-		PROCEDURE Resized;
-		BEGIN
-			Resized^;
-		END Resized;
-
-		PROCEDURE PointerDown(x, y : LONGINT; keys : SET);
-		BEGIN
-			PointerDown^(x, y, keys);
-			lastKeys := keys;
-			IF (0 IN keys) & (selected = NIL) THEN
-				selected := ThisPoint(x, y);
-				IF (selected # NIL) THEN Invalidate; END;
-			END;
-		END PointerDown;
-
-		PROCEDURE PointerUp(x, y : LONGINT; keys : SET);
-		VAR newBounds : WMRectangles.Rectangle; point : Point;
-		BEGIN
-			PointerUp^(x, y, keys);
-			IF ~(0 IN keys) & (selected # NIL) THEN selected := NIL; Invalidate; END;
-			IF (2 IN lastKeys) & ~(2 IN keys) THEN
-				IF reshape.Get() THEN EXCL(state, Reshape); ELSE INCL(state, Reshape); END;
-				Invalidate;
-			ELSIF (EditPoints IN state) & (1 IN lastKeys) & ~(1 IN keys) & (Reshape IN state) THEN
-				AddControlPoint(x, y);
-				Normalize(newBounds); bounds.Set(newBounds);
-				Invalidate;
-			ELSIF (EditPoints IN state) & (0 IN keys) & (0 IN lastKeys) & (2 IN lastKeys) & ~(2 IN keys) THEN
-				KernelLog.String("Delete");
-				point := ThisPoint(x, y);
-				IF (point # NIL) THEN
-					RemoveControlPoint(point);
-				END;
-				Normalize(newBounds); bounds.Set(newBounds);
-				Invalidate;
-			END;
-		END PointerUp;
-		
-		PROCEDURE PointerMove(x, y : LONGINT; keys : SET);
-		VAR p : Point; oldBounds, newBounds : WMRectangles.Rectangle;
-		BEGIN
-			PointerMove^(x, y, keys);
-			IF (Reshape IN state) & (selected # NIL) THEN
-				selected.x := x;
-				selected.y := y;
-				oldBounds := bounds.Get();
-				Normalize(newBounds);
-				IF ~WMRectangles.IsEqual(newBounds, oldBounds) THEN
-					bounds.Set(newBounds);
-				END;
-				Invalidate;
-			ELSE
-				p := ThisPoint(x, y);
-				IF (p # hover) THEN
-					hover := p;
-					Invalidate; (*? optimize *)
-				END;
-				IF (p=NIL) THEN
-					IF HitTestLine(x,y) THEN
-						IF ~mouseOver THEN mouseOver := TRUE; Invalidate END
-					ELSE
-						IF mouseOver THEN mouseOver := FALSE; Invalidate END
-					END;
-				END;
-			END;
-		END PointerMove;
-
-		PROCEDURE MovePoints(dx, dy : LONGINT);
-		VAR p : Point;
-		BEGIN
-			p := points;
-			WHILE (p # NIL) DO
-				p.x := p.x + dx;
-				p.y := p.y + dy;
-				p := p.next;
-			END;
-		END MovePoints;
-
-		(* Is X, Y somewhere inside the polygon defined by p ? *)
-		PROCEDURE Inside(X, Y: LONGINT): BOOLEAN;
-		VAR c, q, p: LONGINT;
-		BEGIN
-			c := 0;
-			IF (points # NIL) THEN
-	(*			q := points;
-				FOR i := 0 TO nofPoints - 2 DO
-					IF Intersect(X, Y, points[i].x + x, points[i].y + y, points[i + 1].x + x, points[i + 1].y + y) THEN INC(c) END;
-				END;
-				IF (nofPoints > 1) & Intersect(X, Y, points[nofPoints-1].x + x, points[nofPoints-1].y + y, points[0].x + x, points[0].y + y) THEN INC(c) END; *)
-			END;
-			RETURN ODD(c);
-		END Inside;
-
-		(** Return point located at mouse position mx. my (NIL if no point at location). *)
-		PROCEDURE ThisPoint*(x, y : LONGINT): Point;
-		VAR p : Point;
-		BEGIN
-			p := points;
-			WHILE (p # NIL) DO
-				IF Invicinity(x, y, p.x, p.y) THEN RETURN p; END;
-				p := p.next;
-			END;
-			RETURN NIL;
-		END ThisPoint;
-		
-		PROCEDURE HitTestLine*(mx, my: LONGINT): BOOLEAN;
-		BEGIN RETURN FALSE
-		END HitTestLine;
-
-		PROCEDURE GetBoundingBox() : WMRectangles.Rectangle;
-		VAR p : Point; rect : WMRectangles.Rectangle;
+		PROCEDURE GetBoundingBox() : WMRectangles.Rectangle; (*! will be eliminated*)
+		VAR rect : WMRectangles.Rectangle; i:LONGINT;
 		BEGIN
 			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT);
 			rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
-			Acquire;
-			p := points;
-			WHILE (p # NIL) DO
-				IF (p.x < rect.l) THEN rect.l := p.x; END;
-				IF (p.y < rect.t) THEN rect.t := p.y; END;
-				IF (p.x > rect.r) THEN rect.r := p.x; END;
-				IF (p.y > rect.b) THEN rect.b := p.y; END;
-				p := p.next;
+			IF PArray#NIL THEN PArray:=properties.Enumerate(); END;
+			IF PArray=NIL THEN RETURN rect END;
+			FOR i:=0 TO LEN(PArray)-1 DO
+				IF PArray[i] IS WMProperties.PointProperty THEN
+					rect.l:=MIN(rect.l, PArray[i](WMProperties.PointProperty).GetX());
+					rect.r:=MAX(rect.r, PArray[i](WMProperties.PointProperty).GetX());
+					rect.t:=MIN(rect.t, PArray[i](WMProperties.PointProperty).GetY());
+					rect.b:=MAX(rect.b, PArray[i](WMProperties.PointProperty).GetY());
+				END;
 			END;
-			Release;
 			RETURN rect;
 		END GetBoundingBox;
-
-			PROCEDURE DrawControlPoint(canvas : WMGraphics.Canvas; p : Point);
-			VAR rect : WMRectangles.Rectangle; color : LONGINT;
-			BEGIN
-				ASSERT(p # NIL);
-				IF (p = selected) THEN color := WMGraphics.Yellow;
-				ELSIF (p = hover) THEN color := WMGraphics.Blue;
-				ELSE color := WMGraphics.White;
+		
+		PROCEDURE RecachePoints; (*build point list in parent coordinates*)
+		VAR p:Point;	i,x,y:LONGINT;
+		BEGIN
+			(* called by sequencer -> hierarchy is locked, see WMVisualComponentSkeleton.Mod *)
+			PArray:=properties.Enumerate();
+			points:=NIL; p:=NIL; nofPoints:=0;
+			FOR i:=0 TO LEN(PArray)-1 DO
+				IF (PArray[i]#NIL)&(PArray[i] IS WMProperties.PointProperty) THEN
+					PArray[i](WMProperties.PointProperty).GetCoordinate(x,y);
+					AddDisplayPoint(x, y);
 				END;
-				rect := WMRectangles.MakeRect(p.x - PointSize DIV 2, p.y - PointSize DIV 2, p.x + PointSize DIV 2, p.y + PointSize DIV 2);
-				canvas.Fill(rect, WMGraphics.White, WMGraphics.ModeSrcOverDst);
-				WMGraphicUtilities.DrawRect(canvas, rect, WMGraphics.Black, WMGraphics.ModeSrcOverDst);
-			END DrawControlPoint;
+			END;
+		END RecachePoints;
+		
+		PROCEDURE DrawDisplayPoint(canvas : WMGraphics.Canvas; pp: WMProperties.PointProperty);
+		VAR rect : WMRectangles.Rectangle; color, x,y,fx,fy : LONGINT;
+		BEGIN
+			ASSERT(pp # NIL);
+			IF (pp = selected) THEN color := WMGraphics.Yellow;
+			ELSIF (pp = hover) THEN color := WMGraphics.Blue;
+			ELSE color := WMGraphics.White;
+			END;
+			
+			pp.GetCoordinate(x,y); 
+			fx:=x-bounds.GetLeft(); 
+			fy:=y-bounds.GetTop();
+			rect := WMRectangles.MakeRect(fx- PointSize DIV 2, fy - PointSize DIV 2, fx + PointSize DIV 2, fy + PointSize DIV 2);
+			canvas.Fill(rect, WMGraphics.White, WMGraphics.ModeSrcOverDst);
+			WMGraphicUtilities.DrawRect(canvas, rect, WMGraphics.Black, WMGraphics.ModeSrcOverDst);
+		END DrawDisplayPoint;
 
-		PROCEDURE DrawForeground(canvas : WMGraphics.Canvas);
-		VAR p : Point; a: BOOLEAN;
+		PROCEDURE DrawForeground*(canvas : WMGraphics.Canvas);
+		VAR a: BOOLEAN; i:LONGINT;
 		BEGIN
 			DrawForeground^(canvas);
 			a:=arrow.Get();
 			IF reshape.Get() THEN
-				p := points;
-				WHILE (p # NIL) DO
-					DrawControlPoint(canvas, p);
-					(*IF (p.next=NIL) & (arrow) THEN DrawArrow(p.previous, p) END;*)
-					p := p.next;
+				FOR i:=0 TO LEN(PArray)-1 DO
+					IF (PArray[i]#NIL)&(PArray[i] IS WMProperties.PointProperty) THEN 
+						DrawDisplayPoint(canvas, PArray[i](WMProperties.PointProperty)); 
+					END;
 				END;
 			END;
 		END DrawForeground;
 		
-		PROCEDURE DrawArrow(canvas : WMGraphics.Canvas; p0,p1: Point);
-		CONST pi=3.1516; headscale= 0.5;
+		PROCEDURE DrawArrow*(canvas : WMGraphics.Canvas; p0,p1: Point);
+		CONST pi=3.1516; 
 		VAR  alpha: REAL;
 			 head: LONGREAL;
 			col:LONGINT;
 		BEGIN
 				alpha:=arctan2(p1.x-p0.x, p1.y-p0.y);
-				head:= 2+ 0.2 * MAX(ABS(p1.x-p0.x), ABS(p1.y-p0.y)); (*avoid sqrt for performance reasons*) 
+				head:=MAX( 4,  0.05 * MAX(ABS(p1.x-p0.x), ABS(p1.y-p0.y))); (*avoid sqrt for performance reasons*) 
 				col:=color.Get();
 				canvas.Line(p1.x,p1.y, p1.x - ENTIER(0.5+head * Math.cos(alpha + pi/8)), p1.y - ENTIER(0.5+head * Math.sin(alpha + pi/8)), col, WMGraphics.ModeSrcOverDst);
 				canvas.Line(p1.x,p1.y, p1.x - ENTIER(0.5+head * Math.cos(alpha - pi/8)), p1.y - ENTIER(0.5+head * Math.sin(alpha - pi/8)), col, WMGraphics.ModeSrcOverDst);
 		END DrawArrow;
 
-		PROCEDURE ToXML;
-		VAR xmlpoint, pointlist: XML.Element; 
-			p:Point;
-			string: ARRAY 16 OF CHAR;
-		BEGIN
-			RemoveContent(GetFirstChild()); (* remove old pointlist, if existing*)
-			NEW(pointlist); pointlist.SetName("PointList");
-			p := points;
-			WHILE (p # NIL) DO
-				NEW(xmlpoint); xmlpoint.SetName("Point");
-				Strings.IntToStr(p.x,string); xmlpoint.SetAttributeValue("x", string);
-				Strings.IntToStr(p.y,string); xmlpoint.SetAttributeValue("y", string);
-				pointlist.AddContent(xmlpoint);
-				p := p.next;
-		END;
-			AddContent(pointlist);
-		END ToXML;
-		
+		(*
 		PROCEDURE FromXML*(xml: XML.Element);
-		VAR pointlist, xmlpoint: XML.Element; 
-			name:Strings.String; 
-			xstring, ystring: Strings.String;
-			x, y: LONGINT;
 		BEGIN
 			FromXML^(xml);
-			nofPoints := 0;
-			points:=NIL;
-			pointlist := xml.GetFirstChild();
-			LOOP
-				IF pointlist=NIL THEN RETURN END;
-				name:=pointlist.GetName();	
-				IF name^="PointList" THEN EXIT END;
-				pointlist:=pointlist.GetNextSibling();
-			END;
-			
-			xmlpoint:=pointlist.GetFirstChild();
-			WHILE xmlpoint#NIL DO
-				name:=xmlpoint.GetName();
-				IF name^ = "Point" THEN
-					xstring:=xmlpoint.GetAttributeValue("x"); Strings.StrToInt(xstring^, x);
-					ystring:=xmlpoint.GetAttributeValue("y"); Strings.StrToInt(ystring^, y);
-					AddControlPoint(x,y);
-				END;
-				xmlpoint := xmlpoint.GetNextSibling();
-			END;
+			RecachePoints; (* these three commands might be dropped, and the procedure left out, as the parent will handle it.*)
+			Invalidate;
+			Normalize;
 		END FromXML;
-		
-		PROCEDURE Write*(w : Streams.Writer;context: ANY; level : LONGINT);
-		BEGIN
-			ToXML;
-			Write^(w, context, level);
-		END Write;
+		*)
 		
 	END Figure;
 
@@ -349,36 +399,12 @@ TYPE
 			Init^;
 			SetGenerator("WMFigures.GenLine");
 			SetNameAsString(StrLine);
-			IF nofPoints=0 THEN (* prototype *)
-				AddControlPoint(10, 10);
-				AddControlPoint(20, 20);
-				(*AddControlPoint(30, 10);*)
-			END;
 			INCL(state, EditPoints);
-			NEW(pointArray, nofPoints);
-			bounds.Set(GetBoundingBox());
+			NEW(pointArray, nofPoints);		
+			RecachePoints;
+			Normalize;
+			Invalidate;
 		END Init;
-
-		PROCEDURE Normalize(VAR newBounds : WMRectangles.Rectangle);
-		VAR bounds, box : WMRectangles.Rectangle; n : LONGINT;
-		BEGIN
-			Acquire;
-			bounds := SELF.bounds.Get();
-			box := GetBoundingBox();
-			n := (PointSize DIV 2) + (width.Get() DIV 2) + 1;
-			box.l := box.l - n;
-			box.r := box.r + n;
-			box.t := box.t - n;
-			box.b := box.b + n;
-			newBounds.l := bounds.l + box.l;
-			newBounds.t := bounds.t + box.t;
-			newBounds.r := bounds.l + (box.r - box.l);
-			newBounds.b := bounds.t + (box.b - box.t);
-			IF (box.l # 0) OR (box.t # 0) THEN
-				MovePoints(-box.l, -box.t);
-			END;
-			Release;
-		END Normalize;
 
 		PROCEDURE Scale;
 		VAR p : Point; bounds, box : WMRectangles.Rectangle; oldWidth, oldHeight, newWidth, newHeight, n : LONGINT;
@@ -403,7 +429,7 @@ TYPE
 		END Scale;
 
 		(* Is X, Y somewhere inside the polygon defined by p ? *)
-		PROCEDURE Inside(X, Y: LONGINT): BOOLEAN;
+		PROCEDURE Inside*(X, Y: LONGINT): BOOLEAN;
 		VAR c: LONGINT; p, q: Point;
 		BEGIN
 			c := 0;
@@ -417,8 +443,8 @@ TYPE
 			END;
 			RETURN ODD(c);
 		END Inside;
-
-		PROCEDURE HitTestLine*(mx, my: LONGINT): BOOLEAN;
+		
+		PROCEDURE IsHit*(mx, my: LONGINT): BOOLEAN;
 		VAR p, q: Point; i : LONGINT;
 		BEGIN
 			IF (points = NIL) OR (points.next = NIL) THEN RETURN FALSE; END;
@@ -428,74 +454,81 @@ TYPE
 			p := points; q := points.next;
 			WHILE (q # NIL) DO
 				IF InLineVicinity(mx, my, p.x, p.y, q.x, q.y) THEN RETURN TRUE END;
-				p:=q; q:=q.next;
-				INC(i);
+				p:=q; q:=q.next; INC(i);
 			END;
 			IF (Closed IN state) OR (Filled IN state) THEN
 				IF InLineVicinity(mx, my, p.x, p.y, points.x, points.y) THEN RETURN TRUE END;
 			END;
 			RETURN FALSE
-		END HitTestLine;
+		END IsHit;
 
-		PROCEDURE DrawBackground(canvas : WMGraphics.Canvas);
-		VAR p, plast : Point; i : LONGINT;
+		PROCEDURE DrawBackground*(canvas : WMGraphics.Canvas);
+		VAR p, plast : Point; i : LONGINT; 
 		BEGIN
 			DrawBackground^(canvas);
-			IF (nofPoints # LEN(pointArray)) THEN
-				NEW(pointArray, nofPoints);
-			END;
+			IF (nofPoints # LEN(pointArray)) THEN NEW(pointArray, nofPoints); END;
 			p := points; i := 0;
 			WHILE (p # NIL) DO
-				pointArray[i].x := p.x;
+				pointArray[i].x := p.x;	
 				pointArray[i].y := p.y;
 				INC(i);
-				plast:=p;
-				p := p.next;
+				plast:=p; p := p.next;
 			END;
-			IF (Arrow IN state) & (plast#NIL) THEN DrawArrow(canvas, plast.previous, plast) END;
-			IF filled.Get() THEN
-				canvas.FillPolygonFlat(pointArray^, nofPoints, color.Get(), WMGraphics.ModeSrcOverDst);
-			ELSE
-				canvas.PolyLine(pointArray^, nofPoints, closed.Get(), color.Get(), WMGraphics.ModeSrcOverDst);
+			IF arrow.Get() (*(Arrow IN state)*) & (plast#NIL) THEN DrawArrow(canvas, plast.previous, plast) END;
+			IF filled.Get() THEN    canvas.FillPolygonFlat(pointArray^, nofPoints, color.Get(), WMGraphics.ModeSrcOverDst);
+			ELSE					canvas.PolyLine(pointArray^, nofPoints, closed.Get(), color.Get(), WMGraphics.ModeSrcOverDst);
 			END;
 		END DrawBackground;
 	END Line;
 
 TYPE
 
-	Circle* = OBJECT(Figure)
+	Circle* = OBJECT(Figure) (*! to do: computation of bounding box is wrong. Do specific "RecachePoints()" for circle*)
 
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
 			SetGenerator("WMFigures.GenCircle");
 			SetNameAsString(StrCircle);
-			AddControlPoint(10, 10);
-			AddControlPoint(20, 20);
+			AddPoint(15, 15);
+			AddPoint(20, 20);
 			INCL(state, EditPoints);
-			bounds.Set(GetBoundingBox());
+			RecachePoints;
+			Normalize;
+			Invalidate;
 		END Init;
 
-		PROCEDURE Normalize(VAR newBounds : WMRectangles.Rectangle);
-		VAR bounds : WMRectangles.Rectangle; p, q : Point; r, n : LONGINT;
+		PROCEDURE Normalize;
+		VAR oldBounds,rect : WMRectangles.Rectangle; p, q : Point; dx,dy, r, n : LONGINT;
 		BEGIN
-			Acquire;
-			bounds := SELF.bounds.Get();
+			oldBounds := bounds.Get();
+			IF (p=NIL) OR (p.next=NIL) THEN RETURN END;
+			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT); rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
 			p := points; q := p.next;
 			r := Distance(p.x, p.y, q.x, q.y);
 			n := r + (PointSize DIV 2) + (width.Get() DIV 2) + 1;
-			newBounds.l := bounds.l + p.x - n;
-			newBounds.r := bounds.l + 2*n;
-			newBounds.t := bounds.t + p.y - n;
-			newBounds.b := bounds.t + 2*n;
-			MovePoints(-(p.x - n), -(p.y - n));
-			Release;
+			rect.l := oldBounds.l + p.x - n;
+			rect.r := oldBounds.l + 2*n;
+			rect.t := oldBounds.t + p.y - n;
+			rect.b := oldBounds.t + 2*n;
+			dx:=rect.l-oldBounds.l;
+			dy:=rect.t-oldBounds.t;
+			p.x:=p.x-dx; q.x:=q.x-dx;
+			p.y:=p.y-dy; q.y:=q.y-dy;
+			bounds.Set(rect)
 		END Normalize;
+		
+		(*PROCEDURE IsHit;(*!TBD*)
+		BEGIN
+			
+		END IsHit;*)
+		
 
-		PROCEDURE DrawBackground(canvas : WMGraphics.Canvas);
-		VAR p, q : Point;
+		PROCEDURE DrawBackground*(canvas : WMGraphics.Canvas);
+		VAR p, q : Point; newRect:WMRectangles.Rectangle;
 		BEGIN
 			DrawBackground^(canvas);
+			Normalize;
 			p := points;
 			q := points.next;
 			canvas.SetColor(color.Get());
@@ -514,33 +547,42 @@ TYPE
 			Init^;
 			SetGenerator("WMFigures.GenRectangle");
 			SetNameAsString(StrRectangle);
-			AddControlPoint(10, 10);
-			AddControlPoint(20, 20);
+			AddPoint(10, 10);
+			AddPoint(20, 20);
 			INCL(state, EditPoints);
-			bounds.Set(GetBoundingBox());
+			Normalize;
+			Invalidate;
 		END Init;
 
-		PROCEDURE Normalize(VAR newBounds : WMRectangles.Rectangle);
-		VAR p, q : Point; bounds, box : WMRectangles.Rectangle; n : LONGINT;
+		PROCEDURE Normalize; (* might be done by generic Normalize*)
+		VAR p, q : Point; oldBounds, box, newBounds : WMRectangles.Rectangle; n : LONGINT;
 		BEGIN
+			IF (points=NIL) OR (points.next=NIL) THEN RETURN END;
 			Acquire;
 			p := points;
 			q := p.next;
-			bounds := SELF.bounds.Get();
+			oldBounds := bounds.Get();
 			n := (PointSize DIV 2) + (width.Get() DIV 2) + 1;
 			box.l := Min(p.x, q.x) - n;
 			box.r := Max(p.x, q.x) + n;
 			box.t := Min(p.y, q.y) - n;
 			box.b := Max(p.y, q.y) + n;
-			newBounds.l := bounds.l + box.l;
-			newBounds.t := bounds.t + box.t;
-			newBounds.r := bounds.l + (box.r - box.l);
-			newBounds.b := bounds.t + (box.b - box.t);
-			MovePoints(-box.l, -box.t);
+			newBounds.l := oldBounds.l + box.l;
+			newBounds.t := oldBounds.t + box.t;
+			newBounds.r := oldBounds.l + (box.r - box.l);
+			newBounds.b := oldBounds.t + (box.b - box.t);
+			MoveDisplayPoints(-box.l, -box.t);
+			bounds.Set(newBounds);
 			Release;
 		END Normalize;
+		
+		(*PROCEDURE IsHit;(*!TBD*)
+		BEGIN
+			
+		END IsHit;*)
+		
 
-		PROCEDURE DrawBackground(canvas : WMGraphics.Canvas);
+		PROCEDURE DrawBackground*(canvas : WMGraphics.Canvas);
 		VAR p, q : Point; rect : WMRectangles.Rectangle;
 		BEGIN
 			DrawBackground^(canvas);
@@ -549,7 +591,7 @@ TYPE
 			rect.l := Min(p.x, q.x);
 			rect.r := Max(p.x, q.x);
 			rect.t := Min(p.y, q.y);
-			rect.b := Max(p.x, q.x);
+			rect.b := Max(p.y, q.y);
 			WMGraphicUtilities.DrawRect(canvas, rect, color.Get(), WMGraphics.ModeSrcOverDst);
 		END DrawBackground;
 
@@ -560,6 +602,7 @@ TYPE
 	Spline* = OBJECT(Figure)
 	VAR
 		pointArray : ARRAY 2048 OF WMGraphics.Point2d;
+		nSegments:LONGINT;
 
 		PROCEDURE &Init*;
 		BEGIN
@@ -568,12 +611,15 @@ TYPE
 			SetNameAsString(StrSpline);
 			INCL(state, EditPoints);
 			IF nofPoints=0 THEN (* prototype*)
-				AddControlPoint(0, 20);
-				AddControlPoint(20, 0);
-				AddControlPoint(20, 20);
-				AddControlPoint(30, 30);
+				AddPoint(0, 20);
+				AddPoint(20, 0);
+				AddPoint(20, 20);
+				AddPoint(30, 30);
 			END;
-			bounds.Set(GetBoundingBox());
+			RecachePoints;
+			SplineToPoly(points, Closed IN state, pointArray, nSegments);
+			Normalize;
+			Invalidate;
 		END Init;
 		
 				(* Is X, Y somewhere inside the polygon defined by p ? *) (*! to be implemented for pointarray; eliminate bias*)
@@ -592,65 +638,65 @@ TYPE
 			RETURN ODD(c);
 		END Inside;
 		
-		(*! to be implemented for full pointarray, not only for control points  with straight connections, eliminate bias*)
-		PROCEDURE HitTestLine*(mx, my: LONGINT): BOOLEAN;
+		PROCEDURE IsHit*(mx, my: LONGINT): BOOLEAN;
 		VAR p, q: Point; i : LONGINT;
 		BEGIN
 			IF (points = NIL) OR (points.next = NIL) THEN RETURN FALSE; END;
 			IF Filled IN state THEN
 				IF Inside(mx, my) THEN RETURN TRUE END;
 			END;
-			p := points; q := points.next;
+			FOR i:=0 TO nSegments-1 DO
+				IF (ABS(mx-pointArray[i].x)<gravity) & (ABS(my-pointArray[i].y)<gravity) THEN RETURN TRUE END; (* here only testing segment points, can be refined*)
+			END;
+			 (*!the following code is  for line hiting above. does not work so well for spline yet*)
+			(*p := points; q := points.next;
 			WHILE (q # NIL) DO
 				IF InLineVicinity(mx, my, p.x, p.y, q.x, q.y) THEN RETURN TRUE END;
 				p:=q; q:=q.next; INC(i);
 			END;
 			IF (Closed IN state) OR (Filled IN state) THEN
 				IF InLineVicinity(mx, my, p.x, p.y, points.x, points.y) THEN RETURN TRUE END;
-			END;
+			END;*)
 			RETURN FALSE
-		END HitTestLine;
+		END IsHit;
 
-		PROCEDURE Normalize(VAR newBounds : WMRectangles.Rectangle);
-		VAR bounds, box : WMRectangles.Rectangle; i, n : LONGINT;
+		PROCEDURE Normalize; 
+		VAR i:LONGINT; oldrect, rect:WMRectangles.Rectangle; p:Point; (*! to do: there is a mixup of parent/child coordinates after moving, here and in Spline.HitTest. repair*)
 		BEGIN
-			bounds := SELF.bounds.Get();
-			Acquire;
-			SplineToPoly(points, closed.Get(), pointArray, n);
-			box.l := MAX(LONGINT); box.r := MIN(LONGINT);
-			box.t := MAX(LONGINT); box.b := MIN(LONGINT);
-			FOR i := 0 TO n - 1 DO
-				IF (pointArray[i].x < box.l) THEN box.l := pointArray[i].x; END;
-				IF (pointArray[i].x > box.r) THEN box.r := pointArray[i].x; END;
-				IF (pointArray[i].y < box.t) THEN box.t := pointArray[i].y; END;
-				IF (pointArray[i].y > box.b) THEN box.b := pointArray[i].y; END;
+			oldrect:=bounds.Get();
+			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT); rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
+			FOR i:=0 TO nSegments-1 DO
+				rect.l:=MIN(rect.l, pointArray[i].x-PointSize DIV 2 -1); rect.r:=MAX(rect.r, pointArray[i].x+PointSize DIV 2+1);  (*compute bounds*)
+				rect.t:=MIN(rect.t, pointArray[i].y-PointSize DIV 2 -1); rect.b:=MAX(rect.b, pointArray[i].y+PointSize DIV 2+1);
 			END;
-			n := (PointSize DIV 2) + (width.Get() DIV 2) + 1;
-			box.l := box.l - n;
-			box.r := box.r + n;
-			box.t := box.t - n;
-			box.b := box.b + n;
-			MovePoints(-box.l, -box.t);
-			newBounds.l := bounds.l + box.l;
-			newBounds.r := bounds.l + (box.r - box.l);
-			newBounds.t := bounds.t + box.t;
-			newBounds.b := bounds.t + (box.b - box.t);
-			Release;
+			FOR i:=0 TO nSegments-1 DO
+				pointArray[i].x:=pointArray[i].x-rect.l;
+				pointArray[i].y:=pointArray[i].y-rect.t;
+			END;
+			p:=points;
+			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
+				p.x:=p.x-rect.l; p.y:=p.y-rect.t; 
+				p:=p.next; 
+			END;
+			bounds.Set(rect);
 		END Normalize;
 
-		PROCEDURE DrawBackground(canvas : WMGraphics.Canvas);
-		VAR n : LONGINT; p: Point; col: LONGINT;
+		PROCEDURE DrawBackground*(canvas : WMGraphics.Canvas);
+		VAR p: Point; col: LONGINT; 
 		BEGIN
-			DrawBackground^(canvas);
-			SplineToPoly(points, Closed IN state, pointArray, n);
+			
+			DrawBackground^(canvas); 
+			RecachePoints;
+			SplineToPoly(points, Closed IN state, pointArray, nSegments); (* spline boundary computation requires prior spline expansion, not normalized *)
+			Normalize; 
+			
 			IF mouseOver THEN col:=clHover.Get() ELSE col:=color.Get() END;
 			IF filled.Get() THEN
-				canvas.FillPolygonFlat(pointArray, n, col, WMGraphics.ModeSrcOverDst);
+				canvas.FillPolygonFlat(pointArray, nSegments, col, WMGraphics.ModeSrcOverDst);
 			ELSE
-				canvas.PolyLine(pointArray, n, closed.Get(), col, WMGraphics.ModeSrcOverDst);
+				canvas.PolyLine(pointArray, nSegments, closed.Get(), col, WMGraphics.ModeSrcOverDst);
 			END;
-			p:=points; WHILE (p#NIL)&(p.next#NIL) DO p:=p.next END; 
-			IF (Arrow IN state) & (p#NIL) THEN DrawArrow(canvas, p.previous, p) END;
+			IF arrow.Get() (*(Arrow IN state)*) & (p#NIL) THEN DrawArrow(canvas, p.previous, p) END;
 		END DrawBackground;
 
 	END Spline;
@@ -658,6 +704,8 @@ TYPE
 
 
 VAR
+	log: Streams.Writer;
+	
 	(* Size of gravity spot used for "snapping" the cursor *)
 	gravity : LONGINT;
 
@@ -842,6 +890,8 @@ VAR
 	END ClSplineDerivates;
 
 BEGIN
+	IF c=NIL THEN k:=0; RETURN END;
+	 
 	n := 0; WHILE c # NIL DO RX[n+1] := c.x ; RY[n+1] := c.y; INC(n); c := c.next END;
 	IF closed THEN RX[n+1] := RX[1]; RY[n+1] := RY[1]; INC(n) ; END;
 	RS[1] := 0.0; i := 2;
@@ -908,7 +958,7 @@ END Intersect;
 PROCEDURE Distance(x, y, x0, y0: LONGINT): LONGINT;
 VAR dx, dy: LONGINT;
 BEGIN dx := x - x0; dy := y - y0;
-	RETURN SHORT(ENTIER(Math.sqrt(dx * dx + dy * dy)))
+	RETURN ENTIER(Math.sqrt(dx * dx + dy * dy))
 END Distance;
 
 PROCEDURE Min(x, y: LONGINT): LONGINT;
@@ -919,7 +969,7 @@ PROCEDURE Max(x, y: LONGINT): LONGINT;
 BEGIN IF x > y THEN RETURN x ELSE RETURN y END
 END Max;
 
-PROCEDURE GenLine*() : XML.Element;
+PROCEDURE GenLine*() : XML.Element; (* needs AddPoint(); AddPoint(), before a prototype becomes visible  *)
 VAR line : Line;
 BEGIN
 	NEW(line); RETURN line;
@@ -945,20 +995,13 @@ END GenSpline;
 
 PROCEDURE InitPrototypes;
 BEGIN
-	NEW(PrototypeWidth, NIL, Strings.NewString("width"), Strings.NewString("Width of stroke"));
-	PrototypeWidth.Set(1);
-	NEW(PrototypeColor, NIL, Strings.NewString("color"), Strings.NewString("Color"));
-	PrototypeColor.Set(WMGraphics.Red);
-	NEW(PrototypeclHover, NIL, Strings.NewString("clHover"), Strings.NewString("Color HOver"));
-	PrototypeclHover.Set(WMGraphics.Yellow);
-	NEW(PrototypeClosed, NIL, Strings.NewString("closed"), Strings.NewString("Figure is closed"));
-	PrototypeClosed.Set(FALSE);
-	NEW(PrototypeFilled, NIL, Strings.NewString("filled"), Strings.NewString("Figure is filled"));
-	PrototypeFilled.Set(FALSE);
-	NEW(PrototypeReshape, NIL, Strings.NewString("reshape"), Strings.NewString("Control Points can be individually moved"));
-	PrototypeReshape.Set(TRUE);
-	NEW(PrototypeArrow, NIL, Strings.NewString("arrow"), Strings.NewString("Draw arrow at end of line"));
-	PrototypeArrow.Set(FALSE);
+	NEW(PrototypeWidth, NIL, Strings.NewString("width"), Strings.NewString("Width of stroke")); PrototypeWidth.Set(1);
+	NEW(PrototypeColor, NIL, Strings.NewString("color"), Strings.NewString("Color"));	PrototypeColor.Set(WMGraphics.Red);
+	NEW(PrototypeclHover, NIL, Strings.NewString("clHover"), Strings.NewString("Color HOver"));	PrototypeclHover.Set(WMGraphics.Yellow);
+	NEW(PrototypeClosed, NIL, Strings.NewString("closed"), Strings.NewString("Figure is closed")); PrototypeClosed.Set(FALSE);
+	NEW(PrototypeFilled, NIL, Strings.NewString("filled"), Strings.NewString("Figure is filled")); PrototypeFilled.Set(FALSE);
+	NEW(PrototypeReshape, NIL, Strings.NewString("reshape"), Strings.NewString("Control Points can be individually moved"));	PrototypeReshape.Set(TRUE);
+	NEW(PrototypeArrow, NIL, Strings.NewString("arrow"), Strings.NewString("Draw arrow at end of line")); PrototypeArrow.Set(FALSE);
 END InitPrototypes;
 
 PROCEDURE InitStrings;
@@ -974,6 +1017,7 @@ BEGIN
 	gravity := 6;
 	InitStrings;
 	InitPrototypes;
+	Streams.OpenWriter(log, KernelLog.Send);
 END WMFigures.
 
 SystemTools.FreeDownTo WMFigures ~
@@ -984,3 +1028,22 @@ ComponentViewer.Open WMFigures.GenCircle ~
 ComponentViewer.Open WMFigures.GenRectangle ~
 
 ComponentViewer.Open WMShapes.GenLine ~
+
+Example application for Line:
+
+MODULE FigureTester; 
+	IMPORT ComponentViewer, Commands, XML, WMFigures;
+	PROCEDURE Test*(context:Commands.Context);
+	VAR line: XML.Element; window: ComponentViewer.Window;
+	BEGIN
+		line:=WMFigures.GenLine();
+		line(WMFigures.Line).AddPoint(30,20); 
+		line(WMFigures.Line).AddPoint(40,50); 
+		line(WMFigures.Line).AddPoint(10,70); 
+		line.Write(context.out, NIL, 0); context.out.Ln; context.out.Update; (* show XML structure*)
+		ComponentViewer.DoShow(line(WMFigures.Figure), window, 200,300,200,200, FALSE,FALSE,FALSE, {});
+	END Test;
+END FigureTester.
+
+FigureTester.Test  ~
+

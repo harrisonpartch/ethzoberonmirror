@@ -29,7 +29,7 @@ CONST
 	SBP2DeviceTypeAndLUNKey= 14H;
 	SBP2FirmwareRevKey= 3CH;
 	SBP2BusyTimeOutAddrHi= 0FFFFH;
-	SBP2BusyTimeOutAddrLo= SHORT(0F0000210H);
+	SBP2BusyTimeOutAddrLo= LONGINT(0F0000210H);
 	SBP2AgentResetData= 0FH;
 
 	SBP2AgentStateOffset= 0H;
@@ -49,7 +49,7 @@ CONST
 	LogicalUnitReset= 0EH;
 	TargetResetRequest= 0FH;
 
-	UninitializedLUN= SHORT(0FFFFFFFFH);
+	UninitializedLUN= LONGINT(0FFFFFFFFH);
 
 	BusyTimeOut = 0FH;
 

@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5294)";
+	Version = "Aos (rev.5550)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -19,7 +19,7 @@ CONST
 	SizeSize = SIZEOF( SIZE );
 	
 	BlockSize = 32;
-	MemBlockSize* = 64*1024*1024;
+	MemBlockSize* = 32*1024*1024;
 	
 	TraceOutput* = 0;	(* Trace output *)
 	Memory* = 1;		(*!  Virtual memory management, stack and page allocation,  not used in UnixAos *)
@@ -61,7 +61,7 @@ TYPE
 	
 VAR
 	lock-	: ARRAY MaxLocks OF CHAR;  (* not implemented as SET because of shared access *)
-	mtx		: ARRAY MaxLocks OF Unix.Mutex_t;
+	mtx	: ARRAY MaxLocks OF Unix.Mutex_t;
 	
 	version-: ARRAY 64 OF CHAR;	(** Aos version *)
 	
@@ -74,7 +74,7 @@ VAR
 	SSE41Support-	: BOOLEAN;
 	SSE42Support-	: BOOLEAN;
 	SSE5Support-	: BOOLEAN;
-	AVXSupport-	: BOOLEAN;
+	AVXSupport-		: BOOLEAN;
 	
 	ticks*: LONGINT;	(** timer ticks. Use Kernel.GetTicks() to read, don't write *)
 	
@@ -93,18 +93,18 @@ VAR
 	
 	thrInitialize	: PROCEDURE {REALTIME, C} ( VAR low, high: LONGINT ): BOOLEAN;
 	
-	mtxInit-	: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Mutex_t;
+	mtxInit			: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Mutex_t;
 	mtxDestroy	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
-	mtxLock	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
+	mtxLock		: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
 	mtxUnlock	: PROCEDURE {REALTIME, C} ( mtx: Unix.Mutex_t );
 	
-	conInit-	: PROCEDURE {REALTIME, C}  ( dummy: LONGINT ): Unix.Condition_t;
+	conInit			: PROCEDURE {REALTIME, C}  ( dummy: LONGINT ): Unix.Condition_t;
 	conDestroy	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
-	conWait	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t;  mtx: Unix.Mutex_t );
-	conSignal	: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
+	conWait		: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t;  mtx: Unix.Mutex_t );
+	conSignal		: PROCEDURE {REALTIME, C}  ( cond: Unix.Condition_t );
 	
-	thrSleep-	: PROCEDURE {REALTIME, C} ( ms: LONGINT );
-	thrThis-		: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Thread_t;
+	thrSleep		: PROCEDURE {REALTIME, C} ( ms: LONGINT );
+	thrThis			: PROCEDURE {REALTIME, C} ( dummy: LONGINT ): Unix.Thread_t;
 	
 	saveSP*	: PROCEDURE;		(* save SP for usage by GC *)
 
@@ -126,7 +126,7 @@ VAR
 	BEGIN
 		cur := memBlockHead;
 		prev := NIL;
-		WHILE (cur # NIL) & LessThan( cur.startAdr, memBlock.startAdr ) DO
+		WHILE (cur # NIL) & (cur.startAdr < memBlock.startAdr) DO
 			prev := cur;
 			cur := cur.next
 		END;
@@ -174,8 +174,8 @@ VAR
 	PROCEDURE ExpandHeap*( dummy: LONGINT; size: SIZE; VAR beginBlockAdr, endBlockAdr: ADDRESS );
 	VAR mBlock: MemoryBlock;  alloc, s: SIZE;  a, adr: ADDRESS; 
 	BEGIN 
-		IF size < (MemBlockSize - BlockSize)  THEN  alloc := MemBlockSize  
-		ELSE  alloc := size + BlockSize;
+		IF size < (MemBlockSize - (2*BlockSize))  THEN  alloc := MemBlockSize  
+		ELSE  alloc := size + (2*BlockSize);
 		END;  
 		INC( alloc, (-alloc) MOD Unix.PageSize );
 		
@@ -196,7 +196,7 @@ VAR
 			
 			ASSERT( (mBlock.beginBlockAdr + AddrSize) MOD BlockSize = 0 );  
 
-			s := adr + alloc - mBlock.beginBlockAdr; 
+			s := adr + alloc - mBlock.beginBlockAdr - BlockSize; 
 			DEC( s, s MOD BlockSize );  
 			ASSERT( s >= size );  
 			mBlock.endBlockAdr := mBlock.beginBlockAdr + s; 
@@ -238,6 +238,7 @@ VAR
 		highFree := 0
 	END GetFreeK;
 
+
 (* Compare two unsigned addresses *)
 PROCEDURE {REALTIME} -LessThan* (a, b: ADDRESS): BOOLEAN;
 CODE {SYSTEM.i386}
@@ -271,6 +272,7 @@ CODE {SYSTEM.i386}
 	SETAE AL
 END GreaterOrEqual;
 
+
 (** Fill "size" bytes at "destAdr" with "filler". "size" must be multiple of 4. *)
 PROCEDURE {REALTIME} Fill32* (destAdr: ADDRESS; size: SIZE; filler: LONGINT);
 CODE {SYSTEM.i386}
@@ -294,7 +296,7 @@ PROCEDURE {REALTIME} MulH* (h, g: HUGEINT): HUGEINT;
 CODE {SYSTEM.i386}
 	MOV EDX, [EBP+12]	; y_hi
 	MOV ECX, [EBP+20]	; x_hi
-	OR EDX, ECX		; are x_hi and y_hi both zeros?
+	OR	 EDX, ECX		; are x_hi and y_hi both zeros?
 	MOV EDX, [EBP+16]	; x_lo
 	MOV EAX, [EBP+8]	; y_lo
 	JNZ fullMul			; yes, requires full multiplication
@@ -470,7 +472,7 @@ VAR mb: MemoryBlock;
 BEGIN
 	mb := memBlockHead;  
 	WHILE mb # NIL DO
-		IF GreaterOrEqual( p, mb.beginBlockAdr ) & LessOrEqual( p, mb.endBlockAdr ) THEN  RETURN TRUE  END;  
+		IF (p >= mb.beginBlockAdr) & (p <= mb.endBlockAdr) THEN  RETURN TRUE  END;  
 		mb := mb.next;  
 	END;  
 	RETURN FALSE  
@@ -489,7 +491,7 @@ END Is32BitAddress;
 (** -- Atomic operations -- *)
 
 (** Atomic INC(x). *)
-PROCEDURE -AtomicInc*(VAR 	x: LONGINT);
+PROCEDURE -AtomicInc*(VAR x: LONGINT);
 CODE {SYSTEM.i386}
 	POP EAX
 	LOCK
@@ -752,16 +754,16 @@ END ChangeByteOrder;
 	(* If the CPUID instruction is supported, the ID flag (bit 21) of the EFLAGS register is r/w *)
 	PROCEDURE CpuIdSupported( ) : BOOLEAN;
 	CODE {SYSTEM.i386}	
-		PUSHFD					; save EFLAGS
+		PUSHFD				; save EFLAGS
 		POP EAX				; store EFLAGS in EAX
-		MOV EBX, EAX			; save EBX for later testing
+		MOV EBX, EAX		; save EBX for later testing
 		XOR EAX, 00200000H	; toggle bit 21
 		PUSH EAX				; push to stack
 		POPFD					; save changed EAX to EFLAGS
-		PUSHFD					; push EFLAGS to TOS
+		PUSHFD				; push EFLAGS to TOS
 		POP EAX				; store EFLAGS in EAX
-		CMP EAX, EBX			; see if bit 21 has changed
-		SETNE AL;				; return TRUE if bit 21 has changed, FALSE otherwise
+		CMP EAX, EBX		; see if bit 21 has changed
+		SETNE AL;			; return TRUE if bit 21 has changed, FALSE otherwise
 	END CpuIdSupported;
 
 	
@@ -799,7 +801,7 @@ END ChangeByteOrder;
 	PROCEDURE -InitSSE;
 	CODE {SYSTEM.Pentium, SYSTEM.Privileged}
 		MOV	EAX, CR4
-		OR	EAX, 00000200H		; set bit 9 (OSFXSR)
+		OR		EAX, 00000200H		; set bit 9 (OSFXSR)
 		AND	EAX, 0FFFFFBFFH	; delete bit 10 (OSXMMEXCPT)
 		MOV	CR4, EAX
 	END InitSSE;
@@ -923,9 +925,7 @@ END ChangeByteOrder;
 	PROCEDURE CPUSpeed;
 	VAR t0, t1: HUGEINT; 
 	BEGIN
-		t0 := GetTimer();
-		thrSleep( 100 );
-		t1 := GetTimer();
+		t0 := GetTimer();  thrSleep( 100 );  t1 := GetTimer();
 		mhz := (t1 - t0) DIV 100000;
 		IF Glue.debug # {} THEN
 			Trace.String( "CPU speed: ~" );  Trace.Int( SHORT( mhz ), 0);  Trace.String( " MHz" );  Trace.Ln
@@ -992,15 +992,15 @@ END ChangeByteOrder;
 		Unix.Dlsym( 0, "mtxInit",		ADDRESSOF( mtxInit ) );
 		Unix.Dlsym( 0, "mtxDestroy",	ADDRESSOF( mtxDestroy ) );
 		Unix.Dlsym( 0, "mtxLock",		ADDRESSOF( mtxLock ) );
-		Unix.Dlsym( 0, "mtxUnlock",		ADDRESSOF( mtxUnlock ) );
+		Unix.Dlsym( 0, "mtxUnlock",	ADDRESSOF( mtxUnlock ) );
 		
-		Unix.Dlsym( 0, "conInit",			ADDRESSOF( conInit ) );
+		Unix.Dlsym( 0, "conInit",		ADDRESSOF( conInit ) );
 		Unix.Dlsym( 0, "conDestroy",	ADDRESSOF( conDestroy ) );
 		Unix.Dlsym( 0, "conWait",		ADDRESSOF( conWait ) );
-		Unix.Dlsym( 0, "conSignal",		ADDRESSOF( conSignal ) );
+		Unix.Dlsym( 0, "conSignal",	ADDRESSOF( conSignal ) );
 			
-		Unix.Dlsym( 0, "thrSleep",		ADDRESSOF( thrSleep ) );
-		Unix.Dlsym( 0, "thrThis",			ADDRESSOF( thrThis ) );
+		Unix.Dlsym( 0, "thrSleep",	ADDRESSOF( thrSleep ) );
+		Unix.Dlsym( 0, "thrThis",		ADDRESSOF( thrThis ) );
 		
 		standaloneAppl := FALSE;
 		

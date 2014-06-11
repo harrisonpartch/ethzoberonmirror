@@ -64,7 +64,7 @@ TYPE
 			NEW(attributesBuf.attributes,BufferedAttributes);
 			NEW(attributesBuf.positions,BufferedAttributes);
 			attributesBuf.length := 0;
-			InitWriter (Add, Streams.DefaultWriterSize);
+			InitWriter (Add, 128 * 1024);
 		END Init;
 
 		PROCEDURE Add(CONST buf: ARRAY OF CHAR; ofs, len: LONGINT; propagate: BOOLEAN; VAR res: LONGINT);

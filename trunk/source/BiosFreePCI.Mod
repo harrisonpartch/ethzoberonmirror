@@ -1,7 +1,4 @@
-MODULE PCI;	(** non-portable *)
-(** AUTHOR "ryser"; PURPOSE "PCI bus interface (compatible with Native Oberon)"; *)
-
-(* Contributed by P. Ryser to the System 3 project *)
+MODULE PCI;	 (** author: fof -- PCI without using PCI bios (using PCI tables described in OSDev wiki ) *)
 
 	IMPORT SYSTEM, Machine, KernelLog;
 
@@ -53,7 +50,7 @@ MODULE PCI;	(** non-portable *)
 		END;
 		*)
 
-		Pci = RECORD bus, device, function: LONGINT END;
+		Pci* = RECORD bus*, device*, function*: LONGINT END;
 	VAR
 		pciEnabled: BOOLEAN;
 
@@ -454,25 +451,28 @@ MODULE PCI;	(** non-portable *)
 	END PCICheckType2;
 	*)
 
-	PROCEDURE StartIterate(VAR pci: Pci);
+	PROCEDURE StartIterate*(VAR pci: Pci);
 	BEGIN pci.bus := 0; pci.device := 0; pci.function := 0
 	END StartIterate;
 
-	PROCEDURE Iterate(VAR pci: Pci): BOOLEAN;
-	VAR hdrType,res: LONGINT;
+	PROCEDURE Iterate*(VAR pci: Pci): BOOLEAN;
+	VAR hdrType,res: LONGINT; multifunction: BOOLEAN;
 	BEGIN
 		IF pci.function = 0 THEN
 			(* check if multi-function device *)
-			res := PCIReadConfig8(pci.bus, pci.device, pci.function, 0EH, hdrType);
+			res := PCIReadConfig32(pci.bus, pci.device, pci.function, 0CH, hdrType);
+			multifunction := 23 IN SYSTEM.VAL(SET, hdrType);
+		ELSE multifunction := TRUE
 		END;
 		INC(pci.function);
-		IF (pci.function >= 8)  OR ~(7 IN SYSTEM.VAL(SET,hdrType)) THEN
+		
+		IF ~multifunction OR (pci.function >= 8) THEN
 			pci.function := 0;
 			INC(pci.device);
 			IF pci.device >= 32 THEN
 				pci.device := 0;
 				INC(pci.bus);
-				IF pci.bus >= 8 THEN RETURN FALSE END;
+				IF pci.bus > 255 THEN RETURN FALSE END;
 			END;
 		END;
 		RETURN TRUE

@@ -658,6 +658,7 @@ TYPE
 			settingsEdit.fillColor.Set(WMGraphics.White);
 			settingsEdit.tv.borders.Set(WMRectangles.MakeRect(4, 3, 2, 2));
 			settingsEdit.tv.showBorder.Set(TRUE);
+			settingsEdit.tv.textAlignV.Set(WMGraphics.AlignCenter);
 			settingsEdit.SetAsString(settings.portSettings);
 			toolbar.AddContent(settingsEdit);
 

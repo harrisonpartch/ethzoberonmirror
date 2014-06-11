@@ -10,6 +10,7 @@ TYPE
 
 	Parameters = POINTER TO RECORD
 		repeat: BOOLEAN;
+		subdirectory: BOOLEAN;
 	END;
 
 	PatternParameters = POINTER TO RECORD (Parameters)
@@ -213,7 +214,7 @@ BEGIN
 	END;
 END SearchPatternRaw;
 
-PROCEDURE Enumerate(CONST pattern : ARRAY OF CHAR; param : Parameters; proc : EnumProc; stats : Statistics; context : Commands.Context);
+PROCEDURE Enumerate(CONST path, pattern : ARRAY OF CHAR; param : Parameters; proc : EnumProc; stats : Statistics; context : Commands.Context);
 VAR
 	enum : Files.Enumerator;
 	filename : Files.FileName;
@@ -221,7 +222,8 @@ VAR
 	time, date, size, nofMatches : LONGINT;
 BEGIN
 	ASSERT(proc # NIL);
-	NEW(enum); enum.Open(pattern, {});
+	IF path # "" THEN Files.JoinPath(path, pattern, filename) END;
+	NEW(enum); enum.Open(filename, {});
 	WHILE enum.GetEntry(filename, fileflags, time, date, size) & ~stats.abort DO
 		IF ~(Files.Directory IN fileflags) THEN
 			REPEAT
@@ -231,6 +233,15 @@ BEGIN
 			context.out.Update; context.error.Update;
 			INC(stats.nofFiles);
 		END;
+	END;
+	IF param.subdirectory THEN
+	Files.JoinPath(path, "*", filename);
+	enum.Open(filename, {});
+	WHILE enum.GetEntry(filename, fileflags, time, date, size) & ~stats.abort DO
+		IF (Files.Directory IN fileflags) THEN
+			Enumerate(filename, pattern, param, proc, stats, context);
+		END;
+	END;
 	END;
 	enum.Close;
 END Enumerate;
@@ -257,12 +268,11 @@ BEGIN
 	dest[di] := 0X;
 END Unescape;
 
-
 (** List all files that match <filePattern> and contain the specified <searchString> *)
 PROCEDURE Find*(context : Commands.Context); (** [Optinos] filePattern searchString *)
 VAR
 	options : Options.Options;
-	filePattern : Files.FileName; searchString : SearchString;
+	filePattern, path, pattern : Files.FileName; searchString : SearchString;
 	param : PatternParameters;
 	stats : Statistics;
 BEGIN
@@ -270,6 +280,7 @@ BEGIN
 	options.Add("v", "verbose", Options.Flag);
 	options.Add("f", "formatted", Options.Flag);
 	options.Add("r", "repeat", Options.Flag);
+	options.Add("s", "subdirectory", Options.Flag);
 
 	IF options.Parse(context.arg, context.error) THEN
 		filePattern := ""; searchString := "";
@@ -280,15 +291,17 @@ BEGIN
 			stats.verbose := options.GetFlag("verbose");
 			NEW(param);
 			param.repeat := options.GetFlag("repeat");
+			param.subdirectory := options.GetFlag("subdirectory");
 			Unescape(searchString, param.searchString);
 			IF stats.verbose THEN
 				context.out.String("Searching '"); context.out.String(searchString); context.out.String("' in ");
 				context.out.String(filePattern); context.out.String("..."); context.out.Ln; context.out.Update;
 			END;
+			Files.SplitPath(filePattern, path, pattern);
 			IF options.GetFlag("formatted") THEN
-				Enumerate(filePattern, param, FindString, stats, context);
+				Enumerate(path, pattern, param, FindString, stats, context);
 			ELSE
-				Enumerate(filePattern, param, FindStringRaw, stats, context);
+				Enumerate(path, pattern, param, FindStringRaw, stats, context);
 			END;
 			IF stats.verbose THEN
 				stats.Show(context.out);
@@ -303,13 +316,14 @@ END Find;
 PROCEDURE Replace*(context : Commands.Context); (** filePattern searchString replaceString *)
 VAR
 	options : Options.Options;
-	filePattern : Files.FileName; searchString, replaceString : SearchString;
+	filePattern, path, pattern : Files.FileName; searchString, replaceString : SearchString;
 	param : PatternParameters;
 	stats : Statistics;
 BEGIN
 	NEW(options);
 	options.Add("v", "verbose", Options.Flag);
 	options.Add("r", "repeat", Options.Flag);
+	options.Add("s", "subdirectory", Options.Flag);
 	IF options.Parse(context.arg, context.error) THEN
 		filePattern := ""; searchString := ""; replaceString := "";
 		context.arg.SkipWhitespace; context.arg.String(filePattern);
@@ -322,13 +336,15 @@ BEGIN
 				stats.verbose := options.GetFlag("verbose");
 				NEW(param);
 				param.repeat := options.GetFlag("repeat");
+				param.subdirectory := options.GetFlag("subdirectory");
 				Unescape(searchString, param.searchString);
 				Unescape(replaceString, param.replaceString);
 				IF stats.verbose THEN
 					context.out.String("Replacing '"); context.out.String(searchString); context.out.String("' by '"); context.out.String(replaceString);
 					context.out.String("' in "); context.out.String(filePattern); context.out.String("... "); context.out.Ln;
 				END;
-				Enumerate(filePattern, param, ReplaceString, stats, context);
+				Files.SplitPath(filePattern, path, pattern);
+				Enumerate(path, pattern, param, ReplaceString, stats, context);
 				IF stats.verbose THEN
 					stats.Show(context.out);
 				END;
@@ -344,6 +360,10 @@ END Replace;
 
 
 END SearchTools.
+
+SystemTools.Free SearchTools ~
+
+SearchTools.Find -s -r E:/Highdim/Hardware/*.xml "?{" ~
 
 SearchTools.Find E:/WinaosNewCommands/source/*.Mod Objects  ~
 SearchTools.Find E:/WinaosNewCommands/winaos/src/*.Mod Commands  ~

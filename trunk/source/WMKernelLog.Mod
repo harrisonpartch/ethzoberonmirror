@@ -31,7 +31,7 @@ TYPE
 
 			out.SetText(KernelLogger.kernelLog);
 			KernelLogger.kernelLog.AcquireRead;
-			out.editor.tv.cursor.SetPosition(KernelLogger.kernelLog.GetLength());
+			out.editor.tv.End(TRUE, FALSE); (*cursor.SetPosition(KernelLogger.kernelLog.GetLength());*)
 			KernelLogger.kernelLog.ReleaseRead;
 
 			IF c # NIL THEN

@@ -7,10 +7,10 @@ IMPORT
 
 CONST
 	Title = "CD Recording Tool";
-	White = SHORT(0FFFFFFFFH);
+	White = 0FFFFFFFFH;
 	Black = 0000000FFH;
-	LightGray = SHORT(0C8C8C8FFH);
-	DarkGray = SHORT(0A0A0A0FFH);
+	LightGray = 0C8C8C8FFH;
+	DarkGray = 0A0A0A0FFH;
 	Blue = 00000FFFFH;
 	MaxLen = 256;
 	ResOk=0; ResErr=1;

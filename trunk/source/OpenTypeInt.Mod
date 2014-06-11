@@ -296,7 +296,8 @@ BEGIN
 			c := -c;
 			RETURN -((a * b + c DIV 2) DIV c)
 		ELSE
-			HALT(100);  (* division by zero *)
+			RETURN 0; (* division by zero -- gracefully ignored ... *)
+			HALT(100);  (* a trap is an inacceptable behavior during system startup (e.g. if the font is too small ..) *)
 		END
 	ELSE
 		ToINT64(a, a64); ToINT64(b, b64);

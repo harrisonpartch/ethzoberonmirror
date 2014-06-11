@@ -30,7 +30,7 @@ TYPE
 			Finalize^(connected);
 		END Finalize;
 
-		PROCEDURE DoSend(dst: Network.LinkAdr; type: LONGINT;  VAR l3hdr, l4hdr, data: ARRAY OF CHAR; h3len, h4len, dofs, dlen: LONGINT);
+		PROCEDURE DoSend(dst: Network.LinkAdr; type: LONGINT;  CONST l3hdr, l4hdr, data: ARRAY OF CHAR; h3len, h4len, dofs, dlen: LONGINT);
 			(* do nothing, discard packet *)
 		END DoSend;
 

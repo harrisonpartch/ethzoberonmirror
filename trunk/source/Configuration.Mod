@@ -12,6 +12,7 @@ CONST
 	Error* = 10004;
 
 	SaveConfigFile = "Save.Configuration.XML";
+	MyConfigFile = "MyConfiguration.XML";
 	ConfigFile = "Configuration.XML";
 
 	(* element and attribute names - must match DTD in ConfigFile *)
@@ -207,7 +208,10 @@ VAR f: Files.File; scanner: XMLScanner.Scanner; parser: XMLParser.Parser; r: Fil
 BEGIN {EXCLUSIVE}
 	error := FALSE;
 	config := NIL;
-	f := Files.Old(ConfigFile);
+	f := Files.Old(MyConfigFile);
+	IF f = NIL THEN
+		f := Files.Old(ConfigFile);
+	END;
 	IF f # NIL THEN
 		NEW(r, f, 0);
 		NEW(scanner, r); NEW(parser, scanner); parser.reportError := TrapHandler; config := parser.Parse();

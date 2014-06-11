@@ -27,7 +27,7 @@ MODULE UsbFTDI;  (** AUTHOR "neuf"; PURPOSE "FTDI FT232BM USB-RS232 Converter Dr
  *	- testing
  *)
 
-IMPORT SYSTEM, Kernel, KernelLog, Modules, Serials, Usbdi;
+IMPORT Usb (* for init of Usbdi.drivers ! *), SYSTEM, Kernel, KernelLog, Modules, Serials, Usbdi;
 
 CONST
 
@@ -540,6 +540,7 @@ TYPE
 
 			(* the interrupt pipe for endpoint EpInterruptStatus is used to asynchronously receive status information... set up the USB transfers. *)
 			bulkIn.SetTimeout(0);
+			NEW(port); port.driver := SELF; (* port is used in completion handler, must be set up here *)
 			bulkIn.SetCompletionHandler(UpdateDataStatus);
 			ignore := bulkIn.Transfer(64, 0, data64^);
 
@@ -560,13 +561,13 @@ TYPE
 
 
 			(* Register port at Serials *)
-			NEW(port); NEW(port.data1, 1); port.driver := SELF;
 			Serials.RegisterPort(port, Description);
 			RETURN TRUE;
 		END Connect;
 
 		PROCEDURE Disconnect;
 		BEGIN
+			IF Debug THEN ShowModule("Driver Disconnected"); KernelLog.Ln; END;
 			Serials.UnRegisterPort(SELF.port);
 		END Disconnect;
 
@@ -687,7 +688,11 @@ TYPE
 				END;
 				ignore := bulkIn.Transfer(64, 0, data64^);(* get next data *)
 			ELSE
-				IF Debug THEN ShowModule("UpdateDataStatus failed."); KernelLog.Ln; END;
+				IF Debug THEN ShowModule("UpdateDataStatus failed."); KernelLog.Ln; 
+					TRACE(status);
+					
+				END;
+				ignore := bulkIn.Transfer(64, 0, data64^);(* get next data *)
 			END;
 			IF Trace * TraceReceiveStatus # {} THEN KernelLog.Ln; END;
 		END UpdateDataStatus;
@@ -933,7 +938,7 @@ TYPE
 
 		PROCEDURE & InitPort;
 		BEGIN
-			NEW(sendBuffer, 128);
+			NEW(sendBuffer, 128); NEW(data1,1);
 		END InitPort;
 
 		PROCEDURE Open(bps, data, parity, stop : LONGINT; VAR res: LONGINT);
@@ -1056,7 +1061,8 @@ TYPE
 					EXIT;
 				END;
 				INC(i);
-				diagnostic := SYSTEM.VAL(LONGINT, driver.diagnostics); (* includes Serials.OE, Serials.PE, Serials.FE & Serials.BI *)
+				diagnostic := SYSTEM.VAL(LONGINT, driver.diagnostics - {Serials.OverrunError, Serials.ParityError, Serials.FramingError, Serials.BreakInterrupt}); 
+					(* not including Serials.OE, Serials.PE, Serials.FE & Serials.BI, otherwise the driver stops receiving data when frame errors occur *)
 			END;
 		END HandleData;
 

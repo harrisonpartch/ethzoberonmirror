@@ -165,6 +165,7 @@ TYPE
 			searchEdit.onEnter.Add(SearchHandler);
 			searchEdit.text.onTextChanged.Add(TextChanged);
 			searchEdit.tv.SetExtFocusHandler(FocusHandler);
+			searchEdit.tv.textAlignV.Set(WMGraphics.AlignCenter);
 			upperPanel.AddInternalComponent(searchEdit);
 
 			NEW(replLabel);
@@ -179,6 +180,8 @@ TYPE
 			replEdit.bounds.SetWidth(150); replEdit.multiLine.Set(FALSE);
 			replEdit.tv.borders.Set(WMRectangles.MakeRect(3, 3, 1, 1));
 			replEdit.tv.showBorder.Set(TRUE);
+			replEdit.tv.textAlignV.Set(WMGraphics.AlignCenter);
+
 			replEdit.fillColor.Set(LONGINT(0FFFFFFFFH));
 			replEdit.onEnter.Add(ReplaceHandler);
 			upperPanel.AddInternalComponent(replEdit);

@@ -5,7 +5,7 @@ IMPORT
 	Basic := FoxBasic, Scanner := FoxScanner, Parser := FoxParser,
 	SemanticChecker := FoxSemanticChecker, SyntaxTree := FoxSyntaxTree, Formats := FoxFormats,
 	Streams, Commands,Diagnostics, Options, Kernel, Printout := FoxPrintout, Backend := FoxBackend,Strings, Global := FoxGlobal,
-	ActiveCells := FoxActiveCells, Hardware := FoxHardware,
+	ActiveCells := FoxActiveCells, Hardware := FoxHardware, Frontend := FoxFrontend,
 	Files;
 
 CONST
@@ -22,14 +22,17 @@ CONST
 	UseDarwinCCalls*=9;	(* use Darwin stack alignment for ext. C procedures *)	(*fld*)
 	SingleModule*=10;
 	Oberon07*=11;
+	ChangeCase*=12;
 
 	DefaultBackend = "AMD";
+	DefaultFrontend = "Oberon";
 
 TYPE
 	SectionName = ARRAY 256 OF CHAR; (*! move *)
 
 	CompilerOptions*= RECORD
 		flags*: SET;
+		frontend*: Frontend.Frontend;
 		backend*: Backend.Backend;
 		symbolFile*: Formats.SymbolFileFormat;
 		objectFile*: Formats.ObjectFileFormat;
@@ -38,7 +41,46 @@ TYPE
 		documentation*: Backend.Backend;
 		activeCellsBackend, activeCellsAssembler: Backend.Backend;
 		srcPath, destPath: Files.FileName;
+		replacements: SemanticChecker.Replacement;
 	END;
+
+	PROCEDURE ParseReplacements(CONST filename: ARRAY OF CHAR; VAR replacement: SemanticChecker.Replacement; diagnostics: Diagnostics.Diagnostics): BOOLEAN;
+	VAR reader: Streams.Reader; r: SemanticChecker.Replacement;
+		identifier: SyntaxTree.QualifiedIdentifier;
+		scanner: Scanner.Scanner; parser: Parser.Parser; expression: SyntaxTree.Expression;
+	BEGIN
+		replacement := NIL;
+		reader := Basic.GetFileReader(filename);
+		IF reader = NIL THEN
+			diagnostics.Error (filename, Diagnostics.Invalid, Diagnostics.Invalid, "failed to open");
+		ELSE
+
+			NEW(scanner, filename, reader,0, diagnostics);
+			NEW(parser, scanner, diagnostics);
+
+			REPEAT (* WHILE parser.Peek(Scanner.Identifier) DO*)
+				identifier := parser.QualifiedIdentifier();
+				IF parser.Mandatory(Scanner.Equal) THEN
+					expression := parser.Expression();
+					NEW(r); identifier.GetName(r.name);  r.expression := expression; r.used := FALSE;
+					r.next := replacement; replacement := r;
+				END;
+				WHILE parser.Optional(Scanner.Semicolon) DO END;
+			UNTIL ~parser.Peek(Scanner.Identifier); (*END;*)
+
+		END;
+		(*done := FALSE;
+		WHILE reader.GetString(name) & ~done DO
+			IF reader.GetChar(equal) & (equal = "=") & reader.GetString(value) THEN
+				NEW(r); r.name := name; r.string := Strings.NewString(value); r.used := FALSE;
+				r.next := replacement; replacement := r;
+			ELSE done := TRUE;
+			END;
+		END;
+		*)
+		RETURN (replacement # NIL)
+	END ParseReplacements;
+
 
 	PROCEDURE Modules*(CONST source: ARRAY OF CHAR; (* source file name, for debugging and better error reports *)
 			reader: Streams.Reader; (* reader to read from *)
@@ -49,8 +91,6 @@ TYPE
 			VAR importCache: SyntaxTree.ModuleScope): BOOLEAN;
 	VAR
 		module: SyntaxTree.Module;
-		scanner: Scanner.Scanner;
-		parser: Parser.Parser;
 		checker: SemanticChecker.Checker;
 		warnings: SemanticChecker.Warnings;
 		printer: Printout.Printer;
@@ -120,11 +160,11 @@ TYPE
 
 		IF (options.objectFile # NIL) & (options.objectFile.ForceModuleBodies()) THEN INCL(flags, ForceModuleBodies) END;
 
-		scanner := Scanner.NewScanner(source,reader,position,diagnostics);
 		IF ActiveCellsFlag IN flags THEN
 			NEW(activeCellsSpecification, "", diagnostics, log);
 			IF (system # NIL) THEN
-				activeCellsSpecification.DefineDevices(system)
+				activeCellsSpecification.DefineDevices(system);
+				Global.OperatorDefined(system, Scanner.Questionmarks, TRUE);
 			END;
 			Global.NewBuiltin(Global.Connect,"CONNECT",system.globalScope,FALSE);
 			Global.NewBuiltin(Global.Receive,"RECEIVE",system.globalScope,FALSE);
@@ -132,12 +172,11 @@ TYPE
 			Global.NewBuiltin(Global.Delegate,"DELEGATE",system.globalScope,FALSE);
 			IF options.activeCellsBackend = NIL THEN FinalMessage(TRUE,"could not install activeCells backend"); RETURN FALSE END;
 		END;
-		parser := Parser.NewParser( scanner, diagnostics );
-		IF ActiveCellsFlag IN flags THEN parser.ActiveCellsSupport END;
+		options.frontend.Initialize(diagnostics, reader, source, position, ActiveCellsFlag IN flags);
 		REPEAT
 			(** first phase: scan and parse **)
-			module := parser.Module();
-			IF parser.error THEN
+			module := options.frontend.Parse();
+			IF options.frontend.Error() THEN 
 				FinalMessage(TRUE," could not be compiled (parser errors).");
 				RETURN FALSE;
 			END;
@@ -149,6 +188,7 @@ TYPE
 					options.symbolFile.Initialize(diagnostics,system,options.destPath);
 				END;
 				checker := SemanticChecker.NewChecker(diagnostics,Info IN flags,UseDarwinCCalls IN flags,system,options.symbolFile,activeCellsSpecification,importCache);
+				checker.replacements := options.replacements;
 				checker.Module(module);
 				IF checker.error THEN
 					FinalMessage(TRUE," could not be compiled (checker errors).");
@@ -158,7 +198,11 @@ TYPE
 					warnings.Module(module);
 				END;
 
-				IF Print IN flags THEN PrintModule END;
+				IF Print IN flags THEN
+					IF ChangeCase IN flags THEN module.SetCase(1-module.case) END;
+					PrintModule;
+					IF ChangeCase IN flags THEN module.SetCase(1-module.case) END;
+				END;
 
 				IF ActiveCellsFlag IN flags THEN
 					Global.GetSymbolName(module,name);
@@ -246,12 +290,14 @@ TYPE
 
 				FinalMessage(FALSE, " done.");
 			ELSIF Print IN flags THEN
+				IF  ChangeCase IN flags THEN module.SetCase(1-module.case) END;
 				PrintModule;
 				FinalMessage(FALSE, " done.")
 			ELSE
 				FinalMessage(FALSE, " done.");
 			END;
-		UNTIL (SingleModule IN flags) OR ~parser.NextModule();
+		UNTIL (SingleModule IN flags) OR options.frontend.Done();
+
 
 		RETURN TRUE;
 	END Modules;
@@ -272,6 +318,7 @@ TYPE
 		result := TRUE;
 		NEW(options);
 		options.Add("p","print",Options.Flag);
+		options.Add("P","Print",Options.Flag);
 		options.Add(0X,"silent",Options.Flag);
 		options.Add("c","check",Options.Flag);
 		options.Add("e","traceError",Options.Flag);
@@ -279,6 +326,7 @@ TYPE
 		options.Add("i","info",Options.Flag);
 		options.Add(0X,"oberon07",Options.Flag);
 		options.Add("b","backend",Options.String);
+		options.Add("F","frontEnd",Options.String);
 		options.Add("f","findPC",Options.String);
 		options.Add(0X,"singleModule",Options.Flag);
 		options.Add(0X, "symbolFile", Options.String);
@@ -290,6 +338,7 @@ TYPE
 		options.Add("d","documentation", Options.String);
 		options.Add("S","srcPath", Options.String);
 		options.Add("D","destPath", Options.String);
+		options.Add(0X,"replacements", Options.String);
 
 		position := input.Pos();
 		parsed := options.Parse(input,NIL);
@@ -304,6 +353,18 @@ TYPE
 			END;
 		ELSE compilerOptions.backend := Backend.GetBackendByName(DefaultBackend);
 			IF compilerOptions.backend = NIL THEN Error("default backend could not be installed"); result := FALSE END;
+		END;
+		
+		IF options.GetString("F", name) THEN
+			IF name = "" THEN compilerOptions.frontend := NIL
+			ELSE
+				compilerOptions.frontend := Frontend.GetFrontendByName(name);
+				IF (compilerOptions.frontend = NIL)  THEN
+					Error("backend could not be installed"); result := FALSE;
+				END;
+			END;
+		ELSE compilerOptions.frontend := Frontend.GetFrontendByName(DefaultFrontend);
+			IF compilerOptions.frontend = NIL THEN Error("default frontend could not be installed"); result := FALSE END;
 		END;
 
 		IF options.GetString("objectFile",name) THEN
@@ -352,6 +413,14 @@ TYPE
 			compilerOptions.activeCellsAssembler := Backend.GetBackendByName("FoxIntermediateLinker");
 		END;
 
+		IF options.GetString("replacements", name) THEN
+			IF ~ParseReplacements(name, compilerOptions.replacements, diagnostics) THEN
+				Error("replacement file could not be opened or is empty"); result := FALSE;
+			END;
+		ELSE compilerOptions.replacements := NIL
+		END;
+
+
 		IF compilerOptions.backend # NIL THEN compilerOptions.backend.DefineOptions (options); INCL(compilerOptions.flags,Check); END;
 		IF compilerOptions.symbolFile # NIL THEN compilerOptions.symbolFile.DefineOptions(options); INCL(compilerOptions.flags,Check) END;
 		IF compilerOptions.objectFile # NIL THEN compilerOptions.objectFile.DefineOptions(options); INCL(compilerOptions.flags,Check) END;
@@ -367,6 +436,7 @@ TYPE
 
 		IF result THEN
 			IF options.GetFlag("print") THEN INCL(compilerOptions.flags, Print) END;
+			IF options.GetFlag("Print") THEN INCL(compilerOptions.flags, Print); INCL(compilerOptions.flags, ChangeCase) END;
 			IF options.GetFlag("silent") THEN INCL(compilerOptions.flags, Silent) END;
 			IF options.GetFlag("check") THEN INCL(compilerOptions.flags, Check) END;
 			IF options.GetFlag("traceError") THEN INCL(compilerOptions.flags, TraceError) END;
@@ -398,6 +468,8 @@ TYPE
 		time: LONGINT; reader: Streams.Reader;
 		importCache: SyntaxTree.ModuleScope;
 		options: CompilerOptions;
+		replacement: SemanticChecker.Replacement;
+		name: ARRAY 128 OF CHAR;
 	BEGIN
 		error := FALSE;
 
@@ -408,7 +480,7 @@ TYPE
 			WHILE Basic.GetStringParameter(context.arg,filename) & ~error DO
 				IF options.srcPath # "" THEN
 					Files.SplitPath(filename, path, file);
-					IF path = "" THEN Files.JoinPath(file, options.srcPath, filename) END;
+					IF path = "" THEN Files.JoinPath(options.srcPath, file, filename) END;
 				END;
 				reader := Basic.GetFileReader(filename);
 
@@ -423,6 +495,16 @@ TYPE
 			IF Silent IN options.flags THEN
 				time := Kernel.GetTicks()-time;
 				context.out.Ln; context.out.String("compiler elapsed ms"); context.out.Int(time,10);
+			END;
+			IF ~error THEN
+				replacement := options.replacements;
+				WHILE replacement # NIL DO
+					IF ~replacement.used THEN
+						name := replacement.name;
+						diagnostics.Warning(name,  Diagnostics.Invalid, Diagnostics.Invalid, " unused replacement.");
+					END;
+					replacement := replacement.next;
+				END;
 			END;
 		END;
 		IF error THEN context.result := -1 ELSE context.result := Commands.Ok END;

@@ -7,6 +7,7 @@ MODULE UsbHidDriver;  (** AUTHOR "ottigerm"; PURPOSE "USB HID Parser"; *)
  *	Mouse:		2 axis, 1 mouse wheel, up to 32 buttons
  *	Keyboard	incl. consumer keys
  *	Joystick		x, y, z, rx, ry, rz and one slider axis, one coolie hat and arbitrary many buttons
+ *  Touchscreen x,y
  *
  * Usage:
  *	UsbHidDriver.Install ~ load this driver
@@ -46,8 +47,11 @@ CONST
 	MouseSpeed = 50;
 	MouseWheelSpeed = 3;
 	MouseAcceleration = 0;
+	
+	
 
 TYPE
+
 	MouseState = POINTER TO RECORD
 		(* mouse msg can hold up to 32 buttons *)
 		buttons:			ARRAY 32 OF UsbHidReport.UsageTuple;
@@ -64,9 +68,9 @@ TYPE
 
 	TouchscreenState = POINTER TO RECORD
 		x,y: UsbHidReport.UsageTuple;
+		minX, maxX, minY, maxY: LONGINT;
 		tipSwitch, inRange: UsbHidReport.UsageTuple;
-		prevX, prevZ: LONGINT;
-		prevS: BOOLEAN;
+		prev: BOOLEAN;
 	END;
 
 	(*Handling keyboard devices*)
@@ -403,7 +407,7 @@ TYPE
 	END;
 
 	(*the hid driver*)
-	HidDriver= OBJECT (UsbHid.HidDriver);
+	HidDriver*= OBJECT (UsbHid.HidDriver);
 	VAR
 		(*itemParser is responsible for parsing the usb hid report descriptor*)
 		itemParser 	: HidParser.ItemParser;
@@ -420,6 +424,8 @@ TYPE
 		consumerState			: ConsumerState;
 		joystickState			: JoystickState;
 		useReportIDMechanism	: BOOLEAN;
+		
+		recentStatus: Usbdi.Status;
 
 		(*
 		 * This procedure is called by the USB system software after an instance of this object has been passed to it via the probe procedure.
@@ -483,7 +489,9 @@ TYPE
 			pipe := device.GetPipe(endpoint);
 			IF pipe = NIL THEN RETURN FALSE END;
 
-			IF InitializeMouseDriver() = TRUE THEN
+			IF InitializeTouchscreenDriver()=TRUE THEN
+				canManage := TRUE;
+			ELSIF InitializeMouseDriver() = TRUE THEN
 				canManage := TRUE;
 			END;
 
@@ -499,9 +507,6 @@ TYPE
 				canManage := TRUE;
 			END;
 
-			IF InitializeTouchscreenDriver()=TRUE THEN
-				canManage := TRUE;
-			END;
 
 			IF (canManage) THEN
 
@@ -513,6 +518,7 @@ TYPE
 				pipe.SetCompletionHandler(HandleHidEvent);
 
 				status := pipe.Transfer(pipe.maxPacketSize, 0, reportBuffer^);
+				recentStatus := status;
 				IF Debug THEN
 					KernelLog.String("UsbHidDriver.HidDriver.Connect: Connect successfully finished"); KernelLog.Ln;
 				END;
@@ -522,6 +528,8 @@ TYPE
 
 			RETURN TRUE;
 		END Connect;
+
+		
 
 		(*called when detaching a usb hid device*)
 		PROCEDURE Disconnect;
@@ -613,7 +621,7 @@ TYPE
 			IF LoggingMode=ShowFullReport THEN reportManager.PrintReportState END;
 
 			IF (  (status = Usbdi.Ok) OR (status=Usbdi.ShortPacket)) THEN
-
+				recentStatus := status;
 				IF(mouseState#NIL) THEN
 					IF Debug THEN KernelLog.String("handle mouse driver"); KernelLog.Ln; END;
 					HandleMouseDriver;
@@ -660,9 +668,30 @@ TYPE
 						device.FreePipe(pipe);
 					END;
 				END;
+				recentStatus := status;
 			END;
 		END HandleHidEvent;
 
+		PROCEDURE IsTouchscreen*(): BOOLEAN;
+		BEGIN
+			RETURN touchscreenState # NIL
+		END IsTouchscreen;
+		
+		PROCEDURE GetPipeStatus*(): Usbdi.Status;
+		VAR len: LONGINT;
+		BEGIN
+			IF pipe # NIL THEN RETURN pipe.GetStatus(len) 
+			ELSE RETURN Usbdi.Error
+			END;
+		END GetPipeStatus;
+		
+		
+		PROCEDURE GetRecentStatus*(): Usbdi.Status;
+		BEGIN
+			RETURN recentStatus;
+		END GetRecentStatus;
+		
+		
 		(**
 		 * Is called by handleHidEvent when mouse device is found
 		 *)
@@ -710,25 +739,29 @@ TYPE
 		PROCEDURE HandleTouchscreenDriver;
 		VAR
 			mm : 			Inputs.AbsMouseMsg;
-			x,y: LONGINT;
+			x,y: LONGINT; 
+			displayWidth, displayHeight: LONGINT;
 		BEGIN
-			x := touchscreenState.x.usageValue;
-			y := touchscreenState.y.usageValue;
-
+			getDisplayDimensions(displayWidth, displayHeight); 
+			x := (touchscreenState.x.usageValue-touchscreenState.minX) * displayWidth DIV (touchscreenState.maxX-touchscreenState.minX +1);
+			y := (touchscreenState.y.usageValue-touchscreenState.minY) * displayHeight DIV  (touchscreenState.maxY -touchscreenState.minY + 1);
+			
 			IF (touchscreenState.tipSwitch.usageValue#0) THEN mm.keys := mm.keys + {0}; END;
-			(* these dimensions are very specific to the respective model. Implement a separate driver in UsbTouchscreen.Mod ! *)
 			mm.x := x; mm.y := y;
-			TRACE(x,y,mm.keys);
 
-			IF (0 IN mm.keys) &  ~touchscreenState.prevS THEN
-				(* patch window manager issue: expects that the mouse is there without button pressed previously... *)
-				EXCL(mm.keys, 0);
+			IF ~(0 IN mm.keys) THEN (* up event  *)
+				touchscreenState.prev := FALSE;
 				Inputs.mouse.Handle(mm);
-				INCL(mm.keys, 0);
+			ELSIF (0 IN mm.keys) THEN (* down event or pointer move *)
+				IF ~touchscreenState.prev THEN
+					(* artificial initial up event in order to set mouse coordinates like with a "real" mouse before sending the down event *)
+					touchscreenState.prev := TRUE;
+					EXCL(mm.keys, 0);
+					Inputs.mouse.Handle(mm);
+				END;
+				(* down event or pointer event *)
+				Inputs.mouse.Handle(mm);
 			END;
-
-			Inputs.mouse.Handle(mm);
-			touchscreenState.prevS := 0 IN mm.keys;
 		END HandleTouchscreenDriver;
 
 		(**
@@ -1144,10 +1177,20 @@ TYPE
 			mouseCollection := reportManager.GetCollection(0DH, 04H);
 			IF (mouseCollection#NIL) THEN
 				NEW(touchscreenState);
+				touchscreenState.prev := FALSE;
 				touchscreenState.x 		:= reportManager.GetUsage(UsagePage.GenericDesktopPage, 30H, mouseCollection,temp);
+				touchscreenState.minX := temp.logicalMinimum;
+				touchscreenState.maxX := temp.logicalMaximum;
 				touchscreenState.y 		:= reportManager.GetUsage(UsagePage.GenericDesktopPage, 31H, mouseCollection,temp);
+				touchscreenState.minY := temp.logicalMinimum;
+				touchscreenState.maxY := temp.logicalMaximum;
 				touchscreenState.tipSwitch := reportManager.GetUsage(0DH, 042H, mouseCollection,temp);
 				touchscreenState.inRange := reportManager.GetUsage(0DH, 032H, mouseCollection,temp);
+				KernelLog.String("Touchscreen device registered with ");
+				KernelLog.String("minX = "); KernelLog.Int(touchscreenState.minX,1); 
+				KernelLog.String(", maxX = "); KernelLog.Int(touchscreenState.maxX,1); 
+				KernelLog.String(", minY = "); KernelLog.Int(touchscreenState.minY,1); 
+				KernelLog.String(", maxY = "); KernelLog.Int(touchscreenState.maxY,1); KernelLog.Ln;
 				RETURN TRUE;
 			ELSE
 				RETURN FALSE;
@@ -1488,7 +1531,28 @@ END Cleanup;
 PROCEDURE Install*;
 END Install;
 
+TYPE 
+	DimensionGetter= PROCEDURE {DELEGATE} (VAR w,h: LONGINT);
+VAR
+	getDisplayDimensions: DimensionGetter;
+
+PROCEDURE DefaultDisplayDimensions(VAR w,h: LONGINT);
 BEGIN
+	w := 1024; h := 768;
+END DefaultDisplayDimensions;
+
+PROCEDURE InstallDisplayDimensions*(poller: DimensionGetter); (* for touchscreen coordinate transformation*)
+BEGIN
+	IF poller # NIL THEN
+		getDisplayDimensions := poller;
+	ELSE 
+		getDisplayDimensions := DefaultDisplayDimensions;
+	END;
+END InstallDisplayDimensions;
+
+
+BEGIN
+	getDisplayDimensions := DefaultDisplayDimensions;
 	Modules.InstallTermHandler(Cleanup);
 	Usbdi.drivers.Add(Probe, Name, Description, 10);
 END UsbHidDriver.

@@ -277,7 +277,7 @@ TYPE
 		reader-: Streams.Reader;   (* source *)
 		diagnostics: Diagnostics.Diagnostics;   (* error logging *)
 
-		ch: CHAR;   (* look-ahead character *)
+		ch-: CHAR;   (* look-ahead character *)
 		position-: LONGINT;   (* current position *)
 		line-: LONGINT;
 
@@ -338,7 +338,7 @@ TYPE
 		END Error;
 
 		(** get next character, end of text results in ch = EOT **)
-		PROCEDURE GetNextCharacter;
+		PROCEDURE GetNextCharacter*;
 		BEGIN
 			reader.Char(ch); INC(position);
 			IF ch = LF THEN INC(line) END;
@@ -348,13 +348,173 @@ TYPE
 			*)
 		END GetNextCharacter;
 
+(*
+	The following is an implementation of the KMP algorithm used in order to traverse strings until some pattern occurs.
+	It is not necessary for our implementation of string escape sequences, because the first character of the pattern does not occur in the pattern elsewhere
+	I found the code useful and keep it here for the time being....
+
+	(* generate a table to be able to quickly search for string containing overlaps - KMP algorithm *)
+	PROCEDURE MakeOverlapTable*(CONST pattern: ARRAY OF CHAR; VAR table: ARRAY OF LONGINT);
+	VAR i, cnd: LONGINT;
+	BEGIN
+		ASSERT(pattern[0] # 0X);
+		(* if first character did not match: reset search *)
+		table[0] := -1;
+		(* if second character did not match: compare to first *)
+		IF pattern[1] # 0X THEN
+			table[1] := 0;
+		END;
+		(* for all other characters: switch back to previous overlay in pattern *)
+		i := 2; cnd := 0;
+		WHILE(pattern[i] # 0X) DO
+			(* do patterns [i-cnd, i-1] match with pattern[0.. cnd] ? *)
+			IF pattern[i-1] = pattern[cnd] THEN
+				INC(cnd); table[i] := cnd; INC(i);
+			(* no, switch back to last overlap, if possible *)
+			ELSIF cnd > 0 THEN cnd := table[cnd]
+			(* not possible: restart at beginning *)
+			ELSE table[i] := 0; INC(i)
+			END;
+		END;
+	END MakeOverlapTable;
+
+	(* using KMP substring search algorithm consume and reproduce all characters of a string until endString *)
+	PROCEDURE GetString(CONST endString: ARRAY OF CHAR);
+	VAR escapePos: LONGINT; ech: CHAR; i: LONGINT; table: ARRAY 16 OF LONGINT;
+		next: LONGINT;
+
+			PROCEDURE Append(ch :CHAR);
+			BEGIN
+				IF ch = 0X THEN
+					ErrorS("Unexpected end of text in string"); error := TRUE
+				ELSE
+					stringWriter.Char(ch)
+				END;
+			END Append;
+
+	BEGIN
+		MakeOverlapTable(endString, table);
+
+		(* traverse *)
+		escapePos := 0; ech := endString[0];
+		GetNextCharacter;
+		REPEAT
+			IF ch = ech THEN
+				INC(escapePos); ech := endString[escapePos];
+				GetNextCharacter;
+			ELSIF escapePos = 0 THEN (* frequent case *)
+				Append(ch); GetNextCharacter;
+			ELSE
+				(* overlaps ? *)
+				next := table[escapePos];
+				IF next < 0 THEN next := 0 END;
+
+				(* account for "forgotten" characters *)
+				FOR i := 0 TO escapePos-1-next DO
+					Append(endString[i]);
+				END;
+				(* to next overlapping ? *)
+				escapePos := table[escapePos];
+				(* no overlapping *)
+				IF escapePos < 0 THEN
+					Append(ch);
+					escapePos := 0;
+					GetNextCharacter;
+				END;
+				ech := endString[escapePos];
+			END;
+		UNTIL (ch = EOT) OR (ech = 0X);
+
+	END GetString;
+*)
+
+		(* simple case can be utilized when endString does not contain first character, which is the case for our string convention *)
+		PROCEDURE ConsumeStringUntil(CONST endString: ARRAY OF CHAR; useControl: BOOLEAN);
+		VAR escapePos: LONGINT; ech: CHAR; i: LONGINT; startPosition: LONGINT;
+		CONST
+			Control = '\';
+			Delimiter = '"';
+
+				PROCEDURE Append(ch :CHAR);
+				BEGIN
+					IF ch = 0X THEN
+						ErrorS("Unexpected end of text in string"); error := TRUE;
+					ELSE
+						stringWriter.Char(ch)
+					END;
+				END Append;
+
+		BEGIN
+			(* traverse *)
+			escapePos := 0; ech := endString[0]; startPosition := position;
+			GetNextCharacter;
+			REPEAT
+				IF ch = ech THEN
+					INC(escapePos); ech := endString[escapePos];
+					GetNextCharacter;
+				ELSIF useControl & (ch = Control) THEN
+					GetNextCharacter;
+					IF (ch = Control) OR (ch = Delimiter) THEN
+						Append(ch)
+					ELSIF ch = 'n' THEN
+						Append(CR); Append(LF);
+					ELSIF ch = 't' THEN
+						Append(TAB)
+					ELSE
+						ErrorS("Unknown control sequence")
+					END;
+					GetNextCharacter
+				ELSIF escapePos = 0 THEN (* frequent case *)
+					Append(ch); GetNextCharacter;
+				ELSE
+					(* account for "forgotten" characters *)
+					FOR i := 0 TO escapePos-1 DO
+						Append(endString[i]);
+					END;
+					(* restart *)
+					ech := endString[0]; escapePos := 0;
+				END;
+			UNTIL (ch = EOT) OR (ech = 0X) OR error;
+			IF ch = EOT THEN position := startPosition; ErrorS("Unexpected end of text in string") END;
+		END ConsumeStringUntil;
+
+		PROCEDURE GetEscapedString(VAR symbol: Symbol);
+		VAR endString: ARRAY 4 OF CHAR; escape: CHAR;
+		BEGIN
+			(* backslash already consumed *)
+			stringMaker.Clear;
+			IF ch = '"' THEN
+				escape := 0X;
+			ELSE
+				escape := ch; GetNextCharacter;
+			END;
+			ASSERT((ch = '"') OR (ch = "'"));
+			REPEAT
+				IF escape # 0X THEN
+					endString[0] := ch;
+					endString[1] := escape;
+					endString[2] := '\';
+					endString[3] := 0X;
+				ELSE
+					endString[0] := ch;
+					endString[1] := '\';
+					endString[2] := 0X;
+				END;
+				ConsumeStringUntil(endString, escape = 0X);
+			UNTIL TRUE;
+			stringWriter.Char(0X);
+			stringWriter.Update;
+			symbol.string := stringMaker.GetStringCopy(symbol.stringLength);
+		END GetEscapedString;
+
+
 		(** get a string starting at current position
 			string = '"' {Character} '"' | "'" {Character} "'".
 		**)
 		(* multiline indicates that a string may occupy more than one lines, either concatenated or via multi-strings " "  " "
 		*)
 		PROCEDURE GetString(VAR symbol: Symbol; multiLine, multiString, useControl: BOOLEAN);
-		VAR och: CHAR; error: BOOLEAN;
+		VAR och: CHAR; error: BOOLEAN; done: BOOLEAN;
 		CONST control = '\';
 
 			PROCEDURE Append(ch :CHAR);
@@ -432,7 +592,8 @@ TYPE
 			dig: ARRAY 24 OF CHAR;
 			f: LONGREAL;  expCh: CHAR;  neg, long: BOOLEAN;
 			result: Token;
-			hugeint, tenh: HUGEINT;
+			hugeint, tenh, number: HUGEINT;
+			digits: LONGINT;
 
 			(** 10^e **)
 			PROCEDURE Ten( e: LONGINT ): LONGREAL;
@@ -458,6 +619,7 @@ TYPE
 			BEGIN
 				IF ch <= "9" THEN RETURN ORD( ch ) - ORD( "0" )
 				ELSIF ch <= "F" THEN RETURN ORD( ch ) - ORD( "A" ) + 10
+				ELSIF ch <= "f" THEN RETURN ORD( ch ) - ORD( "a" ) + 10
 				ELSE Error( Basic.NumberIllegalCharacter );  RETURN 0
 				END
 			END Hexadecimal;
@@ -465,6 +627,25 @@ TYPE
 		BEGIN  (* ("0" <= ch) & (ch <= "9") *)
 			result := Number;
 			i := 0;  m := 0;  n := 0;  d := 0;  si := 0;  long := FALSE;
+			
+			IF (ch = "0") & (reader.Peek() = "x") THEN (* hex number *)
+				digits := 0;
+				GetNextCharacter; GetNextCharacter;
+				WHILE (ch >= "0") & (ch <= "9") OR (ch >= "a") & (ch <="f") OR (ch >= "A") & (ch <= "F") DO
+					number := number * 10H + Hexadecimal(ch);
+					INC(digits);
+					GetNextCharacter;
+				END;
+				symbol.hugeint := number;
+				symbol.integer := SHORT(number);
+				IF digits > MaxHexDigits THEN
+					symbol.numberType := Hugeint
+				ELSE
+					symbol.numberType := Integer
+				END;
+				RETURN result;
+			END;
+			
 			LOOP  (* read mantissa *)
 				IF ("0" <= ch) & (ch <= "9") OR (d = 0) & ("A" <= ch) & (ch <= "F") THEN
 					IF (m > 0) OR (ch # "0") THEN  (* ignore leading zeros *)
@@ -711,7 +892,16 @@ TYPE
 			| '}':     s := RightBrace;  GetNextCharacter
 			| '~':     s := Not;  GetNextCharacter
 			| '\':     s := Backslash;  GetNextCharacter;
-					IF ch = DoubleQuote THEN s := String; GetString(symbol, TRUE, TRUE, TRUE) END;
+					IF ch = DoubleQuote THEN
+						s := String;
+						GetEscapedString(symbol);
+						(*
+						GetString(symbol, TRUE, TRUE, TRUE)
+						*)
+					ELSIF (ch > " ") & (reader.Peek() = DoubleQuote) THEN
+						s := String;
+						GetEscapedString(symbol);
+					END;
 			| '`':	s := Transpose; GetNextCharacter
 			| '?': 	s := Questionmark; GetNextCharacter; IF ch = '?' THEN s := Questionmarks; GetNextCharacter END;
 			| '!':     s := ExclamationMark; GetNextCharacter; IF ch = '!' THEN s := ExclamationMarks; GetNextCharacter END;
@@ -925,7 +1115,8 @@ TYPE
 				| ']':     s := RightBracket;  GetNextCharacter
 				| '{':     s := LeftBrace;  GetNextCharacter
 				| '}':     s := RightBrace;  GetNextCharacter
-
+				| '!':     s := ExclamationMark; GetNextCharacter; 
+				| '^':     s := Arrow; GetNextCharacter; 
 
 				| 'A'..'Z': s := Identifier; GetIdentifier( symbol );
 				| 'a'..'z': s := Identifier; GetIdentifier( symbol);
@@ -1282,6 +1473,7 @@ TYPE
 		Basic.SetErrorMessage(String,"missing string");
 		Basic.SetErrorMessage(Character,"missing character");
 		Basic.SetErrorMessage(Identifier,"missing identifier");
+		Basic.SetErrorMessage(EndOfText,"unexpected symbol before end");
 	  END InitKeywords;
 
 	(** debugging / reporting **)

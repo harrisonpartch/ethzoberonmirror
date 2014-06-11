@@ -90,6 +90,7 @@ VAR
 				ELSIF code = 13 THEN StrAppend( desc, "Keyboard interrupt" )
 				ELSIF code = 14 THEN StrAppend( desc, "Out of memory" )
 				ELSIF code = 15 THEN StrAppend( desc, "Deadlock (active objects)" );
+				ELSIF code = 16 THEN StrAppend( desc, "Procedure returned" );
 				ELSIF code = 23 THEN StrAppend( desc, "Exceptions.Raise" )
 				ELSE StrAppend( desc, "HALT statement" )
 				END

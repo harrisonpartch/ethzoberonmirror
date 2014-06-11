@@ -348,16 +348,20 @@ BEGIN
 			i := 1000000;
 			REPEAT DEC(i) UNTIL (i = 0) OR module.init
 		END;
+		(*
 		ASSERT(module.init);	(* module body must have been called (see note at end of module) *)
-		Machine.Acquire(Machine.Modules);
-		i := 0; entryAdr := Heaps.NilVal;
-		WHILE (entryAdr = Heaps.NilVal) & (i # LEN(module.command^)) DO
-			IF (module.command[i].name = procedureName) & (module.command[i].argTdAdr = argTdAdr) & (module.command[i].retTdAdr = retTdAdr) THEN
-				entryAdr := module.command[i].entryAdr;
+		*)
+		IF module.init THEN
+			Machine.Acquire(Machine.Modules);
+			i := 0; entryAdr := Heaps.NilVal;
+			WHILE (entryAdr = Heaps.NilVal) & (i # LEN(module.command^)) DO
+				IF (module.command[i].name = procedureName) & (module.command[i].argTdAdr = argTdAdr) & (module.command[i].retTdAdr = retTdAdr) THEN
+					entryAdr := module.command[i].entryAdr;
+				END;
+				INC(i)
 			END;
-			INC(i)
+			Machine.Release(Machine.Modules);
 		END;
-		Machine.Release(Machine.Modules);
 	END;
 END GetProcedure;
 

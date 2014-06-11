@@ -7,11 +7,7 @@ MODULE BootLinker;   (** AUTHOR "G.F." ; PURPOSE "UnixAos bootlinker"; *)
 
 
 IMPORT S := SYSTEM, Heaps := BootLinkerHeaps,  Modules := BootLinkerModules, Loader := BootLinkerLoader, 
-		Commands, Streams, Files;
-
-CONST	
-	AddrSize = SIZEOF( ADDRESS );
-
+		Commands, Streams, Files, Strings;
 
 VAR
 	out: Streams.Writer;
@@ -20,34 +16,42 @@ VAR
 
 	
 
-	PROCEDURE OutBootfile( CONST bootName: ARRAY OF CHAR );
-	VAR f: Files.File;  w: Files.Writer;  top, from, i: LONGINT;  m: Modules.Module;
+	PROCEDURE OutBootfile( CONST fileName: ARRAY OF CHAR );
+	CONST	
+		AddrSize = SIZEOF( ADDRESS );
+	VAR 
+		f: Files.File;  w: Files.Writer;  startOffset, top, adr, i: LONGINT;
 	BEGIN
-		top := Heaps.AN;
-		m := Modules.root;
+		startOffset := Heaps.BlockSize - AddrSize;
+		top := Heaps.beginFree;
 
-		f := Files.New( bootName );  Files.OpenWriter( w, f, 0 );
+		f := Files.New( fileName );  Files.OpenWriter( w, f, 0 );
 		
 		(* output heap *)
-		w.RawLInt( Heaps.heapAdr );
-		w.RawLInt( top - Heaps.heapAdr );
-		from := Heaps.heapAdr + Heaps.BlockSize - AddrSize;
-		w.RawLInt( from );  w.RawLInt( top - from );
-		WHILE from < top DO  S.GET( from, i );  w.RawLInt( i );  INC( from, 4 )  END;
-		w.RawLInt( Loader.entrypoint );  
-		w.RawLInt( 0 );
+		w.RawLInt( LONGINT(AddrSize*8) );
+		w.RawHInt( HUGEINT(Heaps.heapAdr) );
+		w.RawLInt( LONGINT( Heaps.BootHeapSize) );
+		adr := Heaps.heapAdr + startOffset;
+		w.RawLInt( LONGINT(startOffset) );  
+		w.RawLInt( LONGINT(top - adr) );
+		WHILE adr < top DO  S.GET( adr, i );  w.RawLInt( i );  INC( adr, 4 )  END;
+		
+		
+		w.RawLInt( LONGINT(Loader.entrypoint - Heaps.heapAdr) );  
+		w.RawLInt( LONGINT(Loader.dlsymAdr - Heaps.heapAdr) );  
+		
 
 		(* output relocate information *)
 		w.RawNum( Heaps.numRelocations );  i := 0;
 		WHILE i < Heaps.numRelocations DO  w.RawNum( Heaps.relocAddr[i] - Heaps.heapAdr );  INC( i )  END;
 		
-		w.RawLInt( Loader.dlsymAdr - Heaps.heapAdr );  
-		
 		w.Update;  Files.Register( f );
 
-		out.String( "used heap space: " );  out.Int( (top - Heaps.heapAdr) DIV 1024, 0 );
-		out.String( "KB,  relocations: " );  out.Int( Heaps.numRelocations, 0 );
-		out.String( ",  file: " );  out.Int( f.Length( ), 0 )
+		out.String( "heap size (used heap space): " );  
+		out.Int( LONGINT(Heaps.BootHeapSize DIV 1024), 0 ); out.String( " KB (" );
+		out.Int( LONGINT((Heaps.beginFree - Heaps.heapAdr) DIV 1024), 0 );
+		out.String( " KB), relocations: " );  out.Int( Heaps.numRelocations, 0 );
+		out.Ln
 	END OutBootfile;
 
 
@@ -55,35 +59,36 @@ VAR
 	CONST
 		Ok = 0;
 	VAR 
-		bootFileName, name: Modules.Name;
+		fileName, moduleName, fullPath: Modules.Name;
+		token: ARRAY 8 OF CHAR;
 		m: Modules.Module;
 		res: LONGINT;  msg: ARRAY 128 OF CHAR;
 	BEGIN
 		out := context.out;  error := context.error;
 		
-		IF ~context.arg.GetString( bootFileName ) OR 
-		    ~context.arg.GetString( name ) OR 
-		    (name # ":=") THEN
+		IF ~context.arg.GetString( fileName ) OR 
+		    ~context.arg.GetString( token ) OR 
+		    (token # ":=") THEN
 			error.String( "wrong parameter(s), terminating" ); error.Ln;  
 			error.Update;  RETURN
 		END;
 		
-		IF context.arg.GetString( name ) THEN
-			out.String( "linking " );  out.String( bootFileName );  out.Ln;  
-			
-			Heaps.Initialize( context.error );
-			Modules.Initialize( context.error );;
-			Loader.Initialize( context.error );
+		fullPath := Loader.BuildDirectory; Strings.Append( fullPath, "/" ); Strings.Append( fullPath, fileName );
+		out.String( "UnixAos BootLinker creating " );  out.String( fullPath );  out.Ln;
+		
+		Heaps.Initialize( context.error );
+		Modules.Initialize( context.error );;
+		Loader.Initialize( context.error );
 						
-			res := Ok;
+		res := Ok;
+		IF context.arg.GetString( moduleName ) THEN
 			REPEAT
-				out.String( "    " );  out.String( name );  out.Ln;
-				m := Loader.Load( name, res, msg );
+				out.String( "    " );  out.String( moduleName );  out.Ln;
+				m := Loader.Load( moduleName, res, msg );
 				IF m = NIL THEN  
-					error.String( "loading module " );  error.String( name ); 
-					error.String( "   failed: " );  error.String( msg );  error.Ln
+					error.String( "loading module failed: " );  error.String( msg );  error.Ln
 				 END;
-			UNTIL ~context.arg.GetString( name ) OR (m = NIL);
+			UNTIL ~context.arg.GetString( moduleName ) OR (m = NIL);
 			
 			IF res = Ok THEN  
 				Modules.AssignAddress( "Modules", "root", S.VAL( ADDRESS, Modules.root ) );
@@ -96,13 +101,13 @@ VAR
 				Modules.AssignAddress( "Modules", "ptrOffsets", S.VAL( ADDRESS, Modules.ptrOffsets ) );
 				Modules.AssignValue( "Modules", "numPtrs", Modules.numPtrs );
 
-				OutBootfile( bootFileName )  
+				OutBootfile( fullPath )  
 			END;
 			out.Ln
 		ELSE  
 			error.String( "parameter error, module names missing, terminating" ); error.Ln
 		END;
-		error.Update; out.Update
+		out.Update; error.Update
 	END Link;
 
 
@@ -124,13 +129,17 @@ BootLinker.Link  bootFileName := modName0 modName1 ... ~
 
 Boot File Format:
 
-	heapAdr4
-	heapSize4
-	{adr4 len4 {byte1}}		(* len4 times byte1 *)
-	entryAdr4 0X 0X 0X 0X
-	nofPtr {adr}				(* nofPtr times adr *)
-	dlsymAdr
 
+	architecture		(* LONGINT,  32 or 64 *)
+	heapAddr		(* HUGEINT *)
+	heapSize		(* LONGINT *)
+	startOffset		(* LONGINT *)
+	usedHeap		(* LONGINT *)
+	{heapValue}		(* usedHeap DIV 4 times LONGINT *)
+	entryOffset		(* LONGINT, Aos entry point *) 
+	dlsymOffset		(* LONGINT, location which receives the address of (Unix)'dlsym' *)
+	nofPtr 			(* NUMBER *)
+	{offset}			(* nofPtr times relocation offset (NUMBER) *)
 
 	All numbers in the relocate information part are in compact format and relative to
 	heapAdr.

@@ -272,7 +272,7 @@ TYPE
 		END NextSymbol;
 
 		(** Check if current symbol equals sym. If yes then return true, return false otherwise *)
-		PROCEDURE Peek(token: Scanner.Token): BOOLEAN;
+		PROCEDURE Peek*(token: Scanner.Token): BOOLEAN;
 		VAR comment: SyntaxTree.Comment;
 		BEGIN
 			SkipComments();
@@ -280,7 +280,7 @@ TYPE
 		END Peek;
 
 		(** Check if the current symbol equals sym.If yes then read next symbol, report error otherwise. returns success value  *)
-		PROCEDURE Mandatory( token: Scanner.Token): BOOLEAN;
+		PROCEDURE Mandatory*( token: Scanner.Token): BOOLEAN;
 		BEGIN
 			ASSERT( token # Scanner.Identifier );  ASSERT( token # Scanner.String );  ASSERT( token # Scanner.Number );   (* because of NextSymbol ! *)
 			IF ~Peek(token) THEN
@@ -329,7 +329,7 @@ TYPE
 
 		(** Check if current symbol is a string (or string-like character). If yes then copy identifier to name and get next symbol,
 		report error otherwise and set name to empty name. returns success value*)
-		PROCEDURE MandatoryString( VAR name: Scanner.StringType ): BOOLEAN;
+		PROCEDURE MandatoryString*( VAR name: Scanner.StringType ): BOOLEAN;
 		BEGIN
 			IF Peek( Scanner.String) THEN
 				name := symbol.string;
@@ -375,7 +375,7 @@ TYPE
 		END ExpectThisString;
 
 		(** Check if current symbol equals sym. If yes then get next symbol, return false otherwise *)
-		PROCEDURE Optional( token: Scanner.Token ): BOOLEAN;
+		PROCEDURE Optional*( token: Scanner.Token ): BOOLEAN;
 		BEGIN
 			(* do not use for Identifier, String or Number, if the result is needed ! *)
 			IF Peek(token) THEN
@@ -394,7 +394,7 @@ TYPE
 		(** Parsing according to the EBNF **)
 
 		(** QualifiedIdentifier = Identifier ['.' Identifier]. **)
-		PROCEDURE QualifiedIdentifier( ): SyntaxTree.QualifiedIdentifier;
+		PROCEDURE QualifiedIdentifier*( ): SyntaxTree.QualifiedIdentifier;
 		VAR prefix,suffix: SyntaxTree.Identifier; qualifiedIdentifier: SyntaxTree.QualifiedIdentifier;  position0,position1: LONGINT;
 		BEGIN
 			IF Trace THEN S( "QualifiedIdentifier" ) END;
@@ -594,7 +594,9 @@ TYPE
 					END;
 					designator := SyntaxTree.NewParameterDesignator( position,designator,expressionList);
 				ELSIF Optional( Scanner.Period ) THEN
-					IF Peek(Scanner.Size) (* special rule: support for SYSTEM.SIZE *) THEN
+					CASE symbol.identifierString[0] OF
+						"a".."z", "A" .. "Z":
+					(*IF Peek(Scanner.Size) (* special rule: support for SYSTEM.SIZE *) THEN*)
 						identifier := symbol.identifier; NextSymbol;
 					ELSE
 						identifier := Identifier(position);
@@ -687,6 +689,15 @@ TYPE
 					factor := SyntaxTree.NewStringValue( position, symbol.string );
 					factor.End( symbol.end );
 					NextSymbol;
+					WHILE (symbol.token = Scanner.String) OR (symbol.token = Scanner.Character) DO
+						IF symbol.token = Scanner.Character THEN
+							factor(SyntaxTree.StringValue).AppendChar(symbol.character);
+						ELSE
+							factor(SyntaxTree.StringValue).Append(symbol.string);
+						END;
+						factor.End(symbol.end);
+						NextSymbol;
+					END;
 			| Scanner.Nil:
 					factor := SyntaxTree.NewNilValue( position );
 					factor.End( symbol.end );
@@ -745,6 +756,9 @@ TYPE
 				ELSE
 					factor := SyntaxTree.NewUnaryExpression(position,factor,Scanner.Transpose);
 				END;
+			END;
+			IF Optional(Scanner.Questionmarks) THEN
+				factor := SyntaxTree.NewBinaryExpression(position, factor, Factor(), Scanner.Questionmarks)
 			END;
 			IF Trace THEN E( "Factor" ) END;
 			RETURN factor
@@ -1444,7 +1458,7 @@ TYPE
 				position := symbol.start;
 				constant := SyntaxTree.NewConstant( position, identifier );
 				CommentSymbol(constant);
-				constant.SetAccess(access * SyntaxTree.ReadOnly);
+				constant.SetAccess(access);
 				IF Optional(Scanner.Equal) THEN
 					expression := Expression();
 					constant.SetValue( expression );
@@ -1507,7 +1521,7 @@ TYPE
 		VAR
 			type: SyntaxTree.Type; name: SyntaxTree.Identifier;
 			firstParameter, parameter: SyntaxTree.Parameter;
-			position: LONGINT;
+			position: LONGINT; modifiers: SyntaxTree.Modifier;
 		BEGIN
 			IF Trace THEN S( "PortDeclaration" ) END;
 			firstParameter := cell.lastParameter;
@@ -1515,6 +1529,12 @@ TYPE
 				name := Identifier(position);
 				parameter := SyntaxTree.NewParameter(position,cell,name,SyntaxTree.ValueParameter);
 				cell.AddParameter(parameter);
+
+				IF Optional(Scanner.LeftBrace) THEN
+					modifiers := Flags();
+					parameter.SetModifiers(modifiers);
+				END;
+
 			UNTIL ~Optional( Scanner.Comma );
 			Check( Scanner.Colon );
 			type := Type( SyntaxTree.invalidIdentifier, parentScope);
@@ -1564,6 +1584,7 @@ TYPE
 			REPEAT
 				name := Identifier(position);
 				parameter := SyntaxTree.NewParameter(position,procedureType,name,kind);
+				IF Optional(Scanner.LeftBrace) THEN parameter.SetModifiers(Flags()) END;
 				procedureType.AddParameter(parameter);
 				IF Optional(Scanner.Equal) THEN
 					parameter.SetDefaultValue(Expression());
@@ -1748,14 +1769,14 @@ TYPE
 			END;
 
 			position:= symbol.start;
-			IdentifierDefinition( name, access,FALSE);
+			IdentifierDefinition( name, access,TRUE);
 
 			procedureScope := SyntaxTree.NewProcedureScope(parentScope);
 			procedure := SyntaxTree.NewProcedure( position, name, procedureScope);
 			procedure.SetConstructor(isConstructor);
 			procedure.SetInline(isInline);
 			CommentSymbol(procedure);
-			procedure.SetAccess(access * SyntaxTree.ReadOnly);
+			procedure.SetAccess(access);
 
 			procedureType.SetModifiers(modifiers);
 			procedure.SetType(procedureType);
@@ -1817,7 +1838,7 @@ TYPE
 			procedureScope := SyntaxTree.NewProcedureScope(parentScope);
 			operator := SyntaxTree.NewOperator( symbol.start, SyntaxTree.NewIdentifier(string^), procedureScope);
 			CommentSymbol(operator);
-			operator.SetAccess(access * SyntaxTree.ReadOnly);
+			operator.SetAccess(access);
 			procedureType := SyntaxTree.NewProcedureType(symbol.start,parentScope);
 			IF Mandatory(Scanner.LeftParenthesis) THEN FormalParameters( procedureType, procedureScope ) END;
 			procedureType.SetModifiers(modifiers); (* nopov *)
@@ -1852,6 +1873,7 @@ TYPE
 				variable := SyntaxTree.NewVariable( position, varname );
 				CommentSymbol(variable);
 				IF Optional(Scanner.LeftBrace) THEN variable.SetModifiers(Flags()) END;
+				IF Optional(Scanner.Becomes) THEN variable.SetInitializer (Expression()) END;
 				variable.SetAccess(access);
 				scope.AddVariable(variable);
 			UNTIL ~Optional( Scanner.Comma );
@@ -1894,7 +1916,7 @@ TYPE
 			(*
 			type.SetName(typeDeclaration.name);  (* don't do that: overwrites global names ! *)
 			*)
-			typeDeclaration.SetAccess(access * SyntaxTree.ReadOnly);
+			typeDeclaration.SetAccess(access);
 			parentScope.AddTypeDeclaration( typeDeclaration );
 			IF Trace THEN E( "TypeDeclaration" ) END;
 		END TypeDeclaration;
@@ -1908,7 +1930,7 @@ TYPE
 			position := symbol.start;
 			constant := SyntaxTree.NewConstant( position, name );
 			CommentSymbol(constant);
-			constant.SetAccess(access * SyntaxTree.ReadOnly);
+			constant.SetAccess(access);
 			Check( Scanner.Equal );
 			expression := Expression();
 			constant.SetValue( expression );

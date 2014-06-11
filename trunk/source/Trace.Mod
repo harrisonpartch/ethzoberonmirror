@@ -30,14 +30,14 @@ BEGIN String (s); Ln;
 END StringLn;
 
 (** Write a character. *)
-PROCEDURE Int* (x, w: LONGINT);
-VAR i, x0: LONGINT; a: ARRAY 12 OF CHAR;
+PROCEDURE Int* (x: HUGEINT; w: LONGINT);
+VAR i: SIZE; x0: HUGEINT; a: ARRAY 21 OF CHAR;
 BEGIN
 	IF x < 0 THEN
-		IF x = MIN (LONGINT) THEN
-			DEC (w, 11);
+		IF x = MIN (HUGEINT) THEN
+			DEC (w, 20);
 			WHILE w > 0 DO Char (' '); DEC (w) END;
-			String ("-2147483648");
+			String ("-9223372036854775808");
 			RETURN
 		ELSE
 			DEC (w); x0 := -x

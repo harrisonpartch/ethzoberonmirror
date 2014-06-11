@@ -2162,6 +2162,11 @@ TYPE
 		|reg8, reg16, reg32, reg64, CRn, DRn, segReg, sti, mmx, xmm:
 			w.String(InstructionSet.registers[operand.register].name);
 		|mem:
+			IF operand.sizeInBytes = 1 THEN w.String("BYTE ")
+			ELSIF operand.sizeInBytes= 2 THEN w.String("WORD ")
+			ELSIF operand.sizeInBytes = 4 THEN w.String("DWORD ")
+			ELSIF operand.sizeInBytes = 8 THEN w.String("QWORD ")
+			END;
 			w.String("[");
 			IF operand.register # none THEN
 				w.String(InstructionSet.registers[operand.register].name);

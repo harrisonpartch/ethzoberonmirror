@@ -527,7 +527,7 @@ TYPE
 
 		PROCEDURE Clear*;
 		VAR i: LONGINT;
-		BEGIN FOR i := 0 TO size - 1 DO table[i].key := NIL; END; END Clear;
+		BEGIN FOR i := 0 TO size - 1 DO table[i].key := NIL; table[i].value := NIL; table[i].valueInt := 0 END; END Clear;
 
 		(* Interface for integer values *)
 
@@ -639,7 +639,7 @@ TYPE
 		PROCEDURE PutInt*(key, value: LONGINT);
 		VAR hash: LONGINT;
 		BEGIN
-			ASSERT(key # 0);
+			(*ASSERT(key # 0);*)
 			ASSERT(used < size);
 			hash := HashValue(key);
 			IF table[hash].key = 0 THEN
@@ -1510,7 +1510,7 @@ TYPE
 		BEGIN Indent; w.String(x)
 		END String;
 
-		PROCEDURE Int*( x, wd: LONGINT );
+		PROCEDURE Int*( x: HUGEINT; wd: LONGINT );
 		BEGIN Indent; w.Int(x,wd)
 		END Int;
 
@@ -1650,9 +1650,9 @@ TYPE
 
 	END TracingDiagnostics;
 
-	DebugWriterFactory*= PROCEDURE (CONST title: ARRAY OF CHAR): Streams.Writer;
-	WriterFactory*=PROCEDURE (w: Streams.Writer): Writer;
-	DiagnosticsFactory*=PROCEDURE (w: Streams.Writer): Diagnostics.Diagnostics;
+	DebugWriterFactory*= PROCEDURE{DELEGATE} (CONST title: ARRAY OF CHAR): Streams.Writer;
+	WriterFactory*=PROCEDURE{DELEGATE} (w: Streams.Writer): Writer;
+	DiagnosticsFactory*=PROCEDURE{DELEGATE} (w: Streams.Writer): Diagnostics.Diagnostics;
 
 VAR
 	lists-: LONGINT;  enlarged-: LONGINT;  strings-: LONGINT; integerObjects: HashTableInt;
@@ -2001,6 +2001,14 @@ VAR
 		ELSE NEW(diagnostics,w); RETURN diagnostics
 		END;
 	END GetDiagnostics;
+	
+	PROCEDURE GetDefaultDiagnostics*(): Diagnostics.Diagnostics;
+	VAR w: Streams.Writer;
+	BEGIN
+		NEW(w, KernelLog.Send,128);
+		RETURN GetDiagnostics(w);
+	END GetDefaultDiagnostics;
+	
 
 	PROCEDURE InitWindowWriter;
 	VAR install: PROCEDURE;
@@ -2134,7 +2142,7 @@ VAR
 	END GetTracingDiagnostics;
 
 	PROCEDURE InitTable32;
-	CONST poly = SHORT(0EDB88320H);
+	CONST poly = LONGINT(0EDB88320H);
 	VAR n, c, k: LONGINT;
 	BEGIN
 		FOR n := 0 TO 255 DO

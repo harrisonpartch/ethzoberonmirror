@@ -569,7 +569,7 @@ TYPE
 
 
 	(* Initiate address resolution *)
-	PROCEDURE AddressResolution(neighborIP: IP.Adr; VAR l3hdr, l4hdr, data: ARRAY OF CHAR; h3len, h4len, dofs, dlen: LONGINT);
+	PROCEDURE AddressResolution(neighborIP: IP.Adr; CONST l3hdr, l4hdr, data: ARRAY OF CHAR; h3len, h4len, dofs, dlen: LONGINT);
 	VAR
 		neighborEntry: NeighborCacheEntry;
 		packetQueue: PacketQueue;
@@ -1630,7 +1630,7 @@ TYPE
 
 
 		(** Send an IP packet on this interface. *)
-		PROCEDURE Send*(nextHeader: LONGINT; destAdr: IP.Adr; VAR l4hdr, data: ARRAY OF CHAR; h4len, dofs, dlen, hopLimit: LONGINT);
+		PROCEDURE Send*(nextHeader: LONGINT; destAdr: IP.Adr; CONST l4hdr, data: ARRAY OF CHAR; h4len, dofs, dlen, hopLimit: LONGINT);
 		VAR
 			l3hdr: ARRAY MaxIPHdrLen OF CHAR;
 			i: LONGINT;
@@ -1664,7 +1664,7 @@ TYPE
 
 
 		(* Internal procedure to perform the rest of the send operation. Used by "Send" and for IP forwarding. *)
-		PROCEDURE DoSend*(destAdr: IP.Adr; VAR l3hdr, l4hdr, data: ARRAY OF CHAR; h3len, h4len, dofs, dlen: LONGINT) ;
+		PROCEDURE DoSend*(destAdr: IP.Adr; CONST l3hdr, l4hdr, data: ARRAY OF CHAR; h3len, h4len, dofs, dlen: LONGINT) ;
 		VAR
 			linkDst: Network.LinkAdr;
 			nextHop: IP.Adr;

@@ -99,7 +99,7 @@ CONST
 
 	ofEUEnd = 0X;
 	ofEURecord = 1X;
-	ofEUProcFlag = SHORT(080000000H);
+	ofEUProcFlag = LONGINT(080000000H);
 
 	(** system calls *)
 	DefaultNofSysCalls = 12;
@@ -622,7 +622,7 @@ TYPE
 			p: Section; procedure: SyntaxTree.Procedure; procedureType : SyntaxTree.ProcedureType;
 			prev,tail: Fixup; firstOffset: LONGINT; name: SyntaxTree.IdentifierString; fixups, i: LONGINT; fixup: Fixup;
 		CONST
-			FixupSentinel = SHORT(0FFFFFFFFH);
+			FixupSentinel = LONGINT(0FFFFFFFFH);
 
 
 			PROCEDURE FixupList(l,prev: Fixup; VAR tail: Fixup);
@@ -753,7 +753,7 @@ TYPE
 				IF (p.symbol # NIL) & (p.symbol IS SyntaxTree.Procedure)  THEN
 					procedure := p.symbol(SyntaxTree.Procedure);
 					procedureType := procedure.type(SyntaxTree.ProcedureType);
-					IF (SyntaxTree.PublicRead IN procedure.access) & ~(procedure.isInline) & ~(procedureType.isDelegate) & GetProcedureAllowed() THEN
+					IF (SyntaxTree.PublicWrite IN procedure.access) & ~(procedure.isInline) & ~(procedureType.isDelegate) & GetProcedureAllowed() THEN
 						procedure.GetName(name);
 						IF Trace THEN
 							D.Str("Command : "); D.Str(name); D.Str(" @ "); D.Int(p.offset ,1);
@@ -1032,7 +1032,7 @@ TYPE
 		VAR
 			p: Section; procedure: SyntaxTree.Procedure; procedureType: SyntaxTree.ProcedureType; i, counter: LONGINT; temp: LONGINT; fixup: Fixup; fixups: LONGINT;
 		CONST
-			FixupSentinel = SHORT(0FFFFFFFFH);
+			FixupSentinel = LONGINT(0FFFFFFFFH);
 
 			(* Insert fixup list into code *)
 			PROCEDURE FixupList(l: Fixup): LONGINT;
@@ -1736,12 +1736,16 @@ TYPE
 				procedureType := procedure.type(SyntaxTree.ProcedureType);
 				variable := procedure.procedureScope.firstVariable;
 				WHILE(variable # NIL) DO
-					OutPointers(variable.offsetInBits DIV 8,variable.type,numberPointers);
+					IF ~(variable.untraced) THEN
+						OutPointers(variable.offsetInBits DIV 8,variable.type,numberPointers);
+					END;
 					variable := variable.nextVariable
 				END;
 				parameter := procedureType.firstParameter;
 				WHILE(parameter # NIL) DO
-					OutPointers(parameter.offsetInBits DIV 8,parameter.type,numberPointers);
+					IF ~(parameter.untraced) THEN
+						OutPointers(parameter.offsetInBits DIV 8,parameter.type,numberPointers);
+					END;
 					parameter := parameter.nextParameter;
 				END;
 				(*
@@ -2097,7 +2101,7 @@ TYPE
 
 			PROCEDURE Link(first: Fixup);
 			VAR this,prev: LONGINT;fixup: Fixup;
-			CONST Sentinel = SHORT(0FFFFFFFFH);
+			CONST Sentinel = LONGINT(0FFFFFFFFH);
 			BEGIN
 				fixup := first;
 				prev := -1;
