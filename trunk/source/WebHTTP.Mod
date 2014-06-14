@@ -802,18 +802,18 @@ BEGIN
 END GetPath;
 
 PROCEDURE SplitHTTPAdr*(url : ARRAY OF CHAR; VAR host, path: ARRAY OF CHAR; VAR port: LONGINT): BOOLEAN;
-VAR i, j, dotpos : LONGINT;
+VAR i, j : LONGINT;
 BEGIN
 	(*assuming HTTP or HTTPS*)
 	IF LEN(url) < 7 THEN RETURN FALSE END;
 	
-	IF (url[4] = ":") & (url[5] = "/") & (url[6] = "/") THEN dotpos:=4; port:=HTTPPort;
-	ELSIF (url[5] = ":") & (url[6] = "/") & (url[7] = "/") THEN dotpos:=5; port:=HTTPSPort;
+	IF (url[4] = ":") & (url[5] = "/") & (url[6] = "/") THEN i:=7; port:=HTTPPort;
+	ELSIF (url[5] = ":") & (url[6] = "/") & (url[7] = "/") THEN i:=8; port:=HTTPSPort;
 	ELSE RETURN FALSE
 	END;
 	
 	(* get host *)
-	i := dotpos+3; j := 0;
+	j := 0;
 	WHILE (url[i] # ":") & (url[i] # "/") & (url[i] # 0X) DO
 		IF j < LEN(host) - 1 THEN host[j] := url[i] ELSE RETURN FALSE END;
 		 INC(i); INC(j);

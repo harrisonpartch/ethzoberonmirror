@@ -14,9 +14,7 @@ CONST
 	Version* = "Linux";
 
   	libcname* = "libc.so.6";
-	libmname* = "libm.so.6";
 	libX11name* = "libX11.so.6";
-	libXextname* = "libXext.so.6";
 
 	LittleEndian* = TRUE;   (** byte order of basic types *)
 	LsbIs0* = TRUE;   (** bit order of SET type *)
@@ -109,14 +107,14 @@ CONST
 		SockDGram*	= 2;
 		
 	(* Protocols *)
-		IpProtoUDP*	= 17;
+		IpProtoUDP*		= 17;
 		IpProtoTCP*		=  6;
 
 	(* setsockopt *)
 		SoLSocket*		= 1;			(* socket option level *)
 		SoLinger* 		= 13; 		(* linger (gracefully close the connection)*)
 		SoKeepAlive*	= 9;			(* keep connection alive *)
-		SoNoDelay*	= 1;			(* no delay *)
+		SoNoDelay*		= 1;			(* no delay *)
 
 	(* ioctl *)
 		FioNRead*		= 541BH;	(* something to read ? *)
@@ -126,14 +124,14 @@ CONST
 		MsgDontWait*	= 40H;		(* non blocking read *)
 		
 	(* shutdown *)
-		ShutRDWR*	= 2;
+		ShutRDWR*		= 2;
 
 	SockAddrSizeV4*	= 16;
 	SockAddrSizeV6*	= 28;
 
 	(*----------------------- seral line, cf Unix.V24.Mod -----------------------*)
 	
-	FIONREAD*	= 541BH;
+	FIONREAD*		= 541BH;
 	TIOCMGET*		= 5415H;
 	TIOCMBIS*		= 5416H;
 	TIOCMBIC*		= 5417H;
@@ -194,18 +192,18 @@ TYPE
 				dev-		: DevT;
 				unused1-	: LONGINT;
 				ino-		: LONGINT;
-				mode-		: LONGINT;
+				mode-	: LONGINT;
 				nlink-		: LONGINT;
 				uid-		: LONGINT;
 				gid-		: LONGINT;
 				rdev-		: DevT;
 				unused2-	: LONGINT;
 				size-		: LONGINT;
-				blksize-		: LONGINT;
-				blocks-		: LONGINT;
-				atime-		: Timeval;
-				mtime-		: Timeval;
-				ctime-		: Timeval;
+				blksize-	: LONGINT;
+				blocks-	: LONGINT;
+				atime-	: Timeval;
+				mtime-	: Timeval;
+				ctime-	: Timeval;
 				unused-	: ARRAY 2 OF LONGINT;
 			END;
 
@@ -239,13 +237,13 @@ TYPE
 
 	Dirent* = POINTER TO RECORD
 				ino-, off-	: LONGINT;   (* these may change to HUGEINT in future Linux releases!! *)
-				reclen-		: INTEGER;
+				reclen-	: INTEGER;
 				typ-		: CHAR;
-				name-		: (*array of*) CHAR;
+				name-	: (*array of*) CHAR;
 			END;
 
 	Stack* = RECORD
-				sp*			: ADDRESS;
+				sp*		: ADDRESS;
 				flags*		: SET;
 				size*		: SIZE
 			END;
@@ -254,16 +252,16 @@ TYPE
 	UcontextDesc* = RECORD
 				flags-		: SET;
 				link-		: ADDRESS;
-				stack-		: Stack;
+				stack-	: Stack;
 				mc-		: McontextDesc
 			END;
 
 	Mcontext* = POINTER TO McontextDesc;
 	McontextDesc* = RECORD
-				gs-, gsh-	: INTEGER;
-				fs-, fsh-	: INTEGER;
-				es-, esh-	: INTEGER;
-				ds-, dsh-	: INTEGER;
+				egs-		: LONGINT;
+				efs-		: LONGINT;
+				ees-		: LONGINT;
+				eds-		: LONGINT;
 				edi-		: LONGINT;
 				esi-		: LONGINT;
 				ebp-		: LONGINT;
@@ -272,13 +270,13 @@ TYPE
 				edx-		: LONGINT;
 				ecx-		: LONGINT;
 				eax-		: LONGINT;
-				trapno-		: LONGINT;
+				trapno-	: LONGINT;
 				err-		: LONGINT;
 				eip-		: LONGINT;
-				cs-, csh-	: INTEGER;
-				eflags-		: LONGINT;
+				ecs-		: LONGINT;
+				eflags-	: LONGINT;
 				espatsig-	: LONGINT;
-				ss-, ssh-	: INTEGER;
+				ess-		: LONGINT;
 				fpc-{UNTRACED}		: FPcontext;
 				oldmask-	: LONGINT;
 				cr2-		: LONGINT
@@ -303,45 +301,45 @@ VAR
 	read-			: PROCEDURE {C} ( fd: LONGINT; buf: ADDRESS; n: SIZE ): LONGINT;
 	write-			: PROCEDURE {C} ( fd: LONGINT; buf: ADDRESS; n: SIZE ): LONGINT;
 	open-			: PROCEDURE {C} ( name: ADDRESS;  flags, mode: SET ): LONGINT;
-	close-			: PROCEDURE {C} ( fd: LONGINT ): LONGINT;
-	lseek-			: PROCEDURE {C} ( fd: LONGINT; offset, origin: SIZE ): LONGINT;
-	fsync-			: PROCEDURE {C} ( fd: LONGINT ): LONGINT;
+	close-		: PROCEDURE {C} ( fd: LONGINT ): LONGINT;
+	lseek-		: PROCEDURE {C} ( fd: LONGINT; offset, origin: SIZE ): LONGINT;
+	fsync-		: PROCEDURE {C} ( fd: LONGINT ): LONGINT;
 	ioctl-			: PROCEDURE {C} ( fd: LONGINT; request: LONGINT; arg: ADDRESS ): LONGINT;
-	unlink-			: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
+	unlink-		: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
 	rename-		: PROCEDURE {C} ( oldname, newname: ADDRESS ): LONGINT;
 	ftruncate-		: PROCEDURE {C} ( fd: LONGINT;  length: SIZE ): LONGINT;
-	chmod-			: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
-	utime-			: PROCEDURE {C} ( fd: LONGINT;  tb: ADDRESS ): LONGINT;
-	access-			: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
-	select-			: PROCEDURE {C} ( width: LONGINT; rd, wr, ex: FdSetPtr;  VAR timeout: Timeval ): LONGINT;
+	chmod-		: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
+	utime-		: PROCEDURE {C} ( fd: LONGINT;  tb: ADDRESS ): LONGINT;
+	access-		: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
+	select-		: PROCEDURE {C} ( width: LONGINT; rd, wr, ex: FdSetPtr;  VAR timeout: Timeval ): LONGINT;
 
 	chdir-			: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
-	mkdir-			: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
+	mkdir-		: PROCEDURE {C} ( name: ADDRESS;  mode: SET ): LONGINT;
 	rmdir-			: PROCEDURE {C} ( path: ADDRESS ): LONGINT;
 
 	stat-			: PROCEDURE {C} ( name: ADDRESS;  VAR buf: Status ): LONGINT;
 	lstat-			: PROCEDURE {C} ( name: ADDRESS;  VAR buf: Status ): LONGINT;
 	fstat-			: PROCEDURE {C} ( fd: LONGINT;  VAR buf: Status ): LONGINT;
 
-	getpid-			: PROCEDURE {C} ( ): LONGINT;
-	getuid-			: PROCEDURE {C} ( ): LONGINT;
+	getpid-		: PROCEDURE {C} ( ): LONGINT;
+	getuid-		: PROCEDURE {C} ( ): LONGINT;
 
 	malloc-				: PROCEDURE {C} ( size: SIZE ): ADDRESS;
 	posix_memalign-	: PROCEDURE {C} ( VAR p: ADDRESS;  alignment, size: SIZE ): LONGINT;
-	free-				: PROCEDURE {C} ( p: ADDRESS );
+	free-					: PROCEDURE {C} ( p: ADDRESS );
 	mprotect-			: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
 
 	alarm-			: PROCEDURE {C} ( ms: LONGINT ): LONGINT;
-	setitimer-		: PROCEDURE {C} ( which: LONGINT;  VAR value, ovalue: Itimerval ): LONGINT;
-	getitimer-		: PROCEDURE {C} ( which: LONGINT;  VAR value: Itimerval ): LONGINT;
+	setitimer-			: PROCEDURE {C} ( which: LONGINT;  VAR value, ovalue: Itimerval ): LONGINT;
+	getitimer-			: PROCEDURE {C} ( which: LONGINT;  VAR value: Itimerval ): LONGINT;
 
 	gettimeofday-	: PROCEDURE {C} ( VAR tv: Timeval;  VAR tz: Timezone ): LONGINT;
-	mktime-		: PROCEDURE {C} ( VAR tm: Tm ): LONGINT;
+	mktime-			: PROCEDURE {C} ( VAR tm: Tm ): LONGINT;
 	localtime-		: PROCEDURE {C} ( CONST tv: Timeval ): TmPtr;
-	time-			: PROCEDURE {C} ( VAR tv: Timeval ): LONGINT;
+	time-				: PROCEDURE {C} ( VAR tv: Timeval ): LONGINT;
 	times-			: PROCEDURE {C} ( VAR tms: Tms ): LONGINT;
 
-	system-			: PROCEDURE {C} ( cmd: ADDRESS );
+	system-		: PROCEDURE {C} ( cmd: ADDRESS );
 	uname-		: PROCEDURE {C} ( utsname: ADDRESS ): LONGINT;
 
 	getcwd-		: PROCEDURE {C} ( buf: ADDRESS;  len: SIZE ): LONGINT;
@@ -351,12 +349,12 @@ VAR
 	readdir-		: PROCEDURE {C} ( dir: ADDRESS ): Dirent;
 	closedir-		: PROCEDURE {C} ( dir: ADDRESS );
 
-	sigsetjmp-		: PROCEDURE {C} ( env: ADDRESS;  savemask: LONGINT ): LONGINT;
-	siglongjmp-		: PROCEDURE {C} ( env: ADDRESS;  val: LONGINT );
+	sigsetjmp-	: PROCEDURE {C} ( env: ADDRESS;  savemask: LONGINT ): LONGINT;
+	siglongjmp-	: PROCEDURE {C} ( env: ADDRESS;  val: LONGINT );
 
 	kill-			: PROCEDURE {C} ( pid, sig: LONGINT ): LONGINT;
 	exit-			: PROCEDURE {C} ( status: LONGINT );
-	perror-			: PROCEDURE {C} ( msg: ADDRESS );
+	perror-		: PROCEDURE {C} ( msg: ADDRESS );
 	errno-			: PROCEDURE {C} ( ): LONGINT;
 
 
@@ -482,12 +480,12 @@ BEGIN
 	libc := Dlopen( libcname, 2 );
 
 	Dlsym( libc, "read",		ADDRESSOF( read ) );
-	Dlsym( libc, "write",		ADDRESSOF( write ) );
+	Dlsym( libc, "write",	ADDRESSOF( write ) );
 	Dlsym( libc, "open",		ADDRESSOF( open ) );
-	Dlsym( libc, "close",		ADDRESSOF( close ) );
-	Dlsym( libc, "lseek",		ADDRESSOF( lseek ) );
-	Dlsym( libc, "fsync",		ADDRESSOF( fsync ) );
-	Dlsym( libc, "ioctl",		ADDRESSOF( ioctl ) );
+	Dlsym( libc, "close",	ADDRESSOF( close ) );
+	Dlsym( libc, "lseek",	ADDRESSOF( lseek ) );
+	Dlsym( libc, "fsync",	ADDRESSOF( fsync ) );
+	Dlsym( libc, "ioctl",	ADDRESSOF( ioctl ) );
 	Dlsym( libc, "unlink",	ADDRESSOF( unlink ) );
 	Dlsym( libc, "rename",	ADDRESSOF( rename ) );
 	Dlsym( libc, "ftruncate",	ADDRESSOF( ftruncate ) );
@@ -496,13 +494,13 @@ BEGIN
 	Dlsym( libc, "access",	ADDRESSOF( access ) );
 	Dlsym( libc, "select",	ADDRESSOF( select ) );
 
-	Dlsym( libc, "chdir",		ADDRESSOF( chdir ) );
-	Dlsym( libc, "mkdir",		ADDRESSOF( mkdir ) );
-	Dlsym( libc, "rmdir",		ADDRESSOF( rmdir ) );
+	Dlsym( libc, "chdir",	ADDRESSOF( chdir ) );
+	Dlsym( libc, "mkdir",	ADDRESSOF( mkdir ) );
+	Dlsym( libc, "rmdir",	ADDRESSOF( rmdir ) );
 
 	Dlsym( libc, "stat",		ADDRESSOF( stat ) );
-	Dlsym( libc, "lstat",		ADDRESSOF( lstat ) );
-	Dlsym( libc, "fstat",		ADDRESSOF( fstat ) );
+	Dlsym( libc, "lstat",	ADDRESSOF( lstat ) );
+	Dlsym( libc, "fstat",	ADDRESSOF( fstat ) );
 
 	Dlsym( libc, "getpid",	ADDRESSOF( getpid ) );
 	Dlsym( libc, "getuid",	ADDRESSOF( getuid ) );
@@ -513,24 +511,24 @@ BEGIN
 
 	Dlsym( libc, "gettimeofday", ADDRESSOF( gettimeofday ) );
 	Dlsym( libc, "mktime",		ADDRESSOF( mktime ) );
-	Dlsym( libc, "localtime",		ADDRESSOF( localtime ) );
+	Dlsym( libc, "localtime",	ADDRESSOF( localtime ) );
 	Dlsym( libc, "time",			ADDRESSOF( time ) );
-	Dlsym( libc, "times",			ADDRESSOF( times ) );
+	Dlsym( libc, "times",		ADDRESSOF( times ) );
 
-	Dlsym( libc, "getcwd",	ADDRESSOF( getcwd ) );
-	Dlsym( libc, "getenv",	ADDRESSOF( getenv ) );
+	Dlsym( libc, "getcwd",		ADDRESSOF( getcwd ) );
+	Dlsym( libc, "getenv",		ADDRESSOF( getenv ) );
 
-	Dlsym( libc, "opendir",	ADDRESSOF( opendir ) );
-	Dlsym( libc, "readdir",	ADDRESSOF( readdir ) );
+	Dlsym( libc, "opendir",		ADDRESSOF( opendir ) );
+	Dlsym( libc, "readdir",		ADDRESSOF( readdir ) );
 	Dlsym( libc, "closedir",	ADDRESSOF( closedir ) );
 
 	Dlsym( libc, "sigsetjmp",		ADDRESSOF( sigsetjmp ) );
-	Dlsym( libc, "siglongjmp",	ADDRESSOF( siglongjmp ) );
+	Dlsym( libc, "siglongjmp",		ADDRESSOF( siglongjmp ) );
 
 	Dlsym( libc, "malloc",			ADDRESSOF( malloc ) );
 	Dlsym( libc, "posix_memalign",	ADDRESSOF( posix_memalign ) );
 	Dlsym( libc, "free",				ADDRESSOF( free ) );
-	Dlsym( libc, "mprotect",			ADDRESSOF( mprotect ) );
+	Dlsym( libc, "mprotect",		ADDRESSOF( mprotect ) );
 
 	Dlsym( libc, "system",	ADDRESSOF( system ) );
 	Dlsym( libc, "uname",	ADDRESSOF( uname ) );
@@ -538,7 +536,7 @@ BEGIN
 	Dlsym( libc, "kill",		ADDRESSOF( kill ) );
 	Dlsym( libc, "exit",		ADDRESSOF( exit ) );
 	Dlsym( libc, "perror",	ADDRESSOF( perror ) );
-	Dlsym( libc, "errno",		ADDRESSOF( errno ) );
+	Dlsym( libc, "errno",	ADDRESSOF( errno ) );
 
 
 	getSysinfo;

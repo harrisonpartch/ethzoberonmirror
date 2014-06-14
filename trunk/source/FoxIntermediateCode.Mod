@@ -276,6 +276,10 @@ TYPE
 			IF Op1IsDestination IN instructionFormat[instruction.opcode].flags THEN
 				Assert((instruction.op1.mode # ModeRegister) OR (instruction.op1.offset = 0),"destination operand may not be register with nonzero offset");
 			END;
+			
+			Assert(instruction.op1.mode IN instructionFormat[instruction.opcode].op1,"invalid format of op 1");
+			Assert(instruction.op2.mode IN instructionFormat[instruction.opcode].op2,"invalid format of op 2");
+			Assert(instruction.op3.mode IN instructionFormat[instruction.opcode].op3,"invalid format of op 3");
 
 			Assert(instruction.op1.symbol.name[0] # 0, "not intialized operand 1");
 			Assert(instruction.op2.symbol.name[0] # 0, "not intialized operand 2");

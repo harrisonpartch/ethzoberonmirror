@@ -622,7 +622,7 @@ TYPE
 			- if error then set base type to invalid type
 		**)
 		PROCEDURE FixPointerType(type: SyntaxTree.PointerType);
-		VAR resolved: SyntaxTree.Type; position: LONGINT; recordType: SyntaxTree.RecordType;
+		VAR resolved, base: SyntaxTree.Type; position: LONGINT; recordType: SyntaxTree.RecordType;
 		BEGIN
 			ASSERT(type.pointerBase # NIL);
 			position := type.pointerBase.position;
@@ -649,7 +649,16 @@ TYPE
 				END;
 				IF type.isRealtime & ~resolved.resolved.isRealtime THEN
 					Error(position,Diagnostics.Invalid,"realtime object contains references to non-realtime objects");
-				END
+				END;
+				IF type.isUnsafe & (resolved.resolved IS SyntaxTree.ArrayType) THEN
+					(*IF ~IsOpenArray(resolved.resolved, base) THEN 
+						Error(position,Diagnostics.Invalid,"forbidden unsafe at static array");
+					ELS
+					*)
+					IF IsOpenArray(resolved.resolved(SyntaxTree.ArrayType).arrayBase, base) THEN
+						Error(position,Diagnostics.Invalid,"forbidden unsafe at multidimensional array");
+					END;
+				END;
 			ELSE
 				Error(position,Diagnostics.Invalid,"forbidden pointer base type");
 				type.SetPointerBase(SyntaxTree.invalidType)
@@ -668,6 +677,7 @@ TYPE
 				modifiers := x.modifiers;
 				x.SetRealtime(HasFlag(modifiers,Global.NameRealtime, position));
 				x.SetDisposable(HasFlag(modifiers,Global.NameDisposable, position));
+				x.SetUnsafe(HasFlag(modifiers,Global.NameUnsafe,position));
 				(* inheritance cycle check
 					example:
 					A=POINTER TO RECORD(B) END;
@@ -677,9 +687,6 @@ TYPE
 					recordType := x.pointerBase(SyntaxTree.RecordType);
 					recordBaseType := ResolveType(recordType.baseType);
 					recordType.SetBaseType(recordBaseType);
-					IF ~recordType.isObject THEN
-						x.SetUnsafe(HasFlag(modifiers,Global.NameUnsafe,position));
-					END;
 				END;
 				CheckModifiers(modifiers, TRUE);
 				typeFixes.Add(x,currentScope);
@@ -2197,7 +2204,7 @@ TYPE
 					int := Global.ConvertSigned(int,system.SizeOf(type));
 					result := SyntaxTree.NewIntegerValue(position,int);
 					result.SetType(type);
-				ELSIF (type IS SyntaxTree.AddressType) THEN
+				ELSIF (type IS SyntaxTree.AddressType) OR (type IS SyntaxTree.PointerType) & type(SyntaxTree.PointerType).isUnsafe THEN
 					int := Global.ConvertUnsigned(int,system.SizeOf(type));
 					result := SyntaxTree.NewIntegerValue(position,int);
 					result.SetType(type);
@@ -7732,12 +7739,15 @@ TYPE
 			import: SyntaxTree.Import;
 			symbol: SyntaxTree.Symbol;
 			prevPhase: LONGINT;
+			prevError : BOOLEAN;
 
 		BEGIN
+			prevError := error;
 			prevPhase := phase;
 			phase := DeclarationPhase;
 			prevScope := currentScope;
 			currentScope := scope;
+			error := FALSE;
 
 			(* first enter all symbols in scope *)
 			IF scope IS SyntaxTree.ModuleScope THEN
@@ -7826,6 +7836,7 @@ TYPE
 
 			phase := prevPhase;
 			currentScope := prevScope;
+			error := error OR prevError;
 		END Declarations;
 
 		(* nopov *)
@@ -8240,8 +8251,9 @@ TYPE
 				END;
 
 			ELSIF to IS SyntaxTree.PointerType THEN
-				result := IsPointerType(this) & (IsTypeExtension(to,this) OR ((to(SyntaxTree.PointerType).pointerBase.resolved IS SyntaxTree.ArrayType) & SameType(to,this)))
-				     & (~to.isRealtime OR this.isRealtime) OR (this IS SyntaxTree.NilType) OR (this IS SyntaxTree.AddressType) & to(SyntaxTree.PointerType).isUnsafe;
+				result := (this IS SyntaxTree.NilType) OR ((this IS SyntaxTree.AddressType) OR (this IS SyntaxTree.IntegerType)) & to(SyntaxTree.PointerType).isUnsafe OR
+						IsPointerType(this) & (IsTypeExtension(to,this) OR ((to(SyntaxTree.PointerType).pointerBase.resolved IS SyntaxTree.ArrayType) & SameType(to,this)))
+				     & (~to.isRealtime OR this.isRealtime);
 			ELSIF to IS SyntaxTree.ProcedureType THEN
 				result := (this IS SyntaxTree.NilType) OR (this IS SyntaxTree.ProcedureType) & SameType(to(SyntaxTree.ProcedureType),this(SyntaxTree.ProcedureType))
 					& (~(this(SyntaxTree.ProcedureType).isDelegate) OR (to(SyntaxTree.ProcedureType).isDelegate))
@@ -8784,6 +8796,17 @@ TYPE
 		END;
 		RETURN t;
 	END ArrayBase;
+
+	PROCEDURE IsOpenArray*(type: SyntaxTree.Type; VAR base: SyntaxTree.Type): BOOLEAN;
+	BEGIN
+		type := type.resolved;
+		IF (type IS SyntaxTree.ArrayType) & (type(SyntaxTree.ArrayType).form = SyntaxTree.Open) THEN
+			base := type(SyntaxTree.ArrayType).arrayBase;
+			RETURN TRUE;
+		END;
+		RETURN FALSE;
+	END IsOpenArray;
+	
 
 	PROCEDURE IsStaticArray*(type: SyntaxTree.Type; VAR base: SyntaxTree.Type; VAR dim :LONGINT): BOOLEAN;
 	BEGIN

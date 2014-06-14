@@ -1147,7 +1147,7 @@ TYPE
 
 			LOOP
 				(*catch report buffer overflow*)
-				IF cur > hidDescriptor.wDescriptorLength-1 THEN EXIT; END;
+				IF cur >= hidDescriptor.wDescriptorLength-1 THEN EXIT; END;
 
 				(*init si*)
 				item.bSize := ORD(reportBuffer[cur]) MOD 4;

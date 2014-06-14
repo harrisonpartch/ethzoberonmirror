@@ -86,7 +86,7 @@ MODULE PCI;	 (** author: fof -- PCI without using PCI bios (using PCI tables des
 				res := PCIReadConfig32(pci.bus, pci.device, pci.function, 0, r0);
 				IF r0 # LONGINT(0FFFFFFFFH) THEN
 					vendorId := r0 MOD 10000H;
-					deviceId := r0 DIV 10000H;
+					deviceId := r0 DIV 10000H MOD 10000H;
 					IF (devId = deviceId) & (vendId = vendorId) THEN
 						IF idx = index THEN
 							busNr := pci.bus; devNr := pci.device; fktNr := pci.function;
@@ -589,7 +589,7 @@ MODULE PCI;	 (** author: fof -- PCI without using PCI bios (using PCI tables des
 	END DisplayDeviceClass;
 
 	PROCEDURE TracePCIDevices;
-	VAR r0,r8 : LONGINT; pci: Pci; res, class, subclass, api, vendorId, deviceId: LONGINT;
+	VAR r0,r8,r10 : LONGINT; pci: Pci; res, class, subclass, api, vendorId, deviceId: LONGINT;
 	BEGIN
 		IF pciEnabled THEN
 			KernelLog.String("PCI Devices"); KernelLog.Ln;
@@ -598,25 +598,26 @@ MODULE PCI;	 (** author: fof -- PCI without using PCI bios (using PCI tables des
 				res := PCIReadConfig32(pci.bus, pci.device, pci.function, 0, r0);
 				IF r0 # LONGINT(0FFFFFFFFH) THEN
 					res := PCIReadConfig32(pci.bus, pci.device, pci.function, 8, r8);
+					IF r8 # LONGINT(0FFFFFFFFH) THEN
+						vendorId := r0 MOD 10000H;
+						deviceId := r0 DIV 10000H MOD 10000H;
+						class := r8 DIV 1000000H MOD 100H;
+						subclass := r8 DIV 10000H MOD 100H;
+						api := r8 DIV 100H MOD 100H;
 
-					vendorId := r0 MOD 10000H;
-					deviceId := r0 DIV 10000H;
-					class := r8 DIV 1000000H MOD 100H;
-					subclass := r8 DIV 10000H MOD 100H;
-					api := r8 DIV 100H MOD 100H;
-
-					KernelLog.String("device bus="); KernelLog.Int(pci.bus,1);
-					KernelLog.String(" pciDev="); KernelLog.Int(pci.device,1);
-					KernelLog.String(" pciFn="); KernelLog.Int(pci.function,1);
-					KernelLog.String(" vendorId="); KernelLog.Int(vendorId,1);
-					KernelLog.String(" deviceId="); KernelLog.Int(deviceId,1);
-					KernelLog.String(" class="); KernelLog.Int(class,1);
-					KernelLog.String(" subclass="); KernelLog.Int(subclass,1);
-					KernelLog.String(" api="); KernelLog.Int(api,1);
-					KernelLog.String(" classCode= "); KernelLog.Address(r8 DIV 100H MOD 1000000H); 
-					KernelLog.String(" : ");
-					DisplayDeviceClass(class, subclass);
-					KernelLog.Ln;
+						KernelLog.String("device bus="); KernelLog.Int(pci.bus,1);
+						KernelLog.String(" pciDev="); KernelLog.Int(pci.device,1);
+						KernelLog.String(" pciFn="); KernelLog.Int(pci.function,1);
+						KernelLog.String(" vendorId="); KernelLog.Int(vendorId,1);
+						KernelLog.String(" deviceId="); KernelLog.Int(deviceId,1);
+						KernelLog.String(" class="); KernelLog.Int(class,1);
+						KernelLog.String(" subclass="); KernelLog.Int(subclass,1);
+						KernelLog.String(" api="); KernelLog.Int(api,1);
+						KernelLog.String(" classCode= "); KernelLog.Address(r8 DIV 100H MOD 1000000H); 
+						KernelLog.String(" : ");
+						DisplayDeviceClass(class, subclass);
+						KernelLog.Ln;
+					END;
 				END;
 			UNTIL ~Iterate(pci);
 		ELSE

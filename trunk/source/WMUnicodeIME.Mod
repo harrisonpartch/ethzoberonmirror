@@ -102,11 +102,11 @@ TYPE
 					edit.text.onTextChanged.Add(TextChanged);
 					ClearSelection
 				END
-			ELSIF keySym = 0FF08H THEN
+			ELSIF keySym = 0FF08H THEN (* Inputs.KsBackSpace *)
 				IF curEditStr = "" THEN ScheduleHide
 				ELSE edit.KeyPressed(ucs, flags, keySym, handled)
 				END
-			ELSIF keySym = 0FF54H THEN
+			ELSIF keySym = 0FF54H THEN (* Inputs.DownArrow *)
 			ELSIF (keySym >= 48) & (keySym <= 57) THEN
 				edit.KeyPressed(ucs, flags, keySym, handled)
 			ELSIF keySym = 0FF0DH THEN (* enter *)

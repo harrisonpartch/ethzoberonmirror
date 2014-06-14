@@ -211,6 +211,21 @@ BEGIN
 	UNTIL n = 0
 END Bits;
 
+(** write a set as set *)
+PROCEDURE Set*(x: SET);
+VAR first: BOOLEAN; i: LONGINT;
+BEGIN
+	first := TRUE;
+	Char("{");
+	FOR i := 0 TO MAX(SET) DO
+		IF i IN x THEN
+			IF ~first THEN Char(",") ELSE first := FALSE END;
+			Int(i,1);
+		END;
+	END;
+	Char("}");
+END Set;
+
 (** Enter mutually exclusive region for writing, using a fine-grained lock.  This region should be kept as short as possible, and only procedures from KernelLog should be called inside it. *)
 
 PROCEDURE Enter*;

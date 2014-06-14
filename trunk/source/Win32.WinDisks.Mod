@@ -264,7 +264,7 @@ VAR
 	VAR devname: ARRAY 256 OF CHAR;  tflags: SET; errorcode : LONGINT;
 	BEGIN
 		Strings.Concat( "\\.\", name, devname );
-		IF Disks.ReadOnly IN flags THEN tflags := {Kernel32.GenericRead} ELSE tflags := {2 (* Kernel32.GenericDelete *), Kernel32.GenericWrite,Kernel32.GenericRead} END;
+		IF Disks.ReadOnly IN flags THEN tflags := {Kernel32.GenericRead} ELSE tflags := {(*2 (* Kernel32.GenericDelete *), *)Kernel32.GenericWrite,Kernel32.GenericRead} END;
 		handle := Kernel32.CreateFile( devname, tflags, {Kernel32.FileShareRead, Kernel32.FileShareWrite}, NIL , Kernel32.OpenExisting, {}, Kernel32.NULL );
 		IF (handle = Kernel32.InvalidHandleValue) THEN
 			errorcode := Kernel32.GetLastError();
@@ -305,7 +305,9 @@ VAR
 				context.out.String( "Partition from Block " );  context.out.Int( ENTIER( first ), 1 );  context.out.String( " to " );  context.out.Int( ENTIER( last ), 1 );
 				context.out.String( " in physical drive # " );  context.out.Int( drive, 1 );  OutSize( extents.extents[0].ExtentLength, context.out);  context.out.Ln;
 				name := "PhysicalDrive";  AppendInt( name, drive );  context.out.String( "Mapping to drive : " );  context.out.String( name );  context.out.Ln;
-				IF ~OpenVolume( handle, flags,name, context) THEN HALT(100); END;
+				IF ~OpenVolume( handle, flags,name, context) THEN 
+					context.error.String( "volume could not be opened. " ); context.error.Ln; 
+				END;
 			ELSE
 				context.error.String( "cannot handle volumes with more than one extent (yet) " ); context.error.Ln;
 			END;
@@ -337,7 +339,8 @@ VAR
 
 		IF diskname[1] = ":" THEN drive := ORD(CAP(diskname[0]))-ORD("A"); ELSE drive := -1 END;
 		IF OpenVolume( handle, flags, diskname, context) THEN
-			IF DismountVolume(handle) THEN END;
+			IF (diskname[1] = ":") & DismountVolume(handle) THEN
+			END;
 			GetPhysicalDrive( handle, flags,diskname, context );
 			IF ~GetDiskGeometry( handle, pdg ) THEN
 				Kernel32.CloseHandle( handle );

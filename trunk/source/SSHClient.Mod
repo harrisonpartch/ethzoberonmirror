@@ -388,10 +388,10 @@ MODULE SSHClient; 	(** AUTHOR "G.F.";  PURPOSE "Secure Shell"; *)
 			VAR f: Files.File;
 			BEGIN
 				NEW(attr); attr.special := {};
-				f := Files.Old( "VeraMono.bd.ttf" );
+				f := Files.Old( "Veramono_bd.ttf" );
 				IF f # NIL THEN
-				(*	attr.fnt := WMG.GetFont( "DejaVuMono", 12, {} ) *)
-					attr.fnt := WMG.GetFont( "VeraMono", 12, {0} )
+				(*	attr.fnt := WMG.GetFont( "Dejavumono", 12, {} ) *)
+					attr.fnt := WMG.GetFont( "Veramono", 12, {0} )
 				ELSE
 					attr.fnt := WMG.GetFont( "Courier", 12, {} )
 				END;

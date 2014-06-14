@@ -3698,14 +3698,22 @@ BEGIN
 	InstallHandler(HandleKernelCall, MPKC);
 END InitProcessors;
 
+VAR scrollLines: LONGINT;
+
 (* Send and print character *)
 PROCEDURE TraceChar (c: CHAR);
 VAR status: SHORTINT;
 
 	(* Scroll the screen by one line. *)
 	PROCEDURE Scroll;
-	VAR adr: ADDRESS; off: SIZE;
+	VAR adr: ADDRESS; off: SIZE; i,j: LONGINT;
 	BEGIN
+		IF (traceDelay > 0) & (scrollLines MOD TraceHeight = 0) THEN 
+			FOR i := 0 TO traceDelay-1 DO 
+				FOR j := 0 TO 1000000 DO END;
+			END;
+		END;
+		INC(scrollLines);
 		adr := traceBase + TraceLen;
 		SYSTEM.MOVE (adr, adr - TraceLen, TraceSize - TraceLen);
 		adr := traceBase + TraceSize - TraceLen;
@@ -3745,6 +3753,7 @@ PROCEDURE TraceColor (c: SHORTINT);
 BEGIN traceColor := c;
 END TraceColor;
 
+VAR traceDelay: LONGINT; 
 (* Initialise tracing. *)
 PROCEDURE InitTrace;
 CONST MaxPorts = 8;
@@ -3762,7 +3771,10 @@ BEGIN
 		Portout8(3D4H, 0EX);
 		Portout8(3D5H, CHR((TraceWidth*TraceHeight) DIV 100H));
 		Portout8(3D4H, 0FX);
-		Portout8(3D5H, CHR((TraceWidth*TraceHeight) MOD 100H))
+		Portout8(3D5H, CHR((TraceWidth*TraceHeight) MOD 100H));
+		GetConfig("TraceDelay", s); 
+		p := 0; traceDelay := StrToInt(p, s); 
+
 	END;
 	IF TraceV24 IN traceMode THEN
 		FOR i := 0 TO MaxPorts - 1 DO

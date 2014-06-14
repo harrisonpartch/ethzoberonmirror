@@ -5,15 +5,15 @@ MODULE X11;   (* 1993-95 / rc *)
 
 (* Oberon interface to X Window System Version 11 *)
 
-(*	1998.06.24	g.f.	Linux PPC version	*)
-(*	1999.04.03	g.f.	support for Threads added	*)
-(*	1999.11.03	g,f,	Linux x86 version	 *)
-(*	2001.01.05	g.f.	[C] - flag for new ompiler *)
-(*	2001.08.04	g.f.	made this module a pure interface to xlib,
-									  separated low level Display fumctionality into new module Displays  *)
-(*	2006.07.31	g.f.	X11Ext added *)
+(*	1998.06.24	g.f.	 Linux PPC version	*)
+(*	1999.04.03	g.f.	 support for Threads added	*)
+(*	1999.11.03	g.f.	 Linux x86 version	 *)
+(*	2001.01.05	g.f.	 [C] - flag for new compiler *)
+(*	2001.08.04	g.f.	 made this module a pure interface to xlib,
+						 separated low level Display fumctionality into the new module Displays  *)
 
-IMPORT Trace, Machine, Unix, Modules;
+
+IMPORT Trace, Unix, Modules;
 
 TYPE
 	Pixmap* = ADDRESS;
@@ -260,19 +260,19 @@ VAR
 	ClearWindow-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window );
 	Sync-:					PROCEDURE {C} ( d: DisplayPtr;  discard: LONGINT );
 	Flush-:					PROCEDURE {C} ( d: DisplayPtr );
-	StoreColor-:			PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap;  color: LONGINT );
+	StoreColor-:				PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap;  color: LONGINT );
 	CreateBitmapFromData-:
-							PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;  data: ADDRESS;
+								PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;  data: ADDRESS;
 											width, height: LONGINT ): Pixmap;
 	CopyArea-:				PROCEDURE {C} ( d: DisplayPtr;  src, dest: Drawable;  gc: GC;
 											srcX, srcY, width, height, destX, destY: LONGINT );
-	CopyPlane-:			PROCEDURE {C} ( d: DisplayPtr;  src, dest: Drawable;  gc: GC;
+	CopyPlane-:				PROCEDURE {C} ( d: DisplayPtr;  src, dest: Drawable;  gc: GC;
 											srcX, srcY, width, height, destX, destY, plane: LONGINT );
-	SetStipple-:			PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  stipple: Pixmap );
+	SetStipple-:				PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  stipple: Pixmap );
 	SetTSOrigin-:			PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  tsxorigin, tsyorigin: LONGINT );
-	DrawPoint-:			PROCEDURE {C} ( d: DisplayPtr;  w: Drawable;  gc: GC;  x, y: LONGINT );
+	DrawPoint-:				PROCEDURE {C} ( d: DisplayPtr;  w: Drawable;  gc: GC;  x, y: LONGINT );
 	FillRectangle-:			PROCEDURE {C} ( d: DisplayPtr;  w: Drawable;  gc: GC;  x, y, width, height: LONGINT );
-	DrawString-:			PROCEDURE {C} ( d: DisplayPtr;  w: Drawable;  gc: GC;  x, y, string, length: LONGINT );
+	DrawString-:				PROCEDURE {C} ( d: DisplayPtr;  w: Drawable;  gc: GC;  x, y, string, length: LONGINT );
 	CreateGC-:				PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;  valueMask, values: LONGINT ): GC;
 	SetForeground-,
 	SetBackground-,
@@ -281,12 +281,12 @@ VAR
 	SetFillStyle-:			PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  arg: LONGINT );
 	SetPlaneMask-:			PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  mask: LONGINT );
 	SetGraphicsExposures-:
-							PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  graphicsExposures: Bool );
+								PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  graphicsExposures: Bool );
 	SetLineAttributes-:		PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  lineWidth, lineStyle, capStyle, joinStyle: LONGINT );
 	AllocColorCells-:		PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap;  contig: Bool;  planeMasks: LONGINT;
 											nplanes: LONGINT;  pixels: LONGINT;  ncolors: LONGINT ): LONGINT;
 	SetWindowBackground-:
-							PROCEDURE {C} ( d: DisplayPtr;  w: Window;  pixel: LONGINT );
+								PROCEDURE {C} ( d: DisplayPtr;  w: Window;  pixel: LONGINT );
 	CreateFontCursor-:		PROCEDURE {C} ( d: DisplayPtr;  shape: LONGINT ): Cursor;
 	CreatePixmapCursor-:	PROCEDURE {C} ( d: DisplayPtr;  csource, cmask: Pixmap;
 											cfore, cback, xhot, yhot: LONGINT ): Cursor;
@@ -296,35 +296,35 @@ VAR
 	SetArcMode-:			PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  arcmode: LONGINT );
 	DrawArc-, FillArc-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  gc: GC;
 											x, y, width, height, angle1, angle2: LONGINT );
-	FillPolygon-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window;  gc: GC;
+	FillPolygon-:				PROCEDURE {C} ( d: DisplayPtr;  w: Window;  gc: GC;
 											points, npoints, shape, mode: LONGINT );
 	SetClipMask-:			PROCEDURE {C} ( d: DisplayPtr;  gc: GC;  clipMask: Pixmap );
-	SetClipRectangles-:		PROCEDURE {C} ( d: DisplayPtr;  gc: GC;
+	SetClipRectangles-:	PROCEDURE {C} ( d: DisplayPtr;  gc: GC;
 											clipxorigin, clipyorigin, rectangles, n, ordering: LONGINT );
 	ListFonts-:				PROCEDURE {C} ( d: DisplayPtr;  pattern, maxnames: LONGINT;
 											VAR count: LONGINT ): LONGINT;
 	FreeFontNames-:		PROCEDURE {C} ( list: LONGINT );
 	LoadFont-:				PROCEDURE {C} ( d: DisplayPtr;  name: ADDRESS ): LONGINT;
-	SelectInput-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window;  eventMask: LONGINT );
-	NextEvent-:			PROCEDURE {C} ( d: DisplayPtr;  VAR event: Event );
-	EventsQueued-:		PROCEDURE {C} ( d: DisplayPtr;  mode: LONGINT ): LONGINT;
+	SelectInput-:				PROCEDURE {C} ( d: DisplayPtr;  w: Window;  eventMask: LONGINT );
+	NextEvent-:				PROCEDURE {C} ( d: DisplayPtr;  VAR event: Event );
+	EventsQueued-:			PROCEDURE {C} ( d: DisplayPtr;  mode: LONGINT ): LONGINT;
 	SetInputFocus-:			PROCEDURE {C} ( d: DisplayPtr;  focus: Window;  revertTo: LONGINT;  time: LONGINT );
 	LookupString-:			PROCEDURE {C} ( VAR event: Event;  VAR buf: Buffer;  bufsize: LONGINT;  VAR keysym: KeySym;
 											VAR cstat: ComposeStatus ): LONGINT;
 	QueryPointer-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window;  VAR rw, cw: Window;
 											VAR xr, yr, xw, yw: LONGINT; VAR keysButtons: SET );
 	RefreshKeyboardMapping-:
-							PROCEDURE {C} ( event: LONGINT );
-	Bell-:					PROCEDURE {C} ( d: DisplayPtr;  percent: LONGINT );
-	RebindKeysym-:			PROCEDURE {C} ( d: DisplayPtr;  reboundsym: KeySym;  VAR modlist: Modifiers;
+								PROCEDURE {C} ( event: LONGINT );
+	Bell-:						PROCEDURE {C} ( d: DisplayPtr;  percent: LONGINT );
+	RebindKeysym-:		PROCEDURE {C} ( d: DisplayPtr;  reboundsym: KeySym;  VAR modlist: Modifiers;
 											modlength: LONGINT;  newstring: ADDRESS;  newlength: LONGINT );
 	StringToKeysym-:		PROCEDURE {C} ( string: ADDRESS ): KeySym;
 	CopyColormapAndFree-:
-							PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap ): Colormap;
+								PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap ): Colormap;
 	CreateColormap-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  vis: VisualPtr; alloc: LONGINT ): Colormap;
 	MatchVisualInfo-:		PROCEDURE {C} ( d: DisplayPtr;  screen, depth, class: LONGINT; VAR vinfo: VisualInfo ): LONGINT;
 	SetWindowColormap-:
-							PROCEDURE {C} ( d: DisplayPtr;  w: Window;  cmap: Colormap );
+								PROCEDURE {C} ( d: DisplayPtr;  w: Window;  cmap: Colormap );
 	QueryBestSize-:		PROCEDURE {C} ( d: DisplayPtr;  class: LONGINT;
 											screen: Drawable;  width, height: LONGINT;  VAR w, h: LONGINT );
 	CreatePixmap-:			PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;
@@ -344,59 +344,38 @@ VAR
 	PutPixel-:				PROCEDURE {C} ( image: Image;  x, y, pixel: LONGINT ): LONGINT;
 	GetPixel-:				PROCEDURE {C} ( image: Image;  x, y: LONGINT ): LONGINT;
 	AddPixel-:				PROCEDURE {C} ( image: Image;  value: LONGINT );
-	Free-:					PROCEDURE {C} ( data: LONGINT );
+	Free-:						PROCEDURE {C} ( data: LONGINT );
 (*	SetErrorHandler-:		PROCEDURE {C} ( handler: ErrorHandler );	*)
 	GetErrorText-:			PROCEDURE {C} ( d: DisplayPtr;  errcode: LONGINT; VAR buf: Buffer; length: LONGINT );
-	StoreBytes-:			PROCEDURE {C} ( d: DisplayPtr;  bytes, nbytes: LONGINT );
+	StoreBytes-:				PROCEDURE {C} ( d: DisplayPtr;  bytes, nbytes: LONGINT );
 	FetchBytes-:			PROCEDURE {C} ( d: DisplayPtr;  VAR nbytes: LONGINT ): LONGINT;
 	SetSelectionOwner-:	PROCEDURE {C} ( d: DisplayPtr;  selection: Atom;  owner: Window;  time: Time );
 	GetSelectionOwner-:	PROCEDURE {C} ( d: DisplayPtr;  selection: Atom ): Window;
-	InternAtom-:			PROCEDURE {C} ( d: DisplayPtr;  name: LONGINT;  onlyifexists: Bool ): Atom;
-	SendEvent-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window;  propagate: Bool;
+	InternAtom-:				PROCEDURE {C} ( d: DisplayPtr;  name: LONGINT;  onlyifexists: Bool ): Atom;
+	SendEvent-:				PROCEDURE {C} ( d: DisplayPtr;  w: Window;  propagate: Bool;
 											eventmask, event: LONGINT );
 	ConvertSelection-:		PROCEDURE {C} ( d: DisplayPtr;  selection, target, property: Atom;
 											requestor: Window;  timestamp: Time );
 	ChangeProperty-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  property, typ: Atom;
 											format, mode, data, nelements: LONGINT );
 	GetWindowProperty-:
-							PROCEDURE {C} ( d: DisplayPtr;  w: Window;  property: Atom;
+								PROCEDURE {C} ( d: DisplayPtr;  w: Window;  property: Atom;
 											offset, length: LONGINT;  delete: Bool;  reqtype: Atom;  VAR typ: Atom;
 											VAR format, nitems, bytesafter: LONGINT;  VAR prop: ADDRESS );
-	DeleteProperty-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  property: Atom );
+	DeleteProperty-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window;  property: Atom );
 	WarpPointer-:			PROCEDURE {C} ( d: DisplayPtr;  srcwin, dstwin: Window;
 											srcx, srcy, srcw, srch, dstx, dsty: LONGINT );
 	InstallColormap-:		PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap );
 	GetGeometry-:			PROCEDURE {C} ( d: DisplayPtr;  drawable: Drawable;
 											VAR root, x, y, width, height, orderWidth, Depth: LONGINT );
-	ResizeWindow-:		PROCEDURE {C} ( d: DisplayPtr;  w: Window;  x, y: LONGINT );
+	ResizeWindow-:			PROCEDURE {C} ( d: DisplayPtr;  w: Window;  x, y: LONGINT );
 	Synchronize-:			PROCEDURE {C} ( d: DisplayPtr;  onoff: LONGINT );
 	AllocColor-:				PROCEDURE {C} ( d: DisplayPtr;  cmap: Colormap;  color: LONGINT ): LONGINT;
 (*	SetIOErrorHandler-:		PROCEDURE {C} ( handler: IOErrorHandler );	*)
 
-	(* X11Ext *)
-	ShmQueryVersion-:		PROCEDURE {C} ( d: DisplayPtr;
-											VAR major, minor: LONGINT;  VAR pixmaps: LONGINT ): LONGINT;
-	ShmPixmapFormat-:	PROCEDURE {C} ( d: DisplayPtr ): LONGINT;
-	ShmAttach-:			PROCEDURE {C} ( d: DisplayPtr;  xshmsegmentinfo: LONGINT ): LONGINT;
-	ShmDetach-:			PROCEDURE {C} ( d: DisplayPtr;  xshmsegmentinfo: LONGINT ): LONGINT;
-	ShmPutImage-:			PROCEDURE {C} ( d: DisplayPtr;  drawable,
-											gc, image, srcX, srcY, dstX, dstY, width, height, event: LONGINT ): LONGINT;
-	ShmGetImage-:			PROCEDURE {C} ( d: DisplayPtr;  drawable, image, x, y, planeMask: LONGINT ): LONGINT;
-	ShmCreateImage-:		PROCEDURE {C} ( d: DisplayPtr;  visual, depth, format, data, shminfo, width, height: LONGINT ): LONGINT;
-	ShmCreatePixmap-:		PROCEDURE {C} ( d: DisplayPtr;  drawable, data, shminfo, width, height, depth: LONGINT ): LONGINT;
-
 	InitXErrorHandlers-:		PROCEDURE {C} ( eh: ErrorHandler; ioeh: IOErrorHandler );
 
-	PROCEDURE Lock*;
-	BEGIN
-		Machine.Acquire( Machine.X11 )
-	END Lock;
 
-
-	PROCEDURE Unlock*;
-	BEGIN
-		Machine.Release( Machine.X11 )
-	END Unlock;
 
 	PROCEDURE LinkToX;
 	VAR xlib: LONGINT;
@@ -513,21 +492,6 @@ VAR
 		Unix.Dlsym( xlib, "XResizeWindow", ADDRESSOF( ResizeWindow ) );
 		Unix.Dlsym( xlib, "XSynchronize", ADDRESSOF( Synchronize ) );
 		Unix.Dlsym( xlib, "XAllocColor", ADDRESSOF( AllocColor ) );
-
-		xlib := Unix.Dlopen( Unix.libXextname, 2 );
-		IF xlib = 0 THEN  (* try default version *)
-			xlib := Unix.Dlopen( "libXext.so", 2 )
-		END;
-		IF xlib = 0 THEN  Trace.StringLn( "X11.LinkToX:  Unix.Dlopen( libXext.so ) failed " )  END;
-
-		Unix.Dlsym( xlib, "XShmQueryVersion", ADDRESSOF( ShmQueryVersion ) );
-		Unix.Dlsym( xlib, "XShmPixmapFormat", ADDRESSOF( ShmPixmapFormat ) );
-		Unix.Dlsym( xlib, "XShmAttach", ADDRESSOF( ShmAttach ) );
-		Unix.Dlsym( xlib, "XShmDetach", ADDRESSOF( ShmDetach ) );
-		Unix.Dlsym( xlib, "XShmPutImage", ADDRESSOF( ShmPutImage ) );
-		Unix.Dlsym( xlib, "XShmGetImage", ADDRESSOF( ShmGetImage ) );
-		Unix.Dlsym( xlib, "XShmCreateImage", ADDRESSOF( ShmCreateImage ) );
-		Unix.Dlsym( xlib, "XShmCreatePixmap", ADDRESSOF( ShmCreatePixmap ) );
 	END LinkToX;
 
 	PROCEDURE MyErrorHandler( d: DisplayPtr;  err: ErrorEventPtr; p3, p4: LONGINT ): LONGINT;
@@ -549,6 +513,7 @@ VAR
 
 BEGIN
 	ioErrors := 0;  LinkToX;  ErrorFlag := FALSE;
+	
 	(*SetIOErrorHandler( MyIOErrorHandler );*)
 	(*SetErrorHandler( MyErrorHandler );*)
 			(* Oberon procedures cannot be used as callback procedures because of

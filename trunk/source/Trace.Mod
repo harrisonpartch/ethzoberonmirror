@@ -169,6 +169,21 @@ BEGIN
 	UNTIL n = 0
 END Bits;
 
+PROCEDURE Set*(x: SET);
+VAR first: BOOLEAN; i: LONGINT;
+BEGIN
+	first := TRUE;
+	Char("{");
+	FOR i := 0 TO MAX(SET) DO
+		IF i IN x THEN
+			IF ~first THEN Char(",") ELSE first := FALSE END;
+			Int(i,1);
+		END;
+	END;
+	Char("}");
+END Set;
+
+
 (** Colors *)
 PROCEDURE Blue*;
 BEGIN Color (9);

@@ -858,6 +858,7 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
+			SetGenerator("WMV24Component.NewTerminalComponent");
 			NEW(timer); NEW(lock);
 			NEW(settings); settings.Load;
 			CreateContent;
@@ -1454,6 +1455,12 @@ VAR window : Window;
 BEGIN
 	NEW(window, NIL, context);
 END Open;
+
+PROCEDURE NewTerminalComponent*(): XML.Element;
+VAR component: TerminalComponent;
+BEGIN NEW(component); RETURN component;
+END NewTerminalComponent;
+
 
 PROCEDURE IncCount;
 BEGIN {EXCLUSIVE}

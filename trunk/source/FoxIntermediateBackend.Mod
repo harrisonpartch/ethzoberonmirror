@@ -1495,6 +1495,7 @@ TYPE
 				type := entry.type;
 				class := entry.registerClass;
 				IntermediateCode.InitRegister(op,type,class,entry.register);
+				(*
 				new := registerUsageCount.Next(type,class);
 				registerUsageCount.Remap(entry.register,new);
 				IF TraceRegisterUsageCount & (dump# NIL) THEN
@@ -1503,7 +1504,8 @@ TYPE
 					dump.String("with count "); dump.Int(registerUsageCount.Use(new),1); dump.Ln; dump.Update;
 				END;
 				entry.register := new;
-
+				*)
+				
 				Emit(Pop(position,op));
 				AddRegisterEntry(usedRegisters,entry.register,entry.registerClass, entry.type);
 				entry := prev;
@@ -3315,13 +3317,16 @@ TYPE
 				*)
 				END;
 
-				length := ArrayLength(type(SyntaxTree.ArrayType),array.dimOffset+i,array.tag);
-				IF ((length.mode # IntermediateCode.ModeImmediate) OR (index.op.mode # IntermediateCode.ModeImmediate)) & tagsAvailable THEN
-					BoundCheck(index.op, length);
+				IF (array.tag.mode # IntermediateCode.Undefined ) THEN
+					length := ArrayLength(type(SyntaxTree.ArrayType),array.dimOffset+i,array.tag);
+					IF ((length.mode # IntermediateCode.ModeImmediate) OR (index.op.mode # IntermediateCode.ModeImmediate)) & tagsAvailable THEN
+						BoundCheck(index.op, length);
+					END;
+					ReleaseIntermediateOperand(length);
 				END;
-				ReleaseIntermediateOperand(length);
 				ReleaseOperand(index);
 				type := type(SyntaxTree.ArrayType).arrayBase.resolved;
+				
 				length := ArrayLength(type,array.dimOffset+i-1,array.tag);
 				IF (length.mode # IntermediateCode.ModeImmediate) OR (length.intValue # 1) THEN
 					MulInt(res,res,length);
@@ -5013,10 +5018,12 @@ TYPE
 
 			PROCEDURE Set(op: IntermediateCode.Operand);
 			BEGIN
-				IF GetProcedure("Bits") THEN
+				IF GetProcedure("Set") THEN
 					Emit(Push(position,op));
+					(*
 					Emit(Push(position,IntermediateCode.Immediate(int32,0))); (* ofs *)
 					Emit(Push(position,IntermediateCode.Immediate(int32,32))); (* n *)
+					*)
 					CallProcedure;
 				END;
 			END Set;
@@ -5124,8 +5131,8 @@ TYPE
 		END SystemTrace;
 
 		PROCEDURE InitFields(type: SyntaxTree.Type; CONST adr: IntermediateCode.Operand; offset: LONGINT);
-		VAR baseType: SyntaxTree.Type; imm: IntermediateCode.Operand; dim,size: LONGINT;
-			variable: SyntaxTree.Variable; i: LONGINT;
+		VAR baseType: SyntaxTree.Type; imm,mem: IntermediateCode.Operand; dim,size: LONGINT;
+			variable: SyntaxTree.Variable; i: LONGINT; initializerOp: Operand;
 		BEGIN
 			type := type.resolved;
 			IF type IS SyntaxTree.RecordType THEN
@@ -5138,6 +5145,13 @@ TYPE
 					END;
 					variable := type.recordScope.firstVariable;
 					WHILE variable # NIL DO
+						IF variable.initializer # NIL THEN
+							Evaluate(variable.initializer,initializerOp);
+							MakeMemory(mem,adr,IntermediateCode.GetType(system,variable.type),offset+ ToMemoryUnits(system,variable.offsetInBits));
+							Emit(Mov(position,mem,initializerOp.op));
+							ReleaseOperand(initializerOp);
+							ReleaseIntermediateOperand(mem);
+						END;					
 						InitFields(variable.type, adr, offset+ ToMemoryUnits(system,variable.offsetInBits));
 						variable := variable.nextVariable
 					END;
@@ -6762,7 +6776,11 @@ TYPE
 			ELSIF type IS SyntaxTree.ArrayType THEN
 				IF isUnsafe THEN
 					ReleaseIntermediateOperand(operand.tag);
-					IntermediateCode.InitImmediate(operand.tag,addressType,type(SyntaxTree.ArrayType).staticLength);
+					IF type(SyntaxTree.ArrayType).form = SyntaxTree.Static THEN
+						IntermediateCode.InitImmediate(operand.tag,addressType,type(SyntaxTree.ArrayType).staticLength);
+					ELSE
+						operand.tag := emptyOperand;
+					END;
 				ELSE
 					arrayDataOffset := DynamicDim(type) * addressType.sizeInBits + 3 * addressType.sizeInBits;
 					INC(arrayDataOffset, (-arrayDataOffset) MOD ArrayAlignment);  (* round up to multiple of ArrayAlignment to ensure that first array element is aligned at 0 MOD ArrayAlignment *)
