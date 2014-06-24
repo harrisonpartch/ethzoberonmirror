@@ -42,13 +42,13 @@ CONST
 
 TYPE
 	ObjHeader = RECORD  (* data in object file header *)
-				entries		: LONGINT;
+				entries			: LONGINT;
 				commands	: LONGINT;
 				pointers		: LONGINT;
 				types			: LONGINT;
 				modules		: LONGINT;
 				links			: LONGINT;
-				dataLinks	: LONGINT;
+				dataLinks		: LONGINT;
 				refSize, codeSize, dataSize, constSize	: LONGINT;
 				exTableLen	: LONGINT;
 				procs			: LONGINT;
@@ -84,28 +84,10 @@ TYPE
 VAR
 	lastMod: Modules.Module;
 
-	KernelRoutines: ARRAY 11 OF RECORD
-				name: Modules.Name;
-				adr: ADDRESS
-			END;
-	
 	dlsymAdr-, entrypoint-: ADDRESS;
 	
 	error: Streams.Writer;
 	
-
-	PROCEDURE GetHeapRoutines( m: Modules.Module );
-	VAR i: LONGINT;
-	BEGIN
-		FOR i := 0 TO 2 DO  KernelRoutines[i].adr := Modules.ProcByName( KernelRoutines[i].name, m )  END
-	END GetHeapRoutines;
-
-
-	PROCEDURE GetObjectRoutines( m: Modules.Module );
-	VAR i: LONGINT;
-	BEGIN
-		FOR i := 3 TO 9 DO  KernelRoutines[i].adr := Modules.ProcByName( KernelRoutines[i].name, m )  END
-	END GetObjectRoutines;
 
 
 	PROCEDURE TreatGlue( m: Modules.Module );
@@ -125,13 +107,6 @@ VAR
 			error.String( "### 'PtrElemDesc' not found in module Glue" );  error.Ln;
 		END
 	END TreatGlue;
-	
-	
-	PROCEDURE TreatModules*( m: Modules.Module );
-	BEGIN
-		Modules.TreatModules( m );
-		KernelRoutines[10].adr := Modules.ProcByName( KernelRoutines[10].name, m )	
-	END TreatModules;
 	
 (*! ============================================================= end *)
 	
@@ -696,7 +671,7 @@ VAR
 							caseTableSize: LONGINT;
 							VAR res: LONGINT );
 	VAR 
-		codeadr: ADDRESS;  i, ii: LONGINT;
+		codeadr: ADDRESS;  i: LONGINT;
 
 		PROCEDURE FixRelative( ofs: SIZE;  val: ADDRESS );
 		VAR t: SIZE;  adr: ADDRESS;
@@ -736,8 +711,7 @@ VAR
 		FOR i := 0 TO LEN( link ) - 1 DO
 			ASSERT( link[i].mod = 0 );   (* only fix local things *)
 			CASE link[i].entry OF
-			| 243..253:
-					ii := 253 - link[i].entry;  FixRelative( link[i].link, KernelRoutines[ii].adr )
+			| 243 .. 253: HALT(100);	(* not supported any more, replaced by direct call *)
 			| 254:   FixEntry( link[i].link, fixupCounts ) (* local procedure address *)
 			| 255:   FixCase( link[i].link, caseTableSize ) (* case table *)
 			ELSE
@@ -983,9 +957,7 @@ VAR
 				THEN
 (*! begin =============================================================*)
 					IF m.name = "Glue" THEN  TreatGlue( m )
-					ELSIF m.name = "Heaps" THEN  GetHeapRoutines( m )
-					ELSIF m.name = "Modules" THEN  TreatModules( m ); 
-					ELSIF m.name = "Objects" THEN  GetObjectRoutines( m )
+					ELSIF m.name = "Modules" THEN  Modules.FixupTypes( m ); 
 					ELSIF m.name = "BootConsole" THEN  entrypoint := ADDRESSOF( m.code[0] )
 					END;
 (*! ============================================================= end *)
@@ -1037,31 +1009,11 @@ VAR
 		RETURN m
 	END Load; 
 	
-	
-	PROCEDURE InitKernelRoutines;
-	VAR i: LONGINT;
-	BEGIN
-		FOR i := 0 TO 10 DO  KernelRoutines[i].adr := 0  END;
-		KernelRoutines[0].name := "NewRec";
-		KernelRoutines[1].name := "NewSys";
-		KernelRoutines[2].name := "NewArr";
-		KernelRoutines[3].name := "CreateProcess";
-		KernelRoutines[4].name := "Await";
-		KernelRoutines[5].name := "";
-		KernelRoutines[6].name := "Lock";
-		KernelRoutines[7].name := "Unlock";
-		KernelRoutines[8].name := "";
-		KernelRoutines[9].name := "";
-		KernelRoutines[10].name := "GetProcedure";
-	END InitKernelRoutines;
 
 
 	PROCEDURE Initialize*( w: Streams.Writer );
 	BEGIN
-		error := w;
-		
-		InitKernelRoutines;
-		
+		error := w;		
 		dlsymAdr := 0;  entrypoint := 0
 	END Initialize;
 	

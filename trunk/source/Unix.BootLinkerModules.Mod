@@ -93,31 +93,31 @@ TYPE
 
 	Module* = OBJECT(Heaps.RootObject)
 			VAR
-				next*		: Module;
+				next*			: Module;
 				name*		: Name;
-				init*		: BOOLEAN;
+				init*			: BOOLEAN;
 				published*	: BOOLEAN;
 				refcnt*		: LONGINT;
 				sb*	 		: ADDRESS;
 			
-				entry*		: POINTER TO ARRAY OF ADDRESS;
+				entry*			: POINTER TO ARRAY OF ADDRESS;
 				command*	: POINTER TO ARRAY OF Command;
 				ptrAdr*		: POINTER TO ARRAY OF ADDRESS;
-				typeInfo*	: POINTER TO ARRAY OF TypeDesc;
-				module*	: POINTER TO ARRAY OF Module;
+				typeInfo*		: POINTER TO ARRAY OF TypeDesc;
+				module*		: POINTER TO ARRAY OF Module;
 
 				procTable*	: ProcTable; (* information inserted by loader, removed after use in Publish *)
-				ptrTable*	: PtrTable;  (* information inserted by loader, removed after use in Publish *)
+				ptrTable*		: PtrTable;  (* information inserted by loader, removed after use in Publish *)
 
 				data*, code*, staticTypeDescs*, refs*: Bytes;
 
 				export*		: ExportDesc;
-				term*		: TermHandler;
-				exTable*	: ExceptionTable;
-				noProcs*	: LONGINT;
-				firstProc	*	: ADDRESS;   (* procedure with lowest PC in module *)
-				maxPtrs	*	: LONGINT;
-				crc*		: LONGINT
+				term*			: TermHandler;
+				exTable*		: ExceptionTable;
+				noProcs*		: LONGINT;
+				firstProc*		: ADDRESS;   (* procedure with lowest PC in module *)
+				maxPtrs*	:	 LONGINT;
+				crc*			: LONGINT
 			END Module;
 
 	
@@ -143,7 +143,7 @@ VAR
 	PROCEDURE MakeTD;
 		(* create temporary type tags which are needed for loading the  *)
 		(* first modules (up to module Modules). When Modules has been  *)
-		(* loaded they got replaced by the proper type tags (cf. TreatModules) *)
+		(* loaded they got replaced by the proper type tags (cf. FixupTypes) *)
 	VAR 
 		exp: ExportPtr;  mod: Module;
 		ptr: POINTER TO RECORD a: ANY  END; 
@@ -155,23 +155,21 @@ VAR
 		NEW( ptr );  S.GET( S.VAL( ADDRESS, ptr ) - AddrSize, ptrElemTag );
 	END MakeTD;
 
-
+	PROCEDURE PatchExport( VAR scope: ExportDesc;  tag: ADDRESS );
+	VAR i: LONGINT;  t: ADDRESS;
+	BEGIN
+		S.GET( S.VAL( ADDRESS, scope.dsc ) - AddrSize, t );
+		IF t # tag THEN
+			S.PUT( S.VAL( ADDRESS, scope.dsc ) - AddrSize, tag );  i := 0;
+			WHILE i < scope.exports DO
+				IF scope.dsc[i].exports > 0 THEN  PatchExport( scope.dsc[i], tag )  END;
+				INC( i )
+			END
+		END
+	END PatchExport;
+		
 	PROCEDURE FixTypeDescs( m: Module );
 	VAR i: LONGINT; 
-		
-		PROCEDURE PatchExport( VAR scope: ExportDesc;  tag: ADDRESS );
-		VAR i: LONGINT;  t: ADDRESS;
-		BEGIN
-			S.GET( S.VAL( ADDRESS, scope.dsc ) - AddrSize, t );
-			IF t # tag THEN
-				S.PUT( S.VAL( ADDRESS, scope.dsc ) - AddrSize, tag );  i := 0;
-				WHILE i < scope.exports DO
-					IF scope.dsc[i].exports > 0 THEN  PatchExport( scope.dsc[i], tag )  END;
-					INC( i )
-				END
-			END
-		END PatchExport;
-	
 	BEGIN
 		S.PUT( S.VAL( ADDRESS, m.typeInfo ) - AddrSize, ptrElemTag + 2(*ArrayBit*) );
 		FOR i := 0 TO LEN( m.typeInfo ) -1 DO
@@ -186,24 +184,25 @@ VAR
 	END FixTypeDescs;
 
 	
-	PROCEDURE TreatModules*( m: Module );
-	VAR i, n: LONGINT;  name: Name;  x: Module;
+	PROCEDURE FixupTypes*( mod: Module );
+	VAR i, n: LONGINT;  name: Name;  m: Module;
 	BEGIN
+		ASSERT( mod.name = "Modules" );
 		n := 0;
-		FOR i := 0 TO LEN( m.typeInfo ) - 1 DO
-			name := m.typeInfo[i].name;
-			IF name = "TypeDesc" THEN  tdTag := m.typeInfo[i].tag;  INC( n )  END;
-			IF name = "Module" THEN  modTag := m.typeInfo[i].tag;  INC( n )  END;
-			IF name = "ExportDesc" THEN  expTag := m.typeInfo[i].tag;  INC( n )  END;
+		FOR i := 0 TO LEN( mod.typeInfo ) - 1 DO
+			name := mod.typeInfo[i].name;
+			IF name = "TypeDesc" THEN  tdTag := mod.typeInfo[i].tag;  INC( n )  END;
+			IF name = "Module" THEN  modTag := mod.typeInfo[i].tag;  INC( n )  END;
+			IF name = "ExportDesc" THEN  expTag := mod.typeInfo[i].tag;  INC( n )  END;
 		END;
 		IF n # 3 THEN
 			error.Ln;
 			error.String( "### not all expected types found in module 'Modules'" );  error.Ln;
 		END;
 		
-		x := root;
-		WHILE x # NIL DO  FixTypeDescs( x );  x := x.next  END;
-	END TreatModules;
+		m := root;
+		WHILE m # NIL DO  FixTypeDescs( m );  m := m.next  END;
+	END FixupTypes;
 	
 (*! ============================================================= end *)	
 	
