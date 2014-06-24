@@ -268,6 +268,8 @@ CONST
 	bRequestOwnership = {24};
 	USBCapabilityID = 01H; (* Capability ID of USB Legacy Support Extended Capability *)
 
+	Polling = FALSE;
+
 TYPE
 
 	EnhancedHostController = OBJECT (UsbHcdi.Hcd)
@@ -1184,6 +1186,8 @@ TYPE
 			RETURN TRUE;
 		END CreateTDList;
 
+
+
 		PROCEDURE InterruptHandler;
 		VAR s  : SET;
 		BEGIN (* Works without being exclusive *)
@@ -1587,11 +1591,33 @@ TYPE
 	  	 *)
 		PROCEDURE Start():BOOLEAN;
 		VAR dword : SET;
+		TYPE 
+			IRQPoller = OBJECT (* support polling i/o IRQ -- for testing *)
+				VAR handler: PROCEDURE {DELEGATE}; timer: Kernel.Timer;
+				
+				PROCEDURE & Init* (h: PROCEDURE {DELEGATE});
+				BEGIN
+					handler := h;
+					NEW(timer); 
+				END Init;
+				
+			BEGIN{ACTIVE}
+				LOOP
+					handler();
+					timer.Sleep(1);
+				END;
+			END IRQPoller;
+		VAR is: IRQPoller;
 		BEGIN
 			IF Debug.Trace & Debug.traceInit THEN KernelLog.String("UsbEhci: Starting host controller... "); KernelLog.Ln; END;
 			(* Enable Interrupts *)
 			SetState(UsbHcdi.Initialized);
-			Objects.InstallHandler(InterruptHandler, Machine.IRQ0+irq);
+			
+			IF Polling THEN
+				NEW(is, InterruptHandler)
+			ELSE
+				Objects.InstallHandler(InterruptHandler, Machine.IRQ0+irq);
+			END;
 
 			(* Enable all interrupts except the frame list rollover interrupt *)
 			dword := SYSTEM.VAL(SET, SYSTEM.GET32(iobase + HcUsbIntr));
@@ -1802,7 +1828,7 @@ TYPE
 		END Show;
 
 	END EnhancedHostController;
-
+		
 PROCEDURE Indent(spaces : LONGINT);
 VAR i : LONGINT;
 BEGIN
@@ -2214,7 +2240,12 @@ VAR
 	pciCmdStsReg, sbrn  : LONGINT;
 	index : LONGINT;
 	res: LONGINT;
+	
+
+	
 BEGIN
+
+
 	IF Debug.Trace & Debug.traceInit THEN KernelLog.String("UsbEhci: Looking for PCI Enhanced USB Host Controllers..."); KernelLog.Ln; END;
 	(* Traverse all USB EHCI Host Controllers of all PCI busses in the system *)
 	index := 0;
@@ -2286,6 +2317,7 @@ END Cleanup;
 PROCEDURE Install*;
 (* Load module *)
 END Install;
+
 
 BEGIN
 	Modules.InstallTermHandler(Cleanup);

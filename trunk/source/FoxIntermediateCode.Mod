@@ -792,7 +792,7 @@ TYPE
 		(* label - pseudo-instruction to reference back to source code positions *)
 		AddFormat(label, "label",Num,Undef,Undef,{});
 		(* special instruction support for backend addtions *)
-		AddFormat(special,"special",Str, Any, Any, {} );
+		AddFormat(special,"special",Any, Any, Any, {} );
 	END InitInstructions;
 
 	PROCEDURE InitInstruction*(VAR instr: Instruction; textPosition: LONGINT; opcode: SHORTINT; op1,op2,op3: Operand);
