@@ -28,7 +28,7 @@ CONST
 	
 	MaxMarkDepth = 8000;
 
-	ThruputBarrier = Machine.MemBlockSize * 2;
+	ThruputBarrier = Machine.MemBlockSize;
 
 	(* ----------------- object finalization ------------------------------*)
 
@@ -115,6 +115,7 @@ VAR
 	noDeferred: LONGINT;
 	
 	heapSize, heapAvailable: SIZE;
+	shrinkDisabled: BOOLEAN;
 
 	thruput:  SIZE;
 	GC* : PROCEDURE;
@@ -504,8 +505,12 @@ VAR
 			
 			IF (freeSize = endBlockAdr - memBlock.beginBlockAdr)  THEN
 				(* whole block is free, unlink it*)
-				Machine.FreeMemBlock( memBlock );
-				heapSize := GetHeapSize();
+				IF shrinkDisabled THEN
+					Recycle( freeBlock, freeSize ); (* last collected block: *)
+				ELSE 
+					Machine.FreeMemBlock( memBlock );
+					heapSize := GetHeapSize()
+				END
 			ELSIF freeSize > 0 THEN
 				Recycle( freeBlock, freeSize ); (* last collected block: *)
 			END;
@@ -1039,6 +1044,7 @@ VAR
 	VAR adr2: ADDRESS;
 		block, tag: ADDRESS;  frBlock:FreeBlock;
 		n: LONGINT;
+		str: ARRAY 32 OF CHAR;
 	BEGIN
 		n := 0;
 		block := Machine.memBlockHead.beginBlockAdr;
@@ -1056,11 +1062,17 @@ VAR
 		ClearFreeLists;
 		freeLists[MaxFreeLists].first := S.VAL( FreeBlock, block );
 		
-		Machine.ExpandHeap( 0, 4*Machine.MemBlockSize - 2*BlockSize, S.VAL( ADDRESS, frBlock ), adr2 );
+		Machine.ExpandHeap( 0, 3*Machine.MemBlockSize - 2*BlockSize, S.VAL( ADDRESS, frBlock ), adr2 );
 		IF frBlock # NIL  THEN  freeLists[MaxFreeLists].first.next := frBlock  END;
 
 		heapSize := GetHeapSize();
-		heapAvailable := Available()
+		heapAvailable := Available();
+		
+		Machine.GetConfig( "DisableShrinkHeap", str );
+		shrinkDisabled := str[0] = '1';
+		IF shrinkDisabled THEN
+			Trace.StringLn( "#### Heap shrinking disabled" );
+		END
 	END InitHeap;
 
 

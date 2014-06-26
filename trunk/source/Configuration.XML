@@ -56,163 +56,163 @@ To update: Configuration.Init ~
 		<!-- Pinyin Input Method Editor (remove comment to activate)
 			<Setting value="WMPinyinIME.Test"/>
 		-->
-			
-			
-		<!-- Setting name="Tasklist" value="WMNavigate.Open -vs 1 0 0 Navigation:TaskList"/-->
-			
-			
+
+		<!-- Setting name="Tasklist" value="WMNavigate.Open -vs 1 0 0 Navigation:TaskList"/--> 
 		<!-- Setting name="Hotkey support" value="HotKeys.Open"/ -->
-			
-			
 		<!-- Setting name="Hardware Detection" value="PCITools.DetectHardware"/-->
+	</Section>
+
+<!-- WindowManager -->
+
+	<Section name="WindowManager">
+		<Section name="FontManager">
+			<Section name="DefaultFont">
+				<Setting name="Name" value="Oberon"/>
+				<Setting name="Size" value="12"/>
 			</Section>
-		
-	<!-- WindowManager -->
-		
-		<Section name="WindowManager">
-			<Section name="FontManager">
-				<Section name="DefaultFont">
-					<Setting name="Name" value="Oberon"/>
-					<Setting name="Size" value="12"/>
+			<Section name="FontLoaders">
+				<Section name="OberonFonts">
+					<Setting name="Exact" value="WMOberonFonts.LoadExactFont"/>
+					<Setting name="Approximate" value="WMOberonFonts.LoadApproximateFont"/>
 				</Section>
-				<Section name="FontLoaders">
-					<Section name="OberonFonts">
-						<Setting name="Exact" value="WMOberonFonts.LoadExactFont"/>
-						<Setting name="Approximate" value="WMOberonFonts.LoadApproximateFont"/>
-					</Section>
-					<Section name="BitmapFonts">
-						<Setting name="Exact" value="WMBitmapFont.LoadExactFont"/>
-						<Setting name="Approximate" value="WMBitmapFont.LoadApproximateFont"/>
-					</Section>
-					<Section name="CCGFonts">
-						<Setting name="Exact" value="WMCCGFonts.LoadExactFont"/>
-						<Setting name="Approximate" value="WMCCGFonts.LoadApproximateFont"/>
-					</Section>
-					<Section name="OTFonts">
-						<Setting name="Exact" value="WMOTFonts.LoadExactFont"/>
-						<Setting name="Approximate" value="WMOTFonts.LoadApproximateFont"/>
-					</Section>
+				<Section name="BitmapFonts">
+					<Setting name="Exact" value="WMBitmapFont.LoadExactFont"/>
+					<Setting name="Approximate" value="WMBitmapFont.LoadApproximateFont"/>
 				</Section>
-			</Section>
-		</Section>
-		
-	<!-- Font formats for GfxFonts.Open -->
-		
-		<Section name="FontFormats">
-			<Setting name="TTF" value="GfxOType.Install"/>
-			<Setting name="pk" value="GfxPKFonts.Install"/>
-		</Section>
-		
-	<!-- TLS Settings -->
-		
-		<Section name="TLS">
-			<Setting name="Certificate" value="bluebottleselfsigned.der"/>
-			<Setting name="pHex" value="00fbe3108714d0f161c79b2fd03eaf8be07b477fbd534a1059d7244513b075700ec6d00cd6c61445932f6439ed31050e6ad43a51f1692e51e3e4691cab3d230ba7"/>
-			<Setting name="qHex" value="00e7e7a06664c5a91c0502a010e2efffdbddf2fb6cbac07116e63c4b2090d1bd1ef1db15619a73cd34a490df9c1c86259bfa2bf71aab5e4f5414d4b9cc2f777d0d"/>
-			<Setting name="eHex" value="10001"/>
-			<Setting name="pLen" value="130"/>
-			<Setting name="qLen" value="130"/>
-			<Setting name="eLen" value="5"/>
-		</Section>
-		
-	<!-- Archives -->
-		
-		<Section name="Archives">
-			<Setting name="tar" value="Tar"/>
-			<Setting name="skin" value="Tar"/>
-			<Setting name="rep" value="Tar"/>
-		</Section>
-		
-	<!-- Codecs -->
-		
-		<Section name="Codecs">
-			<Section name="Multiplexer"/>
-			<Section name="Demultiplexer">
-				<Setting name="AVI" value="AVI.Factory"/>
-				<Setting name="MPG" value="MPEGVideoDecoder.DemuxFactory"/>
-			</Section>
-			<Section name="Encoder">
-				<Section name="Text">
-					<Setting name="Oberon" value="TextUtilities.OberonEncoderFactory"/>
-					<Setting name="BBT" value="TextUtilities.BluebottleEncoderFactory"/>
-					<Setting name="UTF-8" value="TextUtilities.UTF8EncoderFactory"/>
-					<Setting name="HEX" value="TextUtilities.HEXEncoderFactory"/>
-					<Setting name="ISO8859-1" value="TextUtilities.ISO88591EncoderFactory"/>
-					<Setting name="ISO-8859-5" value="CyrillicUtilities.ISO88595EncoderFactory"/>
-					<Setting name="KOI8-R" value="CyrillicUtilities.KOI8REncoderFactory"/>
-					<Setting name="KOI8-U" value="CyrillicUtilities.KOI8UEncoderFactory"/>
-					<Setting name="CP1251" value="CyrillicUtilities.CP1251EncoderFactory"/>
-					<Setting name="CP866" value="CyrillicUtilities.CP866EncoderFactory"/>
+				<Section name="CCGFonts">
+					<Setting name="Exact" value="WMCCGFonts.LoadExactFont"/>
+					<Setting name="Approximate" value="WMCCGFonts.LoadApproximateFont"/>
 				</Section>
-				<Section name="Image">
-					<Setting name="BMP" value="BMPCodec.EncoderFactory"/>
-					<Setting name="GIF" value="GIFCodec.ImageEncoderFactory"/>
-				</Section>
-				<Section name="Video"/>
-				<Section name="Audio">
-					<Setting name="WAV" value="WAVCodec.EncoderFactory"/>
-				</Section>
-				<Section name="Animation"/>
-			</Section>
-			<Section name="Decoder">
-				<Section name="Text">
-					<Setting name="Oberon" value="TextUtilities.OberonDecoderFactory"/>
-					<Setting name="BBT" value="TextUtilities.BluebottleDecoderFactory"/>
-					<Setting name="UTF-8" value="TextUtilities.UTF8DecoderFactory"/>
-					<Setting name="HEX" value="TextUtilities.HEXDecoderFactory"/>
-					<Setting name="ISO8859-1" value="TextUtilities.ISO88591DecoderFactory"/>
-					<Setting name="ISO-8859-5" value="CyrillicUtilities.ISO88595DecoderFactory"/>
-					<Setting name="KOI8-R" value="CyrillicUtilities.KOI8RDecoderFactory"/>
-					<Setting name="KOI8-U" value="CyrillicUtilities.KOI8UDecoderFactory"/>
-					<Setting name="CP1251" value="CyrillicUtilities.CP1251DecoderFactory"/>
-					<Setting name="CP866" value="CyrillicUtilities.CP866DecoderFactory"/>
-				</Section>
-				<Section name="Image">
-					<Setting name="JP2" value="JPEG2000Decoder.Factory"/>
-					<Setting name="PNG" value="PNGDecoder.Factory"/>
-					<Setting name="BMP" value="BMPCodec.DecoderFactory"/>
-					<Setting name="GIF" value="GIFCodec.ImageDecoderFactory"/>
-					<Setting name="JPEG" value="JPEGDecoder.Factory"/>
-					<Setting name="JPG" value="JPEGDecoder.Factory"/>
-					<Setting name="SVG" value="SVGDecoder.Factory"/>
-				</Section>
-				<Section name="Video">
-					<Setting name="DivX" value="DivXDecoder.Factory"/>
-					<Setting name="DIVX" value="DivXDecoder.Factory"/>
-					<Setting name="divx" value="DivXDecoder.Factory"/>
-					<Setting name="MPG" value="MPEGVideoDecoder.DecoderFactory"/>
-				</Section>
-				<Section name="Audio">
-					<Setting name="MP3" value="MP3Decoder.Factory"/>
-					<Setting name="WAV" value="WAVCodec.DecoderFactory"/>
-				</Section>
-				<Section name="Animation">
-					<Setting name="GIF" value="GIFCodec.AnimationDecoderFactory"/>
-					<Setting name="ANI" value="AnimationCodec.GenDecoder"/>
+				<Section name="OTFonts">
+					<Setting name="Exact" value="WMOTFonts.LoadExactFont"/>
+					<Setting name="Approximate" value="WMOTFonts.LoadApproximateFont"/>
 				</Section>
 			</Section>
 		</Section>
-		
-	<!-- IME -->
-		
-		<Section name="IME">
-			<Setting name="Arabic" value="WMArabicIME.Install"/>
-			<Setting name="Russian" value="WMRussianIME.Install"/>
-			<Setting name="Ukrainian" value="WMUkrainianIME.Install"/>
-			<Setting name="Armenian" value="WMArmenianIME.Install"/>
-			<Setting name="Hebrew" value="WMHebrewIME.Install"/>
-			<Setting name="Pinyin" value="WMPinyinIME.Install"/>
-			<Setting name="Unicode" value="WMUnicodeIME.Install"/>
+	</Section>
+
+<!-- Font formats for GfxFonts.Open -->
+
+	<Section name="FontFormats">
+		<Setting name="TTF" value="GfxOType.Install"/>
+		<Setting name="pk" value="GfxPKFonts.Install"/>
+	</Section>
+
+<!-- TLS Settings -->
+
+	<Section name="TLS">
+		<Setting name="Certificate" value="bluebottleselfsigned.der"/>
+		<Setting name="pHex" value="00fbe3108714d0f161c79b2fd03eaf8be07b477fbd534a1059d7244513b075700ec6d00cd6c61445932f6439ed31050e6ad43a51f1692e51e3e4691cab3d230ba7"/>
+		<Setting name="qHex" value="00e7e7a06664c5a91c0502a010e2efffdbddf2fb6cbac07116e63c4b2090d1bd1ef1db15619a73cd34a490df9c1c86259bfa2bf71aab5e4f5414d4b9cc2f777d0d"/>
+		<Setting name="eHex" value="10001"/>
+		<Setting name="pLen" value="130"/>
+		<Setting name="qLen" value="130"/>
+		<Setting name="eLen" value="5"/>
+	</Section>
+
+<!-- Archives -->
+
+	<Section name="Archives">
+		<Setting name="tar" value="Tar"/>
+		<Setting name="skin" value="Tar"/>
+		<Setting name="rep" value="Tar"/>
+	</Section>
+
+<!-- Codecs -->
+
+	<Section name="Codecs">
+
+		<Section name="Multiplexer"/>
+
+		<Section name="Demultiplexer">
+			<Setting name="AVI" value="AVI.Factory"/>
+			<Setting name="MPG" value="MPEGVideoDecoder.DemuxFactory"/>
 		</Section>
-		
-	<!-- Contextual Dependency -->
-		
-		<Section name="Context">
-			<Setting name="Arabic" value="ArabicContext.xml"/>
-			<Setting name="Test" value="TestContext.xml"/>
+
+		<Section name="Encoder">
+			<Section name="Text">
+				<Setting name="Oberon" value="TextUtilities.OberonEncoderFactory"/>
+				<Setting name="BBT" value="TextUtilities.BluebottleEncoderFactory"/>
+				<Setting name="UTF-8" value="TextUtilities.UTF8EncoderFactory"/>
+				<Setting name="HEX" value="TextUtilities.HEXEncoderFactory"/>
+				<Setting name="ISO8859-1" value="TextUtilities.ISO88591EncoderFactory"/>
+				<Setting name="ISO-8859-5" value="CyrillicUtilities.ISO88595EncoderFactory"/>
+				<Setting name="KOI8-R" value="CyrillicUtilities.KOI8REncoderFactory"/>
+				<Setting name="KOI8-U" value="CyrillicUtilities.KOI8UEncoderFactory"/>
+				<Setting name="CP1251" value="CyrillicUtilities.CP1251EncoderFactory"/>
+ 				<Setting name="CP866" value="CyrillicUtilities.CP866EncoderFactory"/>
+			</Section>
+			<Section name="Image">
+				<Setting name="BMP" value="BMPCodec.EncoderFactory"/>
+				<Setting name="GIF" value="GIFCodec.ImageEncoderFactory"/>
+			</Section>
+			<Section name="Video"/>
+			<Section name="Audio">
+				<Setting name="WAV" value="WAVCodec.EncoderFactory"/>
+			</Section>
+			<Section name="Animation"/>
 		</Section>
-		
-	<!-- Filehandler
+
+		<Section name="Decoder">
+			<Section name="Text">
+				<Setting name="Oberon" value="TextUtilities.OberonDecoderFactory"/>
+				<Setting name="BBT" value="TextUtilities.BluebottleDecoderFactory"/>
+				<Setting name="UTF-8" value="TextUtilities.UTF8DecoderFactory"/>
+				<Setting name="HEX" value="TextUtilities.HEXDecoderFactory"/>
+				<Setting name="ISO8859-1" value="TextUtilities.ISO88591DecoderFactory"/>
+				<Setting name="ISO-8859-5" value="CyrillicUtilities.ISO88595DecoderFactory"/>
+				<Setting name="KOI8-R" value="CyrillicUtilities.KOI8RDecoderFactory"/>
+				<Setting name="KOI8-U" value="CyrillicUtilities.KOI8UDecoderFactory"/>
+				<Setting name="CP1251" value="CyrillicUtilities.CP1251DecoderFactory"/>
+				<Setting name="CP866" value="CyrillicUtilities.CP866DecoderFactory"/>
+			</Section>
+			<Section name="Image">
+				<Setting name="JP2" value="JPEG2000Decoder.Factory"/>
+				<Setting name="PNG" value="PNGDecoder.Factory"/>
+				<Setting name="BMP" value="BMPCodec.DecoderFactory"/>
+				<Setting name="GIF" value="GIFCodec.ImageDecoderFactory"/>
+				<Setting name="JPEG" value="JPEGDecoder.Factory"/>
+				<Setting name="JPG" value="JPEGDecoder.Factory"/>
+				<Setting name="SVG" value="SVGDecoder.Factory"/>
+			</Section>
+			<Section name="Video">
+				<Setting name="DivX" value="DivXDecoder.Factory"/>
+				<Setting name="DIVX" value="DivXDecoder.Factory"/>
+				<Setting name="divx" value="DivXDecoder.Factory"/>
+				<Setting name="MPG" value="MPEGVideoDecoder.DecoderFactory"/>
+			</Section>
+			<Section name="Audio">
+				<Setting name="MP3" value="MP3Decoder.Factory"/>
+				<Setting name="WAV" value="WAVCodec.DecoderFactory"/>
+			</Section>
+			<Section name="Animation">
+				<Setting name="GIF" value="GIFCodec.AnimationDecoderFactory"/>
+				<Setting name="ANI" value="AnimationCodec.GenDecoder"/>
+			</Section>
+		</Section>
+	</Section>
+
+<!-- IME -->
+
+	<Section name="IME">
+		<Setting name="Arabic" value="WMArabicIME.Install"/>
+		<Setting name="Russian" value="WMRussianIME.Install"/>
+		<Setting name="Ukrainian" value="WMUkrainianIME.Install"/>
+		<Setting name="Armenian" value="WMArmenianIME.Install"/>
+		<Setting name="Hebrew" value="WMHebrewIME.Install"/>
+		<Setting name="Pinyin" value="WMPinyinIME.Install"/>
+		<Setting name="Ethiopic" value="WMEthiopicIME.Install"/>
+		<Setting name="Unicode" value="WMUnicodeIME.Install"/>
+	</Section>
+
+<!-- Contextual Dependency -->
+
+	<Section name="Context">
+		<Setting name="Arabic" value="ArabicContext.xml"/>
+		<Setting name="Test" value="TestContext.xml"/>
+	</Section>
+
+<!-- Filehandler
 	For each file extension, multiple handlers that perform different actions on a file can be
 	registered. The action "Open" is considered to open the file with an application.
 	Occurences of the string @filename in the attribute value of settings will be replaced by

@@ -6,7 +6,7 @@ IMPORT S := SYSTEM, Trace, Unix, Glue;
 CONST
 	DefaultConfig = "Color 0  StackSize 128";
 	
-	Version = "Aos (rev.5561)";
+	Version = "Aos (rev.5598)";
 
 	DefaultObjectFileExtension* = ".Obj";
 	
@@ -19,7 +19,7 @@ CONST
 	SizeSize = SIZEOF( SIZE );
 	
 	BlockSize = 32;
-	MemBlockSize* = 32*1024*1024;
+	MemBlockSize* = 64*1024*1024;
 	
 	TraceOutput* = 0;	(* Trace output *)
 	Memory* = 1;		(*!  Virtual memory management, stack and page allocation,  not used in UnixAos *)
@@ -27,9 +27,9 @@ CONST
 	Interrupts* = 3;		(*!  Interrupt handling,  not used in UnixAos *)
 	Modules* = 4;		(* Module list *)
 	Objects* = 5;		(*!  Ready queue,  not used in UnixAos *)
-	Processors* = 6;		(*!  Interprocessor interrupts,  not used in UnixAos *)
+	Processors* = 6;	(*!  Interprocessor interrupts,  not used in UnixAos *)
 	KernelLog* = 7;		(* Atomic output *)
-	X11* = 8;			(* XWindows I/O *)
+	X11* = 8;				(* XWindows I/O *)
 	Trap* = 9;
 	GC* = 10;
 	MaxLocks* = 11;   (* { <= 32 } *)
@@ -110,6 +110,7 @@ VAR
 
 	
 	logfile: LONGINT;
+	traceHeap: BOOLEAN;
 
 (** -- Processor identification -- *)
 
@@ -154,6 +155,9 @@ VAR
 			cur := cur.next
 		END;
 		IF cur = memBlock THEN 
+			IF traceHeap THEN  
+				Trace.String( "Release memory block " );  Trace.Hex( memBlock.startAdr, -8 );  Trace.Ln
+			END;
 			IF prev = NIL THEN
 				memBlockHead := cur.next
 			ELSE
@@ -202,7 +206,7 @@ VAR
 			mBlock.endBlockAdr := mBlock.beginBlockAdr + s; 
 			
 			InsertMemoryBlock( mBlock );
-			IF 1 IN Glue.debug THEN TraceHeap( mBlock )  END;
+			IF traceHeap THEN TraceHeap( mBlock )  END;
 			
 			a := mBlock.beginBlockAdr;
 			S.PUT( a, a + AddrSize );	(* tag *)
@@ -882,7 +886,7 @@ END ChangeByteOrder;
 		Unix.Dlsym( 0, "heapAdr", ADDRESSOF( heapAdr ) );  
 		Unix.Dlsym( 0, "heapSize", ADDRESSOF( size ) );  
 		firstBlock := heapAdr + ((-heapAdr - AddrSize) MOD BlockSize);
-		size := heapAdr + size - firstBlock;  DEC( size, size MOD BlockSize + BlockSize );
+		size := heapAdr + size - BlockSize - firstBlock;  DEC( size, size MOD BlockSize + BlockSize );
 
 		firstMemBlock.next := NIL;
 		firstMemBlock.startAdr := heapAdr;
@@ -1010,6 +1014,7 @@ END ChangeByteOrder;
 		InitThreads;
 		InitLocks;
 
+		traceHeap := 1 IN Glue.debug;
 		InitHeap;
 		InitConfig;
 		InitLog;
