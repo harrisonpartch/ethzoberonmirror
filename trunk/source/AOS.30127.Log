@@ -1,0 +1,17 @@
+LinuxAos (rev.5406): Kernel: Initialized and started.
+X11 Display depth = 24
+WMGraphics incompatible with Kernel/FinalizedCollection
+WMGraphics incompatible with Kernel/FinalizedCollection
+Autostart: executing FileTrapWriter.Install
+Autostart: executing WMTrapWriter.Install
+Autostart: error executing WMTrapWriter.Install: WMGraphics incompatible with Kernel/FinalizedCollection
+Autostart: executing UpTime.Install
+Uptime monitor started.
+Autostart: executing StartMenu.Open
+Autostart: error executing StartMenu.Open: WMGraphics incompatible with Kernel/FinalizedCollection
+Autostart: executing SkinEngine.Unload
+Autostart: error executing SkinEngine.Unload: WMGraphics incompatible with Kernel/FinalizedCollection
+Autostart: executing WMRestorable.Load Auto.dsk
+Autostart: error executing WMRestorable.Load Auto.dsk: WMGraphics incompatible with Kernel/FinalizedCollection
+Autostart: executing WMNavigate.Open -vs 1 0 0 Navigation:TaskList
+Autostart: error executing WMNavigate.Open -vs 1 0 0 Navigation:TaskList: WMGraphics incompatible with Kernel/FinalizedCollection
