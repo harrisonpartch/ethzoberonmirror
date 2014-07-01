@@ -805,10 +805,9 @@ PROCEDURE SplitHTTPAdr*(url : ARRAY OF CHAR; VAR host, path: ARRAY OF CHAR; VAR 
 VAR i, j : LONGINT;
 BEGIN
 	(*assuming HTTP or HTTPS*)
-	IF LEN(url) < 7 THEN RETURN FALSE END;
 	
-	IF (url[4] = ":") & (url[5] = "/") & (url[6] = "/") THEN i:=7; port:=HTTPPort;
-	ELSIF (url[5] = ":") & (url[6] = "/") & (url[7] = "/") THEN i:=8; port:=HTTPSPort;
+	IF (LEN(url)>7) &(url[4] = ":") & (url[5] = "/") & (url[6] = "/") THEN i:=7; port:=HTTPPort;
+	ELSIF (LEN(url)>8) & (url[5] = ":") & (url[6] = "/") & (url[7] = "/") THEN i:=8; port:=HTTPSPort;
 	ELSE RETURN FALSE
 	END;
 	
