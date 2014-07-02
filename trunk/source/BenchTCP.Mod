@@ -7,7 +7,7 @@ CONST
 
 	CloseTimeout = 10000;	(* ms *)
 
-	EchoPort = 7; DiscardPort = 9; (*ChargenPort = 19;*)
+	EchoPort = 7; DiscardPort = 9; (*ChargenPort = 19;*) TimePort = 37;
 
 	Header = "BenchTCP: ";	(* in log *)
 
@@ -47,6 +47,7 @@ TYPE
 		VAR
 			c: TCP.Connection; num, num0, res, port, total, len: LONGINT; fip: IP.Adr;
 			timer: Kernel.MilliTimer; sender: Sender; server: ARRAY 64 OF CHAR;
+			time:HUGEINT;
 
 		PROCEDURE &Init*(CONST server: ARRAY OF CHAR; num, port: LONGINT);
 		BEGIN
@@ -61,22 +62,35 @@ TYPE
 			Kernel.SetTimer(timer, 0);
 			NEW(c); c.Open(TCP.NilPort, fip, port, res);
 			IF res = 0 THEN
-				NEW(sender, c, buf, num);
-				IF port = EchoPort THEN
-					total := num*2;
-					WHILE (res = 0) & (num > 0) DO
-						num0 := LEN(buf^) DIV 1024;
-						IF num0 > num THEN num0 := num END;
-						c.Receive(buf^, 0, num0*1024, num0*1024, len, res);
-						DEC(num, num0)
-					END
+				IF port=TimePort THEN
+					c.Receive(buf^, 0, 4, 4, len, res);
+					total:=len;
+					time:=((HUGEINT(ORD(buf[0]))*256+ORD(buf[1]))*256 + ORD(buf[2]))*256 + ORD(buf[3]);
+					KernelLog.String("ClientTime: "); KernelLog.Int(time,6); KernelLog.String(" : ");
+					KernelLog.Int(time MOD 60,6); time:=time DIV 60; KernelLog.String("sec");
+					KernelLog.Int(time MOD 60,6); time:=time DIV 60; KernelLog.String("min");
+					KernelLog.Int(time MOD 24,6); time:=time DIV 24; KernelLog.String("hh");
+					KernelLog.Int(time,7);  KernelLog.String("days since 1.1.1900");
+					KernelLog.Ln;   
 				ELSE
-					total := num
+					NEW(sender, c, buf, num);
+					IF port = EchoPort THEN
+						total := num*2;
+						WHILE (res = 0) & (num > 0) DO
+							num0 := LEN(buf^) DIV 1024;
+							IF num0 > num THEN num0 := num END;
+							
+							c.Receive(buf^, 0, num0*1024, num0*1024, len, res);
+							DEC(num, num0)
+						END
+					ELSE
+						total := num
+					END;
+					IF res = 0 THEN res := sender.Join() END;
 				END;
-				IF res = 0 THEN res := sender.Join() END;
 				c.Close();
 				IF res = 0 THEN c.AwaitState(TCP.ClosedStates, {}, CloseTimeout, res) END;
-				IF res = 0 THEN Report(Kernel.Elapsed(timer), port, total, server) END
+				IF (res = 0)&(port#TimePort) THEN Report(Kernel.Elapsed(timer), port, total, server) END
 			END;
 			IF res # 0 THEN Message(server, " connection failed", res) END
 		END
@@ -117,6 +131,7 @@ BEGIN
 	END;
 	KernelLog.String(", "); KernelLog.String(msg);
 	KernelLog.Ln;
+
 END Report;
 
 
@@ -139,6 +154,15 @@ BEGIN
 	NEW(t, server, num, EchoPort);
 END Echo;
 
+(** server KB *)
+PROCEDURE Time*(context : Commands.Context);
+VAR t: Tester; num: LONGINT; server: ARRAY 64 OF CHAR;
+BEGIN
+	context.arg.SkipWhitespace; context.arg.String(server);
+	NEW(t, server, 0, TimePort);
+END Time;
+
+
 BEGIN
 	NEW(buf, BufSize)
 END BenchTCP.
@@ -150,6 +174,8 @@ BenchTCP.Discard bluebottle.ethz.ch 40
 
 BenchTCP.Echo lillian.ethz.ch 40000 ~
 BenchTCP.Echo bluebottle.ethz.ch 40
+
+BenchTCP.Time 127.0.0.1 ~
 
 BenchTCP.Echo FE80::230:1BFF:FEAF:EEF2 100000~
 BenchTCP.Discard FE80::230:1BFF:FEAF:EEF2 100000~
