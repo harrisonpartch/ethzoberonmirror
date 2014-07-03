@@ -10,9 +10,9 @@ MODULE Dates; (** AUTHOR "be, tf, staubesv"; PURPOSE "Date and time functions"; 
 					4-0: day of month
 *)
 
-(*! 
-	ToDo: for TimeDifference() and ValidDateTime(), consider the leap seconds which are intermittently added to world time: 
-	http://en.wikipedia.org/wiki/Leap_second
+(*	Problem of leap seconds is handled as in POSIX: 
+		http://www.eecis.udel.edu/~mills/leap.html
+		http://en.wikipedia.org/wiki/Leap_second
 *)
 
 IMPORT
@@ -29,7 +29,7 @@ VAR
 	Months-: ARRAY 12 OF ARRAY 10 OF CHAR;	(** month's names (January = 0....December=11) *)
 	Days-: ARRAY 7 OF ARRAY 10 OF CHAR;	(** day's names (Moday = 0, .... Sunday = 6) *)
 	NoDays: ARRAY 12 OF INTEGER;
-	ZeroDateUnix*, ZeroDateRFC868*: DateTime;
+	ZeroDateUnix-, ZeroDateRFC868-, ZeroDateNTP-: DateTime;
 
 (** Date and Time functions *)
 
@@ -164,7 +164,8 @@ BEGIN
 	RETURN result;
 END CompareDateTime;
 
-(** Absolute time difference between t1 and t2 *)
+(** Absolute time difference between t1 and t2. 
+Note that leap seconds are not counted, see http://www.eecis.udel.edu/~mills/leap.html *)
 PROCEDURE TimeDifference*(t1, t2 : DateTime; VAR days, hours, minutes, seconds : LONGINT);
 CONST SecondsPerMinute = 60; SecondsPerHour = 3600; SecondsPerDay = 86400;
 VAR start, end : DateTime; year, month, second : LONGINT;
@@ -331,4 +332,5 @@ BEGIN
 	NoDays[6] := 31; NoDays[7] := 31; NoDays[8] := 30; NoDays[9] := 31; NoDays[10] := 30; NoDays[11] := 31;
 	ZeroDateUnix.year:=1970; ZeroDateUnix.month:=1; ZeroDateUnix.day:=1;
 	ZeroDateRFC868.year:=1900; ZeroDateRFC868.month:=1; ZeroDateRFC868.day:=1;
+	ZeroDateNTP:=ZeroDateRFC868;
 END Dates.
