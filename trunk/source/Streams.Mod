@@ -147,6 +147,13 @@ TYPE
 			Bytes( SYSTEM.VAL( Bytes8, x ), 0, 8 )
 		END RawHInt;
 
+	(** Write a 64 bit value in network byte order (most significant byte first) *)
+		PROCEDURE Net64*( x: HUGEINT );
+		BEGIN
+			Net32(LONGINT( x DIV 100000000H MOD 100000000H ));
+			Net32(LONGINT( x MOD 100000000H ));
+		END Net64;
+
 	(** Write a 32 bit value in network byte order (most significant byte first) *)
 		PROCEDURE Net32*( x: LONGINT );
 		BEGIN
@@ -654,6 +661,12 @@ TYPE
 		BEGIN
 			Bytes( SYSTEM.VAL( Bytes8, x ), 0, 8, ignore )
 		END RawHInt;
+
+		(** Read a 64 bit value in network byte order (most significant byte first) *)
+		PROCEDURE Net64*( ): HUGEINT;
+		BEGIN
+			RETURN Net32() * 100000000H + Net32()
+		END Net64;
 
 	(** Read a 32 bit value in network byte order (most significant byte first) *)
 		PROCEDURE Net32*( ): LONGINT;

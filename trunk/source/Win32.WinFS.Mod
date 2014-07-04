@@ -939,12 +939,26 @@ VAR
 		directories, dirs: ARRAY 4 * Kernel32.MaxPath OF CHAR;
 		dir, sysPath: FileName;
 
+		PROCEDURE SetSysPath(VAR dir: ARRAY OF CHAR);
+		VAR ch: CHAR; i: LONGINT;
+		BEGIN
+			IF (dir[0] = "~") & (dir[1] = PathDelimiter) THEN
+				Kernel32.SetCurrentDirectory( sysPath );
+				i := 2;
+				REPEAT ch := dir[i]; dir[i-2] := ch; INC(i) UNTIL ch = 0X;
+			ELSE
+				Kernel32.SetCurrentDirectory(workPath) 
+			END;
+		END SetSysPath;
+		
+
 		PROCEDURE AddDir;
 		BEGIN
 			IF k > 0 THEN
 				dir[k] := 0X;
 				IF dir[k - 1] = '"' THEN dir[k - 1] := 0X END;
-				ConvertChar( dir, Files.PathDelimiter, PathDelimiter );  Kernel32.SetCurrentDirectory( sysPath );
+				ConvertChar( dir, Files.PathDelimiter, PathDelimiter );
+				SetSysPath(dir);
 				IF Kernel32.SetCurrentDirectory( dir ) # Kernel32.False THEN
 					Kernel32.GetCurrentDirectory( LEN( dir ), dir );  searchPath[i] := ";";  INC( i );  k := 0;
 					WHILE dir[k] # 0X DO searchPath[i] := dir[k];  INC( i );  INC( k ) END
@@ -987,15 +1001,16 @@ VAR
 
 		COPY( temp, tempPath );
 		IF tempPath # "" THEN
-
-			ConvertChar( tempPath, Files.PathDelimiter, PathDelimiter );  Kernel32.SetCurrentDirectory( sysPath );
+			ConvertChar( tempPath, Files.PathDelimiter, PathDelimiter );  
+			SetSysPath(tempPath);
 			IF Kernel32.SetCurrentDirectory( tempPath ) # Kernel32.False THEN ret := Kernel32.GetCurrentDirectory( LEN( tempPath ), tempPath ) END
 		END;
 		IF ret = 0 THEN Kernel32.GetTempPath( LEN( tempPath ), tempPath ) END;
 
 		COPY( work, dir );
 		IF dir # "" THEN
-			ConvertChar( dir, Files.PathDelimiter, PathDelimiter );  Kernel32.SetCurrentDirectory( sysPath );
+			ConvertChar( dir, Files.PathDelimiter, PathDelimiter );  
+			SetSysPath(dir);
 			IF Kernel32.SetCurrentDirectory( dir ) # Kernel32.False THEN Kernel32.GetCurrentDirectory( LEN( workPath ), workPath ) END
 		END;
 		Kernel32.SetCurrentDirectory( workPath );

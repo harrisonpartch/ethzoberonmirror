@@ -698,7 +698,7 @@ BEGIN
 END ToExecutablePath;
 
 PROCEDURE Init;
-VAR vendor: Vendor; ver: LONGINT;
+VAR vendor: Vendor; ver: LONGINT; hfile: Kernel32.HANDLE;
 BEGIN
 	boottime:=GetTimer();
 	locks := 0;
@@ -714,7 +714,13 @@ BEGIN
 	ReadCommandLine(commandLine);
 
 	ToExecutablePath(DefaultConfigFile, defaultConfigFile);
-	ToExecutablePath(UserConfigFile, userConfigFile);
+	COPY(UserConfigFile, userConfigFile);
+	hfile := Kernel32.CreateFile( userConfigFile, {Kernel32.GenericRead}, {Kernel32.FileShareRead}, NIL , Kernel32.OpenExisting, {Kernel32.FileAttributeNormal}, 0 );
+	IF hfile = Kernel32.InvalidHandleValue THEN
+		ToExecutablePath(UserConfigFile, userConfigFile);
+	ELSE
+		Kernel32.CloseHandle(hfile)
+	END;
 
 	(* ever used ? *)
 	ParseLine(commandLine, userConfigFile);
