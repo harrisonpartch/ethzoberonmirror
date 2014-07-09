@@ -87,6 +87,9 @@ TYPE
 				glyphSpacings.bearing.l := glyphs[code].x;
 				glyphSpacings.bearing.r := glyphs[code].dx - (glyphs[code].w + glyphs[code].x);
 
+				glyphSpacings.ascent := ascent;
+				glyphSpacings.descent := descent;
+
 				glyphSpacings.height := glyphs[code].h;
 				glyphSpacings.dy := ascent - glyphs[code].h - glyphs[code].y
 			ELSE glyphSpacings.width := 3; glyphSpacings.height := 15; glyphSpacings.ascent := 16;
@@ -155,7 +158,7 @@ BEGIN
 		r.RawInt(t); font.glyphs[i].x := t;
 		r.RawInt(t); font.glyphs[i].y := t;
 		r.RawInt(t); font.glyphs[i].w := t;
-		r.RawInt(t); font.glyphs[i].h := t;
+		r.RawInt(t); font.glyphs[i].h := t; 
 		font.glyphs[i].available := TRUE;
 		INC(i);
 		IF i >= runs[run].end THEN INC(run); i := runs[run].beg END

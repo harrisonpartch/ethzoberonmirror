@@ -1237,6 +1237,7 @@ TYPE
 
 				positionEdit.alignment.Set(WMComponents.AlignLeft); positionEdit.multiLine.Set(FALSE);
 				positionEdit.bounds.SetWidth(80); positionEdit.fillColor.Set(0FFFFFFFFH); positionEdit.onEnter.Add(PositionHandler);
+				positionEdit.tv.textAlignV.Set(WMGraphics.AlignCenter);
 				statusbar.AddContent(positionEdit);
 
 				NEW(splitBtn); splitBtn.caption.SetAOC("Split"); splitBtn.alignment.Set(WMComponents.AlignRight);

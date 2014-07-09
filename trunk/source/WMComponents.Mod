@@ -1425,21 +1425,25 @@ TYPE
 		VAR m: Messages.Message; r, b: Rectangles.Rectangle; client: VisualComponent; parent: XML.Element;
 		BEGIN
 			IF ~initialized OR ~visible.Get() THEN RETURN END;
-			r := GetClientRect();
-			client := SELF;
-			parent := GetParent();
-			WHILE (parent # NIL) & (parent IS VisualComponent) DO
-				IF ~parent(VisualComponent).visible.Get() THEN RETURN END;
-				b := client.bounds.Get();
-				Rectangles.MoveRel(r, b.l, b.t);
-				client := parent(VisualComponent);
-				parent := client.GetParent();
+			IF ~IsCallFromSequencer() OR ~visible.Get() THEN
+				r := GetClientRect();
+				client := SELF;
+				parent := GetParent();
+				WHILE (parent # NIL) & (parent IS VisualComponent) DO
+					IF ~parent(VisualComponent).visible.Get() THEN RETURN END;
+					b := client.bounds.Get();
+					Rectangles.MoveRel(r, b.l, b.t);
+					client := parent(VisualComponent);
+					parent := client.GetParent();
+				END;
+				m.msgType := Messages.MsgInvalidate;
+				m.msgSubType := Messages.MsgSubRectangle;
+				m.x := r.l; m.y := r.t; m.dx := r.r; m.dy := r.b;
+				m.sender := client;
+				IF sequencer.Add(m) THEN IF CanYield THEN Objects.Yield END END;
+			ELSE
+				InvalidateRect(GetClientRect());
 			END;
-			m.msgType := Messages.MsgInvalidate;
-			m.msgSubType := Messages.MsgSubRectangle;
-			m.x := r.l; m.y := r.t; m.dx := r.r; m.dy := r.b;
-			m.sender := client;
-			IF sequencer.Add(m) THEN IF CanYield THEN Objects.Yield END END;
 		END InvalidateCommand;
 
 		PROCEDURE Invalidate*; (* For convenience in component internal use *)
