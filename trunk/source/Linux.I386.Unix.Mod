@@ -11,10 +11,12 @@ IMPORT S := SYSTEM, Glue, Trace;
 
 
 CONST
-	Version* = "Darwin";
+	Version* = "Linux";
 
-	libcname* = "libc.dylib";
-	libX11name* = "libX11.dylib";
+  	libcname* = "libc.so.6";
+	libmname* = "libm.so.6";
+	libX11name* = "libX11.so.6";
+	libXextname* = "libXext.so.6";
 
 	LittleEndian* = TRUE;   (** byte order of basic types *)
 	LsbIs0* = TRUE;   (** bit order of SET type *)
@@ -72,7 +74,7 @@ CONST
 	ENOLCK* = 37;   (* No record locks available. *)
 
 	(* open flags *)
-	rdonly* = {};  rdwr* = {1};  creat* = {9};  trunc* = {10};
+	rdonly* = {};  rdwr* = {1};  creat* = {6};  trunc* = {9};
 
 	(* access modes *)
 	rwrwr* = {2, 4, 5, 7, 8};  rwxrwxrwx* = {0..8};
@@ -88,8 +90,8 @@ TYPE
 	
 CONST
 	(* Thread priorities *)
-	ThreadLow* = 15; ThreadNormal* = 20; ThreadHigh* = 47;	
-	NumPriorities* = 33;	(* number of priority levels *)
+	ThreadLow* = 1; ThreadNormal* = 20; ThreadHigh* = 99;	
+	NumPriorities* = 99;	(* number of priority levels *)
 
 
 	(*---------------------------- IP -----------------------------------*)
@@ -102,113 +104,114 @@ CONST
 		PFINET* = AFINET;
 		PFINET6* = AFINET6;
 		
-	(* types of connection *)
+	(* types of connection*)
 		SockStream*	= 1;
 		SockDGram*	= 2;
+		
 	(* Protocols *)
 		IpProtoUDP*	= 17;
-		IpProtoTCP*		= 6;
+		IpProtoTCP*		=  6;
 
 	(* setsockopt *)
-		SoLSocket*		= 0FFFFH;	(* socket option level *)
-		SoLinger* 		= 80H; 		(* linger (gracefully close the connection)*)
-		SoKeepAlive*	= 8;			(* keep connection alive *)
+		SoLSocket*		= 1;			(* socket option level *)
+		SoLinger* 		= 13; 		(* linger (gracefully close the connection)*)
+		SoKeepAlive*	= 9;			(* keep connection alive *)
 		SoNoDelay*	= 1;			(* no delay *)
 
 	(* ioctl *)
-		FioNRead*		= 4004667FH;	(* something to read ? *)
-		
+		FioNRead*		= 541BH;	(* something to read ? *)
 		
 	(* recv *)
 		MsgPeek*		= 2;
-		MsgDontWait*	= 80H;		(* non blocking read *)
+		MsgDontWait*	= 40H;		(* non blocking read *)
 		
 	(* shutdown *)
 		ShutRDWR*	= 2;
 
 	SockAddrSizeV4*	= 16;
 	SockAddrSizeV6*	= 28;
+
+	(*----------------------- seral line, cf Unix.V24.Mod -----------------------*)
 	
-	(*-------------------seral line ---------------------------------------*)
-	
-	FIONREAD*	= 4004667FH;
-	TIOCMGET*		= LONGINT( 4004746AH );
-	TIOCMBIC*		= LONGINT( 8004746BH );
-	TIOCMBIS*		= LONGINT( 8004746CH );
-	TIOCMSET*		= LONGINT( 8004746DH );
+	FIONREAD*	= 541BH;
+	TIOCMGET*		= 5415H;
+	TIOCMBIS*		= 5416H;
+	TIOCMBIC*		= 5417H;
+	TIOCMSET*		= 5418H;
 	
 	(* speeds *)
 	B0*	= 0;
-	B50*	= 50;
-	B75*	= 75;
-	B110*	= 110;
-	B134*	= 134;
-	B150*	= 150;
-	B200*	= 200;
-	B300*	= 300;
-	B600*	= 600;
-	B1200*		= 1200;
-	B1800*		= 1800;
-	B2400*		= 2400;
-	B4800*		= 4800;
-	B9600*		= 9600;
-	B19200*	= 19200;
-	B38400*	= 38400;
+	B50*	= 1;
+	B75*	= 2; 
+	B110*	= 3; 
+	B134*	= 4; 
+	B150*	= 5; 
+	B200*	= 6; 
+	B300*	= 7; 
+	B600*	= 8; 
+	B1200* 	= 9; 
+	B1800* 	= 10; 
+	B2400* 	= 11; 
+	B4800* 	= 12; 
+	B9600* 	= 13; 
+	B19200*	= 14; 
+	B38400*	= 15; 
 
-	B57600*	= 57600;
-	B115200*	= 115200;
-	B230400*	= 230400;
+	B57600* 	= 1001H; 
+	B115200*	= 1002H; 
+	B230400*	= 1003H; 
+
 
 
 	(* tio.cflag bits *)
-	CSIZE*		= {8,9};	(* character size mask *)
-	   CS5*		= {};  	(* 5 bits (pseudo) *)
-	   CS6*		= {8}; 	(* 6 bits *)
-	   CS7*		= {9}; 	(* 7 bits *)
-	   CS8*		= {8,9};	(* 8 bits *)
-	CSTOPB*	= {10};	(* send 2 stop bits *)
-	CREAD*	= {11};	(* enable receiver *)
-	PARENB*	= {12};	(* parity enable *)
-	PARODD*	= {13};	(* odd parity, else even *)
-	HUPCL*		= {14};	(* hang up on last close *)
-	CLOCAL*	= {15};	(* ignore modem status lines *)
+	CSIZE*		= {4,5};
+	   CS5*		= {};
+	   CS6*		= {4};
+	   CS7*		= {5};
+	   CS8*		= {4,5};
+	CSTOPB*	= {6};
+	CREAD*	= {7};
+	PARENB*	= {8};
+	PARODD*	= {9};
+	HUPCL*		= {10};
+	CLOCAL*	= {11};
 	
 TYPE
 	Termios* = RECORD
 		iflags*, oflags*, cflags*, lflags*: SET;
-		cc*: ARRAY 20 OF CHAR;
+		line*: CHAR;
+		cc*	: ARRAY 32 OF CHAR;
 		ispeed-, ospeed-: LONGINT
 	END;
-	
+
 	(*------------------------------------------------------------------*)
 
+
 TYPE
-	DevT* = LONGINT;
+	DevT* = HUGEINT;
 
 	Status* = RECORD
 				dev-		: DevT;
+				unused1-	: LONGINT;
 				ino-		: LONGINT;
-				mode-	: INTEGER;
-				nlink-		: INTEGER;
+				mode-	: LONGINT;
+				nlink-		: LONGINT;
 				uid-		: LONGINT;
 				gid-		: LONGINT;
 				rdev-		: DevT;
+				unused2-	: LONGINT;
+				size-		: LONGINT;
+				blksize-	: LONGINT;
+				blocks-	: LONGINT;
 				atime-	: Timeval;
 				mtime-	: Timeval;
 				ctime-	: Timeval;
-				size-		: LONGINT;
-				size2-	: LONGINT;
-				blocks-	: HUGEINT;
-				blksize-	: LONGINT;
-				flags-		: LONGINT;
-				gen-		: LONGINT;
-				lspare-	: LONGINT;
-				qspare-	: ARRAY 4 OF LONGINT
+				unused-	: ARRAY 2 OF LONGINT;
 			END;
 
 	Timeval* = RECORD
-				sec*		: LONGINT;
-				usec*		: LONGINT
+				sec*	: LONGINT;
+				usec*	: LONGINT
 			END;
 
 	TmPtr* = POINTER TO Tm;
@@ -235,62 +238,56 @@ TYPE
 	FdSetPtr* = POINTER TO FdSet;
 
 	Dirent* = POINTER TO RECORD
-				ino-		: LONGINT;
-				reclen-	: INTEGER;
-				typ-		: SHORTINT;
-				namlen-	: SHORTINT;
-				name-	:  (*array of*) CHAR;
+				ino-, off-	: LONGINT;   (* these may change to HUGEINT in future Linux releases!! *)
+				reclen-		: INTEGER;
+				typ-		: CHAR;
+				name-		: (*array of*) CHAR;
 			END;
 
 	Stack* = RECORD
-				sp*		: ADDRESS;
-				size*		: SIZE;
+				sp*			: ADDRESS;
 				flags*		: SET;
+				size*		: SIZE
 			END;
 
 	Ucontext* = POINTER TO UcontextDesc;
 	UcontextDesc* = RECORD
-				onstack-	: LONGINT;
-				sigmask-	: LONGINT;
-				stack-	: Stack;
+				flags-		: SET;
 				link-		: ADDRESS;
-				mclen-	: SIZE;
-				mc-{UNTRACED}	: Mcontext
+				stack-	: Stack;
+				mc-		: McontextDesc
 			END;
 
 	Mcontext* = POINTER TO McontextDesc;
 	McontextDesc* = RECORD
-				trapno-	: LONGINT;
-				err-		: LONGINT;
-				faultvaddr-: ADDRESS;
-				
-				eax-		: LONGINT;
-				ebx-		: LONGINT;
-				ecx-		: LONGINT;
-				edx-		: LONGINT;
-				edi-		: LONGINT;
-				esi-		: LONGINT;
-				ebp-		: LONGINT;
-				espatsig-	: LONGINT;
-				ss-		: LONGINT;
-				eflags-	: LONGINT;
-				eip-		: LONGINT;
-				cs-		: LONGINT;
-				ds-		: LONGINT;
-				es-		: LONGINT;
-				fs-			: LONGINT;
-				gs-		: LONGINT;
-				
-				flavor-		: LONGINT;
-				count-	: LONGINT;
-				fpc-		: FPcontextDesc;
+				r_gs-		: LONGINT;
+				r_fs-		: LONGINT;
+				r_es-		: LONGINT;
+				r_ds-		: LONGINT;
+				r_di-		: LONGINT;
+				r_si-		: LONGINT;
+				r_bp-		: LONGINT;
+				r_sp-		: LONGINT;
+				r_bx-		: LONGINT;
+				r_dx-		: LONGINT;
+				r_cx-		: LONGINT;
+				r_ax-		: LONGINT;
+				r_trapno-	: LONGINT;
+				r_err-		: LONGINT;
+				r_pc-		: LONGINT;
+				r_cs-		: LONGINT;
+				r_flags-	: LONGINT;
+				r_spatsig-	: LONGINT;
+				r_ss-		: LONGINT;
+				fpc-		: ADDRESS; (* FPcontext *)
+				oldmask-	: LONGINT;
+				cr2-		: LONGINT
 			END;
 
 	FPcontext* = POINTER TO FPcontextDesc;
 	FPcontextDesc* = RECORD
-				fpsate*: ARRAY 100 OF LONGINT;
+				(* ... *)
 			END;
-
 
 
 VAR
@@ -329,10 +326,10 @@ VAR
 	getpid-		: PROCEDURE {C} ( ): LONGINT;
 	getuid-		: PROCEDURE {C} ( ): LONGINT;
 
-	malloc-				: PROCEDURE {C} ( size: SIZE ): ADDRESS;
+	malloc-		: PROCEDURE {C} ( size: SIZE ): ADDRESS;
 	posix_memalign-	: PROCEDURE {C} ( VAR p: ADDRESS;  alignment, size: SIZE ): LONGINT;
-	free-					: PROCEDURE {C} ( p: ADDRESS );
-	mprotect-			: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
+	free-			: PROCEDURE {C} ( p: ADDRESS );
+	mprotect-	: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
 
 	alarm-		: PROCEDURE {C} ( ms: LONGINT ): LONGINT;
 	setitimer-		: PROCEDURE {C} ( which: LONGINT;  VAR value, ovalue: Itimerval ): LONGINT;
@@ -344,8 +341,8 @@ VAR
 	time-				: PROCEDURE {C} ( VAR tv: Timeval ): LONGINT;
 	times-			: PROCEDURE {C} ( VAR tms: Tms ): LONGINT;
 
-	system-			: PROCEDURE {C} ( cmd: ADDRESS );
-	uname-			: PROCEDURE {C} ( utsname: ADDRESS ): LONGINT;
+	system-		: PROCEDURE {C} ( cmd: ADDRESS );
+	uname-		: PROCEDURE {C} ( utsname: ADDRESS ): LONGINT;
 
 	getcwd-		: PROCEDURE {C} ( buf: ADDRESS;  len: SIZE ): LONGINT;
 	getenv-		: PROCEDURE {C} ( name: ADDRESS ): LONGINT;
@@ -365,20 +362,22 @@ VAR
 
 	libc-: LONGINT;
 
-	libraryPaths: ARRAY 7 OF ARRAY 32 OF CHAR;
+	libraryPaths: ARRAY 8 OF ARRAY 32 OF CHAR;
 
 
 	PROCEDURE ModifyContext*( cont: Ucontext;  pc, bp, sp: LONGINT );
 	BEGIN
-		cont.mc.eip := pc;
-		cont.mc.ebp := bp;
-		cont.mc.espatsig := sp
+		cont.mc.r_pc := pc;
+		cont.mc.r_bp := bp;
+		cont.mc.r_sp := sp;
+		cont.mc.r_spatsig := sp
 	END ModifyContext;
 
 	PROCEDURE Perror*( CONST msg: ARRAY OF CHAR );
 	BEGIN
 		perror( ADDRESSOF( msg ) )
 	END Perror;
+
 
 	PROCEDURE Dlsym*( lib: ADDRESS;  CONST sym: ARRAY OF CHAR;  objAddr: ADDRESS );
 	VAR val: LONGINT;
@@ -398,7 +397,7 @@ VAR
 		IF libname[0] = '/' THEN  h := Glue.dlopen( ADDRESSOF( libname ), mode );
 		ELSE
 			i := 0;  h := 0;
-			WHILE (h = 0) & (i <= 6) DO
+			WHILE (h = 0) & (i <= 7) DO
 				COPY( libraryPaths[i], p );  j := 0;
 				WHILE p[j] # 0X DO  INC( j )  END;
 				p[j] := '/';  k := 0;
@@ -470,13 +469,14 @@ BEGIN
 	Dlsym( 0, "argc", ADDRESSOF( aargc ) );  S.GET( aargc, argc );
 	Dlsym( 0, "argv", ADDRESSOF( argv ) );
 
-	libraryPaths[0] := "/lib";
-	libraryPaths[1] := "/usr/lib";
-	libraryPaths[2] := "/usr/X11R6/lib";
-	libraryPaths[3] := "/usr/X11/lib";
-	libraryPaths[4] := "/usr/local/X11R6/lib";
-	libraryPaths[5] := "/usr/local/X11/lib";
-	libraryPaths[6] := "/usr/local/lib";
+	libraryPaths[0] := "/lib32";
+	libraryPaths[1] := "/usr/lib32";
+	libraryPaths[2] := "/lib/i386-linux-gnu";
+	libraryPaths[3] := "/usr/lib/i386-linux-gnu";
+	libraryPaths[4] := "/lib";
+	libraryPaths[5] := "/usr/lib";
+	libraryPaths[6] := "/usr/X11R6/lib";
+	libraryPaths[7] := "/usr/X11/lib";
 
 
 	libc := Dlopen( libcname, 2 );
@@ -507,15 +507,15 @@ BEGIN
 	Dlsym( libc, "getpid",	ADDRESSOF( getpid ) );
 	Dlsym( libc, "getuid",	ADDRESSOF( getuid ) );
 
-	Dlsym( libc, "alarm",		ADDRESSOF( alarm ) );
+	Dlsym( libc, "alarm",	ADDRESSOF( alarm ) );
 	Dlsym( libc, "setitimer",	ADDRESSOF( setitimer ) );
 	Dlsym( libc, "getitimer",	ADDRESSOF( getitimer ) );
 
-	Dlsym( libc, "gettimeofday",	ADDRESSOF( gettimeofday ) );
-	Dlsym( libc, "mktime",			ADDRESSOF( mktime ) );
-	Dlsym( libc, "localtime",		ADDRESSOF( localtime ) );
-	Dlsym( libc, "time",				ADDRESSOF( time ) );
-	Dlsym( libc, "times",			ADDRESSOF( times ) );
+	Dlsym( libc, "gettimeofday", ADDRESSOF( gettimeofday ) );
+	Dlsym( libc, "mktime",		ADDRESSOF( mktime ) );
+	Dlsym( libc, "localtime",	ADDRESSOF( localtime ) );
+	Dlsym( libc, "time",			ADDRESSOF( time ) );
+	Dlsym( libc, "times",		ADDRESSOF( times ) );
 
 	Dlsym( libc, "getcwd",		ADDRESSOF( getcwd ) );
 	Dlsym( libc, "getenv",		ADDRESSOF( getenv ) );
@@ -524,13 +524,13 @@ BEGIN
 	Dlsym( libc, "readdir",		ADDRESSOF( readdir ) );
 	Dlsym( libc, "closedir",	ADDRESSOF( closedir ) );
 
-	Dlsym( libc, "sigsetjmp",		ADDRESSOF( sigsetjmp ) );
-	Dlsym( libc, "siglongjmp",		ADDRESSOF( siglongjmp ) );
+	Dlsym( libc, "sigsetjmp",	ADDRESSOF( sigsetjmp ) );
+	Dlsym( libc, "siglongjmp",	ADDRESSOF( siglongjmp ) );
 
-	Dlsym( libc, "malloc",				ADDRESSOF( malloc ) );
+	Dlsym( libc, "malloc",		ADDRESSOF( malloc ) );
 	Dlsym( libc, "posix_memalign",	ADDRESSOF( posix_memalign ) );
-	Dlsym( libc, "free",					ADDRESSOF( free ) );
-	Dlsym( libc, "mprotect",			ADDRESSOF( mprotect ) );
+	Dlsym( libc, "free",			ADDRESSOF( free ) );
+	Dlsym( libc, "mprotect",	ADDRESSOF( mprotect ) );
 
 	Dlsym( libc, "system",	ADDRESSOF( system ) );
 	Dlsym( libc, "uname",	ADDRESSOF( uname ) );
@@ -539,6 +539,7 @@ BEGIN
 	Dlsym( libc, "exit",		ADDRESSOF( exit ) );
 	Dlsym( libc, "perror",	ADDRESSOF( perror ) );
 	Dlsym( libc, "errno",	ADDRESSOF( errno ) );
+
 
 	getSysinfo;
 END Unix.

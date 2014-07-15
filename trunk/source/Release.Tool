@@ -244,7 +244,7 @@ PACKAGE Kernel ARCHIVE "Kernel.zip" SOURCE "KernelSrc.zip" DESCRIPTION "A2 Kerne
 	Trace.Mod
 
 	UNIX { Unix.Glue.Mod }
-	DARWIN { Darwin.Unix.Mod } LINUX { Linux.Unix.Mod } SOLARIS { Solaris.Unix.Mod }
+	DARWIN { Darwin.I386.Unix.Mod } LINUX { Linux.I386.Unix.Mod } SOLARIS { Solaris.I386.Unix.Mod }
 
 	WINORIG { Win32.Kernel32.Mod}
 	WINGEN {oc/Generic.Win32.Kernel32.Mod}

@@ -19,7 +19,9 @@ CONST
 	Version* = "Solaris";
 
 	libcname* = "libc.so.1";
+	libmname* = "libm.so.1";
 	libX11name* = "libX11.so.4";
+	libXextname* = "libXext.so.0";
 
 	LittleEndian* = TRUE;   (** byte order of basic types *)
 	LsbIs0* = TRUE;   (** bit order of SET type *)
@@ -109,11 +111,11 @@ CONST
 		
 	(* types of connection *)
 		SockStream*	= 2;
-		SockDGram*	= 1;
+		SockDGram*		= 1;
 		
 	(* protocols *)
 		IpProtoUDP*	= 17;
-		IpProtoTCP*		=  6;
+		IpProtoTCP*	=  6;
 
 	(* setsockopt *)
 		SoLSocket*		= 0FFFFH;	(* socket option level *)
@@ -193,7 +195,7 @@ TYPE
 				dev-		: DevT;
 				pad1-		: ARRAY 3 OF LONGINT;
 				ino-		: LONGINT;
-				mode-		: LONGINT;
+				mode-	: LONGINT;
 				nlink-		: LONGINT;
 				uid-		: LONGINT;
 				gid-		: LONGINT;
@@ -201,9 +203,9 @@ TYPE
 				pad2-		: ARRAY 2 OF LONGINT;
 				size-		: LONGINT;
 				pad3-		: LONGINT;
-				atime-		: Timeval;
+				atime-	: Timeval;
 				mtime-	: Timeval;
-				ctime-		: Timeval;
+				ctime-	: Timeval;
 				blksize-	: LONGINT;
 				blocks-	: LONGINT;
 				fstype-	: ARRAY 16 OF CHAR;
@@ -240,7 +242,7 @@ TYPE
 	Dirent* = POINTER TO RECORD
 				ino-, off-	: LONGINT;
 				reclen-	: INTEGER;
-				name-		: (*array of*) CHAR;
+				name-	: (*array of*) CHAR;
 			END;
 
 	Sigset* = ARRAY 4 OF SET;
@@ -256,31 +258,31 @@ TYPE
 				flags-		: SET;
 				link-		: ADDRESS;
 				sigmask-	: Sigset;
-				stack-		: Stack;
+				stack-	: Stack;
 				mc-		: McontextDesc;
 			END;
 
 	Mcontext* = POINTER TO McontextDesc;
 	McontextDesc* = RECORD
-				egs-		: LONGINT;
-				efs-		: LONGINT;
-				ees-		: LONGINT;
-				eds-		: LONGINT;
-				edi-		: LONGINT;
-				esi-		: LONGINT;
-				ebp-		: LONGINT;
-				esp-		: LONGINT;
-				ebx-		: LONGINT;
-				edx-		: LONGINT;
-				ecx-		: LONGINT;
-				eax-		: LONGINT;
-				trapno-	: LONGINT;
-				err-		: LONGINT;
-				eip-		: LONGINT;
-				ecs-		: LONGINT;
-				eflags-	: LONGINT;
-				espatsig-	: LONGINT;
-				ess-		: LONGINT;
+				r_gs-		: LONGINT;
+				r_fs-		: LONGINT;
+				r_es-		: LONGINT;
+				r_ds-		: LONGINT;
+				r_di-		: LONGINT;
+				r_si-		: LONGINT;
+				r_bp-		: LONGINT;
+				r_sp-		: LONGINT;
+				r_bx-		: LONGINT;
+				r_dx-		: LONGINT;
+				r_cx-		: LONGINT;
+				r_ax-		: LONGINT;
+				r_trapno-	: LONGINT;
+				r_err-		: LONGINT;
+				r_pc-		: LONGINT;
+				r_cs-		: LONGINT;
+				r_flags-	: LONGINT;
+				r_spatsig-	: LONGINT;
+				r_ss-		: LONGINT;
 				fpc-		: FPcontextDesc;
 			END;
 
@@ -327,10 +329,10 @@ VAR
 	getpid-		: PROCEDURE {C} ( ): LONGINT;
 	getuid-		: PROCEDURE {C} ( ): LONGINT;
 
-	malloc-				: PROCEDURE {C} ( size: SIZE ): ADDRESS;
+	malloc-		: PROCEDURE {C} ( size: SIZE ): ADDRESS;
 	posix_memalign-	: PROCEDURE {C} ( VAR p: ADDRESS; alignment, size: SIZE ): LONGINT;
-	free-					: PROCEDURE {C} ( p: ADDRESS );
-	mprotect-			: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
+	free-			: PROCEDURE {C} ( p: ADDRESS );
+	mprotect-	: PROCEDURE {C} ( p: ADDRESS; len: SIZE; prot: LONGINT ): LONGINT;
 
 	alarm-		: PROCEDURE {C} ( ms: LONGINT ): LONGINT;
 	setitimer-		: PROCEDURE {C} ( which: LONGINT;  VAR value, ovalue: Itimerval ): LONGINT;
@@ -368,10 +370,10 @@ VAR
 	
 	PROCEDURE ModifyContext*( cont: Ucontext;  pc, bp, sp: LONGINT );
 	BEGIN
-		cont.mc.eip := pc;
-		cont.mc.ebp := bp;
-		cont.mc.esp := sp;
-		cont.mc.espatsig := sp
+		cont.mc.r_pc := pc;
+		cont.mc.r_bp := bp;
+		cont.mc.r_sp := sp;
+		cont.mc.r_spatsig := sp
 	END ModifyContext;
 
 	PROCEDURE Perror*( CONST msg: ARRAY OF CHAR );
@@ -512,10 +514,10 @@ BEGIN
 	Dlsym( libc, "getitimer",	ADDRESSOF( getitimer ) );
 
 	Dlsym( libc, "gettimeofday",	ADDRESSOF( gettimeofday ) );
-	Dlsym( libc, "mktime",		ADDRESSOF( mktime ) );
-	Dlsym( libc, "localtime",	ADDRESSOF( localtime ) );
-	Dlsym( libc, "time",			ADDRESSOF( time ) );
-	Dlsym( libc, "times",		ADDRESSOF( times ) );
+	Dlsym( libc, "mktime",			ADDRESSOF( mktime ) );
+	Dlsym( libc, "localtime",		ADDRESSOF( localtime ) );
+	Dlsym( libc, "time",				ADDRESSOF( time ) );
+	Dlsym( libc, "times",			ADDRESSOF( times ) );
 
 	Dlsym( libc, "getcwd",		ADDRESSOF( getcwd ) );
 	Dlsym( libc, "getenv",		ADDRESSOF( getenv ) );
@@ -524,21 +526,21 @@ BEGIN
 	Dlsym( libc, "readdir",		ADDRESSOF( readdir ) );
 	Dlsym( libc, "closedir",	ADDRESSOF( closedir ) );
 
-	Dlsym( libc, "sigsetjmp",	ADDRESSOF( sigsetjmp ) );
-	Dlsym( libc, "siglongjmp",	ADDRESSOF( siglongjmp ) );
+	Dlsym( libc, "sigsetjmp",		ADDRESSOF( sigsetjmp ) );
+	Dlsym( libc, "siglongjmp",		ADDRESSOF( siglongjmp ) );
 
-	Dlsym( libc, "malloc",				ADDRESSOF( malloc ) );
+	Dlsym( libc, "malloc",			ADDRESSOF( malloc ) );
 	Dlsym( libc, "posix_memalign",	ADDRESSOF( posix_memalign ) );
-	Dlsym( libc, "free",					ADDRESSOF( free ) );
-	Dlsym( libc, "mprotect",			ADDRESSOF( mprotect ) );
+	Dlsym( libc, "free",				ADDRESSOF( free ) );
+	Dlsym( libc, "mprotect",		ADDRESSOF( mprotect ) );
 
-	Dlsym( libc, "system",		ADDRESSOF( system ) );
-	Dlsym( libc, "uname",		ADDRESSOF( uname ) );
+	Dlsym( libc, "system",	ADDRESSOF( system ) );
+	Dlsym( libc, "uname",	ADDRESSOF( uname ) );
 
-	Dlsym( libc, "kill",			ADDRESSOF( kill ) );
-	Dlsym( libc, "exit",			ADDRESSOF( exit ) );
-	Dlsym( libc, "perror",		ADDRESSOF( perror ) );
-	Dlsym( libc, "errno",		ADDRESSOF( errno ) );
+	Dlsym( libc, "kill",		ADDRESSOF( kill ) );
+	Dlsym( libc, "exit",		ADDRESSOF( exit ) );
+	Dlsym( libc, "perror",	ADDRESSOF( perror ) );
+	Dlsym( libc, "errno",	ADDRESSOF( errno ) );
 
 
 	getSysinfo;

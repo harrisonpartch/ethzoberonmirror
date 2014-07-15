@@ -395,7 +395,7 @@ VAR
 
 
 	PROCEDURE Init;
-	VAR slib: LONGINT;
+	VAR slib: ADDRESS;
 	BEGIN
 		IF Unix.Version = "Solaris" THEN
 			slib := Unix.Dlopen( "libsocket.so.1", 2 );

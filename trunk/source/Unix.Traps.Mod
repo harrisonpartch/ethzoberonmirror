@@ -111,7 +111,7 @@ VAR
 		| 3:		w.String( "3 (Quit signal)" );   
 		| 4:  	w.String( "4 (Illegal instruction)" );   
 		| 5:   	w.String( "5." );  
-				sp := ucp.mc.espatsig;
+				sp := ucp.mc.r_spatsig;
 				S.GET( sp, trapno );  w.Int( trapno, 0 );  
 				CASE trapno OF 
 				| 1:       w.String( "  (WITH guard failed)" ) 
@@ -122,7 +122,6 @@ VAR
 				| 7:       w.String( "  (Index out of range)" ) 
 				| 8:       w.String( "  (ASSERT failed)" ) 
 				| 9:       w.String( "  (Array dimension error)" ) 
-				| 16:      w.String( "  (Procedure returned)" ) 
 				ELSE 
 					IF trapno >= 30 THEN  w.String( "  (programmed HALT)" )  
 					ELSE  w.String( "  (unknown exception, division error?)" )   
@@ -139,7 +138,7 @@ VAR
 		w.Ln;  
 		IF TrapHandlingLevel = 1 THEN
 			process := Objects.CurrentProcess( ); 
-			pc := ucp.mc.eip;  bp := ucp.mc.ebp;
+			pc := ucp.mc.r_pc;  bp := ucp.mc.r_bp;
 			IF pc = 0 THEN  
 				(* assume call of procedure variable with value NIL *)
 				S.GET( sp, pc );   (* get return address on top of stack *)
@@ -150,10 +149,6 @@ VAR
 			w.Ln;  
 			Reflection.StackTraceBack( w, pc, bp, Objects.GetStackBottom( process ), TRUE, FALSE );
 			SearchExceptionHandler( process, ucp, handler ); 
-			IF (handler.pc # 0) & (Unix.Version # "Darwin") THEN   
-				w.Ln;  w.Ln;
-				w.String( "### program continues with exception handler ###" );   w.Ln				
-			END
 		END;
 		w.Ln; w.Ln; 
 		w.String("----------------------------------------------------"); w.Ln; 
@@ -166,6 +161,8 @@ VAR
 			IF Unix.Version # "Darwin" THEN
 				(* in the Darwin port Unix.ModifyContext fails with bus error. Stack alignment problem? *)
 				Unix.ModifyContext( ucp, handler.pc, handler.fp, handler.sp );
+				w.Ln;  
+				w.String( "### program continues with exception handler ###" );   w.Ln;
 				RETURN  (*! to exception handler !! *)  
 			END
 		END;
@@ -198,7 +195,7 @@ VAR
 	VAR entry, fp, sp, pc: ADDRESS;
 	BEGIN 
 		handler.pc := 0;  (* no handler *)
-		pc := cont.mc.eip;  fp := cont.mc.ebp;  sp := cont.mc.espatsig;
+		pc := cont.mc.r_pc;  fp := cont.mc.r_bp;  sp := cont.mc.r_spatsig;
 		IF pc = 0 THEN  
 			(* assume call of procedure variable with value NIL *)
 			S.GET( sp, pc );   (* get return address on top of stack *)
