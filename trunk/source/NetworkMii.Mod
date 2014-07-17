@@ -83,64 +83,64 @@ CONST
 	BMCR_Reserved* = {0..4}; (* write as zero *)
 
 	(* Basic Mode Status Register (BMSR), all fields are read-only *)
-	BMSR_100BaseT4 = {15};
-	BMSR_100BaseTXFullDuplex = {14};
-	BMSR_100BaseTXHalfDuplex = {13};
-	BMSR_10BaseTFullDuplex = {12};
-	BMSR_10BaseTHalfDuplex = {11};
-	BMSR_100BaseT2FullDuplex = {10};
-	BMSR_100BaseT2HalfDuplex = {9};
-	BMSR_ExtendedStatus = {8}; (* Extended status information in register 15 (BMESR) *)
-	BMSR_UnidirectionalAbility = {7};
-	BMSR_MfPreambleSuppression = {6};
-	BMSR_AutoNegotiationComplete = {5};
-	BMSR_RemoteFault = {4};
-	BMSR_AutoNegotiationAbility = {3};
-	BMSR_LinkStatus = {2};
-	BMSR_JabberDetect = {1};
-	BMSR_ExtendedCapability = {0}; (* Extended register available *)
+	BMSR_100BaseT4* = {15};
+	BMSR_100BaseTXFullDuplex* = {14};
+	BMSR_100BaseTXHalfDuplex* = {13};
+	BMSR_10BaseTFullDuplex* = {12};
+	BMSR_10BaseTHalfDuplex* = {11};
+	BMSR_100BaseT2FullDuplex* = {10};
+	BMSR_100BaseT2HalfDuplex* = {9};
+	BMSR_ExtendedStatus* = {8}; (* Extended status information in register 15 (BMESR) *)
+	BMSR_UnidirectionalAbility* = {7};
+	BMSR_MfPreambleSuppression* = {6};
+	BMSR_AutoNegotiationComplete* = {5};
+	BMSR_RemoteFault* = {4};
+	BMSR_AutoNegotiationAbility* = {3};
+	BMSR_LinkStatus* = {2};
+	BMSR_JabberDetect* = {1};
+	BMSR_ExtendedCapability* = {0}; (* Extended register available *)
 
 	(* Basic Mode Extended Status Register (BMESR), all fields are read-only *)
-	BMESR_1000BaseXFullDuplex = {15};
-	BMESR_1000BaseXHalfDuplex = {14};
-	BMESR_1000BaseTFullDuplex = {13};
-	BMESR_1000BaseTHalfDuplex = {12};
-	BMESR_Reserved = {0..11};
+	BMESR_1000BaseXFullDuplex* = {15};
+	BMESR_1000BaseXHalfDuplex* = {14};
+	BMESR_1000BaseTFullDuplex* = {13};
+	BMESR_1000BaseTHalfDuplex* = {12};
+	BMESR_Reserved* = {0..11};
 
 	(* PHY Identifier Register 1 (PHYIDR1) *)
-	PHYIDR1_OuiMSB = {0..15};
+	PHYIDR1_OuiMSB* = {0..15};
 
 	(* PHY Identifier Register 2 (PHYIDR2) *)
-	PHYIDR2_OuiLSB = {10..15};
-	PHYIDR2_VendorModel = {4..9};
-	PHYIDR2_ModelRevision = {0..3};
+	PHYIDR2_OuiLSB* = {10..15};
+	PHYIDR2_VendorModel* = {4..9};
+	PHYIDR2_ModelRevision* = {0..3};
 
 	(* Auto Negotiation Advertisement Register (ANAR) *)
 	(* Auto Negotiation Link Partner Ability Register (ANLPAR) *)
-	ANAR_NextPageIndication = {15};
-	ANAR_Ackknowlegdement = {14};
-	ANAR_RemoteFault = {13};
-	ANAR_Reserved = {11..12}; (* write as zero *)
-	ANAR_AsymmetricPause = {11};
-	ANAR_Pause = {10};
-	ANAR_100BaseT4Support = {9};
-	ANAR_100BaseTXFullDuplex = {8};
-	ANAR_100BaseTXHalfDuplex = {7};
-	ANAR_10BaseTFullDuplex = {6};
-	ANAR_10BaseTHalfDuplex = {5};
-	ANAR_Selector = {0..4};
+	ANAR_NextPageIndication* = {15};
+	ANAR_Ackknowlegdement* = {14};
+	ANAR_RemoteFault* = {13};
+	ANAR_Reserved* = {11..12}; (* write as zero *)
+	ANAR_AsymmetricPause* = {11};
+	ANAR_Pause* = {10};
+	ANAR_100BaseT4Support* = {9};
+	ANAR_100BaseTXFullDuplex* = {8};
+	ANAR_100BaseTXHalfDuplex* = {7};
+	ANAR_10BaseTFullDuplex* = {6};
+	ANAR_10BaseTHalfDuplex* = {5};
+	ANAR_Selector* = {0..4};
 
 	(* ANAR/ANLPAR Selector field *)
-	Selector_IEEE_STD802_3 = 1;
-	Selector_IEEE_STD802_9ISLAN16T = 2;
+	Selector_IEEE_STD802_3* = 1;
+	Selector_IEEE_STD802_9ISLAN16T* = 2;
 
 	(* Auto Negotiation Expansion Register (ANER) *)
-	ANER_Reserved = {5..15}; (* write as zero *)
-	ANER_ParallelDetectionFault = {4};
-	ANER_LinkPartnerNextPageEnable = {3};
-	ANER_PhyNextPageEnable = {2};
-	ANER_NewPageReception = {1};
-	ANER_LinkPartnerAnEnable = {0};
+	ANER_Reserved* = {5..15}; (* write as zero *)
+	ANER_ParallelDetectionFault* = {4};
+	ANER_LinkPartnerNextPageEnable* = {3};
+	ANER_PhyNextPageEnable* = {2};
+	ANER_NewPageReception* = {1};
+	ANER_LinkPartnerAnEnable* = {0};
 
 TYPE
 

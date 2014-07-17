@@ -87,10 +87,11 @@ VAR
 		WHILE events > 0 DO 
 			Api.NextEvent( xd, event );
 			CASE event.typ OF
-			| Api.KeyPress: kp := S.VAL(Api.XKeyEvent, event);
+			| Api.KeyPress: kp := S.VAL( Api.XKeyEvent, event );
 					X11.lastEventTime := kp.time;
-					keycount := Api.LookupString( kp, buffer, bufsize, keysym, compstatus );
+					keycount := Api.LookupString( kp, buffer, bufsize, keysym, compstatus );					
 					X11.QueryPointer( xd, event.window, rw, cw, xr, yr, x, y, newxbuttons );
+					
 					IF keycount = 0 THEN
 						bdiff := newxbuttons / xbuttons;  xbuttons := newxbuttons;
 						km.ch := 0X;						
@@ -101,22 +102,28 @@ VAR
 						ELSIF Api.Mod1Mask IN bdiff THEN 
 							km.keysym := Inputs.KsAltL;
 							IF ~MRseen THEN SendMouseMsg( x, y, 0, xbuttons )  END
-						ELSIF MetaMask*bdiff # {} THEN km.keysym := Inputs.KsMetaL;
-						ELSIF Api.Mod5Mask IN bdiff THEN km.keysym := Inputs.KsAltR
+						ELSIF MetaMask*bdiff # {} THEN km.keysym := Inputs.KsMetaL
+						ELSIF Api.Mod5Mask IN bdiff THEN km.keysym := Inputs.KsAltR						
 						END;
 						km.flags := KeyState( );
 						SendKeyboardMsg( km )
 					ELSE
-						xbuttons := newxbuttons;  i := 0;
-						WHILE i < keycount DO
-							km.ch := buffer[i];  km.flags := KeyState( );
-							km.keysym := keySymbol[ORD( km.ch )];
-							IF km.ch = 0F1X THEN  km.ch := 0A4X
-							ELSIF km.ch = 0F2X THEN km.ch := 0A5X
-							END;
-							SendKeyboardMsg( km );
-							INC( i )
-						END
+						IF (Api.ControlMask IN kp.state) & (keysym = 32) THEN (* check Ctrl-space *)
+							km.ch := CHR( keysym );  km.flags := KeyState( );
+							km.keysym := keysym;
+							SendKeyboardMsg( km ); (* IME keys *)
+						ELSE
+							xbuttons := newxbuttons;  i := 0;
+							WHILE i < keycount DO
+								km.ch := buffer[i];  km.flags := KeyState( );
+								km.keysym := keySymbol[ORD( km.ch )];
+								IF km.ch = 0F1X THEN  km.ch := 0A4X
+								ELSIF km.ch = 0F2X THEN km.ch := 0A5X
+								END;								
+								SendKeyboardMsg( km );
+								INC( i )
+							END
+						END;	
 					END;
 			| Api.KeyRelease: kp := S.VAL(Api.XKeyEvent, event);
 					X11.lastEventTime := kp.time;

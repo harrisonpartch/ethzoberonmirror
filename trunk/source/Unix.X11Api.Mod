@@ -3,8 +3,6 @@ MODULE X11Api; (** AUTHOR "fnecati"; PURPOSE "some missing types, const and func
 IMPORT
 	X11, Unix, Modules, SYSTEM;
 
-(*! New XEvent types *)
-
 TYPE 
 	PChar* = POINTER TO ARRAY OF CHAR;
 
@@ -24,6 +22,7 @@ TYPE
 		composePtr*: LONGINT; 	(* state table pointer *)
 		charsMatched*: LONGINT;  (* match state *)
 	 END ;
+	 
 	KeySym* = X11.KeySym;
 	
 	(* Cursor control & motion *)
@@ -545,7 +544,7 @@ TYPE
 		time* : Time;		(* milliseconds *)
 		x*, y* : LONGINT;		(* pointer x, y coordinates in event window *)
 		xRoot*, yRoot* : LONGINT;	(* coordinates relative to root *)
-		state* : LONGINT(*word*);	(* key or button mask *)
+		state* : SET;	(* key or button mask *)
 		keycode* : LONGINT(*word*);	(* detail *)
 		sameScreen* : BOOLEAN;	(* same screen flag *)
 	END;
@@ -563,7 +562,7 @@ TYPE
 		time* : Time;		(* milliseconds *)
 		x*, y* : LONGINT;		(* pointer x, y coordinates in event window *)
 		xRoot*, yRoot* : LONGINT;	(* coordinates relative to root *)
-		state* : LONGINT(*word*);	(* key or button mask *)
+		state* : SET;	(* key or button mask *)
 		button* : LONGINT(*word*);	(* detail *)
 		sameScreen* : BOOLEAN;	(* same screen flag *)
 	END;
@@ -581,7 +580,7 @@ TYPE
 		time* : Time;		(* milliseconds *)
 		x*, y* : LONGINT;		(* pointer x, y coordinates in event window *)
 		xRoot*, yRoot* : LONGINT;	(* coordinates relative to root *)
-		state* : LONGINT(*word*);	(* key or button mask *)
+		state* : SET;	(* key or button mask *)
 		isHint* : CHAR;		(* detail *)
 		sameScreen* : BOOLEAN;	(* same screen flag *)
 	END;
@@ -606,7 +605,7 @@ TYPE
 		*)
 		sameScreen* : BOOLEAN;	(* same screen flag *)
 		focus* : BOOLEAN;		(* boolean focus *)
-		state* : LONGINT(*word*);	(* key or button mask *)
+		state* : SET;	(* key or button mask *)
 	END;
 	TYPE XEnterWindowEvent* = XCrossingEvent;
 	TYPE XLeaveWindowEvent* = XCrossingEvent;
@@ -859,9 +858,9 @@ TYPE
 	END;
 	
 	TYPE Data40 * = ARRAY 40 OF CHAR; (* max of these is 40 bytes*)
-		 Data40b* = ARRAY 20 OF CHAR;
-		 Data40s* = ARRAY 10 OF INTEGER;
-		 Data40l* = ARRAY 5 OF HUGEINT;
+		 Data40b* = ARRAY 20 OF CHAR; (* 20x 8 bits *)
+		 Data40s* = ARRAY 10 OF INTEGER; (* 10x 16 bits *)
+		 Data40l* = ARRAY 5 OF LONGINT; (* 5x 32 bits *)
 	TYPE XClientMessageEvent * = RECORD 
 		typ* : LONGINT;
 		serial* : LONGINT(*unsigned*);	(* # of last request processed by server *)
@@ -929,6 +928,72 @@ CONST
 	NET_WM_STATE_REMOVE* = 0;
 	NET_WM_STATE_ADD* =1;
 	NET_WM_STATE_TOGGLE* = 2;
+	
+	(*! ----------FONTS, from Xutil.h ------------------ *)
+
+TYPE
+
+	(* Extensions need a way to hang private data on some structures.
+	called to free private storage 
+		free_private_proc* = PROCEDURE (extension: ExtData): LONGINT;*)
+	
+	ExtData* = POINTER TO ExtDataDesc;
+	ExtDataDesc* = RECORD
+		number*: LONGINT;		(* number returned by XRegisterExtension *)
+		next*: ExtData;	(* next item on list of data for structure *)
+		free_private*: ADDRESS;	(* called to free private storage *)
+		extension* : ExtData;
+		private_data*: ADDRESS;	(* data private to this extension. *)
+	END;
+
+	(* per character font metric information. *)
+	CharStruct* = RECORD
+		lbearing*: INTEGER;	(* origin to left edge of raster *)
+		rbearing*: INTEGER;	(* origin to right edge of raster *)
+		width*: INTEGER;		(* advance to next char's origin *)
+		ascent*: INTEGER;		(* baseline to top edge of raster *)
+		descent*: INTEGER;	(* baseline to bottom edge of raster *)
+		attributes*: INTEGER;	(* per char flags (not predefined) *)
+	END;
+
+	(* To allow arbitrary information with fonts, there are additional properties returned. *)
+	FontProp* = RECORD
+		name*: Atom;
+		card32*: LONGINT;
+	END;
+
+	FontStruct* = POINTER TO FontStructDesc;
+	FontStructDesc* = RECORD
+		ext_data*: ExtData;	(* hook for extension to hang data *)
+		fid*: X11.Font;            (* Font id for this font *)
+		direction*: LONGINT;	(* hint about direction the font is painted *)
+		min_char_or_byte2*: LONGINT;(* first character *)
+		max_char_or_byte2*: LONGINT;(* last character *)
+		min_byte1*: LONGINT;	(* first row that exists *)
+		max_byte1*: LONGINT;	(* last row that exists *)
+		all_chars_exist*: X11.Bool;(* flag if all characters have non-zero size*)
+		default_char*: LONGINT;	(* char to print for undefined character *)
+		n_properties*: LONGINT;   (* how many properties there are *)
+		properties*: ADDRESS; (*POINTER TO ARRAY OF FontProp; *)	(* pointer to array of additional properties*)
+		min_bounds*: CharStruct;	(* minimum bounds over all existing char*)
+		max_bounds*: CharStruct;	(* maximum bounds over all existing char*)
+		per_char*: ADDRESS; (*POINTER TO ARRAY OF CharStruct;*)	(* first_char to last_char information *)
+		ascent*: LONGINT;		(* log. extent above baseline for spacing *)
+		descent*: LONGINT;	(* log. descent below baseline for spacing *)
+	END;
+
+
+	(* new structure for manipulating TEXT properties; used with WM_NAME,
+		WM_ICON_NAME, WM_CLIENT_MACHINE, and WM_COMMAND. *)
+	XTextProperty* = RECORD
+		value*: ADDRESS;		(* same as Property routines *)
+		encoding*: Atom;		(* prop type *)
+		format*: LONGINT;	(* prop data format: 8, 16, or 32 *)
+		nitems*: LONGINT;	(* number of data items in value *)
+	END;
+
+(*! ------------------- ends  Xutil.h ----------- *)	
+
 VAR
 	xlib: LONGINT;
 	
@@ -969,20 +1034,27 @@ VAR
 
 	WarpPointer- : PROCEDURE {C} (display: DisplayPtr; srcwin, destwin: Window; srcx, srcy: LONGINT; srcwidth, srcheight: LONGINT; destx, desty: LONGINT);
 
-	(* cut and paste *)
-	SendSelection*:	 PROCEDURE (VAR event: XSelectionRequestEvent );
-	ReceiveSelection*:  PROCEDURE (VAR event: XSelectionEvent );
-	ClearSelection*: PROCEDURE ;
+	(* cut and paste delegates *)
+	SendSelection*:	 PROCEDURE {DELEGATE} (VAR event: XSelectionRequestEvent );
+	ReceiveSelection*:  PROCEDURE {DELEGATE} (VAR event: XSelectionEvent );
+	ClearSelection*: PROCEDURE {DELEGATE} ;
 
 	CheckTypedEvent-: PROCEDURE {C} (display: DisplayPtr; eventType: LONGINT; VAR event: XEvent): Bool;
 	CheckMaskEvent-: PROCEDURE {C} (display: DisplayPtr; eventMask: LONGINT; VAR event: XEvent): Bool;
 
 	CheckTypedWindowEvent-: PROCEDURE {C} (display: DisplayPtr; window: Window; eventType: LONGINT; VAR event: XEvent): Bool;
 	CheckWindowEvent-: PROCEDURE {C} (display: DisplayPtr; window: Window; eventMask: LONGINT; VAR event: XEvent): Bool;
+	
+	(* Font *)
+	LoadQueryFont-: PROCEDURE {C} (display: DisplayPtr; name: ADDRESS): FontStruct;
+	QueryFont- : PROCEDURE {C} (display: DisplayPtr; name: ADDRESS): FontStruct;
 
+	KeycodeToKeysym-: PROCEDURE {C} (disp: DisplayPtr; keycode: LONGINT; index: LONGINT): KeySym;
+	KeysymToKeycode-: PROCEDURE {C} (disp: DisplayPtr; keysym: KeySym): LONGINT;
+	
 	(* wrapper procedure for XGetAtomName  *)
 	PROCEDURE GetAtomName*(display: DisplayPtr; atom: Atom): PChar;
-	VAR adr, adr1: LONGINT;
+	VAR adr, adr1: ADDRESS;
 		name: PChar;
 		i, cnt: LONGINT;
 		ch: CHAR;
@@ -1049,6 +1121,12 @@ BEGIN
 
 		Unix.Dlsym( xlib, "XCheckTypedWindowEvent", ADDRESSOF( CheckTypedWindowEvent));
 		Unix.Dlsym( xlib, "XCheckWindowEvent", ADDRESSOF( CheckWindowEvent));
+		
+		Unix.Dlsym(xlib, 'XLoadQueryFont', ADDRESSOF( LoadQueryFont));
+		Unix.Dlsym(xlib, 'XQueryFont', ADDRESSOF( QueryFont));
+
+		Unix.Dlsym(xlib, "XKeycodeToKeysym", ADDRESSOF(KeycodeToKeysym));
+		Unix.Dlsym(xlib, "XKeysymToKeycode", ADDRESSOF(KeysymToKeycode));
 
 END LoadX11Functions;
 
