@@ -39,7 +39,7 @@ TYPE
 		lastKeys, state : SET;
 		
 		oldx,oldy:LONGINT;
-		PArray: WMProperties.PropertyArray;
+		PArray: WMProperties.PropertyArray; (* PArray#NIL !*)
 
 		PROCEDURE &Init*;
 		BEGIN
@@ -62,32 +62,33 @@ TYPE
 			hover := NIL;
 			selected := NIL;
 			lastKeys := {};
-			RecachePoints;
-			Normalize;
+			NEW(PArray,0); 
 		END Init;
 		
-		PROCEDURE AddPoint*(x, y : LONGINT);
+		PROCEDURE Initialize*;
+		BEGIN(* Call whenever the component composite is resetted (also when put into FormWindow) ; see WMComponentSkeleton.Mod *)
+			Initialize^;
+		END Initialize;
+		
+	
+		PROCEDURE AddPoint*(x, y : LONGINT); (* in stable parent coordinates (because coordinates relative to the figure bound change with normalization) *)
 		VAR 
 			s: ARRAY 16 OF CHAR;
 			pp:WMProperties.PointProperty; 
 		BEGIN
 			Strings.IntToStr(nofPoints,s);
+			INC(nofPoints);
 			NEW(pp,NIL,Strings.NewString(s),NIL);  
 			Acquire;
 			properties.Add(pp);
 			Release;
 			pp.SetCoordinate(x,y); 
-			(*pp.Changed; *)(* overkill ?*)
-			RecachePoints;
-			Normalize;
-			Invalidate;
 		END AddPoint;
 
 		(* x,y in Figure coordinates, which may change when adding new points etc. Remember that PointProperty is in (stable) parent coordinates*)
 		PROCEDURE MovePoint*(point: WMProperties.Property; fx, fy: LONGINT);
 		BEGIN
 			point(WMProperties.PointProperty).SetCoordinate(fx+bounds.GetLeft(), fy+bounds.GetTop()); 
-			Invalidate;
 		END MovePoint;
 		
 		PROCEDURE RemovePoint*(fx, fy : LONGINT);
@@ -100,9 +101,6 @@ TYPE
 				properties.Remove(pp);
 				Release;
 			END;
-			RecachePoints;
-			Normalize;
-			Invalidate;
 		END RemovePoint;
 		
 		(** Return point located at mouse position mx. my, which are in Figure coordinates that change, e.g. when points are added. (NIL if no point at location). *)
@@ -152,7 +150,7 @@ TYPE
 		VAR i,x,y:LONGINT;
 		BEGIN	
 			Acquire;
-			IF PArray#NIL THEN PArray:=properties.Enumerate(); END;
+			IF PArray=NIL THEN PArray:=properties.Enumerate(); END; (*?redundant*)
 			IF PArray=NIL THEN RETURN END;
 			FOR i:=0 TO LEN(PArray)-1 DO
 				IF (PArray[i]#NIL) & (PArray[i] IS WMProperties.PointProperty) THEN
@@ -161,7 +159,6 @@ TYPE
 				END;
 			END;
 			Release;
-			Invalidate;
 		END MoveFigure;
 
 		(* fx,fy in Figure coordinate system, NOT in parent coordinates*)
@@ -191,10 +188,10 @@ TYPE
 				END;
 			END;
 			(*IF (2 IN lastKeys) & ~(2 IN keys) THEN
-				IF reshape.Get() THEN EXCL(state, Reshape); ELSE INCL(state, Reshape); END;(*??xxx*)
+				IF reshape.Get() THEN EXCL(state, Reshape); ELSE INCL(state, Reshape); END;
 			ELS*)
 			IF reshape.Get() & (EditPoints IN state) & (1 IN lastKeys) & ~(1 IN keys)  THEN
-				AddPoint(fx, fy); (* Invalidate;*)(*!partly functional - wrong coordinates*)
+				AddPoint(fx, fy); (*!partly functional - wrong coordinates*)
 			ELSIF reshape.Get() & (EditPoints IN state) & (lastKeys={0,2}) & (keys#{0,2}) THEN
 				RemovePoint(fx,fy); 
 			ELSE(* PointerUp^(x, y, keys);*)
@@ -225,11 +222,12 @@ TYPE
 		END PointerMove;
 		
 				(* Is X, Y somewhere inside the polygon defined by p ? *)
-		PROCEDURE Inside*(X, Y: LONGINT): BOOLEAN;
+		PROCEDURE Inside*(X, Y: LONGINT): BOOLEAN;(*! to be done for children*)
 		END Inside;
 		
 		(** Return if the line is hit at (x, y) in parent coordinates *)
-		PROCEDURE IsHit*(x, y: LONGINT): BOOLEAN; 
+		
+		PROCEDURE IsHit*(x, y: LONGINT): BOOLEAN; (*! to be done for children*)
 		END IsHit;		
 		
 		PROCEDURE PropertyChanged*(sender, property : ANY);
@@ -241,21 +239,11 @@ TYPE
 			ELSIF (property = filled) THEN IF filled.Get() THEN INCL(state,Filled) ELSE EXCL(state,Filled); END; Invalidate;
 			ELSIF (property = reshape) THEN IF reshape.Get() THEN INCL(state,Reshape) ELSE EXCL(state,Reshape); END; Invalidate;
 			ELSIF (property = arrow) THEN IF arrow.Get() THEN INCL(state,Arrow) ELSE EXCL(state,Arrow); END; Invalidate;
-			ELSIF property IS WMProperties.PointProperty THEN Invalidate; RecachePoints; Normalize; 
-			ELSIF property=properties THEN RecachePoints; Invalidate; Normalize; PropertyChanged^(sender, property); (*?*)
+			ELSIF property IS WMProperties.PointProperty THEN Invalidate; RecachePoints; (*Normalize; *)
+			ELSIF property=properties THEN Invalidate;  RecachePoints; (*Normalize; *)(*PropertyChanged^(sender, property); ?*)
 			ELSE  PropertyChanged^(sender, property); (* e.g, handling bounds by parent *)
 			END;
 		END PropertyChanged;
-		
-		(*
-		PROCEDURE RecacheProperties;
-		BEGIN
-			RecachePoints;
-			RecacheProperties^;
-			
-		END RecacheProperties;
-		*)
-		
 	
 		PROCEDURE AddDisplayPoint(x, y : LONGINT);
 		VAR point, p : Point; 
@@ -280,6 +268,7 @@ TYPE
 		PROCEDURE Normalize; 
 		VAR p:Point; rect: WMRectangles.Rectangle;
 		BEGIN
+			(*? does some flicker originate here ? - suppress display update here*)
 			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT); rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
 			p:=points;
 			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
@@ -288,7 +277,7 @@ TYPE
 				p:=p.next; 
 			END;
 			p:=points;
-			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
+			WHILE p#NIL DO (* adapt display point coordinates to new bounds *) 
 				p.x:=p.x-rect.l; p.y:=p.y-rect.t; 
 				p:=p.next; 
 			END;
@@ -316,10 +305,15 @@ TYPE
 			RETURN rect;
 		END GetBoundingBox;
 		
+		PROCEDURE RecacheProperties;
+		BEGIN (* called by sequencer -> hierarchy is locked, see WMVisualComponentSkeleton.Mod *)
+			RecacheProperties^;
+			RecachePoints;
+		END RecacheProperties;
+		
 		PROCEDURE RecachePoints; (*build point list in parent coordinates*)
 		VAR p:Point;	i,x,y:LONGINT;
 		BEGIN
-			(* called by sequencer -> hierarchy is locked, see WMVisualComponentSkeleton.Mod *)
 			PArray:=properties.Enumerate();
 			points:=NIL; p:=NIL; nofPoints:=0;
 			FOR i:=0 TO LEN(PArray)-1 DO
@@ -396,15 +390,32 @@ TYPE
 
 		PROCEDURE &Init*;
 		BEGIN
-			Init^;
+			Init^; 
 			SetGenerator("WMFigures.GenLine");
 			SetNameAsString(StrLine);
 			INCL(state, EditPoints);
-			NEW(pointArray, nofPoints);		
 			RecachePoints;
-			Normalize;
-			Invalidate;
+			NEW(pointArray, nofPoints);		
 		END Init;
+		
+		PROCEDURE Initialize*;
+		VAR pp:WMProperties.PointProperty;
+		BEGIN
+			RecachePoints;
+			IF nofPoints=0 THEN (* prototype*)
+				Acquire;
+				NEW(pp,NIL,Strings.NewString("0"),NIL); pp.SetCoordinate(5,20); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("1"),NIL); pp.SetCoordinate(20,0); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("2"),NIL); pp.SetCoordinate(20,20); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("3"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
+				Release;
+				(*bounds.Set(WMRectangles.MakeRect(0,0,40,40));*)
+				RecachePoints;
+			END; 
+			Normalize;
+			Initialize^;
+		END Initialize;
+		
 
 		PROCEDURE Scale;
 		VAR p : Point; bounds, box : WMRectangles.Rectangle; oldWidth, oldHeight, newWidth, newHeight, n : LONGINT;
@@ -466,6 +477,8 @@ TYPE
 		VAR p, plast : Point; i : LONGINT; 
 		BEGIN
 			DrawBackground^(canvas);
+			RecachePoints;
+			Normalize;
 			IF (nofPoints # LEN(pointArray)) THEN NEW(pointArray, nofPoints); END;
 			p := points; i := 0;
 			WHILE (p # NIL) DO
@@ -483,52 +496,63 @@ TYPE
 
 TYPE
 
-	Circle* = OBJECT(Figure) (*! to do: computation of bounding box is wrong. Do specific "RecachePoints()" for circle*)
+	Circle* = OBJECT(Figure) 
 
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
 			SetGenerator("WMFigures.GenCircle");
 			SetNameAsString(StrCircle);
-			AddPoint(15, 15);
-			AddPoint(20, 20);
 			INCL(state, EditPoints);
-			RecachePoints;
-			Normalize;
-			Invalidate;
 		END Init;
 
-		PROCEDURE Normalize;
-		VAR oldBounds,rect : WMRectangles.Rectangle; p, q : Point; dx,dy, r, n : LONGINT;
+		PROCEDURE Initialize*;
+		VAR pp: WMProperties.PointProperty;
 		BEGIN
-			oldBounds := bounds.Get();
-			IF (p=NIL) OR (p.next=NIL) THEN RETURN END;
+			RecachePoints;
+			IF nofPoints=0 THEN (* prototype*)
+				NEW(pp,NIL,Strings.NewString("0"),NIL); pp.SetCoordinate(15,15); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("1"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
+				bounds.Set(WMRectangles.MakeRect(0,0,40,40));
+				RecachePoints;
+			END;
+			Normalize;
+			Initialize^;
+		END Initialize;
+		
+		PROCEDURE Normalize; 
+		VAR p:Point; rect: WMRectangles.Rectangle; r,n:LONGINT;
+		BEGIN
 			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT); rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
-			p := points; q := p.next;
-			r := Distance(p.x, p.y, q.x, q.y);
-			n := r + (PointSize DIV 2) + (width.Get() DIV 2) + 1;
-			rect.l := oldBounds.l + p.x - n;
-			rect.r := oldBounds.l + 2*n;
-			rect.t := oldBounds.t + p.y - n;
-			rect.b := oldBounds.t + 2*n;
-			dx:=rect.l-oldBounds.l;
-			dy:=rect.t-oldBounds.t;
-			p.x:=p.x-dx; q.x:=q.x-dx;
-			p.y:=p.y-dy; q.y:=q.y-dy;
-			bounds.Set(rect)
+			p:=points;
+			r := Distance(p.x, p.y, p.next.x, p.next.y);
+			n := r + (PointSize DIV 2) + 1;
+			(* adapt display point coordinates to new bounds *)
+			rect.l:=p.x-n; rect.r:=p.x+n;  (*compute bounds*)
+			rect.t:=p.y-n; rect.b:=p.y+n;
+			
+			p:=points;
+			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
+				p.x:=p.x-rect.l; p.y:=p.y-rect.t; 
+				p:=p.next; 
+			END;
+			bounds.Set(rect);
 		END Normalize;
 		
-		(*PROCEDURE IsHit;(*!TBD*)
+		(*
+		PROCEDURE IsHit*(mx, my: LONGINT): BOOLEAN;
 		BEGIN
-			
-		END IsHit;*)
-		
+			RETURN ABS(Distance(mx,my, points.next.x,points.next.y) - Distance(points.x, points.y, points.next.x,points.next.y))<gravity
+		END IsHit;
+		*)
 
 		PROCEDURE DrawBackground*(canvas : WMGraphics.Canvas);
-		VAR p, q : Point; newRect:WMRectangles.Rectangle;
+		VAR p, q : Point; 
 		BEGIN
 			DrawBackground^(canvas);
+			RecachePoints;
 			Normalize;
+			IF (points=NIL) OR (points.next=NIL) THEN RETURN END;
 			p := points;
 			q := points.next;
 			canvas.SetColor(color.Get());
@@ -547,45 +571,40 @@ TYPE
 			Init^;
 			SetGenerator("WMFigures.GenRectangle");
 			SetNameAsString(StrRectangle);
-			AddPoint(10, 10);
-			AddPoint(20, 20);
 			INCL(state, EditPoints);
-			Normalize;
-			Invalidate;
 		END Init;
-
-		PROCEDURE Normalize; (* might be done by generic Normalize*)
-		VAR p, q : Point; oldBounds, box, newBounds : WMRectangles.Rectangle; n : LONGINT;
-		BEGIN
-			IF (points=NIL) OR (points.next=NIL) THEN RETURN END;
-			Acquire;
-			p := points;
-			q := p.next;
-			oldBounds := bounds.Get();
-			n := (PointSize DIV 2) + (width.Get() DIV 2) + 1;
-			box.l := Min(p.x, q.x) - n;
-			box.r := Max(p.x, q.x) + n;
-			box.t := Min(p.y, q.y) - n;
-			box.b := Max(p.y, q.y) + n;
-			newBounds.l := oldBounds.l + box.l;
-			newBounds.t := oldBounds.t + box.t;
-			newBounds.r := oldBounds.l + (box.r - box.l);
-			newBounds.b := oldBounds.t + (box.b - box.t);
-			MoveDisplayPoints(-box.l, -box.t);
-			bounds.Set(newBounds);
-			Release;
-		END Normalize;
 		
-		(*PROCEDURE IsHit;(*!TBD*)
+		PROCEDURE Initialize*;
+		VAR pp: WMProperties.PointProperty;
 		BEGIN
-			
-		END IsHit;*)
+			RecachePoints;
+			IF nofPoints=0 THEN (* prototype*)
+				NEW(pp,NIL,Strings.NewString("0"),NIL); pp.SetCoordinate(10,10); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("1"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
+				bounds.Set(WMRectangles.MakeRect(0,0,40,40));
+				RecachePoints;
+			END;
+			Normalize;
+			Initialize^;
+		END Initialize;
+		
+		PROCEDURE IsHit*(mx, my: LONGINT): BOOLEAN;
+		BEGIN
+			RETURN 
+				InLineVicinity(mx, my, points.x, points.y, points.x, points.next.y) OR
+				InLineVicinity(mx, my, points.x, points.y, points.next.x, points.y) OR
+				InLineVicinity(mx, my, points.x, points.next.y, points.next.x, points.next.y) OR
+				InLineVicinity(mx, my, points.next.x, points.y, points.next.x, points.next.y) 
+		END IsHit;
 		
 
 		PROCEDURE DrawBackground*(canvas : WMGraphics.Canvas);
 		VAR p, q : Point; rect : WMRectangles.Rectangle;
 		BEGIN
 			DrawBackground^(canvas);
+			RecachePoints;
+			Normalize;
+			IF (points=NIL) OR (points.next=NIL) THEN RETURN END;
 			p := points;
 			q := points.next;
 			rect.l := Min(p.x, q.x);
@@ -610,17 +629,27 @@ TYPE
 			SetGenerator("WMFigures.GenSpline");
 			SetNameAsString(StrSpline);
 			INCL(state, EditPoints);
-			IF nofPoints=0 THEN (* prototype*)
-				AddPoint(0, 20);
-				AddPoint(20, 0);
-				AddPoint(20, 20);
-				AddPoint(30, 30);
-			END;
 			RecachePoints;
+		END Init;
+		
+		PROCEDURE Initialize*;
+		VAR pp:WMProperties.PointProperty;
+		BEGIN
+			RecachePoints;
+			IF nofPoints=0 THEN (* default *)
+				Acquire;
+				NEW(pp,NIL,Strings.NewString("0"),NIL); pp.SetCoordinate(5,20); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("1"),NIL); pp.SetCoordinate(20,0); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("2"),NIL); pp.SetCoordinate(20,20); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("3"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
+				(*bounds.Set(WMRectangles.MakeRect(0,0,40,40));*)
+				Release;
+				RecachePoints;
+			END;
 			SplineToPoly(points, Closed IN state, pointArray, nSegments);
 			Normalize;
-			Invalidate;
-		END Init;
+			Initialize^;
+		END Initialize;
 		
 				(* Is X, Y somewhere inside the polygon defined by p ? *) (*! to be implemented for pointarray; eliminate bias*)
 		PROCEDURE Inside(X, Y: LONGINT): BOOLEAN;
@@ -661,7 +690,7 @@ TYPE
 		END IsHit;
 
 		PROCEDURE Normalize; 
-		VAR i:LONGINT; oldrect, rect:WMRectangles.Rectangle; p:Point; (*! to do: there is a mixup of parent/child coordinates after moving, here and in Spline.HitTest. repair*)
+		VAR i:LONGINT; oldrect, rect:WMRectangles.Rectangle; p:Point; 
 		BEGIN
 			oldrect:=bounds.Get();
 			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT); rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
@@ -684,7 +713,6 @@ TYPE
 		PROCEDURE DrawBackground*(canvas : WMGraphics.Canvas);
 		VAR p: Point; col: LONGINT; 
 		BEGIN
-			
 			DrawBackground^(canvas); 
 			RecachePoints;
 			SplineToPoly(points, Closed IN state, pointArray, nSegments); (* spline boundary computation requires prior spline expansion, not normalized *)
@@ -1021,29 +1049,81 @@ BEGIN
 END WMFigures.
 
 SystemTools.FreeDownTo WMFigures ~
+----------------
+Example commands for interactive figures (left click for editing and moving; middle clicking for adding points, right-left interclick for deleting points).
 
 ComponentViewer.Open WMFigures.GenLine ~
 ComponentViewer.Open WMFigures.GenSpline ~
 ComponentViewer.Open WMFigures.GenCircle ~
 ComponentViewer.Open WMFigures.GenRectangle ~
 
-ComponentViewer.Open WMShapes.GenLine ~
+alternative: ComponentViewer.Open WMShapes.GenLine ~ (*use component inspector to change color for visualization*)
 
-Example application for Line:
+------------------------
+Example application for programmable figures:
 
-MODULE FigureTester; 
-	IMPORT ComponentViewer, Commands, XML, WMFigures;
-	PROCEDURE Test*(context:Commands.Context);
-	VAR line: XML.Element; window: ComponentViewer.Window;
-	BEGIN
-		line:=WMFigures.GenLine();
-		line(WMFigures.Line).AddPoint(30,20); 
-		line(WMFigures.Line).AddPoint(40,50); 
-		line(WMFigures.Line).AddPoint(10,70); 
-		line.Write(context.out, NIL, 0); context.out.Ln; context.out.Update; (* show XML structure*)
-		ComponentViewer.DoShow(line(WMFigures.Figure), window, 200,300,200,200, FALSE,FALSE,FALSE, {});
-	END Test;
-END FigureTester.
+MODULE TestFigures; 
 
-FigureTester.Test  ~
+IMPORT WMFigures, WMWindowManager, WMGraphics, WMComponents, WMStandardComponents;
+
+PROCEDURE Do*;
+VAR 
+	r:WMFigures.Rectangle;
+	s:WMFigures.Spline;
+	l:WMFigures.Line;
+	c:WMFigures.Circle;
+	window: WMComponents.FormWindow;
+	background: WMStandardComponents.Panel;
+BEGIN
+	NEW(window, 400,400, FALSE);
+	
+	NEW(background);
+	background.bounds.SetExtents(400,400);
+	background.fillColor.Set(WMGraphics.Green);
+	window.SetContent(background);
+	WMWindowManager.AddWindow(window, 200,200);
+	
+	NEW(l); l.AddPoint(10,20); l.AddPoint(100,200); l.AddPoint(80, 20);
+	background.AddContent(l); 	
+	l.Initialize; l.Invalidate;
+
+	NEW(r); r.AddPoint(30,40); r.AddPoint(120,200); 
+	background.AddContent(r);
+	r.Initialize; r.Invalidate;
+	
+	NEW(c); c.AddPoint(100,100); c.AddPoint(150,150);
+	background.AddContent(c);
+	c.Initialize; c.Invalidate;
+	
+	NEW(s); (*spline with default points*)
+	background.AddContent(s);
+	s.color.Set(WMGraphics.Blue);
+	s.Initialize; s.Invalidate;
+	
+	NEW(r); r.AddPoint(70,80); r.AddPoint(110,110); 
+	r.reshape.Set(FALSE); (* non-reshapable *)
+	r.color.Set(WMGraphics.Blue);
+	background.AddContent(r);
+	r.Initialize; r.Invalidate;
+END Do;
+
+PROCEDURE Do1*;
+VAR 
+	r:WMFigures.Rectangle;
+	s:WMFigures.Spline;
+	l:WMFigures.Line;
+	window: WMComponents.FormWindow;
+BEGIN
+	NEW(window, 400,400, FALSE);
+	WMWindowManager.AddWindow(window, 200,200);
+	
+	NEW(l); l.AddPoint(10,20); l.AddPoint(100,200); l.AddPoint(80, 20);
+	window.SetContent(l); 
+	l.Initialize;	l.Invalidate;	
+END Do1;
+
+END TestFigures.
+
+TestFigures.Do
+TestFigures.Do1
 

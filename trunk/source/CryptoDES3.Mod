@@ -113,34 +113,38 @@ TYPE
 				END Decrypt;
 
 
-				PROCEDURE RoundE*( VAR X, Y: SET );
-				VAR T: LONGINT;
+				PROCEDURE RoundE*( VAR x, y: SET );
+				VAR t: LONGINT;
 				BEGIN
-					T := S.VAL( LONGINT, ske[ski] / X );  INC(ski );
-					Y := Y /	DES.SB8[T MOD 40H] /
-							DES.SB6[T DIV 100H MOD 40H] /
-							DES.SB4[T DIV 10000H MOD 40H] /
-							DES.SB2[T DIV 1000000H MOD 40H];
-					T := S.VAL( LONGINT, ske[ski] / ROT( X, -4 ) );  INC( ski );
-					Y := Y /	DES.SB7[T MOD 40H] /
-							DES.SB5[T DIV 100H MOD 40H] /
-							DES.SB3[T DIV 10000H MOD 40H] /
-							DES.SB1[T DIV 1000000H MOD 40H]
+					t := S.VAL( LONGINT, ske[ski] / x );  INC(ski );
+					y := y / 
+						DES.sb8[t MOD 40H] / 
+						DES.sb6[t DIV 100H MOD 40H] /
+						DES.sb4[t DIV 10000H MOD 40H] / 
+						DES.sb2[t DIV 1000000H MOD 40H];
+					t := S.VAL( LONGINT, ske[ski] / ROT( x, -4 ) );  INC( ski );
+					y := y / 
+						DES.sb7[t MOD 40H] / 
+						DES.sb5[t DIV 100H MOD 40H] /
+						DES.sb3[t DIV 10000H MOD 40H] / 
+						DES.sb1[t DIV 1000000H MOD 40H]
 				END RoundE;
 				
-				PROCEDURE RoundD*( VAR X, Y: SET );
-				VAR T: LONGINT;
+				PROCEDURE RoundD*( VAR x, y: SET );
+				VAR t: LONGINT;
 				BEGIN
-					T := S.VAL( LONGINT, skd[ski] / X );  INC( ski );
-					Y := Y /	DES.SB8[T MOD 40H] /
-							DES.SB6[T DIV 100H MOD 40H] /
-							DES.SB4[T DIV 10000H MOD 40H] /
-							DES.SB2[T DIV 1000000H MOD 40H];
-					T := S.VAL( LONGINT, skd[ski] / ROT( X, -4 ) );  INC(ski );
-					Y := Y /	DES.SB7[T MOD 40H] /
-							DES.SB5[T DIV 100H MOD 40H] /
-							DES.SB3[T DIV 10000H MOD 40H] /
-							DES.SB1[T DIV 1000000H MOD 40H]
+					t := S.VAL( LONGINT, skd[ski] / x );  INC( ski );
+					y := y / 
+						DES.sb8[t MOD 40H] / 
+						DES.sb6[t DIV 100H MOD 40H] /
+						DES.sb4[t DIV 10000H MOD 40H] / 
+						DES.sb2[t DIV 1000000H MOD 40H];
+					t := S.VAL( LONGINT, skd[ski] / ROT( x, -4 ) );  INC(ski );
+					y := y / 
+						DES.sb7[t MOD 40H] / 
+						DES.sb5[t DIV 100H MOD 40H] /
+						DES.sb3[t DIV 10000H MOD 40H] / 
+						DES.sb1[t DIV 1000000H MOD 40H]
 				END RoundD;
 
 				PROCEDURE & Init*;
