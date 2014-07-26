@@ -165,8 +165,9 @@ BEGIN
 			END
 		END;
 	ELSE
-		context.error.String('Expected parameters: prefix alias ([volpar] ["|" fspar]'); context.error.Ln;
+		res := 1; context.error.String('Expected parameters: prefix alias ([volpar] ["|" fspar]'); context.error.Ln; 
 	END;
+	context.result := res;
 END Mount;
 
 PROCEDURE Unmount*(context : Commands.Context); (** prefix[\f] *)

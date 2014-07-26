@@ -439,7 +439,7 @@ VAR
 		RETURN h
 	END Dlopen;
 
-	PROCEDURE Dlclose*( lib: LONGINT );
+	PROCEDURE Dlclose*( lib: ADDRESS );
 	BEGIN
 		Glue.dlclose( lib )
 	END Dlclose;

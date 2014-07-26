@@ -40,7 +40,7 @@ CONST
 	DebugTransmit = 9;
 	DebugInterrupt = 10;
 	DebugCleanup = 31;
-	Debug = {DebugFind, DebugInit, DebugTxRing, DebugCleanup};
+	Debug = {(*DebugTransmit,DebugReceive,*)DebugFind, DebugInit, DebugTxRing, DebugCleanup};
 
 	(* The forced speed, 10Mb, 100Mb, gigabit, 2.5Gb, 10GbE. *)
 	SPEED_10 = 10;
@@ -1289,6 +1289,7 @@ TYPE
 				END;*)
 			END;
 			
+			cp_cmd := cp_cmd + RxChkSum;
 			TRACE(cp_cmd);
 			Write16(CPlusCmd, cp_cmd); (*! ??? *)
 			cp_cmd := Read16(CPlusCmd);
@@ -1361,9 +1362,9 @@ TYPE
 
 			powerup_pll;
 
-			(*hw_ephy_config;
+			hw_ephy_config;
 
-			hw_phy_config;*)
+			hw_phy_config;
 
 			hw_start;
 			
@@ -2570,12 +2571,12 @@ TYPE
 			let the NIC calc the checksums for IP, TCP and UCP headers *)
 			chksums := {};
 			IF type = 0800H THEN
-				INCL(chksums, 18); (* offload IP checksum *)
+				INCL(chksums, 29(*18*)); (* offload IP checksum *)
 				type4 := S.VAL(SHORTINT, l3hdr[9]); (* get type if IP data *)
 				IF type4 = 6 THEN (* TCP/IP *)
-					INCL(chksums, 16); (* offload TCP checksum *)
+					INCL(chksums, 30(*16*)); (* offload TCP checksum *)
 				ELSIF type4 = 17 THEN
-					INCL(chksums, 17); (* offload UDP checksum *)
+					INCL(chksums, 31(*17*)); (* offload UDP checksum *)
 				END;
 			END;
 
@@ -2583,9 +2584,11 @@ TYPE
 			set OWN=1, FS=1, LS=1, checksum offloads;
 			set size of packet to be transmitted *)
 			tds[curTD].flags := tds[curTD].flags * {30}; (* only keep EOR bit *)
-			tds[curTD].flags := tds[curTD].flags + {31, 29, 28} + chksums;
+			tds[curTD].flags := tds[curTD].flags + {31, 29, 28} (*+ chksums*);
 			tds[curTD].flags := tds[curTD].flags + (S.VAL(SET, txLen) * {0..15});
-
+			
+			tds[curTD].vLanTag := S.VAL(LONGINT,chksums);
+			
 			(* move to next Tx Descriptor, Tx Buffer *)
 			INC(curTD);
 			IF curTD = TxRingSize THEN
@@ -2717,8 +2720,16 @@ TYPE
 					END;
 					END;
 				ELSE
-					IF DebugReceive IN Debug THEN
-						KernelLog.String("Checksum error detected!"); KernelLog.Ln;
+					IF DebugReceive IN Debug THEN 
+						IF 16 IN rds[curRD].flags THEN
+							KernelLog.String("IP ");
+						ELSIF 15 IN rds[curRD].flags THEN
+							KernelLog.String("UDP ");
+						ELSIF 14 IN rds[curRD].flags THEN
+							KernelLog.String("TCP ");
+						END;
+						KernelLog.String("checksum error detected!");
+						KernelLog.Ln;
 					END;
 					INC(nRxErrorFrames);
 				END;

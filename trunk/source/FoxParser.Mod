@@ -1749,7 +1749,9 @@ TYPE
 
 			IF Optional( Scanner.Arrow) THEN (* ignore forward declarations *)
 				forwardDeclaration := TRUE;
+				(*
 				diagnostics.Warning(scanner.source^, position, Diagnostics.Invalid,"Unsupported forward declaration. No semantic rules checked.");
+				*)
 			ELSE forwardDeclaration := FALSE;
 			END;
 
@@ -1789,8 +1791,8 @@ TYPE
 				END;
 				Check(Scanner.End);
 				IF ExpectThisIdentifier( name ) THEN END;
-				parentScope.AddProcedure( procedure )
 			END;
+			parentScope.AddProcedure( procedure );
 
 			IF Trace THEN E( "Procedure") END;
 		END ProcedureDeclaration;
@@ -1807,11 +1809,13 @@ TYPE
 			access: SET;
 			i: LONGINT; ch: CHAR; position: LONGINT;
 			modifiers: SyntaxTree.Modifier; (* nopov *)
-			isInline: BOOLEAN;
+			isInline, forward: BOOLEAN;
 		BEGIN
 			IF Trace THEN S( "Operator" ) END;
 			(* symbol operator already consumed *)
 			position := symbol.start;
+
+			forward := Optional(Scanner.Arrow);			
 
 			isInline := FALSE;
 			IF Optional( Scanner.Minus ) THEN  (* inline *)
@@ -1845,11 +1849,13 @@ TYPE
 			operator.SetType( procedureType );
 			operator.SetInline(isInline);
 			IF Lax THEN Ignore(Scanner.Semicolon) ELSE Check( Scanner.Semicolon ) END;
-			DeclarationSequence( procedureScope );
-			IF Peek(Scanner.Begin) OR Peek(Scanner.Code) THEN
-				procedureScope.SetBody(Body(procedureScope));
+			IF ~forward THEN
+				DeclarationSequence( procedureScope );
+				IF Peek(Scanner.Begin) OR Peek(Scanner.Code) THEN
+					procedureScope.SetBody(Body(procedureScope));
+				END;
+				IF Mandatory(Scanner.End) & ExpectThisString(string^) THEN END;
 			END;
-			IF Mandatory(Scanner.End) & ExpectThisString(string^) THEN END;
 			parentScope.AddProcedure(operator);
 			IF parentScope IS SyntaxTree.ModuleScope THEN
 				parentScope(SyntaxTree.ModuleScope).AddOperator(operator);

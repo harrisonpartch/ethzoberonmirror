@@ -995,7 +995,7 @@ TYPE
 (*! ------------------- ends  Xutil.h ----------- *)	
 
 VAR
-	xlib: LONGINT;
+	xlib: ADDRESS;
 	
 	OpenDisplay- : PROCEDURE {C} (CONST name: ARRAY OF CHAR): DisplayPtr;
 	CloseDisplay- : PROCEDURE {C} (display:DisplayPtr): LONGINT;
@@ -1051,15 +1051,17 @@ VAR
 
 	KeycodeToKeysym-: PROCEDURE {C} (disp: DisplayPtr; keycode: LONGINT; index: LONGINT): KeySym;
 	KeysymToKeycode-: PROCEDURE {C} (disp: DisplayPtr; keysym: KeySym): LONGINT;
+
+	XKeysymToString-  : PROCEDURE {C} (keysym: KeySym): ADDRESS;
 	
-	(* wrapper procedure for XGetAtomName  *)
-	PROCEDURE GetAtomName*(display: DisplayPtr; atom: Atom): PChar;
-	VAR adr, adr1: ADDRESS;
+	(* helper procedure *)
+	PROCEDURE GetStringFromAddress*(adr: ADDRESS): PChar;
+	VAR
+		adr1: ADDRESS;
 		name: PChar;
 		i, cnt: LONGINT;
 		ch: CHAR;
 	BEGIN
-		adr := XGetAtomName(display, atom);
 		cnt := 0;
 		adr1 := adr;
 		(* count # of characters *)
@@ -1068,16 +1070,34 @@ VAR
 			INC(cnt); INC(adr1);
 			SYSTEM.GET(adr1, ch);
 		END;
-
-		IF cnt = 0 THEN X11.Free(adr); RETURN NIL; END;
-		
-		(* copy characters to name *)
-		adr1 := adr;
-		NEW(name, cnt+1);
-		FOR i :=0 TO cnt-1 DO
-			SYSTEM.GET(adr1, ch); name[i] :=ch; INC(adr1);
+		IF cnt > 0 THEN
+			(* copy characters to name *)
+			adr1 := adr;
+			NEW(name, cnt);
+			FOR i :=0 TO cnt-1 DO
+				SYSTEM.GET(adr1, ch); name[i] := ch; INC(adr1);
+			END;
 		END;
-
+		RETURN name;		
+	END GetStringFromAddress;
+	
+	(* wrapper procedure for XKeysymToString *)
+	PROCEDURE KeysymToString*(keysym: KeySym): PChar;
+	VAR adr: ADDRESS;
+		name: PChar;
+	BEGIN
+		adr := XKeysymToString(keysym);
+		name := GetStringFromAddress(adr);
+		RETURN name;
+	END KeysymToString;
+		
+	(* wrapper procedure for XGetAtomName  *)
+	PROCEDURE GetAtomName*(display: DisplayPtr; atom: Atom): PChar;
+	VAR adr: ADDRESS;
+		name: PChar;
+	BEGIN
+		adr := XGetAtomName(display, atom);
+		name := GetStringFromAddress(adr);
 		X11.Free(adr); (* free resulting string *)
 		RETURN name;
 	END GetAtomName;
@@ -1114,26 +1134,22 @@ BEGIN
 		Unix.Dlsym( xlib, "XSetStandardProperties", ADDRESSOF( SetStandardProperties));
 		Unix.Dlsym( xlib, "XSetWMProtocols", ADDRESSOF( SetWMProtocols));
 		Unix.Dlsym( xlib, "XStoreName", ADDRESSOF( StoreName));
-		Unix.Dlsym( xlib, "XWarpPointer", ADDRESSOF( WarpPointer));
-		
+		Unix.Dlsym( xlib, "XWarpPointer", ADDRESSOF( WarpPointer));		
 		Unix.Dlsym( xlib, "XCheckTypedEvent", ADDRESSOF( CheckTypedEvent));
 		Unix.Dlsym( xlib, "XCheckMaskEvent", ADDRESSOF( CheckMaskEvent));
-
 		Unix.Dlsym( xlib, "XCheckTypedWindowEvent", ADDRESSOF( CheckTypedWindowEvent));
-		Unix.Dlsym( xlib, "XCheckWindowEvent", ADDRESSOF( CheckWindowEvent));
-		
+		Unix.Dlsym( xlib, "XCheckWindowEvent", ADDRESSOF( CheckWindowEvent));		
 		Unix.Dlsym(xlib, 'XLoadQueryFont', ADDRESSOF( LoadQueryFont));
 		Unix.Dlsym(xlib, 'XQueryFont', ADDRESSOF( QueryFont));
-
 		Unix.Dlsym(xlib, "XKeycodeToKeysym", ADDRESSOF(KeycodeToKeysym));
 		Unix.Dlsym(xlib, "XKeysymToKeycode", ADDRESSOF(KeysymToKeycode));
-
+		Unix.Dlsym(xlib, "XKeysymToString", ADDRESSOF(XKeysymToString));
 END LoadX11Functions;
 
 PROCEDURE OnClose;
 BEGIN
 	IF xlib # 0 THEN
-     		Unix.Dlclose(xlib);
+     	Unix.Dlclose(xlib);
 	END;
 END OnClose;
 

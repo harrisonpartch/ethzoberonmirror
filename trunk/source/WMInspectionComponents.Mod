@@ -1808,22 +1808,24 @@ TYPE
 
 	ComponentView = OBJECT(WMComponents.VisualComponent)
 	VAR
+		initializedView: BooleanPropertyView;
 		idView, uidView : StringPropertyView;
 		enabledView : BooleanPropertyView;
 
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
-
+			NEW(initializedView); AddContent(initializedView);
 			NEW(idView); AddContent(idView);
 			NEW(uidView); AddContent(uidView);
 			NEW(enabledView); AddContent(enabledView);
 
-			bounds.SetHeight(idView.bounds.GetHeight() + uidView.bounds.GetHeight() + enabledView.bounds.GetHeight() + 6 * LineBearing);
+			bounds.SetHeight(initializedView.bounds.GetHeight() + idView.bounds.GetHeight() + uidView.bounds.GetHeight() + enabledView.bounds.GetHeight() + 6 * LineBearing);
 		END Init;
 
 		PROCEDURE ResetProperties;
 		BEGIN
+			initializedView.SetProperty(NIL);
 			idView.SetProperty(NIL);
 			uidView.SetProperty(NIL);
 			enabledView.SetProperty(NIL);
@@ -1835,7 +1837,9 @@ TYPE
 			res := Ok;
 			name := property.GetName();
 			IF (name # NIL) THEN
-				IF (name^ = "ID") & (property IS WMProperties.StringProperty) THEN
+				IF (name^ = "Initialized") & (property IS WMProperties.BooleanProperty) THEN
+					initializedView.SetProperty(property);
+				ELSIF (name^ = "ID") & (property IS WMProperties.StringProperty) THEN
 					idView.SetProperty(property);
 				ELSIF (name^ = "UID") & (property IS WMProperties.StringProperty) THEN
 					uidView.SetProperty(property);
@@ -1851,6 +1855,7 @@ TYPE
 
 		PROCEDURE Apply;
 		BEGIN
+			initializedView.Apply(FALSE); (*not editable*)
 			idView.Apply(FALSE);
 			uidView.Apply(FALSE);
 			enabledView.Apply(FALSE);
@@ -1858,6 +1863,7 @@ TYPE
 
 		PROCEDURE Synchronize(force : BOOLEAN);
 		BEGIN
+			initializedView.Synchronize(force);
 			idView.Synchronize(force);
 			uidView.Synchronize(force);
 			enabledView.Synchronize(force);
@@ -1865,6 +1871,7 @@ TYPE
 
 		PROCEDURE Enable;
 		BEGIN
+			(*initializedView.Enable;*)
 			idView.Enable;
 			uidView.Enable;
 			enabledView.Enable;
@@ -1872,6 +1879,7 @@ TYPE
 
 		PROCEDURE Disable;
 		BEGIN
+			(*initializedView.Disable;*)
 			idView.Disable;
 			uidView.Disable;
 			enabledView.Disable;
@@ -2131,8 +2139,13 @@ TYPE
 
 		PROCEDURE SetProperties(component : WMComponents.Component);
 		VAR propertyArray : WMProperties.PropertyArray; res, i : LONGINT;
+			init:WMProperties.BooleanProperty;
 		BEGIN
 			ASSERT(component # NIL);
+			NEW(init, WMProperties.NewBoolean(), Strings.NewString("Initialized"), Strings.NewString("component is initialized (readonly field). Required for proper function. "));
+			init.Set(component.initialized);
+			componentView.SetProperty(init, res); 
+			componentView.initializedView.Disable; (*! currently readonly. tbd: allow modification by inspector *)
 			nofElements := 0;
 			propertyArray := component.properties.Enumerate();
 			IF (propertyArray # NIL) THEN

@@ -320,7 +320,7 @@ TYPE
 			in.SkipBytes(1);
 			encodings := {};
 			nof := in.Net16();
-			WHILE nof > 0 DO e := in.Net32(); IF e < 32 THEN INCL(encodings, e) END; DEC(nof) END
+			WHILE (nof > 0) DO e := in.Net32(); IF (e>=0) & (e < 32) THEN INCL(encodings, e) END; DEC(nof) END
 		END SetEncodings;
 
 		PROCEDURE SendRect(VAR r : Rectangle);

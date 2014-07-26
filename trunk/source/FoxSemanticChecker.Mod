@@ -687,6 +687,7 @@ TYPE
 					recordType := x.pointerBase(SyntaxTree.RecordType);
 					recordBaseType := ResolveType(recordType.baseType);
 					recordType.SetBaseType(recordBaseType);
+					recordType.SetProtected(HasFlag(modifiers, Global.NameExclusive, position));
 				END;
 				CheckModifiers(modifiers, TRUE);
 				typeFixes.Add(x,currentScope);

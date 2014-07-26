@@ -2,7 +2,7 @@
 
 CC      = gcc -m32
 CFLAGS  = -DLINUX 
-LDFLAGS = -lpthread -lX11 -ldl -lrt -lm
+LDFLAGS = -lpthread -ldl -lX11 -lrt -lm
 
 
 aos.linux:	aos.o Threads.linux.o
