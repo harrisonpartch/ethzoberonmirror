@@ -1,8 +1,7 @@
 MODULE WMWindowManager;	(** AUTHOR "TF"; PURPOSE "Generic window manager"; *)
 
 IMPORT
-	Modules, KernelLog, Plugins, Locks, Strings,
-	Messages := WMMessages, Graphics := WMGraphics, Raster, Rectangles := WMRectangles;
+	Modules, KernelLog, Plugins, Locks, Strings, Messages := WMMessages, Graphics := WMGraphics, Raster, Rectangles := WMRectangles;
 
 CONST
 	FlagFrame* = 0; (** The window has a frame *)
@@ -17,6 +16,7 @@ CONST
 	FlagHidden* = 9; (** This flag indicates whether a window should be managed by window navigation tools. It does not influence the visibiliy or behaviour of the window *)
 	FlagNoResizing* = 10; (** If set, window resizing is disabled *)
 	FlagNoPointer*=11; (* if set, in window there will be no pointer visible --> touch screens *)
+	FlagStorable*=12; (* window storable*)
 
 	SizeMinHeight = 3; (* Minimum height of a window *)
 	SizeMinWidth = 3; (* Minimum width of a window *)

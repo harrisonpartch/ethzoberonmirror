@@ -67,6 +67,7 @@ TYPE
 		
 		PROCEDURE Initialize*;
 		BEGIN(* Call whenever the component composite is resetted (also when put into FormWindow) ; see WMComponentSkeleton.Mod *)
+			RecacheProperties;
 			Initialize^;
 		END Initialize;
 		
@@ -75,14 +76,17 @@ TYPE
 		VAR 
 			s: ARRAY 16 OF CHAR;
 			pp:WMProperties.PointProperty; 
+			(*a: XML.Attribute;*)
 		BEGIN
-			Strings.IntToStr(nofPoints,s);
+			Strings.IntToStr(nofPoints,s); 
+			Strings.Concat("Point",s,s);
 			INC(nofPoints);
 			NEW(pp,NIL,Strings.NewString(s),NIL);  
+			pp.SetCoordinate(x,y); 
+			(*NEW(a); a.SetName("Index"); a.SetValue(s); pp.AddAttribute(a);*)
 			Acquire;
 			properties.Add(pp);
 			Release;
-			pp.SetCoordinate(x,y); 
 		END AddPoint;
 
 		(* x,y in Figure coordinates, which may change when adding new points etc. Remember that PointProperty is in (stable) parent coordinates*)
@@ -178,21 +182,22 @@ TYPE
 		BEGIN
 			bl:=bounds.GetLeft(); 
 			bt:=bounds.GetTop();
-			IF (keys={0}) & reshape.Get()  THEN
-				IF (selected # NIL) THEN MovePoint(selected, fx, fy); selected := NIL;
+			IF (keys={0}) & (Reshape IN state) (*reshape.Get()*)  THEN
+				IF (selected # NIL) THEN MovePoint(selected, fx, fy); selected := NIL; selectedLine:=FALSE;
 				ELSE  
 					dx:=fx+bl-oldx; oldx:=fx+bl; 
 					dy:=fy+bt-oldy; oldy:=fy+bt;
 					MoveFigure(dx, dy); 
 					selectedLine:=FALSE;
+					selected:=NIL;
 				END;
 			END;
 			(*IF (2 IN lastKeys) & ~(2 IN keys) THEN
 				IF reshape.Get() THEN EXCL(state, Reshape); ELSE INCL(state, Reshape); END;
 			ELS*)
-			IF reshape.Get() & (EditPoints IN state) & (1 IN lastKeys) & ~(1 IN keys)  THEN
+			IF (Reshape IN state) (*reshape.Get()*) & (EditPoints IN state) & (1 IN lastKeys) & ~(1 IN keys)  THEN
 				AddPoint(fx, fy); (*!partly functional - wrong coordinates*)
-			ELSIF reshape.Get() & (EditPoints IN state) & (lastKeys={0,2}) & (keys#{0,2}) THEN
+			ELSIF (Reshape IN state) (*reshape.Get()*) & (EditPoints IN state) & (lastKeys={0,2}) & (keys#{0,2}) THEN
 				RemovePoint(fx,fy); 
 			ELSE(* PointerUp^(x, y, keys);*)
 			END;
@@ -203,9 +208,9 @@ TYPE
 		PROCEDURE PointerMove*(fx, fy : LONGINT; keys : SET);
 		VAR dx,dy,bl,bt:LONGINT; pp:WMProperties.Property;
 		BEGIN
-			IF reshape.Get() & (keys={0}) (*(Reshape IN state)*) & (selected # NIL) THEN 
+			IF (Reshape IN state) (*reshape.Get()*) & (keys={0}) (*(Reshape IN state)*) & (selected # NIL) THEN 
 				MovePoint(selected, fx, fy);
-			ELSIF reshape.Get() & (keys={0}) (* (Reshape IN state)*) & selectedLine THEN 
+			ELSIF (Reshape IN state) (*reshape.Get()*) & (keys={0}) (* (Reshape IN state)*) & selectedLine THEN 
 				bl:=bounds.GetLeft(); 
 				bt:=bounds.GetTop();
 				dx:=fx+bl-oldx; oldx:=fx+bl;
@@ -239,9 +244,9 @@ TYPE
 			ELSIF (property = filled) THEN IF filled.Get() THEN INCL(state,Filled) ELSE EXCL(state,Filled); END; Invalidate;
 			ELSIF (property = reshape) THEN IF reshape.Get() THEN INCL(state,Reshape) ELSE EXCL(state,Reshape); END; Invalidate;
 			ELSIF (property = arrow) THEN IF arrow.Get() THEN INCL(state,Arrow) ELSE EXCL(state,Arrow); END; Invalidate;
-			ELSIF property IS WMProperties.PointProperty THEN Invalidate; RecachePoints; (*Normalize; *)
-			ELSIF property=properties THEN Invalidate;  RecachePoints; (*Normalize; *)(*PropertyChanged^(sender, property); ?*)
-			ELSE  PropertyChanged^(sender, property); (* e.g, handling bounds by parent *)
+			ELSIF property IS WMProperties.PointProperty THEN Resized; Invalidate; 
+			ELSIF property=properties THEN Resized; Invalidate; (*?PropertyChanged^(sender, property); *)
+			ELSE  PropertyChanged^(sender, property);  (* e.g, handling bounds by parent *)
 			END;
 		END PropertyChanged;
 	
@@ -268,7 +273,7 @@ TYPE
 		PROCEDURE Normalize; 
 		VAR p:Point; rect: WMRectangles.Rectangle;
 		BEGIN
-			(*? does some flicker originate here ? - suppress display update here*)
+			
 			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT); rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
 			p:=points;
 			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
@@ -307,6 +312,10 @@ TYPE
 		
 		PROCEDURE RecacheProperties;
 		BEGIN (* called by sequencer -> hierarchy is locked, see WMVisualComponentSkeleton.Mod *)
+			IF closed.Get() THEN INCL(state,Closed) ELSE EXCL(state,Closed) END; 
+			IF filled.Get() THEN INCL(state,Filled); ELSE EXCL(state, Filled) END;
+			IF reshape.Get() THEN INCL(state,Reshape) ELSE EXCL(state, Reshape) END;
+			IF arrow.Get() THEN INCL(state,Arrow) ELSE EXCL(state, Arrow) END;
 			RecacheProperties^;
 			RecachePoints;
 		END RecacheProperties;
@@ -401,13 +410,14 @@ TYPE
 		PROCEDURE Initialize*;
 		VAR pp:WMProperties.PointProperty;
 		BEGIN
+
 			RecachePoints;
 			IF nofPoints=0 THEN (* prototype*)
 				Acquire;
-				NEW(pp,NIL,Strings.NewString("0"),NIL); pp.SetCoordinate(5,20); properties.Add(pp); INC(nofPoints);
-				NEW(pp,NIL,Strings.NewString("1"),NIL); pp.SetCoordinate(20,0); properties.Add(pp); INC(nofPoints);
-				NEW(pp,NIL,Strings.NewString("2"),NIL); pp.SetCoordinate(20,20); properties.Add(pp); INC(nofPoints);
-				NEW(pp,NIL,Strings.NewString("3"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point0"),NIL); pp.SetCoordinate(5,20); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point1"),NIL); pp.SetCoordinate(20,0); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point2"),NIL); pp.SetCoordinate(20,20); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point3"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
 				Release;
 				(*bounds.Set(WMRectangles.MakeRect(0,0,40,40));*)
 				RecachePoints;
@@ -459,7 +469,8 @@ TYPE
 		VAR p, q: Point; i : LONGINT;
 		BEGIN
 			IF (points = NIL) OR (points.next = NIL) THEN RETURN FALSE; END;
-			IF Filled IN state THEN
+			IF ~ (Reshape IN state) THEN RETURN FALSE
+			ELSIF Filled IN state THEN
 				IF Inside(mx, my) THEN RETURN TRUE END;
 			END;
 			p := points; q := points.next;
@@ -487,8 +498,8 @@ TYPE
 				INC(i);
 				plast:=p; p := p.next;
 			END;
-			IF arrow.Get() (*(Arrow IN state)*) & (plast#NIL) THEN DrawArrow(canvas, plast.previous, plast) END;
-			IF filled.Get() THEN    canvas.FillPolygonFlat(pointArray^, nofPoints, color.Get(), WMGraphics.ModeSrcOverDst);
+			IF (Arrow IN state) & (plast#NIL) THEN DrawArrow(canvas, plast.previous, plast) END;
+			IF Filled IN state THEN    canvas.FillPolygonFlat(pointArray^, nofPoints, color.Get(), WMGraphics.ModeSrcOverDst);
 			ELSE					canvas.PolyLine(pointArray^, nofPoints, closed.Get(), color.Get(), WMGraphics.ModeSrcOverDst);
 			END;
 		END DrawBackground;
@@ -511,8 +522,8 @@ TYPE
 		BEGIN
 			RecachePoints;
 			IF nofPoints=0 THEN (* prototype*)
-				NEW(pp,NIL,Strings.NewString("0"),NIL); pp.SetCoordinate(15,15); properties.Add(pp); INC(nofPoints);
-				NEW(pp,NIL,Strings.NewString("1"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point0"),NIL); pp.SetCoordinate(15,15); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point1"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
 				bounds.Set(WMRectangles.MakeRect(0,0,40,40));
 				RecachePoints;
 			END;
@@ -543,6 +554,7 @@ TYPE
 		PROCEDURE IsHit*(mx, my: LONGINT): BOOLEAN;
 		VAR radius0, radius: LONGINT;
 		BEGIN
+			IF ~ (Reshape IN state) THEN RETURN FALSE END;
 			radius0:= Distance(points.x, points.y, points.next.x,points.next.y);
 			radius:=Distance(mx,my, points.x,points.y);
 			IF (Filled IN state) THEN RETURN radius<=radius0 (*inside circle*)
@@ -587,8 +599,8 @@ TYPE
 		BEGIN
 			RecachePoints;
 			IF nofPoints=0 THEN (* prototype*)
-				NEW(pp,NIL,Strings.NewString("0"),NIL); pp.SetCoordinate(10,10); properties.Add(pp); INC(nofPoints);
-				NEW(pp,NIL,Strings.NewString("1"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point0"),NIL); pp.SetCoordinate(10,10); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point1"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
 				bounds.Set(WMRectangles.MakeRect(0,0,40,40));
 				RecachePoints;
 			END;
@@ -598,7 +610,8 @@ TYPE
 		
 		PROCEDURE IsHit*(mx, my: LONGINT): BOOLEAN;
 		BEGIN
-			IF Filled IN state THEN 
+			IF ~ (Reshape IN state) THEN RETURN FALSE
+			ELSIF Filled IN state THEN 
 				RETURN ((mx-points.x)*(mx-points.next.x) <=0 ) & ((my-points.y)*(my-points.next.y) <=0 ) (* simple "in-between" test *)
 			ELSE RETURN 
 				InLineVicinity(mx, my, points.x, points.y, points.x, points.next.y) OR
@@ -651,10 +664,10 @@ TYPE
 			RecachePoints;
 			IF nofPoints=0 THEN (* default *)
 				Acquire;
-				NEW(pp,NIL,Strings.NewString("0"),NIL); pp.SetCoordinate(5,20); properties.Add(pp); INC(nofPoints);
-				NEW(pp,NIL,Strings.NewString("1"),NIL); pp.SetCoordinate(20,0); properties.Add(pp); INC(nofPoints);
-				NEW(pp,NIL,Strings.NewString("2"),NIL); pp.SetCoordinate(20,20); properties.Add(pp); INC(nofPoints);
-				NEW(pp,NIL,Strings.NewString("3"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point0"),NIL); pp.SetCoordinate(5,20); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point1"),NIL); pp.SetCoordinate(20,0); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point2"),NIL); pp.SetCoordinate(20,20); properties.Add(pp); INC(nofPoints);
+				NEW(pp,NIL,Strings.NewString("Point3"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
 				(*bounds.Set(WMRectangles.MakeRect(0,0,40,40));*)
 				Release;
 				RecachePoints;
@@ -732,7 +745,7 @@ TYPE
 			Normalize; 
 			
 			IF mouseOver THEN col:=clHover.Get() ELSE col:=color.Get() END;
-			IF filled.Get() THEN
+			IF Filled IN state THEN
 				canvas.FillPolygonFlat(pointArray, nSegments, col, WMGraphics.ModeSrcOverDst);
 			ELSE
 				canvas.PolyLine(pointArray, nSegments, closed.Get(), col, WMGraphics.ModeSrcOverDst);
@@ -1095,6 +1108,7 @@ BEGIN
 	background.fillColor.Set(WMGraphics.Green);
 	window.SetContent(background);
 	WMWindowManager.AddWindow(window, 200,200);
+	INCL(window.flags, WMWindowManager.FlagStorable); (* allow interactive storage of window*)
 	
 	NEW(l); l.AddPoint(10,20); l.AddPoint(100,200); l.AddPoint(80, 20);
 	background.AddContent(l); 	
@@ -1129,6 +1143,7 @@ VAR
 BEGIN
 	NEW(window, 400,400, FALSE);
 	WMWindowManager.AddWindow(window, 200,200);
+	INCL(window.flags, WMWindowManager.FlagStorable);
 	
 	NEW(l); l.AddPoint(10,20); l.AddPoint(100,200); l.AddPoint(80, 20);
 	window.SetContent(l); 

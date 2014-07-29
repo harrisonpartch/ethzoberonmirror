@@ -258,7 +258,8 @@ TYPE
 				c := enum.GetNext();
 				IF ~(c IS WMProperties.Properties) THEN
 					IF ~((c IS Component) & ((c(Component).internal) OR c(Component).IsLocked())) THEN NewLine(w, 0); NewLine(w, nextLevel); END;
-					c(XML.Content).Write(w, context, nextLevel);
+					c(XML.Content).Write(w, context, nextLevel); 
+					(*c(Component).Write(w, context, nextLevel)*) 
 				END;
 			END;
 			IF ~internal THEN
@@ -323,6 +324,7 @@ TYPE
 					END;
 				END;
 			END;
+			Initialize; 
 		END FromXML;
 
 		PROCEDURE IsCallFromSequencer*():BOOLEAN;
@@ -1072,7 +1074,7 @@ TYPE
 		PROCEDURE FromXML(xml: XML.Element);
 		BEGIN
 			FromXML^(xml);
-			Invalidate;
+			(*Invalidate;*) (* PH *)
 		END FromXML;
 
 		PROCEDURE AddVisualComponent(c :VisualComponent; x, y : LONGINT);
@@ -2067,7 +2069,7 @@ TYPE
 			NEW(winx); winx.SetName("FormWindow");
 
 			NEW(a); a.SetName("name"); title:=GetTitle(); a.SetValue(title^); winx.AddAttribute(a);
-			NEW(a); a.SetName("generator"); a.SetValue("WMComponents.FormWindowGen"); winx.AddAttribute(a);
+			NEW(a); a.SetName("loader"); a.SetValue("WMComponents.FormWindowGen"); winx.AddAttribute(a);
 
 			NEW(a); a.SetName("l"); Strings.IntToStr(bounds.l, string); a.SetValue(string); winx.AddAttribute(a);
 			NEW(a); a.SetName("t"); Strings.IntToStr(bounds.t, string); a.SetValue(string); winx.AddAttribute(a);
@@ -2078,7 +2080,7 @@ TYPE
 			winx.AddContent(form);
 			RETURN winx
 		END ToXML;
-
+		
 		PROCEDURE LoadComponents*(xml: XML.Element);
 		VAR component: Repositories.Component; first: XML.Content;
 		BEGIN
@@ -2098,13 +2100,20 @@ TYPE
 		END StoreComponents;
 
 		PROCEDURE SetContent*(x : XML.Content);
-		VAR seq : Messages.MsgSequencer;
+		VAR seq : Messages.MsgSequencer; c: XML.Content;
 		BEGIN
 			DisableUpdate;
 			IF form # NIL THEN form.Finalize; form.sequencer.Stop END;
 			IF x IS Form THEN
 				form := x(Form);
-				form.SetWindow(SELF)
+				form.SetWindow(SELF);
+				(* assure that both trees are #NIL; redundant structure..*)
+				c:=x(Form).GetFirst();
+				WHILE (c#NIL) & (c IS XML.Container) & ~(c IS VisualComponent) DO
+					c:=c(XML.Container).GetNext(c);
+				END;
+				IF (c#NIL)&(c IS VisualComponent) THEN content:=c(VisualComponent) END;
+				(*!?form.AddContent(x(Form).GetFirst());*)(*PH rather get next*)
 			ELSE
 				NEW(form, SELF); form.uid.Set(NewString("form"));
 			END;
@@ -3197,8 +3206,7 @@ BEGIN {EXCLUSIVE}
 	RETURN NIL
 END Load;
 
-(* generate module-specific form window  *)
-PROCEDURE FormWindowGen*(xml:XML.Content): WM.Window;
+PROCEDURE FormWindowGen*(xml:XML.Content): WM.Window; (* PH *)
 VAR winx: XML.Element; formx: XML.Content; window: FormWindow; name, string:Strings.String;
 	l,t,r,b: LONGINT;
 BEGIN
@@ -3210,22 +3218,24 @@ BEGIN
 			string:=winx.GetAttributeValue("t"); Strings.StrToInt(string^,t);
 			string:=winx.GetAttributeValue("r"); Strings.StrToInt(string^,r);
 			string:=winx.GetAttributeValue("b"); Strings.StrToInt(string^,b);
-			NEW(window, r-l, t-b, TRUE);
+			NEW(window, r-l, b-t, TRUE);
 			name:=winx.GetAttributeValue("name"); window.SetTitle(name);
 			window.bounds.r:=r; window.bounds.l:=l; window.bounds.t:=t; window.bounds.b:=b;
 			string:=winx.GetAttributeValue("flags"); Strings.StrToSet(string^,window.flags);
-			formx:=winx.GetFirst();
-			window.SetContent(formx);
-			WM.AddWindow(window,l,t);
+			NEW(window.form, window); 
+			formx:=winx.GetFirst(); (* this typically has name="Form" *)
+			IF (formx#NIL)&(formx IS XML.Element) THEN
+				window.LoadComponents(formx(XML.Element)); (* at the price of duplication of component tree construction ...*)
+			ELSE window:=NIL;
+			END;
 		END;
 	END;
 	RETURN window
 END FormWindowGen;
 
-
 (* generic loading of any form window using the generator procedure supplied in the XML as 'loader' attribute *)
 PROCEDURE LoadFormWindow*(xml:XML.Content): WM.Window;
-VAR winx: XML.Element; window: WM.Window;
+VAR winx: XML.Element; window: WM.Window; formx:XML.Content;
 	name, string, load:Strings.String;
 	moduleName, procedureName : Modules.Name;
 	msg : ARRAY 128 OF CHAR;
@@ -3236,19 +3246,29 @@ BEGIN
 		winx:=xml(XML.Element);
 		name:=winx.GetName();
 		IF name^="FormWindow" THEN
-			string:=winx.GetAttributeValue("generator");
-			Commands.Split(load^, moduleName, procedureName, res, msg);
+			string:=winx.GetAttributeValue("loader");
+			Commands.Split(string^, moduleName, procedureName, res, msg);
 			IF (res = Commands.Ok) THEN
 				GETPROCEDURE(moduleName, procedureName, gen);
 				IF (gen # NIL) THEN
 					window:=gen(xml);
-					WM.AddWindow(window,window.bounds.l,window.bounds.t);
 				END;
 			END;
 		END;
 	END;
 	RETURN window
 END LoadFormWindow;
+
+(** Open form window and build its component tree *)
+PROCEDURE Open*(context : Commands.Context); 
+VAR filename: Files.FileName; window: WM.Window; xml:XML.Content;
+BEGIN
+	IF context.arg.GetString(filename) & (Strings.Length(filename)>0) THEN
+		xml:=Load(filename); (* here, the xml tree is already constructed, however not in the right sequence ( [Init()..loadProperties()..Initialize()] )*)
+		window:=LoadFormWindow(xml);
+		IF window#NIL THEN WM.AddWindow(window,window.bounds.l,window.bounds.t); END;
+	END;
+END Open;
 
 PROCEDURE LoadStyleInternal(CONST filename : ARRAY OF CHAR);
 VAR f : Files.File;

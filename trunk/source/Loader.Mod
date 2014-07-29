@@ -882,9 +882,20 @@ BEGIN
 	context.out.Ln;
 END Trace;
 
+PROCEDURE Init;
+VAR extension: ARRAY 32 OF CHAR;
 BEGIN
 	trace := FALSE;
-	Modules.AddLoader (Machine.DefaultObjectFileExtension, LoadObj);
+	Machine.GetConfig("ObjectFileExtension", extension);
+	IF extension = "" THEN
+		COPY(Machine.DefaultObjectFileExtension, extension)
+	END;
+	Modules.AddLoader(extension, LoadObj); 
+END Init;
+
+
+BEGIN
+	Init();
 END Loader.
 
 (*

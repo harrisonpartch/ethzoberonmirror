@@ -217,160 +217,163 @@ To update: Configuration.Init ~
 	registered. The action "Open" is considered to open the file with an application.
 	Occurences of the string @filename in the attribute value of settings will be replaced by
 	the filename parameter -->
-		
-		<Section name="Filehandlers">
+
+	<Section name="Filehandlers">
+
 		<!-- use lower case for extensions, sort lexographically -->
-			
-			<Section name="asm">
-				<Setting name="Open" value="PET.Open"/>
+
+		<Section name="asm">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="atg">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="avi">
+			<Setting name="Open" value="WMPlayer.Open"/>
+		</Section>
+		<Section name="bak">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="bmp">
+			<Setting name="Open" value="WMPicView.Open"/>
+			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+		</Section>
+		<Section name="bnf">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+			<Section name="cwd">
+				<Setting name="Open" value="WMComponents.Open"/>
 			</Section>
-			<Section name="atg">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="avi">
-				<Setting name="Open" value="WMPlayer.Open"/>
-			</Section>
-			<Section name="bak">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="bmp">
-				<Setting name="Open" value="WMPicView.Open"/>
-				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-			</Section>
-			<Section name="bnf">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="dsk">
-				<Setting name="Open" value="PET.Open"/>
-				<Setting name="Load desktop" value="WMDesktops.Load"/>
-			</Section>
-			<Section name="ebnf">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="gif">
-				<Setting name="Open" value="WMPicView.Open"/>
-				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-			</Section>
-			<Section name="htm">
-				<Setting name="Open" value="WebBrowser.Open"/>
-			</Section>
-			<Section name="html">
-				<Setting name="Open" value="WebBrowser.Open"/>
-			</Section>
-			<Section name="ini">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="jp2">
-				<Setting name="Open" value="WMPicView.Open"/>
-				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-			</Section>
-			<Section name="jpeg">
-				<Setting name="Open" value="WMPicView.Open"/>
-				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-			</Section>
-			<Section name="jpg">
-				<Setting name="Open" value="WMPicView.Open"/>
-				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-			</Section>
-			<Section name="kul">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="log">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="mod">
-				<Setting name="Open" value="PET.Open"/>
-				<Setting name="Compile" value="Compiler.Compile @filename"/>
-			</Section>
+		<Section name="dsk">
+			<Setting name="Open" value="PET.Open"/>
+			<Setting name="Load desktop" value="WMDesktops.Load"/>
+		</Section>
+		<Section name="ebnf">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="gif">
+			<Setting name="Open" value="WMPicView.Open"/>
+			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+		</Section>
+		<Section name="htm">
+			<Setting name="Open" value="WebBrowser.Open"/>
+		</Section>
+		<Section name="html">
+			<Setting name="Open" value="WebBrowser.Open"/>
+		</Section>
+		<Section name="ini">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="jp2">
+			<Setting name="Open" value="WMPicView.Open"/>
+			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+		</Section>
+		<Section name="jpeg">
+			<Setting name="Open" value="WMPicView.Open"/>
+			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+		</Section>
+		<Section name="jpg">
+			<Setting name="Open" value="WMPicView.Open"/>
+			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+		</Section>
+		<Section name="kul">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="log">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="mod">
+			<Setting name="Open" value="PET.Open"/>
+			<Setting name="Compile" value="Compiler.Compile @filename"/>
+		</Section>
 			<Section name="sym">
 				<Setting name="Open" value="PET.Open"/>
-			</Section>
+			</Section>	
 			<Section name="gof">
 				<Setting name="Open" value="FoxGenericObjectFile.Show"/>
 			</Section>
-			<Section name="mdf">
-				<Setting name="Open" value="PET.Open"/>
+		<Section name="mdf">
+			<Setting name="Open" value="PET.Open"/>
 				<Setting name="Compile" value="Compiler.Compile --activeCells -b=TRM @filename"/>
-			</Section>
-			<Section name="mos">
-				<Setting name="Open" value="PET.Open"/>
-				<Setting name="Compile" value="OSACompiler0.Compile \s @filename"/>
-			</Section>
-			<Section name="mpeg">
-				<Setting name="Open" value="WMPlayer.Open"/>
-			</Section>
-			<Section name="mpg">
-				<Setting name="Open" value="WMPlayer.Open"/>
-			</Section>
-			<Section name="abx">
-				<Setting name="Open" value="Decoder.Open"/>
-			</Section>
-			<Section name="oba">
-				<Setting name="Open" value="Decoder.Open"/>
-			</Section>
-			<Section name="obw">
-				<Setting name="Open" value="Decoder.Open"/>
-			</Section>
-			<Section name="obx">
-				<Setting name="Open" value="Decoder.Open"/>
-			</Section>
-			<Section name="obj">
-				<Setting name="Open" value="Decoder.Open"/>
-			</Section>
-			<Section name="ogg">
-				<Setting name="Open" value="OGGVorbisPlayer.Play"/>
-			</Section>
-			<Section name="pet">
-				<Setting name="Open" value="PET.OpenState"/>
-			</Section>
-			<Section name="pict">
-				<Setting name="Open" value="WMPicView.Open"/>
-			</Section>
-			<Section name="png">
-				<Setting name="Open" value="WMPicView.Open"/>
-				<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
-			</Section>
-			<Section name="rep">
-				<Setting name="Open" value="WMArchives.Open"/>
-			</Section>
-			<Section name="skin">
-				<Setting name="Open" value="SkinEditor.Open"/>
-				<Setting name="Set as skin" value="SkinEngine.Load"/>
-				<Setting name="Open archive" value="WMArchives.Open"/>
-			</Section>
-			<Section name="svg">
-				<Setting name="Open" value="WebBrowser.Open"/>
-			</Section>
-			<Section name="tar">
-				<Setting name="Open" value="WMArchives.Open"/>
-				<Setting name="Untar" value="Tar.Extract"/>
-			</Section>
-			<Section name="test">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="text">
-				<Setting name="Open" value="Notepad.Open"/>
-			</Section>
-			<Section name="txt">
-				<Setting name="Open" value="Notepad.Open"/>
-			</Section>
-			<Section name="tool">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="wav">
-				<Setting name="Open" value="WMPlayer.Open"/>
-			</Section>
-			<Section name="xml">
-				<Setting name="Open" value="PET.Open"/>
-			</Section>
-			<Section name="zip">
-				<Setting name="Extract" value="ZipTool.ExtractAll"/>
-			</Section>
 		</Section>
-		
-	<!-- Net Configuration Example -->
-		
-		
+		<Section name="mos">
+			<Setting name="Open" value="PET.Open"/>
+			<Setting name="Compile" value="OSACompiler0.Compile \s @filename"/>
+		</Section>
+		<Section name="mpeg">
+			<Setting name="Open" value="WMPlayer.Open"/>
+		</Section>
+		<Section name="mpg">
+			<Setting name="Open" value="WMPlayer.Open"/>
+		</Section>
+		<Section name="abx">
+			<Setting name="Open" value="Decoder.Open"/>
+		</Section>
+		<Section name="oba">
+			<Setting name="Open" value="Decoder.Open"/>
+		</Section>
+		<Section name="obw">
+			<Setting name="Open" value="Decoder.Open"/>
+		</Section>
+		<Section name="obx">
+			<Setting name="Open" value="Decoder.Open"/>
+		</Section>
+		<Section name="obj">
+			<Setting name="Open" value="Decoder.Open"/>
+		</Section>
+		<Section name="ogg">
+			<Setting name="Open" value="OGGVorbisPlayer.Play"/>
+		</Section>
+		<Section name="pet">
+			<Setting name="Open" value="PET.OpenState"/>
+		</Section>
+		<Section name="pict">
+			<Setting name="Open" value="WMPicView.Open"/>
+		</Section>
+		<Section name="png">
+			<Setting name="Open" value="WMPicView.Open"/>
+			<Setting name="Set as background" value="WMBackdrop.AddBackdropImage '@filename' ? ? ? ?"/>
+		</Section>
+		<Section name="rep">
+			<Setting name="Open" value="WMArchives.Open"/>
+		</Section>
+		<Section name="skin">
+			<Setting name="Open" value="SkinEditor.Open"/>
+			<Setting name="Set as skin" value="SkinEngine.Load"/>
+			<Setting name="Open archive" value="WMArchives.Open"/>
+		</Section>
+		<Section name="svg">
+			<Setting name="Open" value="WebBrowser.Open"/>
+		</Section>
+		<Section name="tar">
+			<Setting name="Open" value="WMArchives.Open"/>
+			<Setting name="Untar" value="Tar.Extract"/>
+		</Section>
+		<Section name="test">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="text">
+			<Setting name="Open" value="Notepad.Open"/>
+		</Section>
+		<Section name="txt">
+			<Setting name="Open" value="Notepad.Open"/>
+		</Section>
+		<Section name="tool">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="wav">
+			<Setting name="Open" value="WMPlayer.Open"/>
+		</Section>
+		<Section name="xml">
+			<Setting name="Open" value="PET.Open"/>
+		</Section>
+		<Section name="zip">
+			<Setting name="Extract" value="ZipTool.ExtractAll"/>
+		</Section>
+	</Section>
+
+<!-- Net Configuration Example -->
+
 	<!--Section name="NetConfig">
 		<Setting name="IPForwarding" value="FALSE" />
 		<Setting name="EchoReply" value="TRUE" />

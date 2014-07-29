@@ -2,7 +2,7 @@ MODULE WMNavigate; (** AUTHOR "staubesv"; PURPOSE "Windows navigation"; *)
 
 IMPORT
 	Modules, Kernel, Commands, Options, Locks, Strings, Raster, Plugins, Displays, KernelLog, Inputs, XML,
-	WMRectangles, WMGraphics, WMGraphicUtilities, WMWindowManager, WMComponents, WMProperties, Files, Dates;
+	WMRectangles, WMGraphics, WMGraphicUtilities, WMWindowManager, WMComponents, WMProperties, WMRestorable, Files, Dates;
 
 CONST
 
@@ -740,6 +740,8 @@ TYPE
 									manager.SetWindowFlag(window, WMWindowManager.FlagStayOnBottom, ~(WMWindowManager.FlagStayOnBottom IN window.flags));
 								ELSIF (index2 = SystemCommand_WindowShot) THEN
 									WindowShot(window);
+								ELSIF (index2 = SystemCommand_StoreWindow) THEN
+									StoreWindow(window);
 							ELSIF (index2 = SystemCommand_Frame) THEN
 									manager.SetWindowFlag(window, WMWindowManager.FlagFrame, ~(WMWindowManager.FlagFrame IN window.flags));
 								END;
@@ -895,7 +897,7 @@ CONST
 	LeftBorder = 25;
 	RightBorder = 5;
 
-	NofSystemCommands = 6;
+	NofSystemCommands = 7;
 
 	SystemCommand = 99;
 	SystemCommand_Close = 0;
@@ -904,6 +906,7 @@ CONST
 	SystemCommand_StayOnBottom = 3;
 	SystemCommand_Frame = 4;
 	SystemCommand_WindowShot = 5;
+	SystemCommand_StoreWindow = 6;
 	Document = 1;
 
 TYPE
@@ -1057,6 +1060,8 @@ TYPE
 						index := SystemCommand_Frame;
 					ELSIF (y < commandOffset + 6 * LineHeight) THEN
 						index := SystemCommand_WindowShot;
+					ELSIF (window IS WMComponents.FormWindow) & (y < commandOffset + 7 * LineHeight) THEN
+						index := SystemCommand_StoreWindow;
 					END;
 				ELSIF (documentOffset <= y) & (y < documentOffset + nofDocuments * LineHeight) THEN
 					type := Document;
@@ -1129,6 +1134,10 @@ TYPE
 				IF (NofSystemCommands > 5) THEN
 					DrawBg(y);
 					canvas.DrawString(LeftBorder, y + 16, "WindowShot"); INC(y, LineHeight);
+				END;
+				IF (window IS WMComponents.FormWindow) &  (WMWindowManager.FlagStorable IN window.flags) & (NofSystemCommands > 6) THEN
+					DrawBg(y);
+					canvas.DrawString(LeftBorder, y + 16, "StoreWindow"); INC(y, LineHeight);
 				END;
 			END DrawSystemCommands;
 
@@ -1361,7 +1370,7 @@ BEGIN (* must hold window manager lock *)
 END GetWindowImage;
 
 PROCEDURE GenerateName(prefix: Strings.String; VAR str: ARRAY OF CHAR);
-VAR startTime: Dates.DateTime; i,j:LONGINT; num: ARRAY 32 OF CHAR; title: Files.FileName; c:CHAR;
+VAR  i,j:LONGINT; num: ARRAY 32 OF CHAR; title: Files.FileName; c:CHAR;
 BEGIN
 	i:=0; j:=0;
 	IF prefix#NIL THEN
@@ -1378,24 +1387,89 @@ BEGIN
 		IF title="" THEN title:="ScreenShot" END;
 	ELSE title:="ScreenShot"
 	END;
-	
-	startTime := Dates.Now();
-	Strings.FormatDateTime("_yyyymmdd__hhnnss",startTime,str);
-	Strings.Concat(title,str,str);
-	Strings.Concat(str,".bmp",str);
+	COPY(title, str);
 END GenerateName;
 
 PROCEDURE WindowShot(window: WMWindowManager.Window);
-VAR fn: Files.FileName;  res: LONGINT;
+VAR str,fn: Files.FileName;  res: LONGINT; startTime: Dates.DateTime;
 BEGIN
+	GenerateName(window.GetTitle(),fn);
+	IF fn="" THEN COPY("ScreenShot",fn) END;
+	startTime := Dates.Now();
+	Strings.FormatDateTime("_yyyymmdd__hhnnss",startTime,str);
+	Strings.Concat(fn,str,fn);
+	Strings.Append(fn,".bmp");
 	IF window IS WMWindowManager.DoubleBufferWindow THEN
-		GenerateName(window.GetTitle(),fn);
 		WMGraphics.StoreImage(window(WMWindowManager.DoubleBufferWindow).backImg, fn, res);
 	ELSIF window IS WMWindowManager.BufferWindow THEN
-		GenerateName(window.GetTitle(),fn);
 		WMGraphics.StoreImage(window(WMWindowManager.BufferWindow).img, fn, res);
 	END;
 END WindowShot;
+(*
+PROCEDURE StoreWindow*(window: WMWindowManager.Window);
+VAR context: Storage; msg: WMMessages.Message; filename: Files.FileName;  
+BEGIN
+	GenerateName(window.GetTitle(),filename); Strings.Append(filename,".Cwd"); (* component window *)
+	
+	NEW(context);
+	msg.ext := context; msg.msgType := WMMessages.MsgExt;
+	window.Handle(msg);
+	context.Write(fileName);
+END StoreWindow;
+*)
+
+(*
+		PROCEDURE Add*(CONST name, loader : ARRAY OF CHAR; w : WM.Window; appData : XML.Element);
+		VAR window: XML.Element;
+		BEGIN {EXCLUSIVE}
+			NEW(window); window.SetName("Window");
+
+			StoreString(window, "name", name);
+			StoreString(window, "loader", loader);
+
+			StoreLongint(window, "l", w.bounds.l);
+			StoreLongint(window, "t", w.bounds.t);
+			StoreLongint(window, "r", w.bounds.r);
+			StoreLongint(window, "b", w.bounds.b);
+
+			StoreSet(window, "flags", w.flags);
+
+			IF appData # NIL THEN window.AddContent(appData) END;
+
+			data.AddContent(window)
+		END Add;
+
+*)
+
+PROCEDURE StoreWindow(window: WMWindowManager.Window);
+VAR fn0,fn: Files.FileName;  s: ARRAY 6 OF CHAR; i, res: LONGINT; f:Files.File; w:Files.Writer;
+	xml:XML.Content;
+BEGIN
+	IF (window IS WMComponents.FormWindow) & (WMWindowManager.FlagStorable IN window.flags) THEN
+		GenerateName(window.GetTitle(),fn0); Strings.Concat(fn0,".Cwd",fn); (* component window *)
+		f:=Files.Old(fn); 
+		i:=0;
+		WHILE f#NIL DO 
+			f:=NIL;
+			Strings.IntToStr(i,s);
+			COPY (fn0,fn);
+			Strings.Append(fn,"_");
+			Strings.Append(fn,s);
+			Strings.Append(fn,".Cwd");
+			f:=Files.Old(fn); 
+			INC(i);
+		END;
+		f:=Files.New(fn);
+		IF f#NIL THEN 
+			Files.OpenWriter(w,f,0);
+			w.String('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'); w.Ln;
+			window(WMComponents.FormWindow).ToXML().Write(w,NIL,0);
+			w.Update;
+			Files.Register(f);
+			KernelLog.String("WMNavigate.StoreWindow  "); KernelLog.String(fn); KernelLog.Ln;
+		END;
+	END;
+END StoreWindow;
 
 
 PROCEDURE DrawIntoCanvas(window : WMWindowManager.Window; canvas : WMGraphics.BufferCanvas; width, height : LONGINT; VAR offsetX, offsetY : LONGINT);
