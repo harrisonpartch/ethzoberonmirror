@@ -27,6 +27,7 @@ TYPE
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("InspectionTree"));
 			NEW(treeView); treeView.alignment.Set(WMComponents.AlignClient);
 			tree := treeView.GetTree();
 			treeView.onStartDrag.Add(OnStartDrag);
@@ -455,6 +456,7 @@ TYPE
 		PROCEDURE &InitInspector(simple: BOOLEAN; vis: Models.Boolean);
 		BEGIN
 			Init;
+			SetNameAsString(Strings.NewString("InspectorComponent"));
 			Create(simple, vis);
 			currentTree := formTree;
 			formTree.treeView.onClickNode.Add(NodeClicked);
@@ -480,14 +482,15 @@ TYPE
 		BEGIN
 			NEW(treePanel); treePanel.alignment.Set(WMComponents.AlignLeft);
 			treePanel.bounds.SetWidth(200);
-			AddContent(treePanel);
-
+			
 			NEW(resizer); resizer.alignment.Set(WMComponents.AlignRight);
 			resizer.bounds.SetWidth(5);
 			treePanel.AddContent(resizer);
 
 			NEW(tabPanel); tabPanel.alignment.Set(WMComponents.AlignClient);
 			treePanel.AddContent(tabPanel);
+			
+			AddContent(treePanel);
 
 			NEW(tabControl); tabControl.alignment.Set(WMComponents.AlignTop);
 			tabControl.bounds.SetHeight(20);
@@ -773,14 +776,20 @@ TYPE
 	VAR
 		upper, lower: InspectorComponent;
 		upperVisible: Models.Boolean;
+		f: WMComponents.VisualComponent;
 		PROCEDURE &New*(context : WMRestorable.Context);
 		BEGIN
 			Init(WindowWidth, WindowHeight, FALSE);
 			IncCount;
 			NEW(upperVisible); upperVisible.Set(FALSE);
-			SetContent(CreateF());
+			f:=CreateF();
+			SetContent(f);
+			(*f.Invalidate;*)
+			(*?PH*) (*f.Reset(NIL,NIL);*)
+			
 			SetTitle(Strings.NewString("Inspector"));
 			SetIcon(WMGraphics.LoadImage("WMInspector.tar://WMInspector.png", TRUE));
+			
 		END New;
 
 		PROCEDURE CreateF(): WMComponents.VisualComponent;
@@ -802,6 +811,7 @@ TYPE
 			NEW(lower,FALSE, upperVisible); lower.alignment.Set(WMComponents.AlignClient);
 			lower.fillColor.Set(WMGraphics.White);
 			panel.AddContent(lower);
+			
 			RETURN panel
 		END CreateF;
 

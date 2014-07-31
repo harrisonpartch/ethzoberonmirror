@@ -114,6 +114,7 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("PropertyView"));
 			property := NIL;
 			ofsName := 0; ofsInfo := 200;
 			alignment.Set(WMComponents.AlignTop);
@@ -1815,6 +1816,7 @@ TYPE
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("ComponentView"));
 			NEW(initializedView); AddContent(initializedView);
 			NEW(idView); AddContent(idView);
 			NEW(uidView); AddContent(uidView);
@@ -1903,6 +1905,7 @@ TYPE
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("VisualComponentView"));
 			NEW(alignmentView); AddContent(alignmentView);
 			NEW(boundsView, TRUE); AddContent(boundsView);
 			NEW(bearingView, FALSE); AddContent(bearingView);
@@ -2771,6 +2774,7 @@ TYPE
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("AttributeView"));
 			attribute := NIL; element := NIL;
 			outOfDate := FALSE;
 
@@ -3075,6 +3079,7 @@ TYPE
 		VAR panel, toolbar : WMStandardComponents.Panel;  i : LONGINT;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("PropertyPanel"));
 			state := State_Waiting; internalState := state;
 			NEW(timer);
 
@@ -3351,6 +3356,7 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("RepositoryPanel"));
 			state := State_Waiting;
 			NEW(timer);
 			CreateContent;
@@ -3540,6 +3546,7 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("XMLPanel"));
 			component := NIL;
 
 			NEW(showBtn); showBtn.alignment.Set(WMComponents.AlignLeft);

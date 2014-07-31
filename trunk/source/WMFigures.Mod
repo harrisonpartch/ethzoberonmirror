@@ -20,6 +20,9 @@ TYPE
 		END;
 
 TYPE
+	(* after constructing/inserting a figure, call figure.Initialize(), otherwise they will not be responsive;
+		alternatively, after constructing complex figures and putting them into a form, call form.Reset(NIL,NIL) for hierarchical initialization *)	
+	
 	Figure* = OBJECT(WMComponents.VisualComponent) 
 	VAR
 		width- : WMProperties.Int32Property;
@@ -207,15 +210,18 @@ TYPE
 		
 		PROCEDURE PointerMove*(fx, fy : LONGINT; keys : SET);
 		VAR dx,dy,bl,bt:LONGINT; pp:WMProperties.Property;
-		BEGIN
-			IF (Reshape IN state) (*reshape.Get()*) & (keys={0}) (*(Reshape IN state)*) & (selected # NIL) THEN 
+		BEGIN 
+			IF (Reshape IN state)  & (keys={0})  & (selected # NIL) THEN 
 				MovePoint(selected, fx, fy);
-			ELSIF (Reshape IN state) (*reshape.Get()*) & (keys={0}) (* (Reshape IN state)*) & selectedLine THEN 
+			ELSIF (Reshape IN state)  & (keys={0})  & selectedLine THEN 
 				bl:=bounds.GetLeft(); 
 				bt:=bounds.GetTop();
 				dx:=fx+bl-oldx; oldx:=fx+bl;
 				dy:=fy+bt-oldy; oldy:=fy+bt;
 				MoveFigure(dx, dy);
+			(*ELSIF (Reshape IN state) & ~(0 IN keys) THEN
+				mouseOver:=IsHit(fx,fy);
+			*)
 			ELSE
 				(*bl:=bounds.GetLeft(); 
 				bt:=bounds.GetTop();
@@ -244,8 +250,8 @@ TYPE
 			ELSIF (property = filled) THEN IF filled.Get() THEN INCL(state,Filled) ELSE EXCL(state,Filled); END; Invalidate;
 			ELSIF (property = reshape) THEN IF reshape.Get() THEN INCL(state,Reshape) ELSE EXCL(state,Reshape); END; Invalidate;
 			ELSIF (property = arrow) THEN IF arrow.Get() THEN INCL(state,Arrow) ELSE EXCL(state,Arrow); END; Invalidate;
-			ELSIF property IS WMProperties.PointProperty THEN Resized; Invalidate; 
-			ELSIF property=properties THEN Resized; Invalidate; (*?PropertyChanged^(sender, property); *)
+			ELSIF property IS WMProperties.PointProperty THEN Resized;(*has Invalidate built in*) (*Invalidate; *)
+			ELSIF property=properties THEN Resized; (*has invalidate built in*)(* Invalidate;*) (*?PropertyChanged^(sender, property); *)
 			ELSE  PropertyChanged^(sender, property);  (* e.g, handling bounds by parent *)
 			END;
 		END PropertyChanged;
@@ -1108,30 +1114,27 @@ BEGIN
 	background.fillColor.Set(WMGraphics.Green);
 	window.SetContent(background);
 	WMWindowManager.AddWindow(window, 200,200);
-	INCL(window.flags, WMWindowManager.FlagStorable); (* allow interactive storage of window*)
+	INCL(window.flags, WMWindowManager.FlagStorable); (* allow interactive storage of window through context menu *)
 	
 	NEW(l); l.AddPoint(10,20); l.AddPoint(100,200); l.AddPoint(80, 20);
 	background.AddContent(l); 	
-	l.Initialize; l.Invalidate;
 
 	NEW(r); r.AddPoint(30,40); r.AddPoint(120,200); 
-	background.AddContent(r);
-	r.Initialize; r.Invalidate;
+	background.AddContent(r)
 	
 	NEW(c); c.AddPoint(100,100); c.AddPoint(150,150);
 	background.AddContent(c);
-	c.Initialize; c.Invalidate;
 	
 	NEW(s); (*spline with default points*)
 	background.AddContent(s);
 	s.color.Set(WMGraphics.Blue);
-	s.Initialize; s.Invalidate;
 	
 	NEW(r); r.AddPoint(70,80); r.AddPoint(110,110); 
 	r.reshape.Set(FALSE); (* non-reshapable *)
 	r.color.Set(WMGraphics.Blue);
 	background.AddContent(r);
-	r.Initialize; r.Invalidate;
+	
+	window.form.Reset(NIL,NIL); (* initializes contents hierarchically - required for proper function*)
 END Do;
 
 PROCEDURE Do1*;
