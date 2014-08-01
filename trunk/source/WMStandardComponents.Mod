@@ -264,12 +264,42 @@ TYPE
 			NEW(blinking, PrototypeBlinking, NIL, NIL); properties.Add(blinking);
 			blink := blinking.Get();
 		END Init;
+		
+(* PH - seems more regular *)
+(*
+		PROCEDURE RecacheProperties;
+		VAR b:BOOLEAN;
+		BEGIN
+			RecacheProperties^;
+			b := blinking.Get();
+			IF b # blink THEN
+				blink := b;
+				IF b THEN
+					blinker.events.Add(SetBlinker);
+				ELSE
+					blinker.events.Remove(SetBlinker);
+					show := TRUE
+				END;
+			END;
+		END RecacheProperties;
+		
+		PROCEDURE PropertyChanged*(sender, property : ANY);
+		VAR b: BOOLEAN; element : XML.Element;
+		BEGIN
+			IF property = blinking THEN RecacheProperties; 	Invalidate;
+			ELSE
+				PropertyChanged^(sender, property); (*?PH*) Invalidate;
+			END;
+		END PropertyChanged;
+	*)	
+		
 
 		PROCEDURE RecacheProperties;
 		BEGIN
 			RecacheProperties^;
+			(*? seems wrong inversion of PropertyChange/RecacheProperty call hierarchy PH*)
 			PropertyChanged(NIL, blinking);
-			Invalidate
+			Invalidate (*? PH in certain cases already called in PropertyChanged above*)
 		END RecacheProperties;
 
 		PROCEDURE SetBlinker(sender, data: ANY);
@@ -293,7 +323,7 @@ TYPE
 						blinker.events.Remove(SetBlinker);
 						show := TRUE
 					END;
-				Invalidate;
+					Invalidate;
 				END;
 			ELSE
 				PropertyChanged^(sender, property)
@@ -335,14 +365,6 @@ TYPE
 			RecacheProperties^;
 			Invalidate
 		END RecacheProperties;
-
-
-
-
-
-
-
-
 
 		PROCEDURE DrawBackground(canvas : WMGraphics.Canvas);
 		VAR mode, mid, borderWidth : LONGINT;
@@ -386,12 +408,14 @@ TYPE
 			SetGenerator("WMStandardComponents.GenLabel");
 			SetNameAsString(StrLabel)
 		END Init;
-
+		
+	
 		PROCEDURE RecacheProperties;
 		BEGIN
 			RecacheProperties^;
 			SetFont(font.Get());
 		END RecacheProperties;
+		
 
 		PROCEDURE PropertyChanged*(sender, property : ANY);
 		VAR element : XML.Element;
@@ -399,7 +423,8 @@ TYPE
 			IF (property = caption) OR (property = textColor) OR (property = alignH) OR (property = alignV) THEN
 				Invalidate
 			ELSIF (property = font) THEN
-				RecacheProperties;
+				RecacheProperties; 
+				Invalidate
 			ELSIF property = model THEN Invalidate
 			ELSE
 				PropertyChanged^(sender, property)
@@ -627,9 +652,8 @@ TYPE
 				decoDefault := NIL; decoHover := NIL; decoPressed := NIL;
 			END;
 
-			SetFont(font.Get());
+			(*?PH drop this, as it belongs to parent type recaching ?*)SetFont(font.Get());
 			CheckClickHandler;
-			Invalidate
 		END RecacheProperties;
 
 		PROCEDURE LinkChanged(sender, data : ANY);
@@ -660,7 +684,7 @@ TYPE
 			ELSIF (data = onClickHandler) THEN CheckClickHandler
 			ELSIF (data = clDefault) OR (data = clHover) OR (data = clPressed) OR (data = clTextInactive)
 				OR (data = clTextDefault) OR (data = clTextHover) OR (data = clTextPressed) OR (data = clTextInactive) THEN Invalidate;
-			ELSIF (data = font) THEN SetFont(font.Get());
+			(*ELSIF (data = font) THEN SetFont(font.Get()); Invalidate;*) (*? drop this, as PropertyChanged^ handles this *)
 			ELSIF (data = isToggle) OR (data = indicateToggle) OR (data = isHorizontal) OR (data = repeatMiddleImg) OR (data = effect3D) THEN Invalidate;
 			ELSIF (data = imageName) OR (data = useBgBitmaps)
 				OR (data = imgDefaultNameLeft) OR (data = imgDefaultNameMiddle) OR (data = imgDefaultNameRight)
@@ -1447,7 +1471,7 @@ TYPE
 				TrackerMove(x, y, keys);
 				pressed := Tracker;
 				down := pressed;
-				InvalidateRect(areas[pressed].rect);
+				InvalidateRect(areas[pressed].rect); 
 			END;
 		END PointerDown;
 
@@ -1611,7 +1635,7 @@ TYPE
 			ELSE
 				bounds.SetHeight(SELF.width.Get())
 			END;
-			Resized;
+			Resized; (*?implies Invalidate -> redundant*)
 		END RecacheProperties;
 
 		PROCEDURE PropertyChanged*(sender, property : ANY);
@@ -1625,7 +1649,7 @@ TYPE
 				ELSE
 					bounds.SetHeight(SELF.width.Get())
 				END;
-				Resized;
+				Resized;  (*implies Invalidate*)
 			ELSIF (property = minTrackerSize) THEN UpdateLayout; Invalidate;
 			ELSIF (property = min) OR (property = max) OR (property = pageSize) THEN
 				pos.SetBounds(min.Get(), max.Get());
@@ -2120,7 +2144,6 @@ TYPE
 			pos.SetBounds(min.Get(), max.Get());
 			SetDirection;
 			AlignSubComponents;
-			Invalidate
 		END RecacheProperties;
 
 		PROCEDURE PropertyChanged*(sender, property : ANY);
@@ -2200,7 +2223,6 @@ TYPE
 			aligning := FALSE; (* must set to false before super call *)
 			AlignSubComponents^;
 			EnableUpdate;
-			Invalidate;
 			Release
 		END AlignSubComponents;
 
@@ -2289,7 +2311,7 @@ TYPE
 
 		PROCEDURE PropertyChanged*(sender, data : ANY);
 		BEGIN
-			IF (data = properties) OR (data = alignment) THEN RecacheProperties;
+			IF (data = properties) OR (data = alignment) THEN RecacheProperties; (*? PH added *) Invalidate;
 			ELSIF (data = clDefault) OR (data = isFlat) THEN Invalidate;
 			ELSE PropertyChanged^(sender, data)
 			END;
@@ -2564,7 +2586,6 @@ TYPE
 				imgDefaultInactive := NIL;
 			END;
 			CheckClickHandler;
-			Invalidate
 		END RecacheProperties;
 
 		PROCEDURE FocusReceived*;
@@ -2595,7 +2616,7 @@ TYPE
 				END;
 				Click(SELF, NIL);
 			END;
-			Invalidate;
+			Invalidate; 
 			PointerDown^(x, y, keys)
 		END PointerDown;
 
@@ -2726,7 +2747,7 @@ TYPE
 		PROCEDURE PropertyChanged*(sender, property : ANY);
 		BEGIN
 			IF (property = imageName) THEN
-				RecacheProperties;
+				RecacheProperties; (*? PH*) Invalidate;
 			ELSIF (property = scaleImage) THEN
 				scaleImageI := scaleImage.Get();
 				Invalidate;
@@ -2746,7 +2767,6 @@ TYPE
 			ELSE
 				image := NIL;
 			END;
-			Invalidate;
 		END RecacheProperties;
 
 		PROCEDURE DrawBackground(canvas : WMGraphics.Canvas);
@@ -2823,7 +2843,7 @@ TYPE
 
 		(** Iff data IS WMGraphics.Image, it is set as background. Else the background is set to white *)
 		(* Note: Only use for anonymous Images without a specific Name *)
-		PROCEDURE SetImage*(sender, data : ANY);
+		PROCEDURE SetImage*(sender, data : ANY); (*? PH is Invalidate always handled in PropertyChanged here, or does this exporte procedure occur in other contexts ?*)
 		BEGIN
 			IF (data # NIL) & (data IS WMGraphics.Image) THEN
 				img := data(WMGraphics.Image);

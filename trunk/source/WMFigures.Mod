@@ -20,9 +20,8 @@ TYPE
 		END;
 
 TYPE
-	(* after constructing/inserting a figure, call figure.Initialize(), otherwise they will not be responsive;
-		alternatively, after constructing complex figures and putting them into a form, call form.Reset(NIL,NIL) for hierarchical initialization *)	
-	
+	(* after constructing/inserting a figure, implicit call to Reset() through 
+	    insertion to FormWindow or explicit Reset() renders the component responsive to messages *)
 	Figure* = OBJECT(WMComponents.VisualComponent) 
 	VAR
 		width- : WMProperties.Int32Property;
@@ -69,11 +68,10 @@ TYPE
 		END Init;
 		
 		PROCEDURE Initialize*;
-		BEGIN(* Call whenever the component composite is resetted (also when put into FormWindow) ; see WMComponentSkeleton.Mod *)
+		BEGIN(* Called by component.Reset() through sequencer, renders component responsive *)
 			RecacheProperties;
 			Initialize^;
 		END Initialize;
-		
 	
 		PROCEDURE AddPoint*(x, y : LONGINT); (* in stable parent coordinates (because coordinates relative to the figure bound change with normalization) *)
 		VAR 
@@ -494,7 +492,7 @@ TYPE
 		VAR p, plast : Point; i : LONGINT; 
 		BEGIN
 			DrawBackground^(canvas);
-			RecachePoints;
+			RecachePoints; (*? could be moved to PropertyChanged ?*)
 			Normalize;
 			IF (nofPoints # LEN(pointArray)) THEN NEW(pointArray, nofPoints); END;
 			p := points; i := 0;
@@ -1056,7 +1054,7 @@ END GenSpline;
 PROCEDURE InitPrototypes;
 BEGIN
 	NEW(PrototypeWidth, NIL, Strings.NewString("width"), Strings.NewString("Width of stroke")); PrototypeWidth.Set(1);
-	NEW(PrototypeColor, NIL, Strings.NewString("color"), Strings.NewString("Color"));	PrototypeColor.Set(WMGraphics.Red);
+	NEW(PrototypeColor, NIL, Strings.NewString("color"), Strings.NewString("Color"));	PrototypeColor.Set(WMGraphics.Black);
 	NEW(PrototypeclHover, NIL, Strings.NewString("clHover"), Strings.NewString("Color HOver"));	PrototypeclHover.Set(WMGraphics.Yellow);
 	NEW(PrototypeClosed, NIL, Strings.NewString("closed"), Strings.NewString("Figure is closed")); PrototypeClosed.Set(FALSE);
 	NEW(PrototypeFilled, NIL, Strings.NewString("filled"), Strings.NewString("Figure is filled")); PrototypeFilled.Set(FALSE);
@@ -1084,12 +1082,7 @@ SystemTools.FreeDownTo WMFigures ~
 ----------------
 Example commands for interactive figures (left click for editing and moving; middle clicking for adding points, right-left interclick for deleting points).
 
-ComponentViewer.Open WMFigures.GenLine ~
-ComponentViewer.Open WMFigures.GenSpline ~
-ComponentViewer.Open WMFigures.GenCircle ~
-ComponentViewer.Open WMFigures.GenRectangle ~
-
-alternative: ComponentViewer.Open WMShapes.GenLine ~ (*use component inspector to change color for visualization*)
+WMComponents.Open FigureExample.Cwd ~
 
 ------------------------
 Example application for programmable figures:
@@ -1112,9 +1105,6 @@ BEGIN
 	NEW(background);
 	background.bounds.SetExtents(400,400);
 	background.fillColor.Set(WMGraphics.Green);
-	window.SetContent(background);
-	WMWindowManager.AddWindow(window, 200,200);
-	INCL(window.flags, WMWindowManager.FlagStorable); (* allow interactive storage of window through context menu *)
 	
 	NEW(l); l.AddPoint(10,20); l.AddPoint(100,200); l.AddPoint(80, 20);
 	background.AddContent(l); 	
@@ -1134,7 +1124,15 @@ BEGIN
 	r.color.Set(WMGraphics.Blue);
 	background.AddContent(r);
 	
-	window.form.Reset(NIL,NIL); (* initializes contents hierarchically - required for proper function*)
+	window.SetContent(background); (* calls window.form.Reset(NIL,NIL) implicitly *)
+	WMWindowManager.AddWindow(window, 200,200);
+	INCL(window.flags, WMWindowManager.FlagStorable); (* allow interactive storage of window through context menu *)
+
+
+
+	(*If hierarchical content is added after SetContent(),  calling window.form.Reset(NIL,NIL) may be needed to render component responsive *)
+	NEW(l); l.AddPoint(20,30); l.AddPoint(110,210); l.AddPoint(90, 40);
+	background.AddContent(l); window.form.Reset(NIL,NIL);
 END Do;
 
 PROCEDURE Do1*;
@@ -1148,9 +1146,11 @@ BEGIN
 	WMWindowManager.AddWindow(window, 200,200);
 	INCL(window.flags, WMWindowManager.FlagStorable);
 	
+	
 	NEW(l); l.AddPoint(10,20); l.AddPoint(100,200); l.AddPoint(80, 20);
 	window.SetContent(l); 
-	l.Initialize;	l.Invalidate;	
+	
+	window.form.Reset(NIL,NIL);(*If hierarchical content is added after SetContent(),  calling window.form.Reset(NIL,NIL) may be needed to render component responsive *)
 END Do1;
 
 END TestFigures.

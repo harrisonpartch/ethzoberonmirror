@@ -219,6 +219,7 @@ TYPE
 		(* If TRUE, this component is supposed to be created and managed by its parent. It is not externalized. *)
 		internal- : BOOLEAN;
 
+		(* after Init() , calling Reset() implicitely by insertion into FormWindow or explicitely, thereby triggering Initialize() is required to render component responsive to messages *)
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
@@ -324,7 +325,8 @@ TYPE
 					END;
 				END;
 			END;
-			Initialize; 
+			Initialize; (*? needed ?*)
+			(*RecacheProperties;*) (*? PH might be a good addition here ? or will it be called redundantly ? *)
 		END FromXML;
 
 		PROCEDURE IsCallFromSequencer*():BOOLEAN;
@@ -372,7 +374,9 @@ TYPE
 			IF sequencer # NIL THEN ASSERT(sequencer.lock.HasReadLock()) END
 		END CheckReadLock;
 
-		(** AddContent adds a content (element or subtree) to the element. Called mainly by the XMLParser *)
+		(** AddContent adds a content (element or subtree) to the element. Called mainly by the XMLParser.
+			after insertion of content to component, call of c.Reset() or form.Reset() may be needed, if not implicitly done by FormWindow.SetContent .
+		*)
 		PROCEDURE AddContent*(c : XML.Content);
 		BEGIN
 			ASSERT(c # NIL);
@@ -391,7 +395,7 @@ TYPE
 		PROCEDURE RemoveContent*(c : XML.Content);
 		BEGIN
 			(*ASSERT(c # NIL);*)
-			IF c = NIL THEN RETURN END; (*PH 12/13: seems logically more correct*)
+			IF c = NIL THEN RETURN END;
 			Acquire;
 			RemoveContent^(c);
 			Release;
@@ -522,9 +526,8 @@ TYPE
 			END
 		END StringToCompCommand;
 
-		(** The Finalize Method is asynchronous since queuing could result in modules being freed before finalize is
-			propagated..
-			Active components should terminate, external resources should be released *)
+		(** The Finalize Method is asynchronous since queuing could result in modules being freed before finalize ispropagated..
+		 	Active components should terminate, external resources should be released *)
 		PROCEDURE Finalize*; (** PROTECTED *)
 		VAR c : XML.Content;
 		BEGIN
@@ -539,6 +542,7 @@ TYPE
 			Release;
 		END Finalize;
 
+		(* initialize a hierarchy of components *)
 		PROCEDURE Reset*(sender, data : ANY); (** PROTECTED *)
 		VAR c : XML.Content;
 		BEGIN
@@ -556,6 +560,7 @@ TYPE
 			END
 		END Reset;
 
+		(* Initialize is called by Reset() and is required to render components responsive *)
 		PROCEDURE Initialize*; (** PROTECTED *)
 		BEGIN
 			initialized := TRUE
@@ -619,15 +624,14 @@ TYPE
 			ASSERT(IsCallFromSequencer());
 		END LanguageChanged;
 
-
-
 		(* LinkChanged can be called to inform about changes of the state of links (i.e. objects in reference properties)
 			Unlike PropertyChanged which informs about an actual replacement of the link *)
 		PROCEDURE LinkChanged*(sender, link: ANY);
 		BEGIN ASSERT(IsCallFromSequencer());
 		END LinkChanged;
 
-		(* will be called synchronously if a property of the component changes. May not be called directly.
+		(* will be called synchronously if a property of the component changes. May not be called directly. 
+			Call Invalidate in this procedure whenever a property changed that impacts the visualization.
 			No such messages are sent until the component is initialized *)
 		PROCEDURE PropertyChanged*(sender, property : ANY);(** PROTECTED *)
 		BEGIN ASSERT(IsCallFromSequencer());
@@ -635,7 +639,8 @@ TYPE
 
 		(** called by the internal property changed handler via the sequencer, either if multiple properties have
 			changed or a Reset occured. The PropertyChanged method is called, too in case of multi-property changes
-		 	The component should call the inherited RecacheProperties method *)
+		 	The component should call the inherited RecacheProperties method.
+		 	Do not call Invalidate in RecacheProperties, but rather in PropertyChanged(). *)
 		PROCEDURE RecacheProperties*;
 		BEGIN
 		END RecacheProperties;
@@ -865,21 +870,21 @@ TYPE
 		BEGIN
 			IF property = bounds THEN
 				(*ScaleFont(bounds.GetHeight(), scaleFont.Get());*)
-				Resized
+				Resized (*implicit Invalidate*)
+			ELSIF property = bearing THEN Resized;
+			(* ELSIF bounds=relativeBounds  THEN ? *)
+			ELSIF property = alignment THEN AlignmentChanged (*implicit Invalidate*)
+			ELSIF property = fillColor THEN Invalidate;
 			ELSIF property = font THEN
 				IF scaleFont.Get() # 0 THEN
 					ScaleFont(bounds.GetHeight(), scaleFont.Get());
 				END;
 				Invalidate;
+			ELSIF (property = scaleFont) THEN ScaleFont(bounds.GetHeight(),scaleFont.Get());  (*implicit Invalidate*)
 			ELSIF property = visible THEN Resized
-			ELSIF property = alignment THEN AlignmentChanged
-			ELSIF property = fillColor THEN Invalidate;
-			ELSIF property = bearing THEN Resized;
+			(* ELSIF takesFocus, needsTab...*)			
 			ELSIF property = editMode THEN Invalidate;
-			ELSIF property = model THEN
-				LinkChanged(model, model.Get()); Invalidate;
-			ELSIF (property = scaleFont) THEN
-				ScaleFont(bounds.GetHeight(),scaleFont.Get());
+			ELSIF property = model THEN LinkChanged(model, model.Get()); Invalidate;
 			ELSE PropertyChanged^(sender, property)
 			END;
 		END PropertyChanged;
@@ -1005,7 +1010,7 @@ TYPE
 		PROCEDURE Initialize*;
 		BEGIN
 			Initialize^;
-			AlignSubComponents
+			AlignSubComponents;
 		END Initialize;
 
 	(** Locating *)
@@ -1074,7 +1079,6 @@ TYPE
 		PROCEDURE FromXML(xml: XML.Element);
 		BEGIN
 			FromXML^(xml);
-			(*Invalidate;*) (* PH *)
 		END FromXML;
 
 		PROCEDURE AddVisualComponent(c :VisualComponent; x, y : LONGINT);
@@ -1088,12 +1092,14 @@ TYPE
 			Rectangles.MoveRel(bounds, x, y);
 			c.bounds.Set(bounds);
 			c.AdaptRelativeBounds(c.bounds.Get(), SELF);
+			
 			IF c.sequencer # sequencer THEN c.SetSequencer(sequencer) END;
 			c.Reset(NIL, NIL);
 			c.RecacheProperties;
-			AddContent(c);
+			
+			AddContent(*^*)(c);
 		END AddVisualComponent;
-
+		
 		PROCEDURE EditDragDropped(x,y: LONGINT; dragInfo: WM.DragInfo): BOOLEAN;
 		VAR data: ANY; e: ComponentListEntry; parent: XML.Element; dt: DropTarget; pos: LONGINT;
 		BEGIN
@@ -1345,7 +1351,7 @@ TYPE
 			Acquire;
 			IF SELF.font.Get() # font THEN
 				SELF.font.Set(font);
-				Invalidate()
+				(*?Invalidate()*) (* Invalidate already in PropertyChanged() *)
 			END;
 			Release
 		END SetFont;
@@ -2113,7 +2119,6 @@ TYPE
 					c:=c(XML.Container).GetNext(c);
 				END;
 				IF (c#NIL)&(c IS VisualComponent) THEN content:=c(VisualComponent) END;
-				(*!?form.AddContent(x(Form).GetFirst());*)(*PH rather get next*)
 			ELSE
 				NEW(form, SELF); form.uid.Set(NewString("form"));
 			END;
@@ -2248,7 +2253,7 @@ TYPE
 			SetGenerator("WMComponents.NewForm");
 			lastFocusComponent := NIL;
 			SetNameAsString(StrForm);
-			SetWindow(window)
+			SetWindow(window);
 		END New;
 
 		PROCEDURE SetWindow*(window: FormWindow);
@@ -3206,7 +3211,7 @@ BEGIN {EXCLUSIVE}
 	RETURN NIL
 END Load;
 
-PROCEDURE FormWindowGen*(xml:XML.Content): WM.Window; (* PH *)
+PROCEDURE FormWindowGen*(xml:XML.Content): WM.Window; 
 VAR winx: XML.Element; formx: XML.Content; window: FormWindow; name, string:Strings.String;
 	l,t,r,b: LONGINT;
 BEGIN
