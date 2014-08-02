@@ -17,7 +17,7 @@ CONST
 	(** FontStyles *)
 	FontBold* = 0; FontItalic* = 1;
 
-	Black* = 0FFH; White* = LONGINT(0FFFFFFFFH);
+	Black* = 0FFH; White* = LONGINT(0FFFFFFFFH); Gray*=LONGINT(0888888FFH);
 	Red* = LONGINT(0FF0000FFH); Green* = 000FF00FFH; Blue* = 0FFFFH;
 	Yellow* = LONGINT(0FFFF00FFH); Magenta* = LONGINT(0FF00FFFFH); Cyan* = 00FFFFFFH;
 

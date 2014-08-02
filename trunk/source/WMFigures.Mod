@@ -1054,7 +1054,7 @@ END GenSpline;
 PROCEDURE InitPrototypes;
 BEGIN
 	NEW(PrototypeWidth, NIL, Strings.NewString("width"), Strings.NewString("Width of stroke")); PrototypeWidth.Set(1);
-	NEW(PrototypeColor, NIL, Strings.NewString("color"), Strings.NewString("Color"));	PrototypeColor.Set(WMGraphics.Black);
+	NEW(PrototypeColor, NIL, Strings.NewString("color"), Strings.NewString("Color"));	PrototypeColor.Set(WMGraphics.Gray);
 	NEW(PrototypeclHover, NIL, Strings.NewString("clHover"), Strings.NewString("Color HOver"));	PrototypeclHover.Set(WMGraphics.Yellow);
 	NEW(PrototypeClosed, NIL, Strings.NewString("closed"), Strings.NewString("Figure is closed")); PrototypeClosed.Set(FALSE);
 	NEW(PrototypeFilled, NIL, Strings.NewString("filled"), Strings.NewString("Figure is filled")); PrototypeFilled.Set(FALSE);
@@ -1083,6 +1083,7 @@ SystemTools.FreeDownTo WMFigures ~
 Example commands for interactive figures (left click for editing and moving; middle clicking for adding points, right-left interclick for deleting points).
 
 WMComponents.Open FigureExample.Cwd ~
+ComponentViewer.Open WMFigures.GenSpline ~
 
 ------------------------
 Example application for programmable figures:
@@ -1128,11 +1129,10 @@ BEGIN
 	WMWindowManager.AddWindow(window, 200,200);
 	INCL(window.flags, WMWindowManager.FlagStorable); (* allow interactive storage of window through context menu *)
 
-
-
 	(*If hierarchical content is added after SetContent(),  calling window.form.Reset(NIL,NIL) may be needed to render component responsive *)
 	NEW(l); l.AddPoint(20,30); l.AddPoint(110,210); l.AddPoint(90, 40);
-	background.AddContent(l); window.form.Reset(NIL,NIL);
+	background.AddContent(l); 
+	window.form.Reset(NIL,NIL);
 END Do;
 
 PROCEDURE Do1*;
@@ -1146,13 +1146,9 @@ BEGIN
 	WMWindowManager.AddWindow(window, 200,200);
 	INCL(window.flags, WMWindowManager.FlagStorable);
 	
-	
 	NEW(l); l.AddPoint(10,20); l.AddPoint(100,200); l.AddPoint(80, 20);
 	window.SetContent(l); 
-	
-	window.form.Reset(NIL,NIL);(*If hierarchical content is added after SetContent(),  calling window.form.Reset(NIL,NIL) may be needed to render component responsive *)
 END Do1;
-
 END TestFigures.
 
 TestFigures.Do

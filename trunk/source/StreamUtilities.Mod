@@ -329,6 +329,208 @@ TYPE
 			remain:=total;
 		END Reset;
 	END LimitedReader;
+	
+	(* convert stream to Base64 encoding on-the-fly *)
+TYPE	Base64Writer* = OBJECT (Streams.Writer);
+		VAR out : Streams.Writer;  buf: POINTER TO ARRAY OF CHAR;
+			group, i, ll: LONGINT; done:BOOLEAN;
+		
+		PROCEDURE &Init*(out:Streams.Writer);
+		BEGIN
+			IF ~tablesReady THEN InitTables END;
+			InitWriter(Sender, WriterBufSize);
+			NEW(buf, WriterBufSize);
+			SELF.out := out;
+			Reset;
+		END Init;
+		
+		PROCEDURE Reset*;
+		BEGIN
+			Reset^;
+			group := 0;  i := 0;  ll := 0; done:=FALSE;
+		END Reset;
+	
+		PROCEDURE Sender(CONST outBuf: ARRAY OF CHAR; ofs, len: LONGINT; propagate: BOOLEAN; VAR res: LONGINT);
+		VAR ix:LONGINT;
+		BEGIN
+			IF done THEN res:=Streams.EOF; RETURN END;
+			ix := ofs; (* encoding snipped from CryptoBase64 *)
+			WHILE ix < ofs+len DO
+				group := group*100H + ORD( outBuf[ix] );  INC( ix );  INC( i );
+				IF i = 3 THEN  
+					out.Char( etab[group DIV 40000H MOD 64] );
+					out.Char( etab[group DIV 1000H MOD 64] );
+					out.Char( etab[group DIV 40H MOD 64] );
+					out.Char( etab[group MOD 64] );
+					INC(sent,4);
+					INC( ll, 4 );
+					IF ll >= 72 THEN  out.Ln;  ll := 0  END;
+					group := 0;
+					i := 0  
+				END;
+			END;
+			
+			IF propagate THEN out.Update END;
+			res:=out.res;
+		END Sender;
+		
+		PROCEDURE Close*; (*required termination of a Base64 sequence*)
+		BEGIN
+			Update;
+			IF i > 0 THEN   (* encode rest *)
+				IF i = 1 THEN  group := group*100H  END;
+				out.Char( etab[group DIV 400H MOD 64] );  
+				out.Char( etab[group DIV 10H MOD 64] );  
+				IF i = 1 THEN  out.Char( '=' )  ELSE  out.Char( etab[group*4 MOD 64] )  END;
+				out.Char( '=' );  
+			END;
+			out.Update;
+			res:=out.res;
+		END Close;
+
+		PROCEDURE Pos*(): LONGINT;
+		BEGIN RETURN out.Pos()
+		END Pos;
+
+	END Base64Writer;
+	
+		(* decode Base64 stream to cleartext on-the-fly *)
+	Base64Reader* = OBJECT(Streams.Reader)
+		VAR in: Streams.Reader;
+			i, rest, code, group: LONGINT;
+			done:BOOLEAN;
+
+		PROCEDURE &Init*(in: Streams.Reader);
+		BEGIN
+			InitReader(Receiver, ReaderBufSize);
+			SELF.in := in;
+			in.SkipSpaces;
+			IF ~tablesReady THEN InitTables END;
+			Reset;
+		END Init;
+		
+		PROCEDURE Reset*;
+		BEGIN
+			Reset^;
+			group := 0;  i := 0; code:=0; done:=FALSE;
+		END Reset;
+
+		PROCEDURE Receiver(VAR inBuf: ARRAY OF CHAR; ofs, size, min: LONGINT; VAR len, res: LONGINT);
+		VAR c:CHAR; size4: LONGINT;
+		BEGIN
+			size4:=size DIV 4 * 4; (* a multiple of 4*)
+			ASSERT((size > 0) & (min <= size4) & (min >= 0));
+			len:=0;
+			IF done THEN res:=Streams.EOF; RETURN 
+			ELSE res:=Streams.Ok 
+			END;
+			(* decoding snipped from CryptoBase64 *)
+			REPEAT  in.Char( c )  UNTIL (c > ' ') OR (c = 0X) OR (in.res#Streams.Ok); 
+			IF (in.res=Streams.Ok) THEN
+				code := dtab[ORD( c )]; 
+				WHILE (code >= 0) & (in.res=Streams.Ok) & (len< size4) DO
+					group := group*64 + code;  INC( i );
+					IF i = 4 THEN  
+						inBuf[ofs+len] := CHR( group DIV 10000H MOD 100H );  INC( len );
+						inBuf[ofs+len] := CHR( group DIV 100H MOD 100H );  INC( len );
+						inBuf[ofs+len] := CHR( group MOD 100H );  INC( len );
+						group := 0;  i := 0
+					END;
+					REPEAT  in.Char( c )  UNTIL (c > ' ') OR (c = 0X) OR (in.res#Streams.Ok);
+					code := dtab[ORD( c )];  
+				END;
+				
+				IF c = '=' THEN   (* decode rest *)
+					IF i < 2 THEN  res:=Streams.FormatError;   
+					ELSE
+						group := group*64;  rest := 2;  in.Char( c );  
+						IF in.res=Streams.Ok THEN
+						IF c = '=' THEN  group := group*64;  rest := 1  END;
+							inBuf[ofs+len] := CHR( group DIV 10000H );  INC( len ); 
+							IF rest = 2 THEN  inBuf[ofs+len] := CHR( group DIV 100H MOD 100H );  INC( len )  END;
+							done:=TRUE;
+						ELSE res:=in.res
+						END;
+					END;
+				END;
+			ELSE
+				res:=in.res;
+			END;
+			INC(received,len);
+		END Receiver;
+		
+		(*
+		PROCEDURE DecodeStream*( r: Streams.Reader;
+										VAR image: ARRAY OF CHAR ): LONGINT;
+		VAR
+			i, rest, code, group, len: LONGINT;
+			c: CHAR;
+		BEGIN
+			r.SkipSpaces( );
+			len := 0; group := 0;  i := 0;
+			
+			REPEAT  r.Char( c )  UNTIL (c > ' ') OR (c = 0X);
+			code := dtab[ORD( c )]; 
+			WHILE code >= 0 DO
+				group := group*64 + code;  INC( i );
+				IF i = 4 THEN  
+					image[len] := CHR( group DIV 10000H MOD 100H );  INC( len );
+					image[len] := CHR( group DIV 100H MOD 100H );  INC( len );
+					image[len] := CHR( group MOD 100H );  INC( len );
+					group := 0;  i := 0
+				END;
+				REPEAT  r.Char( c )  UNTIL (c > ' ') OR (c = 0X);
+				code := dtab[ORD( c )];  
+			END;
+			
+			IF c = '=' THEN   (* decode rest *)
+				IF i < 2 THEN  (* error *)  RETURN -1  END;
+				group := group*64;  rest := 2;  r.Char( c );  
+				IF c = '=' THEN  group := group*64;  rest := 1  END;
+				image[len] := CHR( group DIV 10000H );  INC( len );
+				IF rest = 2 THEN  image[len] := CHR( group DIV 100H MOD 100H );  INC( len )  END
+			ELSIF i > 0 THEN  (* error *)  RETURN -1
+			END;
+			
+			RETURN len
+		END DecodeStream;
+
+
+		*)
+
+		PROCEDURE Pos*(): LONGINT;
+		BEGIN RETURN in.Pos()
+		END Pos;
+
+	END Base64Reader;
+
+	VAR (*tables for Base64*)
+		etab: ARRAY 64 OF CHAR;
+		dtab: ARRAY 128 OF INTEGER;
+		tablesReady:BOOLEAN;
+
+	PROCEDURE InitTables;
+		VAR i, max: INTEGER;
+		BEGIN
+			max := ORD("Z") - ORD("A");
+			FOR i := 0 TO max DO
+				etab[i] := CHR( i + ORD("A") )
+			END;
+			INC(max);
+			FOR i := max TO max + ORD("z") - ORD("a") DO
+				etab[i] := CHR( i - max + ORD("a") )
+			END;
+			max := max + ORD("z") - ORD("a") + 1;
+			FOR i := max TO max + ORD("9") - ORD("0") DO
+				etab[i] := CHR( i - max + ORD("0") )
+			END;
+			etab[62] := "+";
+			etab[63] := "/";
+			FOR i := 0 TO 127 DO  dtab[i] := -1  END;
+			FOR i := 0 TO 63 DO  dtab[ORD( etab[i] )] := i  END;
+			tablesReady:=TRUE;
+		END InitTables;
+
 
 	(*open a monitoring writer on the out stream*)
 	PROCEDURE OpenWriterMonitor*(VAR w: Streams.Writer; out:Streams.Writer; monitor: Streams.Writer);
@@ -457,16 +659,34 @@ BEGIN
 	secretwriter.String(string); secretwriter.Update;
 END TestCrypt;
 *)
-
+(*
+PROCEDURE TestBase64*(context:Commands.Context);
+VAR secretwriter: Base64Writer; 
+	secretreader:Base64Reader; 
+	string:ARRAY 64 OF CHAR;
+BEGIN
+	NEW(secretwriter, context.out);
+	secretwriter.String("admin:1234"); (* expect "YWRtaW46MTIzNA==" *)
+	secretwriter.Close;
+	context.out.Ln; context.out.Update;
+	
+	NEW(secretreader, context.arg);
+	secretreader.String(string);
+	context.out.String(string); (* given the argument "YWRtaW46MTIzNA==", expect "admin:1234" *)
+	context.out.Ln; context.out.Update;
+END TestBase64;
+*)
 END StreamUtilities.
+
+SystemTools.FreeDownTo StreamUtilities ~
 
 StreamUtilities.Test hello ~
 StreamUtilities.Test2 abcd efghijk ~
 StreamUtilities.TestAsync abcd efghijk ~
 StreamUtilities.TestCrypt IfmmpXpsme ~
-
-SystemTools.FreeDownTo StreamUtilities ~
+StreamUtilities.TestBase64 YWRtaW46MTIzNA== ~
 
 StreamUtilities.TestAsync
 
 StreamUtilities.TestAsync2
+
