@@ -553,7 +553,7 @@ TYPE
 		END Broadcast;
 
 		PROCEDURE Add*(left, top : LONGINT; w : Window; flags : SET);
-		VAR plugin : Plugins.Plugin; oldPointerOwner: Window;
+		VAR plugin : Plugins.Plugin; oldPointerOwner: Window; m: Messages.Message;
 		BEGIN
 			ASSERT((w.next = NIL) & (w.prev = NIL)); (* window can not be inserted twice *)
 			lock.AcquireWrite;
@@ -573,6 +573,7 @@ TYPE
 				pointerOwner := GetPositionOwnerIntern(pointerX, pointerY, NIL);
 			END;
 			CheckPointerImage; (* maybe some other window got below the cursor *)
+			m.msgType := Messages.MsgReset; (* w.Handle(m); *)IF w.sequencer.Add(m) THEN END; (*reset contents of window if applicable, e.g. in FormWindow. PH*)
 			lock.ReleaseWrite;
 			WM.IncWTimestamp;
 		END Add;

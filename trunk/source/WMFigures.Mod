@@ -1084,6 +1084,7 @@ Example commands for interactive figures (left click for editing and moving; mid
 
 WMComponents.Open FigureExample.Cwd ~
 ComponentViewer.Open WMFigures.GenSpline ~
+ComponentViewer.Open WMStandardComponents.GenPanel ~
 
 ------------------------
 Example application for programmable figures:
@@ -1129,10 +1130,10 @@ BEGIN
 	WMWindowManager.AddWindow(window, 200,200);
 	INCL(window.flags, WMWindowManager.FlagStorable); (* allow interactive storage of window through context menu *)
 
-	(*If hierarchical content is added after SetContent(),  calling window.form.Reset(NIL,NIL) may be needed to render component responsive *)
+	(*If hierarchical content is added after SetContent(),  calling window.form.Reset(NIL,NIL) might be needed to render component responsive *)
 	NEW(l); l.AddPoint(20,30); l.AddPoint(110,210); l.AddPoint(90, 40);
 	background.AddContent(l); 
-	window.form.Reset(NIL,NIL);
+	(*window.form.Reset(NIL,NIL);*)
 END Do;
 
 PROCEDURE Do1*;

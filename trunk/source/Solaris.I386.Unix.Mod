@@ -271,7 +271,7 @@ TYPE
 				r_di-		: LONGINT;
 				r_si-		: LONGINT;
 				r_bp-		: LONGINT;
-				r_sp-		: LONGINT;
+				r_sp_ -	: LONGINT;
 				r_bx-		: LONGINT;
 				r_dx-		: LONGINT;
 				r_cx-		: LONGINT;
@@ -281,7 +281,7 @@ TYPE
 				r_pc-		: LONGINT;
 				r_cs-		: LONGINT;
 				r_flags-	: LONGINT;
-				r_spatsig-	: LONGINT;
+				r_sp-		: LONGINT;		(* sp at error(signal) *)
 				r_ss-		: LONGINT;
 				fpc-		: FPcontextDesc;
 			END;
@@ -372,8 +372,7 @@ VAR
 	BEGIN
 		cont.mc.r_pc := pc;
 		cont.mc.r_bp := bp;
-		cont.mc.r_sp := sp;
-		cont.mc.r_spatsig := sp
+		cont.mc.r_sp := sp;	
 	END ModifyContext;
 
 	PROCEDURE Perror*( CONST msg: ARRAY OF CHAR );

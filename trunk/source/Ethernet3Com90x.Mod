@@ -1,6 +1,6 @@
 (* Aos, Copyright 2001, Pieter Muller, ETH Zurich *)
 
-MODULE Ethernet3Com90x; (** AUTHOR "rstrobl/jaco/prk/pjm/mvt"; PURPOSE "3Com 3C90X ethernet driver"; *)
+MODULE Ethernet3Com90x; (** AUTHOR "rstrobl/jaco/prk/pjm/mvt/BdT"; PURPOSE "3Com 3C90X ethernet driver"; *)
 
 (*
 Aos driver for 3Com EtherLink XL ethernet adapter.
@@ -57,7 +57,7 @@ TYPE
 	MemRangeArray = ARRAY 2 OF Machine.Range;
 
 	DPD = POINTER TO RECORD	(* p. 6-1 *)
-		dummy : CHAR; (* for padding, next field must be aligned at multiplee of 8 bytes  *)
+		(* dummy : CHAR; may be used for padding, next field must be aligned at multiplee of 8 bytes  *)
 			(* start fixed-layout *)
 		nextPhysAdr: LONGINT;	(* 00H *)
 		status: SET;	(* 04 *)
@@ -72,7 +72,7 @@ TYPE
 	END;
 
 	UPD = POINTER TO RECORD	(* p. 7-1 *)
-		dummy : CHAR; (* for padding, next field must be aligned at multiplee of 8 bytes  *)
+		 (* dummy : CHAR; may be used for padding, next field must be aligned at multiplee of 8 bytes  *)
 			(* start fixed-layout *)
 		nextPhysAdr: LONGINT;	(* 00H *)
 		status: SET;	(* 04 *)

@@ -111,7 +111,7 @@ VAR
 		| 3:		w.String( "3 (Quit signal)" );   
 		| 4:  	w.String( "4 (Illegal instruction)" );   
 		| 5:   	w.String( "5." );  
-				sp := ucp.mc.r_spatsig;
+				sp := ucp.mc.r_sp;
 				S.GET( sp, trapno );  w.Int( trapno, 0 );  
 				CASE trapno OF 
 				| 1:       w.String( "  (WITH guard failed)" ) 
@@ -135,7 +135,7 @@ VAR
 		ELSE 
 			w.String( "(Signal " );  w.Int( sig, 0 );  w.Char( ')' );  
 		END;  
-		w.Ln;  
+		w.Ln;
 		IF TrapHandlingLevel = 1 THEN
 			process := Objects.CurrentProcess( ); 
 			pc := ucp.mc.r_pc;  bp := ucp.mc.r_bp;
@@ -195,7 +195,7 @@ VAR
 	VAR entry, fp, sp, pc: ADDRESS;
 	BEGIN 
 		handler.pc := 0;  (* no handler *)
-		pc := cont.mc.r_pc;  fp := cont.mc.r_bp;  sp := cont.mc.r_spatsig;
+		pc := cont.mc.r_pc;  fp := cont.mc.r_bp;  sp := cont.mc.r_sp;
 		IF pc = 0 THEN  
 			(* assume call of procedure variable with value NIL *)
 			S.GET( sp, pc );   (* get return address on top of stack *)

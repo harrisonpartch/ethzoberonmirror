@@ -272,7 +272,7 @@ TYPE
 				t_di-			: LONGINT;
 				r_si-			: LONGINT;
 				r_bp-			: LONGINT;
-				r_spatsig-	: LONGINT;
+				r_sp-			: LONGINT;
 				r_ss-			: LONGINT;
 				r_flags-		: LONGINT;
 				r_pc-			: LONGINT;
@@ -373,7 +373,7 @@ VAR
 	BEGIN
 		cont.mc.r_pc := pc;
 		cont.mc.r_bp := bp;
-		cont.mc.r_spatsig := sp
+		cont.mc.r_sp := sp
 	END ModifyContext;
 
 	PROCEDURE Perror*( CONST msg: ARRAY OF CHAR );

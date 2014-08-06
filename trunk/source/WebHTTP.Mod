@@ -780,6 +780,20 @@ BEGIN
 	dst.Ln()
 END SendResponseHeader;
 
+PROCEDURE SendStatusReply*(code:LONGINT; VAR request: RequestHeader; VAR reply: ResponseHeader; VAR out: Streams.Writer);
+VAR w : Streams.Writer; 
+	chunker: ChunkedOutStream;
+BEGIN
+	reply.statuscode := code; 
+	GetReasonPhrase(code, reply.reasonphrase);
+	reply.contenttype := "text/html; charset=UTF-8";
+	NEW(chunker, w, out, request, reply);
+	SendResponseHeader(reply, out); 
+	WriteHTMLStatus(reply, w); 
+	w.Update;
+	chunker.Close
+END SendStatusReply;
+
 PROCEDURE GetPath*(VAR url, path : ARRAY OF CHAR);
 VAR i, j : LONGINT;
 	protocol : ARRAY 8 OF CHAR;
