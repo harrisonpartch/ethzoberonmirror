@@ -573,7 +573,9 @@ TYPE
 				pointerOwner := GetPositionOwnerIntern(pointerX, pointerY, NIL);
 			END;
 			CheckPointerImage; (* maybe some other window got below the cursor *)
-			m.msgType := Messages.MsgReset; (* w.Handle(m); *)IF w.sequencer.Add(m) THEN END; (*reset contents of window if applicable, e.g. in FormWindow. PH*)
+			
+			m.msgType := Messages.MsgReset;  IF w.sequencer.Add(m) THEN END; (*reset contents of window if applicable, e.g. in FormWindow. PH*)
+			
 			lock.ReleaseWrite;
 			WM.IncWTimestamp;
 		END Add;

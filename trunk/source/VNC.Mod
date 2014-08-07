@@ -883,39 +883,35 @@ BEGIN
 	s[i] := 0X; r.SkipBytes(1)
 END ReadString;
 
-PROCEDURE Open*(context : Commands.Context);	(** [ server port ] *)
+PROCEDURE Open*(context : Commands.Context); (** server[pwd|?] port *)
 VAR
 	server: IP.Adr; res, port: LONGINT;
-	c: Connection; pwd: ARRAY 32 OF CHAR; str, svr, title: ARRAY 128 OF CHAR;
+	c: Connection; pwd: ARRAY 32 OF CHAR; svr, title: ARRAY 128 OF CHAR;
 BEGIN
-	context.arg.SkipWhitespace; context.arg.String(svr);
-	IF (context.arg.Peek() < "0") OR (context.arg.Peek() > "9") THEN context.arg.SkipWhitespace; context.arg.String( pwd) END;
+	context.arg.SkipWhitespace; context.arg.String(svr); context.arg.SkipWhitespace;
+	IF (context.arg.Peek() < "0") OR (context.arg.Peek() > "9") THEN context.arg.String(pwd) END;
 	context.arg.SkipWhitespace; context.arg.Int(port, FALSE);
-	IF (context.arg.res = Streams.Ok) OR (context.arg.res = Streams.EOF)  THEN
+	IF (context.arg.res = Streams.Ok) OR (context.arg.res = Streams.EOF) THEN
 		DNS.HostByName(svr, server, res);
 		IF (res = Ok) & (port # 0) THEN
-			IF pwd = "" THEN
+			IF pwd = "?" THEN
 				IF Dialogs.QueryPassword("Enter VNC Password", pwd) # Dialogs.ResOk THEN RETURN END
 			END;
-			IF pwd # "" THEN
-				NEW(c);
-				OpenVNC(c, server, port, pwd);
-				IF c.res = Ok THEN
-					pool.Add(c);
-					COPY(svr, title); Files.AppendStr("  Port ", title); Files.AppendInt(port, title); Files.AppendStr(" - VNC ", title); Files.AppendInt(c.id, title);
-					c.w.SetTitle(WMWindowManager.NewString(title));
-					Show(context)
-				ELSE
-					context.error.String("Error "); context.error.Int(c.res, 1); context.error.Ln
-				END
+			NEW(c);
+			OpenVNC(c, server, port, pwd);
+			IF c.res = Ok THEN
+				pool.Add(c);
+				COPY(svr, title); Files.AppendStr(" Port ", title); Files.AppendInt(port, title); Files.AppendStr(" - VNC ", title); Files.AppendInt(c.id, title);
+				c.w.SetTitle(WMWindowManager.NewString(title));
+				Show(context)
 			ELSE
-				context.error.String("Error: password not found"); context.error.Ln
+				context.error.String("Error "); context.error.Int(c.res, 1); context.error.Ln
 			END
 		ELSE
-			context.error.String("Error:  not found"); context.error.Ln
+			context.error.String("Error: not found"); context.error.Ln
 		END
 	ELSE
-		context.error.String("Error:  expected server[ pwd] port"); context.error.Ln
+		context.error.String("Error: expected server[ pwd] port"); context.error.Ln
 	END;
 END Open;
 

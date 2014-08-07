@@ -44,7 +44,7 @@ IMPORT
 	XML, XMLScanner, XMLParser, XMLObjects, Codecs, Localization, Repositories,
 	Messages := WMMessages, Rectangles := WMRectangles,
 	WMEvents, WMProperties, WMGraphics, Strings, WM := WMWindowManager, Raster,
-	Commands, Modules, Kernel, Locks, SYSTEM, Objects, WMDropTarget;
+	Commands, Modules, Kernel, Locks, Objects, WMDropTarget;
 
 CONST
 	Ok* = 0;
@@ -348,7 +348,7 @@ TYPE
 			sequencer := s;
 			c := GetFirst();
 			WHILE (c # NIL) DO
-				IF c IS Component THEN c(Component).SetSequencer(s) END;
+				IF c IS Component THEN c(Component).SetSequencer(s) END; (*? what happens to old sequencers/active objects ?*)
 				c := GetNext(c);
 			END;
 			IF old # NIL THEN old.lock.ReleaseWrite() END
@@ -541,7 +541,7 @@ TYPE
 			Release;
 		END Finalize;
 
-		(* initialize a hierarchy of components *)
+		(* reset/initialize a hierarchy of components *)
 		PROCEDURE Reset*(sender, data : ANY); (** PROTECTED *)
 		VAR c : XML.Content;
 		BEGIN
@@ -553,7 +553,9 @@ TYPE
 				RecacheProperties;
 				c := GetFirst();
 				WHILE (c # NIL) DO
-					IF c IS Component THEN c(Component).Reset(sender, data) END;
+					IF c IS Component THEN 
+						c(Component).Reset(sender, data) 
+					END;
 					c := GetNext(c);
 				END
 			END
@@ -2060,6 +2062,12 @@ TYPE
 	(* Layout Manager *)
 	LayoutManager* = PROCEDURE {DELEGATE} (vc : VisualComponent);
 
+	(*! to be done: 
+	If a NEW(formwindow) without form is put to the display space, and immediately, SetContent is called, 
+	there may be, dependent on timing, an inconsistency in reset/updating the form (sequencer is switched), 
+	resuling in a deficient display.
+	a call to Reset() can help. this needs to be eradicated at the logical root, however *)
+	
 	FormWindow* = OBJECT(WM.DoubleBufferWindow)
 	VAR
 		form- : Form;
@@ -2067,6 +2075,7 @@ TYPE
 		disableUpdate : LONGINT;
 		content : VisualComponent;
 		scaling* : BOOLEAN;
+		(*contentChanged:BOOLEAN;*)
 
 		PROCEDURE ToXML*():XML.Content;
 		VAR winx: XML.Element; a: XML.Attribute; string: ARRAY 128 OF CHAR; title:Strings.String;
@@ -2087,13 +2096,12 @@ TYPE
 		END ToXML;
 		
 		PROCEDURE LoadComponents*(xml: XML.Element);
-		VAR component: Repositories.Component; first: XML.Content;
+		VAR component: Repositories.Component; 
 		BEGIN
 			IF xml # NIL THEN
 				component := Repositories.ComponentFromXML(xml);
 				IF (component # NIL) & (component IS VisualComponent) THEN
 					SetContent(component);
-					component(VisualComponent).Invalidate;
 				ELSE
 					KernelLog.String("formwindow could not load content"); KernelLog.Ln;
 				END;
@@ -2111,29 +2119,21 @@ TYPE
 			IF form # NIL THEN form.Finalize; form.sequencer.Stop END;
 			IF x IS Form THEN
 				form := x(Form);
-				form.SetWindow(SELF);
-			(*PH<*)	
-				(* assure that both trees (also the 'content' tree are #NIL; redundant structure.. modified PH*)(*? double bookkeeping ??*)
-				c:=x(Form).GetFirst();
+				form.SetWindow(SELF); (* includes new sequencer *)
+				c:=form.GetFirst(); (* get first VisualComponent*)
 				WHILE (c#NIL) & (c IS XML.Container) & ~(c IS VisualComponent) DO
 					c:=c(XML.Container).GetNext(c);
 				END;
-				IF (c#NIL)&(c IS VisualComponent) THEN (*?*) content:=c(VisualComponent) END;
-			(*>PH*)		
-			
 			ELSE
-				NEW(form, SELF); form.uid.Set(NewString("form"))
+				NEW(form, SELF); (* includes new sequencer *)
+				form.uid.Set(NewString("form"));
+				c:=x;
 			END;
-			(*
-			NEW(seq, form.Handle); seq.SetTrapHandler(Trap); form.SetSequencer(seq);
-			*)
-			IF x # form THEN
-				content := x(VisualComponent);
-				form.AddContent(x);
-				IF (x # NIL) & (x IS VisualComponent) THEN
-					form.focusComponent := x(VisualComponent);
-					form.fPointerOwner := x(VisualComponent)
-				END;
+			IF (c#NIL) & (c IS VisualComponent) THEN
+				content := c(VisualComponent);
+				form.AddContent(content);
+				form.focusComponent := content;
+				form.fPointerOwner := content
 			END;
 			form.Reset(SELF, NIL);
 			EnableUpdate;
@@ -2169,7 +2169,7 @@ TYPE
 
 		PROCEDURE Trap():BOOLEAN;
 		BEGIN
-			KernelLog.String("TRAP !!! --> Resetting Locks "); KernelLog.Ln;
+			KernelLog.String("FormWindow.Trap !!! --> Resetting Locks "); KernelLog.Ln;
 			form.sequencer.lock.Reset;
 			RETURN TRUE
 		END Trap;
@@ -2206,8 +2206,7 @@ TYPE
 				END;
 			ELSIF (m.msgType = Messages.MsgSetLanguage) & (m.ext # NIL) & (m.ext IS LanguageExtension) THEN
 				LanguageChanged(m.ext(LanguageExtension).languages);
-			ELSIF (m.msgType=Messages.MsgReset)THEN 
-				NEW(timer); timer.Sleep(100);(* give some time to form window initialization *)
+			ELSIF (m.msgType=Messages.MsgReset) THEN 
 				IF (form#NIL) & (form.sequencer#NIL) THEN CSChanged END;
 			END;
 			IF (TraceFocus IN Trace) THEN
@@ -2254,6 +2253,7 @@ TYPE
 		lastFocusComponent : VisualComponent;
 
 		PROCEDURE &New*(window : FormWindow);
+		VAR seq: Messages.MsgSequencer;
 		BEGIN
 			Init;
 			SetGenerator("WMComponents.NewForm");
