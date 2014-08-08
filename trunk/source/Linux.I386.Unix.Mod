@@ -363,6 +363,7 @@ VAR
 	libc-: LONGINT;
 
 	libraryPaths: ARRAY 8 OF ARRAY 32 OF CHAR;
+	noPaths: LONGINT;
 
 
 	PROCEDURE ModifyContext*( cont: Ucontext;  pc, bp, sp: LONGINT );
@@ -396,7 +397,7 @@ VAR
 		IF libname[0] = '/' THEN  h := Glue.dlopen( ADDRESSOF( libname ), mode );
 		ELSE
 			i := 0;  h := 0;
-			WHILE (h = 0) & (i <= 7) DO
+			WHILE (h = 0) & (i < noPaths) DO
 				COPY( libraryPaths[i], p );  j := 0;
 				WHILE p[j] # 0X DO  INC( j )  END;
 				p[j] := '/';  k := 0;
@@ -468,14 +469,10 @@ BEGIN
 	Dlsym( 0, "argc", ADDRESSOF( aargc ) );  S.GET( aargc, argc );
 	Dlsym( 0, "argv", ADDRESSOF( argv ) );
 
-	libraryPaths[0] := "/lib32";
-	libraryPaths[1] := "/usr/lib32";
-	libraryPaths[2] := "/lib/i386-linux-gnu";
-	libraryPaths[3] := "/usr/lib/i386-linux-gnu";
-	libraryPaths[4] := "/lib";
-	libraryPaths[5] := "/usr/lib";
-	libraryPaths[6] := "/usr/X11R6/lib";
-	libraryPaths[7] := "/usr/X11/lib";
+	libraryPaths[0] := "/lib/i386-linux-gnu";
+	libraryPaths[1] := "/usr/lib/i386-linux-gnu";
+	noPaths := 2;
+
 
 
 	libc := Dlopen( libcname, 2 );
