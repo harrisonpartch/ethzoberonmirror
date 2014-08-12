@@ -20,8 +20,6 @@ TYPE
 		END;
 
 TYPE
-	(* after constructing/inserting a figure, implicit call to Reset() through 
-	    insertion to FormWindow or explicit Reset() renders the component responsive to messages *)
 	Figure* = OBJECT(WMComponents.VisualComponent) 
 	VAR
 		width- : WMProperties.Int32Property;
@@ -380,16 +378,6 @@ TYPE
 				canvas.Line(p1.x,p1.y, p1.x - ENTIER(0.5+head * Math.cos(alpha + pi/8)), p1.y - ENTIER(0.5+head * Math.sin(alpha + pi/8)), col, WMGraphics.ModeSrcOverDst);
 				canvas.Line(p1.x,p1.y, p1.x - ENTIER(0.5+head * Math.cos(alpha - pi/8)), p1.y - ENTIER(0.5+head * Math.sin(alpha - pi/8)), col, WMGraphics.ModeSrcOverDst);
 		END DrawArrow;
-
-		(*
-		PROCEDURE FromXML*(xml: XML.Element);
-		BEGIN
-			FromXML^(xml);
-			RecachePoints; (* these three commands might be dropped, and the procedure left out, as the parent will handle it.*)
-			Invalidate;
-			Normalize;
-		END FromXML;
-		*)
 		
 	END Figure;
 
@@ -423,7 +411,6 @@ TYPE
 				NEW(pp,NIL,Strings.NewString("Point2"),NIL); pp.SetCoordinate(20,20); properties.Add(pp); INC(nofPoints);
 				NEW(pp,NIL,Strings.NewString("Point3"),NIL); pp.SetCoordinate(30,30); properties.Add(pp); INC(nofPoints);
 				Release;
-				(*bounds.Set(WMRectangles.MakeRect(0,0,40,40));*)
 				RecachePoints;
 			END; 
 			Normalize;
@@ -756,10 +743,7 @@ TYPE
 			END;
 			IF arrow.Get() (*(Arrow IN state)*) & (p#NIL) THEN DrawArrow(canvas, p.previous, p) END;
 		END DrawBackground;
-
 	END Spline;
-
-
 
 VAR
 	log: Streams.Writer;
@@ -1130,10 +1114,9 @@ BEGIN
 	WMWindowManager.AddWindow(window, 200,200);
 	INCL(window.flags, WMWindowManager.FlagStorable); (* allow interactive storage of window through context menu *)
 
-	(*If hierarchical content is added after SetContent(),  calling window.form.Reset(NIL,NIL) might be needed to render component responsive *)
+(* add content after window insertion to display *)
 	NEW(l); l.AddPoint(20,30); l.AddPoint(110,210); l.AddPoint(90, 40);
 	background.AddContent(l); 
-	(*window.form.Reset(NIL,NIL);*)
 END Do;
 
 PROCEDURE Do1*;

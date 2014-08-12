@@ -459,50 +459,20 @@ TYPE	Base64Writer* = OBJECT (Streams.Writer);
 			INC(received,len);
 		END Receiver;
 		
-		(*
-		PROCEDURE DecodeStream*( r: Streams.Reader;
-										VAR image: ARRAY OF CHAR ): LONGINT;
-		VAR
-			i, rest, code, group, len: LONGINT;
-			c: CHAR;
-		BEGIN
-			r.SkipSpaces( );
-			len := 0; group := 0;  i := 0;
-			
-			REPEAT  r.Char( c )  UNTIL (c > ' ') OR (c = 0X);
-			code := dtab[ORD( c )]; 
-			WHILE code >= 0 DO
-				group := group*64 + code;  INC( i );
-				IF i = 4 THEN  
-					image[len] := CHR( group DIV 10000H MOD 100H );  INC( len );
-					image[len] := CHR( group DIV 100H MOD 100H );  INC( len );
-					image[len] := CHR( group MOD 100H );  INC( len );
-					group := 0;  i := 0
-				END;
-				REPEAT  r.Char( c )  UNTIL (c > ' ') OR (c = 0X);
-				code := dtab[ORD( c )];  
-			END;
-			
-			IF c = '=' THEN   (* decode rest *)
-				IF i < 2 THEN  (* error *)  RETURN -1  END;
-				group := group*64;  rest := 2;  r.Char( c );  
-				IF c = '=' THEN  group := group*64;  rest := 1  END;
-				image[len] := CHR( group DIV 10000H );  INC( len );
-				IF rest = 2 THEN  image[len] := CHR( group DIV 100H MOD 100H );  INC( len )  END
-			ELSIF i > 0 THEN  (* error *)  RETURN -1
-			END;
-			
-			RETURN len
-		END DecodeStream;
-
-
-		*)
-
 		PROCEDURE Pos*(): LONGINT;
 		BEGIN RETURN in.Pos()
 		END Pos;
 
 	END Base64Reader;
+	
+TYPE TYPE DumpWriter*= OBJECT(Streams.Writer);
+		PROCEDURE Send* ( CONST buf: ARRAY OF CHAR;  ofs, len: LONGINT;  propagate: BOOLEAN;  VAR res: LONGINT );
+		BEGIN
+			res:=Streams.Ok;
+		END Send;
+	END DumpWriter;
+
+
 
 	VAR (*tables for Base64*)
 		etab: ARRAY 64 OF CHAR;

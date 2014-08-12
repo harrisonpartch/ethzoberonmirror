@@ -39,6 +39,12 @@ MODULE WMComponents;	(** AUTHOR "TF"; PURPOSE "Experiments with component concep
 
 *)
 
+(*PH 08/14: 
+- avoid parallel call of FormWindow.SetContent, Component.AddContent, Form.InvalidateRect by different processes, through use of EXCLUSIVE sections.
+- send an "invalidate content" message to a window after it appears on the display, which is handled after "form" field is ready
+- restructure FormWindow.SetContent() to assure coherent displays and to assure FormWindow.content is consistent 
+*)
+
 IMPORT
 	KernelLog, Inputs, Streams, Events, Files, Texts, TextUtilities,
 	XML, XMLScanner, XMLParser, XMLObjects, Codecs, Localization, Repositories,
@@ -82,6 +88,9 @@ CONST
 	MacroClipboard = "clipboard";
 	MacroAttributePrefix = "attribute=";
 	CanYield = TRUE;
+	
+	(*temporary - to be removed*)
+	FlagDirty=13;
 
 TYPE
 	(** Installable event preview handlers. Are called by the components sequencer thread *)
@@ -348,7 +357,7 @@ TYPE
 			sequencer := s;
 			c := GetFirst();
 			WHILE (c # NIL) DO
-				IF c IS Component THEN c(Component).SetSequencer(s) END; (*? what happens to old sequencers/active objects ?*)
+				IF c IS Component THEN c(Component).SetSequencer(s);  END; (*? what happens to old sequencers/active objects ?*)
 				c := GetNext(c);
 			END;
 			IF old # NIL THEN old.lock.ReleaseWrite() END
@@ -377,15 +386,34 @@ TYPE
 			after insertion of content to component, call of c.Reset() or form.Reset() may be needed, if not implicitly done by FormWindow.SetContent .
 		*)
 		PROCEDURE AddContent*(c : XML.Content);
+		VAR m:Messages.Message;  rect:Rectangles.Rectangle;
 		BEGIN
 			ASSERT(c # NIL);
-			IF c IS WMProperties.Properties THEN
-				properties.SetXML(c(WMProperties.Properties))
-			ELSIF c IS Component THEN
-				IF (sequencer # c(Component).sequencer) THEN c(Component).SetSequencer(sequencer) END;
-			ELSIF ~(c IS XML.Comment) THEN
-				RETURN
+			
+			BEGIN {EXCLUSIVE}
+				IF c IS WMProperties.Properties THEN
+					properties.SetXML(c(WMProperties.Properties)); 
+				ELSIF c IS Component THEN
+					IF (sequencer # c(Component).sequencer) THEN 
+						IF sequencer#NIL THEN 
+							c(Component).SetSequencer(sequencer); 
+							c(Component).Reset(SELF,NIL); (*implied RecacheProperties*)
+							IF (SELF IS VisualComponent) & ( c IS VisualComponent) THEN (* move to VisualComponent*)
+								m.sender:=SELF; 
+								m.msgType := Messages.MsgInvalidate;
+								m.msgSubType := Messages.MsgSubAll;
+								IF sequencer.Add(m) THEN  END; 
+							END;
+						ELSE (* no tree traversal - is less costly *)
+							c(Component).sequencer:=NIL; c(Component).initialized:=FALSE;
+						END;
+					ELSE  (* does this case ever happen ?*)
+					END;
+				ELSIF ~(c IS XML.Comment) THEN
+					RETURN
+				END;
 			END;
+
 			Acquire;
 			AddContent^(c);
 			Release;
@@ -549,22 +577,26 @@ TYPE
 				sequencer.ScheduleEvent(SELF.Reset, sender, data);
 				IF CanYield THEN Objects.Yield END;
 			ELSE
-				IF ~initialized THEN Initialize END;
-				RecacheProperties;
-				c := GetFirst();
-				WHILE (c # NIL) DO
-					IF c IS Component THEN 
-						c(Component).Reset(sender, data) 
-					END;
-					c := GetNext(c);
-				END
+				BEGIN	 
+					RecacheProperties;
+					c := GetFirst();
+					WHILE (c # NIL) DO
+						IF c IS Component THEN 
+							c(Component).Reset(sender, data) 
+						END;
+						c := GetNext(c);
+					END;		
+					IF ~initialized THEN Initialize END; (*component is ready when children are ready *)
+				END;
 			END
 		END Reset;
 
 		(* Initialize is called by Reset() and is required to render components responsive *)
 		PROCEDURE Initialize*; (** PROTECTED *)
 		BEGIN
+			BEGIN{EXCLUSIVE}
 			initialized := TRUE
+			END;
 		END Initialize;
 
 		(** Internal interface of the message handler. This method may only be called via the Handle method.
@@ -593,7 +625,8 @@ TYPE
 		VAR s : Strings.String;
 		BEGIN
 			(* if asynchronous call --> synchronize *)
-			IF ~IsCallFromSequencer() THEN
+			IF sequencer=NIL THEN RETURN
+			ELSIF ~IsCallFromSequencer() THEN
 				IF ~sequencer.Add(msg) THEN
 					s := uid.Get();
 					KernelLog.String("A message sent to ");
@@ -1082,10 +1115,27 @@ TYPE
 			FromXML^(xml);
 		END FromXML;
 
+		(*
+		PROCEDURE AddContent*(c : XML.Content);
+		VAR m:Messages.Message;
+		BEGIN
+			AddContent^(c);
+			IF c IS VisualComponent THEN
+				m.sender:=SELF (*c*); (*move to VisualComponent ?*)
+				m.msgType := Messages.MsgInvalidate;
+				m.msgSubType := Messages.MsgSubAll;
+				(* SELF(VisualComponent).Invalidate ...*)
+				IF sequencer.Add(m) THEN  END; 
+			END;
+		END AddContent;
+		*)
+
+
 		PROCEDURE AddVisualComponent(c :VisualComponent; x, y : LONGINT);
 		VAR bounds : Rectangles.Rectangle;canvas: WMGraphics.BufferCanvas; relativeAlignment: BOOLEAN;
 		BEGIN
 			ASSERT(c # NIL);
+			
 			IF (c.bounds.GetWidth() < 10) OR (c.bounds.GetHeight() < 10) THEN
 				c.bounds.SetExtents(40, 20);
 			END;
@@ -1093,12 +1143,15 @@ TYPE
 			Rectangles.MoveRel(bounds, x, y);
 			c.bounds.Set(bounds);
 			c.AdaptRelativeBounds(c.bounds.Get(), SELF);
-			
+
 			IF c.sequencer # sequencer THEN c.SetSequencer(sequencer) END;
-			c.Reset(NIL, NIL);
-			c.RecacheProperties;
-			
-			AddContent(*^*)(c);
+			(*
+			c.Reset(NIL, NIL); (*currently redundant - already in happens Component.AddContent() *)
+			c.RecacheProperties; (*currently redundant - already in happens Reset() *)
+			*)
+			Acquire;
+			AddContent(c);
+			Release;
 		END AddVisualComponent;
 		
 		PROCEDURE EditDragDropped(x,y: LONGINT; dragInfo: WM.DragInfo): BOOLEAN;
@@ -2062,12 +2115,7 @@ TYPE
 	(* Layout Manager *)
 	LayoutManager* = PROCEDURE {DELEGATE} (vc : VisualComponent);
 
-	(*! to be done: 
-	If a NEW(formwindow) without form is put to the display space, and immediately, SetContent is called, 
-	there may be, dependent on timing, an inconsistency in reset/updating the form (sequencer is switched), 
-	resuling in a deficient display.
-	a call to Reset() can help. this needs to be eradicated at the logical root, however *)
-	
+
 	FormWindow* = OBJECT(WM.DoubleBufferWindow)
 	VAR
 		form- : Form;
@@ -2075,21 +2123,19 @@ TYPE
 		disableUpdate : LONGINT;
 		content : VisualComponent;
 		scaling* : BOOLEAN;
-		(*contentChanged:BOOLEAN;*)
-
+	
 		PROCEDURE ToXML*():XML.Content;
 		VAR winx: XML.Element; a: XML.Attribute; string: ARRAY 128 OF CHAR; title:Strings.String;
 		BEGIN {EXCLUSIVE}
 			NEW(winx); winx.SetName("FormWindow");
-
-			NEW(a); a.SetName("name"); title:=GetTitle(); a.SetValue(title^); winx.AddAttribute(a);
+			NEW(a); a.SetName("name"); 
+				title:=GetTitle(); IF title=NIL THEN a.SetValue("componentWindow") ELSE a.SetValue(title^) END; 
+				winx.AddAttribute(a);
 			NEW(a); a.SetName("loader"); a.SetValue("WMComponents.FormWindowGen"); winx.AddAttribute(a);
-
 			NEW(a); a.SetName("l"); Strings.IntToStr(bounds.l, string); a.SetValue(string); winx.AddAttribute(a);
 			NEW(a); a.SetName("t"); Strings.IntToStr(bounds.t, string); a.SetValue(string); winx.AddAttribute(a);
 			NEW(a); a.SetName("r"); Strings.IntToStr(bounds.r, string); a.SetValue(string); winx.AddAttribute(a);
 			NEW(a); a.SetName("b"); Strings.IntToStr(bounds.b, string); a.SetValue(string); winx.AddAttribute(a);
-
 			NEW(a); a.SetName("flags"); Strings.SetToStr(flags, string); a.SetValue(string); winx.AddAttribute(a);
 			winx.AddContent(form);
 			RETURN winx
@@ -2113,31 +2159,36 @@ TYPE
 		END StoreComponents;
 
 		PROCEDURE SetContent*(x : XML.Content);
-		VAR seq : Messages.MsgSequencer; c: XML.Content;
-		BEGIN
-			DisableUpdate;
-			IF form # NIL THEN form.Finalize; form.sequencer.Stop END;
-			IF x IS Form THEN
-				form := x(Form);
-				form.SetWindow(SELF); (* includes new sequencer *)
-				c:=form.GetFirst(); (* get first VisualComponent*)
-				WHILE (c#NIL) & (c IS XML.Container) & ~(c IS VisualComponent) DO
-					c:=c(XML.Container).GetNext(c);
+		VAR c: XML.Content;
+		BEGIN 
+			BEGIN{EXCLUSIVE} 
+				INC(disableUpdate);
+				IF form # NIL THEN form.Finalize; form.sequencer.Stop; content:=NIL END;
+				IF x IS Form THEN
+					form := x(Form);
+					form.initialized:=FALSE;
+					form.SetWindow(SELF); (* includes new sequencer *)
+					c:=form.GetFirst(); (* get first VisualComponent content of form*)
+					WHILE (c#NIL) & (c IS XML.Container) & ~(c IS VisualComponent) DO
+						c:=c(XML.Container).GetNext(c);
+					END;
+					IF c#NIL THEN form.RemoveContent(c) END; (* avoid duplicates. will be added in a systematic way below in AddContent *)
+				ELSE
+					NEW(form, SELF); (* includes new sequencer; initialized=FALSE *)
+					form.uid.Set(NewString("form"));
+					c:=x;
 				END;
-			ELSE
-				NEW(form, SELF); (* includes new sequencer *)
-				form.uid.Set(NewString("form"));
-				c:=x;
+				IF (c#NIL) & (c IS VisualComponent) THEN 
+					content := c(VisualComponent);
+					form.initialized:=TRUE;
+					form.AddContent(content);
+					form.focusComponent := content;
+					form.fPointerOwner := content
+				END;
+				DEC(disableUpdate);
 			END;
-			IF (c#NIL) & (c IS VisualComponent) THEN
-				content := c(VisualComponent);
-				form.AddContent(content);
-				form.focusComponent := content;
-				form.fPointerOwner := content
-			END;
-			form.Reset(SELF, NIL);
-			EnableUpdate;
-			form.InvalidateRect(form.GetClientRect());
+			form.Initialize;
+			form.InvalidateRect(form.GetClientRect());	(* / form.Invalidate;*)
 		END SetContent;
 
 		PROCEDURE DisableUpdate*;
@@ -2159,7 +2210,6 @@ TYPE
 				form.Acquire;
 				ReInit(width, height);
 				form.Release;
-
 				form.bounds.Set(Rectangles.MakeRect(0, 0, GetWidth(), GetHeight()));
 				content.bounds.Set(Rectangles.MakeRect(0, 0, GetWidth(), GetHeight()));
 				EnableUpdate;
@@ -2169,13 +2219,14 @@ TYPE
 
 		PROCEDURE Trap():BOOLEAN;
 		BEGIN
-			KernelLog.String("FormWindow.Trap !!! --> Resetting Locks "); KernelLog.Ln;
+			KernelLog.String("WMComponents.FormWindow.Trap !!! --> Resetting Locks "); KernelLog.Ln;
 			form.sequencer.lock.Reset;
 			RETURN TRUE
 		END Trap;
 
 		PROCEDURE Update(rect : Rectangles.Rectangle);
 		BEGIN
+			(*KernelLog.String("Update "); KernelLog.Int(disableUpdate,0); KernelLog.Ln;*)
 			IF disableUpdate > 0 THEN RETURN END;
 			form.Acquire;
 			canvas.SaveState(cs);
@@ -2192,9 +2243,8 @@ TYPE
 			CopyRect(rect);
 			Invalidate(rect)
 		END Update;
-
+		
 		PROCEDURE Handle*(VAR m : Messages.Message);
-		VAR timer:Kernel.Timer;
 		BEGIN
 			Handle^(m);
 			IF (m.msgType = Messages.MsgExt) & (m.ext # NIL) THEN
@@ -2206,8 +2256,9 @@ TYPE
 				END;
 			ELSIF (m.msgType = Messages.MsgSetLanguage) & (m.ext # NIL) & (m.ext IS LanguageExtension) THEN
 				LanguageChanged(m.ext(LanguageExtension).languages);
-			ELSIF (m.msgType=Messages.MsgReset) THEN 
-				IF (form#NIL) & (form.sequencer#NIL) THEN CSChanged END;
+			ELSIF (m.msgType=Messages.MsgInvalidate) THEN  (* sent by WindowManager when a window is added to display space to assure it is up-to-date*)
+				BEGIN{EXCLUSIVE} AWAIT(form#NIL)  END; (* message may be sent before the window is populated with form, and should be executed after form is ready*)
+				m.sender:=form; (* will be passed to form below, which will call sender.InvalidateRect *)
 			END;
 			IF (TraceFocus IN Trace) THEN
 				IF  (m.msgType = Messages.MsgFocus) THEN
@@ -2220,7 +2271,7 @@ TYPE
 					KernelLog.String("Focus chain: "); form.TraceFocusChain;
 				END;
 			END;
-			IF (form # NIL) & (form.sequencer#NIL) THEN form.Handle(m) END
+			IF (form # NIL) THEN form.Handle(m); END
 		END Handle;
 
 		PROCEDURE LanguageChanged*(languages : Localization.Languages);
@@ -2231,9 +2282,10 @@ TYPE
 		PROCEDURE CSChanged*;
 		BEGIN
 			DisableUpdate; (* the components are going to redraw like crazy *)
+			form.Acquire;
 			form.Reset(SELF, NIL);
+			form.Release;
 			EnableUpdate;
-			form.InvalidateRect(form.GetClientRect())
 		END CSChanged;
 
 		PROCEDURE Close*;
@@ -2253,20 +2305,20 @@ TYPE
 		lastFocusComponent : VisualComponent;
 
 		PROCEDURE &New*(window : FormWindow);
-		VAR seq: Messages.MsgSequencer;
-		BEGIN
+		BEGIN 
 			Init;
 			SetGenerator("WMComponents.NewForm");
 			lastFocusComponent := NIL;
 			SetNameAsString(StrForm);
 			SetWindow(window);
 		END New;
-
+		
 		PROCEDURE SetWindow*(window: FormWindow);
 		VAR seq: Messages.MsgSequencer;
-		BEGIN
+		BEGIN {EXCLUSIVE}
 			IF window # NIL THEN
-				SELF.window := window; window.form := SELF;
+				SELF.window := window; 
+				window.form := SELF; 
 				bounds.Set(Rectangles.MakeRect(0, 0, window.GetWidth(), window.GetHeight()));
 				NEW(seq, Handle); seq.SetTrapHandler(window.Trap); SetSequencer(seq);
 			END;
@@ -2297,8 +2349,11 @@ TYPE
 		END EnableUpdate;
 
 		PROCEDURE InvalidateRect*(rect : Rectangles.Rectangle);
-		BEGIN
-			IF window # NIL THEN window.Update(rect) END
+		BEGIN 
+			IF window # NIL THEN 
+				BEGIN{EXCLUSIVE} AWAIT(initialized) END;
+				window.Update(rect) 
+			END;
 		END InvalidateRect;
 
 		PROCEDURE PropertyChanged*(sender, property : ANY);
@@ -2603,7 +2658,21 @@ VAR
 
 	macroHandlers : MacroHandler; (* the head of the list is always the DefaultMacroHandler *)
 	selection-: SelectionList;
-
+(*
+PROCEDURE ResetInternal(parent:Component);
+VAR c: XML.Content;
+BEGIN
+	IF ~parent.initialized THEN parent.Initialize END;
+	(*parent.RecacheProperties;*)
+	c := parent.GetFirst();
+	WHILE (c # NIL) DO
+		IF c IS Component THEN 
+			ResetInternal(c(Component)) 
+		END;
+		c := parent.GetNext(c);
+	END;
+END ResetInternal;
+*)
 
 PROCEDURE IsWhiteSpace(ch : CHAR) : BOOLEAN;
 BEGIN
@@ -3233,7 +3302,6 @@ BEGIN
 			name:=winx.GetAttributeValue("name"); window.SetTitle(name);
 			window.bounds.r:=r; window.bounds.l:=l; window.bounds.t:=t; window.bounds.b:=b;
 			string:=winx.GetAttributeValue("flags"); Strings.StrToSet(string^,window.flags);
-			NEW(window.form, window); 
 			formx:=winx.GetFirst(); (* this typically has name="Form" *)
 			IF (formx#NIL)&(formx IS XML.Element) THEN
 				window.LoadComponents(formx(XML.Element)); (* at the price of duplication of component tree construction ...*)
@@ -3275,7 +3343,7 @@ PROCEDURE Open*(context : Commands.Context);
 VAR filename: Files.FileName; window: WM.Window; xml:XML.Content;
 BEGIN
 	IF context.arg.GetString(filename) & (Strings.Length(filename)>0) THEN
-		xml:=Load(filename); (* here, the xml tree is already constructed, however not in the right sequence ( [Init()..loadProperties()..Initialize()] )*)
+		xml:=Load(filename); (* here, the xml tree is already constructed, however not in the right sequence for component contruction ( [Init()..loadProperties()..Initialize()] )*)
 		window:=LoadFormWindow(xml);
 		IF window#NIL THEN 
 			WM.AddWindow(window,window.bounds.l,window.bounds.t); 
@@ -3566,6 +3634,8 @@ BEGIN
 	InstallDefaultMacroHandler;
 	NEW(selection);
 END WMComponents.
+
+WMComponents.Open Test.Cwd ~
 
 The message sequencer contains a reader writer lock that can be used to block the hierarchy.
 Each message-call from the sequencer posesses the writer lock.
