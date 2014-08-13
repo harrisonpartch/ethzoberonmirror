@@ -896,6 +896,7 @@ PACKAGE GuiApplicationsMini ARCHIVE "GuiApplicationsMini.zip" SOURCE "GuiApplica
 	WMNavigate.Mod WMNavigator.Mod Navigation.rep	# Windows navigation
 	WMDesktops.Mod
 
+	Notepad.Mod
 	WMSystemComponents.Mod icons.tar
 	WMFileManager.Mod WMSearchTool.Mod
 	WMFTPClient.Mod
@@ -907,7 +908,7 @@ PACKAGE GuiApplicationsMini ARCHIVE "GuiApplicationsMini.zip" SOURCE "GuiApplica
 
 	ZeroSkin.zip # default skin
 
-	Notepad.Mod
+
 
 	# Trackers
 	WMProcessInfo.Mod

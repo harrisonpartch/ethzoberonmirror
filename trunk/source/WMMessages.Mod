@@ -13,7 +13,7 @@ CONST
 	MsgResized* = 9;
 	MsgSetLanguage* = 10;
 	MsgInvalidate*= 11;
-
+	
 	MsgSubPointerMove* = 0; MsgSubPointerDown* = 1; MsgSubPointerUp* = 2; MsgSubPointerLeave* = 3;
 	MsgSubFocusGot* = 0; MsgSubFocusLost* = 1; MsgSubMasterFocusGot* = 2; MsgSubMasterFocusLost* = 3;
 
@@ -528,5 +528,4 @@ BEGIN
 	MsgName[MsgResized] := "MsgResized" ;
 	MsgName[MsgSetLanguage] := "MsgSetLanguage";
 	MsgName[MsgInvalidate] := "MsgInvalidate";
-	MsgName[MsgReset] := "MsgReset";
 END WMMessages.
