@@ -575,7 +575,7 @@ TYPE
 			CheckPointerImage; (* maybe some other window got below the cursor *)
 	
 			m.sender:=w; m.msgType := Messages.MsgInvalidate; m.msgSubType := Messages.MsgSubAll;
-			IF w.sequencer.Add(m) THEN END; (* Invalidate window contents when first put on display. *)
+			IF (w.sequencer#NIL) & w.sequencer.Add(m) THEN END; (* Invalidate window contents when first put on display. *)
 			
 			lock.ReleaseWrite;
 			WM.IncWTimestamp;

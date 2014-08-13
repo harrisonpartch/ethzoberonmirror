@@ -3305,6 +3305,7 @@ BEGIN
 			formx:=winx.GetFirst(); (* this typically has name="Form" *)
 			IF (formx#NIL)&(formx IS XML.Element) THEN
 				window.LoadComponents(formx(XML.Element)); (* at the price of duplication of component tree construction ...*)
+				window.form.Reset(NIL,NIL);
 			ELSE window:=NIL;
 			END;
 		END;

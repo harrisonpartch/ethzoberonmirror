@@ -6,6 +6,7 @@ IMPORT
 	KernelLog, Configuration,
 	WMDropTarget, Texts, TextUtilities, Streams, WMPopups, WMDialogs, FileHandlers, Commands,
 	Archives, UTF8Strings,
+	Notepad,
 	WM := WMWindowManager;
 
 CONST
@@ -499,6 +500,7 @@ TYPE
 					popup.AddParButton("Open", Open, w);
 					popup.AddParButton("Rename", Rename, w);
 					popup.AddParButton("Duplicate", Duplicate, w);
+					popup.AddParButton("EditText", EditText, w);
 				END;
 				popup.AddParButton("Tar", Tar, w);
 				popup.AddParButton("Delete", Delete, w);
@@ -712,6 +714,39 @@ TYPE
 				END
 			END
 		END Open;
+
+	PROCEDURE EditText(sender, data : ANY);
+		VAR d : DirEntry; filename : Files.FileName; window : Notepad.Window; format : ARRAY 32 OF CHAR;
+		BEGIN
+			IF popup # NIL THEN popup.Close; popup := NIL END;
+			IF (data # NIL) & (data IS SelectionWrapper) THEN
+				d := data(SelectionWrapper).sel[0];
+				IF d # NIL THEN
+					COPY(d.path^, filename);
+					Strings.Append(filename, d.name^);
+					format := "AUTO";
+					NEW(window, NIL);
+					window.editor.Load(filename, format);
+				END
+			END
+		END EditText;
+		
+		(*
+		PROCEDURE Open*(sender, data : ANY); 
+VAR options : Options.Options; window : Window; filename : Files.FileName; format : ARRAY 32 OF CHAR;
+BEGIN
+	NEW(options);
+	options.Add("f", "format", Options.String);
+	IF options.Parse(context.arg, context.out) THEN
+		IF ~options.GetString("format", format) THEN format := "AUTO"; END;
+		NEW(window, NIL);
+		IF context.arg.GetString(filename) THEN
+			window.editor.Load(filename, format);
+		END;
+	END;
+END Open;
+		
+		*)
 
 		PROCEDURE MyDragDropped(x, y : LONGINT; dragInfo : WM.DragInfo; VAR handled : BOOLEAN);
 		BEGIN
