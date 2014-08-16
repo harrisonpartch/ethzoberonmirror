@@ -757,17 +757,21 @@ TYPE
 		BEGIN
 			IF ~isToggle.Get() THEN
 				IF ~pressed THEN pressed := TRUE; Invalidate; CheckRepeating(TRUE) END;
+				ChangeModel(pressed);
 			ELSE
-				pressed := ~pressed; Click(SELF, userData); Invalidate;
+				pressed := ~pressed; Invalidate;
 			END;
-			ChangeModel(pressed);
 		END Down;
 
 		PROCEDURE Up;
 		BEGIN
-			IF isToggle.Get() THEN RETURN END;
+			IF isToggle.Get() THEN
+				ChangeModel(pressed); Click(SELF, userData); 
+				RETURN 
+			END;
 			IF pressed & (mouseOver OR keyboardPressed) THEN
-				CheckRepeating(FALSE);  Click(SELF, userData);
+				CheckRepeating(FALSE);  
+				Click(SELF, userData);
 				pressed := FALSE;
 				Invalidate
 			END;

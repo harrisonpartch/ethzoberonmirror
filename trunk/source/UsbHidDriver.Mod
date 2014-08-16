@@ -26,7 +26,7 @@ MODULE UsbHidDriver;  (** AUTHOR "ottigerm"; PURPOSE "USB HID Parser"; *)
 IMPORT
 	SYSTEM, Machine, KernelLog, Modules, Inputs, Usbdi, UsbHid,
 	HidParser := UsbHidParser, UsbHidReport, UsagePage := UsbHidUP, UsbKeyboard,
-	Joystick := Joysticks;
+	Joystick := Joysticks, Kernel;
 
 CONST
 
@@ -69,10 +69,12 @@ TYPE
 	TouchscreenState = POINTER TO RECORD
 		x,y: UsbHidReport.UsageTuple;
 		minX, maxX, minY, maxY: LONGINT;
-		tipSwitch, inRange: UsbHidReport.UsageTuple;
+		tipSwitch, inRange, confidence: UsbHidReport.UsageTuple;
 		prev: BOOLEAN;
 		prevx, prevy: LONGINT;
 		prevkeys: SET;
+		prevTip: BOOLEAN;
+		tipTime: LONGINT; 
 	END;
 
 	(*Handling keyboard devices*)
@@ -748,7 +750,25 @@ TYPE
 			x := (touchscreenState.x.usageValue-touchscreenState.minX) * displayWidth DIV (touchscreenState.maxX-touchscreenState.minX +1);
 			y := (touchscreenState.y.usageValue-touchscreenState.minY) * displayHeight DIV  (touchscreenState.maxY -touchscreenState.minY + 1);
 			
-			IF (touchscreenState.tipSwitch.usageValue#0) THEN mm.keys := mm.keys + {0}; END;
+			(*
+			TRACE(touchscreenState.inRange.usageValue);
+			IF touchscreenState.confidence # NIL THEN 
+				TRACE(touchscreenState.confidence.usageValue);
+			END;
+			*)
+			
+			IF (touchscreenState.tipSwitch.usageValue#0) THEN 
+				IF (touchConfidenceDelay#0) & ~touchscreenState.prevTip THEN
+					touchscreenState.tipTime := Kernel.GetTicks();
+					touchscreenState.prevTip := TRUE
+				ELSIF (touchConfidenceDelay =0) OR (Kernel.GetTicks()-touchscreenState.tipTime > touchConfidenceDelay) THEN
+					mm.keys := mm.keys + {0}; 
+				END
+			ELSE
+				touchscreenState.prevTip := FALSE;
+			END;
+			
+			
 			mm.x := x; mm.y := y;
 
 			IF ~(0 IN mm.keys) THEN (* up event  *)
@@ -1201,11 +1221,14 @@ TYPE
 				touchscreenState.maxY := temp.logicalMaximum;
 				touchscreenState.tipSwitch := reportManager.GetUsage(0DH, 042H, mouseCollection,temp);
 				touchscreenState.inRange := reportManager.GetUsage(0DH, 032H, mouseCollection,temp);
+				touchscreenState.confidence := reportManager.GetUsage(0DH, 047H, mouseCollection, temp); 
 				KernelLog.String("Touchscreen device registered with ");
 				KernelLog.String("minX = "); KernelLog.Int(touchscreenState.minX,1); 
 				KernelLog.String(", maxX = "); KernelLog.Int(touchscreenState.maxX,1); 
 				KernelLog.String(", minY = "); KernelLog.Int(touchscreenState.minY,1); 
-				KernelLog.String(", maxY = "); KernelLog.Int(touchscreenState.maxY,1); KernelLog.Ln;
+				KernelLog.String(", maxY = "); KernelLog.Int(touchscreenState.maxY,1); 
+				IF touchscreenState.confidence # NIL THEN KernelLog.String(", confidence"); END; 
+				KernelLog.Ln;
 				RETURN TRUE;
 			ELSE
 				RETURN FALSE;
@@ -1550,6 +1573,7 @@ TYPE
 	DimensionGetter= PROCEDURE {DELEGATE} (VAR w,h: LONGINT);
 VAR
 	getDisplayDimensions: DimensionGetter;
+	touchConfidenceDelay: LONGINT;
 
 PROCEDURE DefaultDisplayDimensions(VAR w,h: LONGINT);
 BEGIN
@@ -1566,10 +1590,23 @@ BEGIN
 END InstallDisplayDimensions;
 
 
+PROCEDURE Setup;
+VAR s: ARRAY 32 OF CHAR; p: LONGINT;
 BEGIN
 	getDisplayDimensions := DefaultDisplayDimensions;
-	Modules.InstallTermHandler(Cleanup);
+	Machine.GetConfig("TouchDelay", s);
+	IF s[0] # 0X THEN
+		p := 0;  touchConfidenceDelay := Machine.StrToInt(p, s)
+	ELSE
+		touchConfidenceDelay := 0; 
+	END;
 	Usbdi.drivers.Add(Probe, Name, Description, 10);
+END Setup;
+
+
+BEGIN
+	Modules.InstallTermHandler(Cleanup);
+	Setup;
 END UsbHidDriver.
 
 UsbHidDriver.Install ~  SystemTools.Free UsbHidDriver UsbHidParser UsbHidErrors UsbHidParserExt UsbHidReport UsbHidUP~
