@@ -162,8 +162,8 @@ TYPE
 		clipRect* : Rectangle; (* The current clip rectangle *)
 		dx*, dy*, color* : LONGINT;
 		clipMode* : SET;
-
-		font : Font;
+		generator*: Strings.String;
+		font- : Font;
 
 		(** IF cs is NIL a new canvas state object is created for this canvas, otherwise cs is reused *)
 		PROCEDURE SaveState*(VAR cs : CanvasState);
@@ -251,6 +251,11 @@ TYPE
 				font.RenderString(SELF, x, y, text)
 			END
 		END DrawString;
+
+		PROCEDURE SetLineWidth*(w:REAL);
+		BEGIN
+			(* Dummy. But is implemented in WMGraphicsGfx *)
+		END SetLineWidth;
 
 		(** draw a line within the current clipping rectangle *)
 		(** Override for improved speed *)
@@ -343,10 +348,11 @@ TYPE
 	FillPosEntry = RECORD pos, next : LONGINT END;
 	FillHeap = POINTER TO ARRAY OF FillPosEntry;
 	FillLineCallBack* = PROCEDURE {DELEGATE} (canvas : Canvas; y, x0, x1 : LONGINT);
+	CanvasGenerator* = PROCEDURE(img:Raster.Image):BufferCanvas;
 
 TYPE
 	BufferCanvas* = OBJECT(Canvas)
-	VAR img : Raster.Image;
+	VAR img- : Raster.Image;
 		bounds : Rectangle; (* real limiting img bounds *)
 		(* filling *)
 		fillHeap : FillHeap;
@@ -356,14 +362,18 @@ TYPE
 
 		PROCEDURE &New*(img : Raster.Image);
 		BEGIN
-			SELF.img := img;
-			bounds := MakeRectangle(0, 0, img.width, img.height);
-			SetLimits(MakeRectangle(0, 0, img.width, img.height ));
-			clipRect := bounds;
-			clipMode := { ClipRect };
-			SetFont(GetDefaultFont());
-			(* filling *)
-			height := img.height; NEW(edges, height)
+				SELF.img := img;
+
+				
+				bounds := MakeRectangle(0, 0, img.width, img.height);
+				SetLimits(MakeRectangle(0, 0, img.width, img.height ));
+				clipRect := bounds;
+				clipMode := { ClipRect };
+				
+				(* filling *)
+				height := img.height; NEW(edges, height);
+				SetFont(GetDefaultFont());
+				generator:=Strings.NewString("WMGraphics.GenCanvas");
 		END New;
 
 		(* Not thread-safe!!! *)
@@ -719,6 +729,13 @@ BEGIN
 		(* not implemented *)
 	END
 END DrawStringInRect;
+
+PROCEDURE GenCanvas*(img:Raster.Image):BufferCanvas;
+VAR c:BufferCanvas;
+BEGIN
+	NEW(c,img); RETURN c 
+END GenCanvas;
+
 
 PROCEDURE InstallDefaultFont*(f : Font);
 BEGIN { EXCLUSIVE }

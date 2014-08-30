@@ -2072,6 +2072,7 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("ComponentElement"));
 			component := NIL;
 			nofElements := 0;
 		END Init;
@@ -2877,7 +2878,8 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
-
+			SetNameAsString(Strings.NewString("Attributes"));
+			
 			NEW(controlPanel); controlPanel.alignment.Set(WMComponents.AlignTop);
 			controlPanel.bounds.SetHeight(LineHeight);
 			controlPanel.bearing.Set(WMRectangles.MakeRect(LineBearing, LineBearing, LineBearing, LineBearing));

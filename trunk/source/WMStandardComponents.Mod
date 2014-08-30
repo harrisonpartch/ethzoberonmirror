@@ -265,50 +265,24 @@ TYPE
 			blink := blinking.Get();
 		END Init;
 		
-(* PH - seems more regular *)
-(*
-		PROCEDURE RecacheProperties;
-		VAR b:BOOLEAN;
-		BEGIN
-			RecacheProperties^;
-			b := blinking.Get();
-			IF b # blink THEN
-				blink := b;
-				IF b THEN
-					blinker.events.Add(SetBlinker);
-				ELSE
-					blinker.events.Remove(SetBlinker);
-					show := TRUE
-				END;
-			END;
-		END RecacheProperties;
-		
-		PROCEDURE PropertyChanged*(sender, property : ANY);
-		VAR b: BOOLEAN; element : XML.Element;
-		BEGIN
-			IF property = blinking THEN RecacheProperties; 	Invalidate;
-			ELSE
-				PropertyChanged^(sender, property); (*?PH*) Invalidate;
-			END;
-		END PropertyChanged;
-	*)	
-		
-
 		PROCEDURE RecacheProperties;
 		BEGIN
 			RecacheProperties^;
-			(*? seems wrong inversion of PropertyChange/RecacheProperty call hierarchy PH*)
-			PropertyChanged(NIL, blinking);
-			Invalidate (*? PH in certain cases already called in PropertyChanged above*)
+			PropertyChanged(SELF,blinking)
 		END RecacheProperties;
 
-		PROCEDURE SetBlinker(sender, data: ANY);
+		PROCEDURE SetBlinker(sender, data: ANY);	(* quite generic => might be moved to VisualComponent *)
 		BEGIN
 			WITH sender: Blinker DO
 				show := sender.visible;
 			END;
 			Invalidate;
 		END SetBlinker;
+		
+		(* currently, the Panel has no own DrawBackground method. 
+		For this reason, blinking does not work in display of native Panels, but only on derived components 
+		which handle the "show" variable in their DrawBackground method
+		*)
 
 		PROCEDURE PropertyChanged*(sender, property : ANY);
 		VAR b: BOOLEAN; element : XML.Element;

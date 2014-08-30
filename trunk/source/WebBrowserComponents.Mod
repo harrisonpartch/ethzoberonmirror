@@ -290,7 +290,7 @@ TYPE
 
 	END TextPanel;
 
-	HTTPConnectionPool = OBJECT
+	HTTPConnectionPool* = OBJECT
 	VAR
 		connection : ARRAY MaxHTTPConnections OF ResourceConnection;
 		conCnt : LONGINT;
@@ -302,7 +302,7 @@ log : Streams.Writer;*)
 (*NEW(logW, "HTTPConnectionPool", log);*)
 		END Init;
 
-		PROCEDURE Get(url : String) : ResourceConnection;
+		PROCEDURE Get*(url : String) : ResourceConnection;
 		BEGIN {EXCLUSIVE}
 			RETURN PrivateGet(url);
 		END Get;
@@ -471,7 +471,7 @@ log : Streams.Writer;*)
 
 VAR
 	manager : WMWindowManager.WindowManager;
-	httpConnectionPool : HTTPConnectionPool;
+	httpConnectionPool* : HTTPConnectionPool;
 
 PROCEDURE GetResourceConnection*(url : String) : ResourceConnection;
 VAR

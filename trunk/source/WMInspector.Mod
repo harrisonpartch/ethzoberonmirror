@@ -213,6 +213,7 @@ TYPE
 		VAR panel: WMStandardComponents.Panel;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("FormComponentsTree"));
 			Clear(windows);
 
 			NEW(dragger); dragger.alignment.Set(WMComponents.AlignBottom);
@@ -289,6 +290,7 @@ TYPE
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("TextComponentsTree"));
 			AddContent(treeView);
 			Texts.onLastTextChanged.Add(Refresh);
 		END Init;
@@ -342,6 +344,7 @@ TYPE
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("SelectedTextTree"));
 			AddContent(treeView);
 			Texts.onLastSelectionChanged.Add(Refresh);
 		END Init;
@@ -393,6 +396,7 @@ TYPE
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
+			SetNameAsString(Strings.NewString("SelectedComponentsTree"));
 			AddContent(treeView);
 			WMComponents.selection.onChanged.Add(Refresh);
 			Refresh(SELF, WMComponents.selection);
@@ -482,6 +486,7 @@ TYPE
 		BEGIN
 			NEW(treePanel); treePanel.alignment.Set(WMComponents.AlignLeft);
 			treePanel.bounds.SetWidth(200);
+			AddContent(treePanel);
 			
 			NEW(resizer); resizer.alignment.Set(WMComponents.AlignRight);
 			resizer.bounds.SetWidth(5);
@@ -490,7 +495,7 @@ TYPE
 			NEW(tabPanel); tabPanel.alignment.Set(WMComponents.AlignClient);
 			treePanel.AddContent(tabPanel);
 			
-			AddContent(treePanel);
+			
 
 			NEW(tabControl); tabControl.alignment.Set(WMComponents.AlignTop);
 			tabControl.bounds.SetHeight(20);
@@ -776,16 +781,13 @@ TYPE
 	VAR
 		upper, lower: InspectorComponent;
 		upperVisible: Models.Boolean;
-		f: WMComponents.VisualComponent;
+
 		PROCEDURE &New*(context : WMRestorable.Context);
 		BEGIN
 			Init(WindowWidth, WindowHeight, FALSE);
 			IncCount;
 			NEW(upperVisible); upperVisible.Set(FALSE);
-			f:=CreateF();
-			SetContent(f);
-			(*f.Invalidate;*)
-			(*?PH*) (*f.Reset(NIL,NIL);*)
+			SetContent(CreateF());
 			
 			SetTitle(Strings.NewString("Inspector"));
 			SetIcon(WMGraphics.LoadImage("WMInspector.tar://WMInspector.png", TRUE));

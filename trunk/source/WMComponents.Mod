@@ -397,12 +397,9 @@ TYPE
 					IF (sequencer # c(Component).sequencer) THEN 
 						IF sequencer#NIL THEN 
 							c(Component).SetSequencer(sequencer); 
-							c(Component).Reset(SELF,NIL); (*implied RecacheProperties*)
-							IF (SELF IS VisualComponent) & ( c IS VisualComponent) THEN (* move to VisualComponent*)
-								m.sender:=SELF; 
-								m.msgType := Messages.MsgInvalidate;
-								m.msgSubType := Messages.MsgSubAll;
-								IF sequencer.Add(m) THEN  END; 
+							c(Component).Reset(SELF,NIL); (* will be scheduled by sequencer. implied RecacheProperties*)
+							IF (SELF IS VisualComponent) & ( c IS VisualComponent) THEN (* todo: move to VisualComponent*)
+								sequencer.ScheduleEvent(SELF(VisualComponent).InvalidateCommand, SELF, NIL); 
 							END;
 						ELSE (* no tree traversal - is less costly *)
 							c(Component).sequencer:=NIL; c(Component).initialized:=FALSE;
@@ -907,15 +904,15 @@ TYPE
 				Resized (*implicit Invalidate*)
 			ELSIF property = bearing THEN Resized;
 			(* ELSIF bounds=relativeBounds  THEN ? *)
-			ELSIF property = alignment THEN AlignmentChanged (*implicit Invalidate*)
+			ELSIF property = alignment THEN AlignmentChanged; Invalidate (*moved here from implicit Invalidate*)
 			ELSIF property = fillColor THEN Invalidate;
 			ELSIF property = font THEN
 				IF scaleFont.Get() # 0 THEN
-					ScaleFont(bounds.GetHeight(), scaleFont.Get());
+					ScaleFont(bounds.GetHeight(), scaleFont.Get()); (* implicit Invalidate*)
 				END;
 				Invalidate;
 			ELSIF (property = scaleFont) THEN ScaleFont(bounds.GetHeight(),scaleFont.Get());  (*implicit Invalidate*)
-			ELSIF property = visible THEN Resized
+			ELSIF property = visible THEN Resized (*Implicit Invalidate*)
 			(* ELSIF takesFocus, needsTab...*)			
 			ELSIF property = editMode THEN Invalidate;
 			ELSIF property = model THEN LinkChanged(model, model.Get()); Invalidate;
@@ -970,7 +967,7 @@ TYPE
 			IF (p # NIL) & (p IS VisualComponent) THEN
 				p(VisualComponent).AlignSubComponents
 			END;
-			Invalidate;
+			(*Invalidate;*)
 			Release
 		END AlignmentChanged;
 
@@ -1486,7 +1483,7 @@ TYPE
 		PROCEDURE InvalidateCommand*(sender, par : ANY);
 		VAR m: Messages.Message; r, b: Rectangles.Rectangle; client: VisualComponent; parent: XML.Element;
 		BEGIN
-			IF ~initialized OR ~visible.Get() THEN RETURN END;
+			IF ~initialized OR ~visible.Get() THEN RETURN END; (*? double call to visible.Get here and below. Which one is better ?*)
 			IF ~IsCallFromSequencer() OR ~visible.Get() THEN
 				r := GetClientRect();
 				client := SELF;
@@ -2124,6 +2121,7 @@ TYPE
 		content : VisualComponent;
 		scaling* : BOOLEAN;
 	
+
 		PROCEDURE ToXML*():XML.Content;
 		VAR winx: XML.Element; a: XML.Attribute; string: ARRAY 128 OF CHAR; title:Strings.String;
 		BEGIN {EXCLUSIVE}
@@ -2137,6 +2135,7 @@ TYPE
 			NEW(a); a.SetName("r"); Strings.IntToStr(bounds.r, string); a.SetValue(string); winx.AddAttribute(a);
 			NEW(a); a.SetName("b"); Strings.IntToStr(bounds.b, string); a.SetValue(string); winx.AddAttribute(a);
 			NEW(a); a.SetName("flags"); Strings.SetToStr(flags, string); a.SetValue(string); winx.AddAttribute(a);
+			NEW(a); a.SetName("canvasGenerator"); a.SetValue(canvas.generator^); winx.AddAttribute(a);
 			winx.AddContent(form);
 			RETURN winx
 		END ToXML;
@@ -2163,6 +2162,7 @@ TYPE
 		BEGIN 
 			BEGIN{EXCLUSIVE} 
 				INC(disableUpdate);
+				INCL(flags, 13); (* render windows background non-displayed*)
 				IF form # NIL THEN form.Finalize; form.sequencer.Stop; content:=NIL END;
 				IF x IS Form THEN
 					form := x(Form);
@@ -2235,7 +2235,7 @@ TYPE
 			IF Raster.alpha IN img.fmt.components THEN
 				canvas.Fill(rect, 0H, WMGraphics.ModeCopy)
 			ELSE
-				canvas.Fill(rect, 0FFH, WMGraphics.ModeCopy)
+				canvas.Fill(rect, 0H (*0FFH*), Raster.clear(*WMGraphics.ModeCopy*))
 			END;
 			form.Draw(canvas);
 			canvas.RestoreState(cs);
@@ -3287,7 +3287,11 @@ BEGIN {EXCLUSIVE}
 END Load;
 
 PROCEDURE FormWindowGen*(xml:XML.Content): WM.Window; 
-VAR winx: XML.Element; formx: XML.Content; window: FormWindow; name, string:Strings.String;
+VAR winx: XML.Element; formx: XML.Content; window: FormWindow; name, string:Strings.String; canvas:WMGraphics.BufferCanvas;
+	canvasGenerator: WMGraphics.CanvasGenerator;
+	moduleName, procedureName : Modules.Name;
+	msg : ARRAY 128 OF CHAR;
+	res: LONGINT;
 	l,t,r,b: LONGINT;
 BEGIN
 	IF xml IS XML.Element THEN
@@ -3302,6 +3306,17 @@ BEGIN
 			name:=winx.GetAttributeValue("name"); window.SetTitle(name);
 			window.bounds.r:=r; window.bounds.l:=l; window.bounds.t:=t; window.bounds.b:=b;
 			string:=winx.GetAttributeValue("flags"); Strings.StrToSet(string^,window.flags);
+			string:=winx.GetAttributeValue("canvasGenerator"); (* allow to plug in alternative canvas versions,e.g. WMGraphicsGfx.Canvas *)
+			IF (string#NIL) THEN
+				Commands.Split(string^, moduleName, procedureName, res, msg);
+				IF (res = Commands.Ok) THEN
+					GETPROCEDURE(moduleName, procedureName, canvasGenerator);
+					IF (canvasGenerator # NIL) THEN
+						window.SetCanvasGenerator(canvasGenerator);
+					END;
+				END;
+			END;
+			
 			formx:=winx.GetFirst(); (* this typically has name="Form" *)
 			IF (formx#NIL)&(formx IS XML.Element) THEN
 				window.LoadComponents(formx(XML.Element)); (* at the price of duplication of component tree construction ...*)

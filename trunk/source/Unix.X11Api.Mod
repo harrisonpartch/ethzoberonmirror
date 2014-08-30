@@ -1073,7 +1073,7 @@ VAR
 		IF cnt > 0 THEN
 			(* copy characters to name *)
 			adr1 := adr;
-			NEW(name, cnt);
+			NEW(name, cnt+1);
 			FOR i :=0 TO cnt-1 DO
 				SYSTEM.GET(adr1, ch); name[i] := ch; INC(adr1);
 			END;

@@ -3486,9 +3486,9 @@ END InitMPTimer;
 PROCEDURE HandleMPTimer(VAR state: State);
 BEGIN	(* {interrupts off} *)
 	timer(ID(), state);
-	ApicPut(0B0H, {});	(* EOI *)
 	Sti;	(* enable interrupts before acquiring locks below - to avoid deadlock with StopAll. *)
-	Timeslice(state)	(* fixme: check recursive interrupt *)
+	Timeslice(state);
+	ApicPut(0B0H, {});	(* EOI *)
 END HandleMPTimer;
 
 (* Handle uniprocessor timer interrupt. *)

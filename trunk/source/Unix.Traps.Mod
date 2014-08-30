@@ -202,7 +202,7 @@ VAR
 		END;  
 		entry := Modules.GetExceptionHandler( pc );   
 		WHILE (entry = -1) & (fp <= process.stackBottom) DO  
-			S.GET( fp + 4, pc );  
+			S.GET( fp + AddrSize, pc );  
 			pc := pc - 1;   (*  CALL instruction, machine dependent!!! *)
 			entry := Modules.GetExceptionHandler( pc );  
 			sp := fp;   (* Save the old framepointer into the stack pointer *)

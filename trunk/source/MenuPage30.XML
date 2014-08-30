@@ -163,7 +163,7 @@
 
 		<Standard:Button>
 			<Properties>
-				<Caption>SSH</Caption>
+				<Caption>Secure Shell</Caption>
 				<Alignment>2</Alignment>
 				<OnClickHandler>X Run</OnClickHandler>
 			</Properties>

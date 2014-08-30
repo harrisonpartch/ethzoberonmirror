@@ -907,7 +907,7 @@ Out.Ln;
 						scrollEnd := r - 1;  scrollBottom := GetLine( r )
 					END;
 					sel.beg.line := NIL;  cols := c;  rows := r;
-				END
+				END;
 			END resized;
 
 			PROCEDURE Resized;
@@ -915,13 +915,13 @@ Out.Ln;
 				Resized^();
 				resized();
 				IF chan # NIL THEN  chan.WindowChange( cols, rows )  END
-			END Resized;
+			END Resized;		
 
 			PROCEDURE Initialize;
 			BEGIN
 				Initialize^();
+				Resized;
 				takesFocus.Set( TRUE );
-				resized();
 				Invalidate()
 			END Initialize;
 

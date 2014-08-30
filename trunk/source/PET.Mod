@@ -1081,6 +1081,7 @@ TYPE
 		PROCEDURE &New*(c : WMRestorable.Context);
 		VAR vc : WMComponents.VisualComponent;
 		BEGIN
+
 			settings := GetSettings();
 			IncCount;
 			InitCodecs;
@@ -1116,23 +1117,25 @@ TYPE
 			SetIcon(iconIdle);
 
 			IF c # NIL THEN (* restore the desktop *)
-				WMRestorable.AddByContext(SELF, c);
+				(*WMRestorable.AddByContext(SELF, c);*)
 				IF c.appData # NIL THEN
 					DisableUpdate;
 					LoadPages(c.appData(XML.Element));
 					EnableUpdate;
 				END;
 				vc.Invalidate;
+				WMRestorable.AddByContext(SELF, c); (* first load content, then display ...*)
+				
 			ELSE WMWindowManager.DefaultAddWindow(SELF);
 				(* NewTab; *)
 				codecFormat := "AUTO";
 				autoCodecFormat := DefaultTextFormat;
 				SetFormatCaption("AUTO");
 			END;
-
 			NEW(browseBase); (* sentinel *)
 			browseBase.prev := browseBase;
-			browseTOS := browseBase
+			browseTOS := browseBase;
+
 		END New;
 
 		PROCEDURE CreateForm():WMComponents.VisualComponent;
@@ -1283,7 +1286,9 @@ TYPE
 
 		BEGIN
 			(* -- Main Panel holding the tabs, toolbar and tabcontents (instance of PETPanel) *)
-			NEW(panel); panel.alignment.Set(WMComponents.AlignClient); panel.fillColor.Set(0FFFFFFFFH); panel.takesFocus.Set(TRUE);
+			NEW(panel); panel.alignment.Set(WMComponents.AlignClient); 
+			panel.fillColor.Set(0FFFFFFFFH); 
+			panel.takesFocus.Set(TRUE);
 
 			(* -- Tabs for the PETPanels *)
 			NEW(tabs); tabs.fillColor.Set(00000CCCCH); tabs.bounds.SetHeight(20); tabs.alignment.Set(WMComponents.AlignTop);

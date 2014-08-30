@@ -492,6 +492,7 @@ TYPE
 	VAR
 		img* : Graphics.Image;
 		canvas* : Graphics.BufferCanvas;
+		canvasGen-: Graphics.CanvasGenerator;
 		pointerThreshold* : LONGINT;
 
 		PROCEDURE &Init*(w, h : LONGINT; alpha : BOOLEAN);
@@ -499,10 +500,16 @@ TYPE
 			Init^(w, h, alpha);
 			NEW(img);
 			IF alpha THEN Raster.Create(img, w, h, Raster.BGRA8888) ELSE Raster.Create(img, w, h, format) END;
-			NEW(canvas, img);
+			SetCanvasGenerator(Graphics.GenCanvas);
 			pointerThreshold := 1; (* invisible pixels are treated as invisble *)
 		END Init;
 
+		PROCEDURE SetCanvasGenerator*(canvasGen:Graphics.CanvasGenerator);
+		BEGIN
+			SELF.canvasGen:=canvasGen; canvas:=canvasGen(img); 
+			IF manager # NIL THEN manager.AddVisibleDirty(SELF, bounds) END
+		END SetCanvasGenerator;
+		
 		PROCEDURE IsHit(x, y  : LONGINT) : BOOLEAN;
 		VAR w, h : LONGINT; fx, fy : REAL;
 		BEGIN
@@ -567,9 +574,9 @@ TYPE
 
 		PROCEDURE &Init*(w, h: LONGINT; alpha : BOOLEAN);
 		BEGIN
+			NEW(backImg); 
+			IF alpha THEN Raster.Create(backImg, w, h, Raster.BGRA8888) ELSE Raster.Create(backImg, w, h, format) END;
 			Init^(w, h, alpha);
-			NEW(backImg); Raster.Create(backImg, w, h, img.fmt);
-			visibleCanvas := canvas; NEW(canvas, backImg);
 		END Init;
 
 		PROCEDURE ReInit*(w, h : LONGINT);
@@ -582,8 +589,17 @@ TYPE
 				Raster.Create(img, w, h, format);
 				Raster.Create(backImg, w, h, format)
 			END;
-			NEW(visibleCanvas, img); NEW(canvas, backImg)
+			visibleCanvas:=canvasGen(img);
+			canvas:=canvasGen(backImg);
 		END ReInit;
+		
+		PROCEDURE SetCanvasGenerator*(canvasGen:Graphics.CanvasGenerator);
+		BEGIN
+			SELF.canvasGen:=canvasGen; 
+			visibleCanvas:=canvasGen(img);
+			canvas:=canvasGen(backImg); 
+			IF manager # NIL THEN manager.AddVisibleDirty(SELF, bounds) END
+		END SetCanvasGenerator;
 
 		PROCEDURE Draw*(canvas : Graphics.Canvas; w, h, q : LONGINT);
 		BEGIN

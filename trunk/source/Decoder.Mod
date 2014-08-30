@@ -1748,7 +1748,7 @@ TYPE
 
 		PROCEDURE AdjustTitle (CONST str : ARRAY OF CHAR);
 		VAR
-			titleString : ARRAY 100 OF CHAR;
+			titleString : ARRAY Files.NameLength+10 OF CHAR;
 		BEGIN
 			titleString := "Decoder";
 			IF str # "" THEN
