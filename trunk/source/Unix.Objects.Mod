@@ -695,9 +695,10 @@ TYPE
 		The stack of the main thread is not limited by the  boot parameter 'StackSize' !!
 	*)
 	PROCEDURE GCLoop*;	(* Timer and GC activity *)
-	VAR t, f: HUGEINT;  
+	VAR t0, t1, f: HUGEINT;  
 	BEGIN
 		f := Machine.mhz * 1000;
+		t0 := Machine.GetTimer( );
 		LOOP
 			IF collect THEN  
 				collect := FALSE;
@@ -706,8 +707,8 @@ TYPE
 			ELSE
 				thrSleep( 10 ); 
 			END;
-			t := Machine.GetTimer();
-			Machine.ticks := SHORT( t DIV f );
+			t1 := Machine.GetTimer();
+			Machine.ticks := SHORT( (t1 - t0 ) DIV f );
 			timerActivity.Notify
 		END
 	END GCLoop;	

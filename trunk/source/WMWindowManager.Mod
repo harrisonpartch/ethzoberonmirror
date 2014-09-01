@@ -505,7 +505,7 @@ TYPE
 		END Init;
 
 		PROCEDURE SetCanvasGenerator*(canvasGen:Graphics.CanvasGenerator);
-		BEGIN
+		BEGIN{EXCLUSIVE}
 			SELF.canvasGen:=canvasGen; canvas:=canvasGen(img); 
 			IF manager # NIL THEN manager.AddVisibleDirty(SELF, bounds) END
 		END SetCanvasGenerator;

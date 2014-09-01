@@ -142,9 +142,9 @@ PROCEDURE TestGfx*;
 VAR w:WMWindowManager.BufferWindow; c: WMGraphicsGfx.Canvas; t,x0,y0,x,y:LONGINT;
 BEGIN
 	NEW(w, 500,500, FALSE);
-	NEW(c, w.img);
-	w.canvas:=c;
-	
+	w.SetCanvasGenerator(WMGraphicsGfx.GenCanvas);
+	c:=w.canvas(WMGraphicsGfx.Canvas);
+
 	c.Fill(w.bounds, WMGraphics.Red, WMGraphics.ModeCopy);
 	
 	c.SetLineWidth(5);
