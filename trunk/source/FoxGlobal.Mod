@@ -477,7 +477,7 @@ TYPE
 			ELSIF type IS SyntaxTree.PortType THEN
 				size := addressSize
 			ELSIF type IS SyntaxTree.CellType THEN
-				size := 0;
+				size := addressSize;
 			ELSIF type IS SyntaxTree.RangeType THEN
 				size := 3 * SizeOf(longintType);
 			ELSE

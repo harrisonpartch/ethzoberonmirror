@@ -1178,6 +1178,8 @@ TYPE
 			RETURN GetType(system,system.addressType);
 		ELSIF type IS SyntaxTree.PortType THEN
 			RETURN GetType(system, system.addressType);
+		ELSIF type IS SyntaxTree.CellType THEN
+			RETURN GetType(system, system.addressType);
 		ELSE
  			HALT(100);
 		END;
