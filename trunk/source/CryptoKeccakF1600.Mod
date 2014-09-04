@@ -81,7 +81,7 @@ TYPE
 			IF bit < 32 THEN
 				state[laneNo].low := state[laneNo].low / {bit}
 			ELSE
-				state[laneNo].high := state[laneNo].high / {bit MOD 32};
+				state[laneNo].high := state[laneNo].high / {bit - 32};
 			END
 		END ComplementBit;
 
