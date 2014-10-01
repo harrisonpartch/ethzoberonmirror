@@ -24,8 +24,8 @@ TYPE
 		PROCEDURE Send*(CONST buf: ARRAY OF CHAR; ofs, len: LONGINT; propagate : BOOLEAN; VAR res: LONGINT);
 		BEGIN
 			ASSERT(len >= 0);
-			LOOP
-				BEGIN {EXCLUSIVE}
+			BEGIN {EXCLUSIVE}
+				LOOP
 					IF len = 0 THEN res := Ok; EXIT END;
 					AWAIT((num < LEN(buffer)) OR closed);
 					IF closed THEN
@@ -39,11 +39,13 @@ TYPE
 		END Send;
 
 		PROCEDURE Receive*(VAR buf: ARRAY OF CHAR; ofs, size, min: LONGINT; VAR len, res: LONGINT);
+		VAR
+			t, ti: LONGINT;
 		BEGIN
 			ASSERT((size > 0) & (min <= size) & (min >= 0));
 			len := 0;
-			LOOP
-				BEGIN {EXCLUSIVE}
+			BEGIN {EXCLUSIVE}
+				LOOP
 					IF min > 0 THEN AWAIT((num > 0) OR closed) END;	(* wait until some data available *)
 					IF num > 0 THEN
 						buf[ofs] := buffer[head];

@@ -12,11 +12,11 @@ CONST
 
 	Invalid = MIN(LONGINT);
 
-	(* EditPanel.Mode *)
+	(* ComponentEditor.Mode *)
 	UseMode = 0;
 	EditMode = 1;
 
-	(* EditPanel:IsInFrameHandle/IsInCurrentFrame result codes *)
+	(* ComponentEditor:IsInFrameHandle/IsInCurrentFrame result codes *)
 	No = -1;
 	Left = 0;
 	TopLeft = 1;
@@ -30,14 +30,14 @@ CONST
 
 	Paint = 999;
 
-	(* EditPanel:pointerMode *)
+	(* ComponentEditor:pointerMode *)
 	None = 0;
 	SelectComponent = 1;
 	ResizeMove = 2;
 	Spawn = 3;
 	PaintComponent = 5;
 
-	(* EditPanel.state *)
+	(* ComponentEditor.state *)
 	State_Running = 0;
 	State_Terminating = 99;
 	State_Terminated = 100;
@@ -1208,7 +1208,7 @@ TYPE
 			IF ~ModificationsAllowed() THEN active := {}; END;
 		END GetBoundingBox;
 
-		(** Get bounds of component in EditPanel coordinates *)
+		(** Get bounds of component in ComponentEditor coordinates *)
 		PROCEDURE ToEditorCoordinates(component : WMComponents.Component; VAR rect : WMRectangles.Rectangle);
 		VAR c : XML.Element; bounds : WMRectangles.Rectangle;
 		BEGIN
@@ -1348,7 +1348,8 @@ TYPE
 		PROCEDURE &Init;
 		BEGIN
 			Init^;
-			SetNameAsString(StrEditPanel);
+			SetNameAsString(StrComponentEditor);
+			(*SetGenerator("WMBuilder.GenComponentEditor");*)
 
 			mode := EditMode;
 			SetExtGetPositionOwnerHandler(ExtGetPositionOwnerHandler);
@@ -1356,26 +1357,26 @@ TYPE
 			takesFocus.Set(TRUE);
 			needsTab.Set(TRUE);
 
-			NEW(showSnapGrid, NIL, NIL, NIL); properties.Add(showSnapGrid);
+			NEW(showSnapGrid, NIL, Strings.NewString("SnapGrid"), NIL); properties.Add(showSnapGrid);
 			showSnapGrid.Set(TRUE);
 			showSnapGridI := showSnapGrid.Get();
 
-			NEW(enableSnap, NIL, NIL, NIL); properties.Add(enableSnap);
+			NEW(enableSnap, NIL, Strings.NewString("Snap"), NIL); properties.Add(enableSnap);
 			enableSnap.Set(TRUE);
 			enableSnapI := enableSnap.Get();
 
-			NEW(showHelperLines, NIL, NIL, NIL); properties.Add(showHelperLines);
+			NEW(showHelperLines, NIL, Strings.NewString("HelperLines"), NIL); properties.Add(showHelperLines);
 			showHelperLines.Set(TRUE);
 			showHelperLinesI := showHelperLines.Get();
 
-			NEW(showFrames, NIL, NIL, NIL); properties.Add(showFrames);
+			NEW(showFrames, NIL, Strings.NewString("Frames"), NIL); properties.Add(showFrames);
 			showFrames.Set(TRUE);
 			showFramesI := showFrames.Get();
 
 			NEW(snapgrid);
 
 			NEW(panel);
-			panel.SetName("Standard:Panel");
+			panel.SetName("VisualComponent");
 			panel.alignment.Set(WMComponents.AlignClient);
 			panel.takesFocus.Set(FALSE);
 			AddContent(panel);
@@ -2149,7 +2150,7 @@ TYPE
 			RETURN ci;
 		END GetComponentInfo;
 
-		(** Get bounds of component in EditPanel coordinates *)
+		(** Get bounds of component in ComponentEditor coordinates *)
 		PROCEDURE ToMyCoordinates(component : WMComponents.VisualComponent; x, y : LONGINT; VAR myX,myY : LONGINT);
 		VAR c : XML.Element; bounds : WMRectangles.Rectangle;
 		BEGIN
@@ -2813,7 +2814,7 @@ TYPE
 		BEGIN
 			w := windowList.GetActive();
 			IF (w # NIL) THEN
-				res := WMDialogs.QueryString("Open...", filename);
+				res := WMDialogs.QueryString("Save...", filename);
 				IF (res = WMDialogs.ResOk) THEN
 					Store(filename, w, res);
 					IF (res = 0) THEN
@@ -3184,7 +3185,7 @@ TYPE
 VAR
 	nofWindows, nextId : LONGINT;
 
-	StrEditPanel : Strings.String;
+	StrComponentEditor : Strings.String;
 
 	(* cursors *)
 	leftLimit, topLeftLimit, topLimit, topRightLimit,
@@ -3357,6 +3358,12 @@ BEGIN
 	IF count = 0 THEN window.Load("untitled.wm", ignoreRes); END;
 END Open;
 
+PROCEDURE GenComponentEditor*(): XML.Element;
+VAR editPanel: ComponentEditor;
+BEGIN
+	NEW(editPanel); RETURN editPanel;
+END GenComponentEditor;
+
 PROCEDURE Restore*(context : WMRestorable.Context);
 VAR w : MainWindow;
 BEGIN
@@ -3416,7 +3423,7 @@ END Cleanup;
 
 BEGIN
 	nofWindows := 0; nextId := 0;
-	StrEditPanel := Strings.NewString("EditPanel");
+	StrComponentEditor := Strings.NewString("ComponentEditor");
 	LoadCursors;
 	LoadRepositories;
 	Modules.InstallTermHandler(Cleanup);
@@ -3425,6 +3432,7 @@ END WMBuilder.
 WMBuilder.Open ~
 
 SystemTools.Free WMBuilder WMInspector WMInspectionComponents ~
+SystemTools.FreeDownTo WMBuilder ~
 
 PC.Compile \s
 	Repositories.Mod WMRepositories.Mod
@@ -3432,3 +3440,5 @@ PC.Compile \s
 	WMInspectionComponents.Mod
 	WMBuilder.Mod
 ~
+
+

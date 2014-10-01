@@ -1,10 +1,10 @@
-MODULE WMComponents;	(** AUTHOR "TF"; PURPOSE "Experiments with component concepts"; *)
+MODULE WMComponents;	(** AUTHOR "TF"; PURPOSE "Component Framework based on XML"; *)
 (**
 
 -- 	Events: --
 
 	Each VisualComponent can produce keyboard and mouse events which can trigger A2 commands.
-	The command string for a given event can by specified by the usage of XML attributes.
+	The command string for a given event can by specified by the usage of XML attributes and component properties.
 	The following attributes are defined:
 
 	Keyboard:  	onReturn, onEscape, onKeyPressed, onKeyReleased
@@ -28,14 +28,16 @@ MODULE WMComponents;	(** AUTHOR "TF"; PURPOSE "Experiments with component concep
 	^clipboard			is replaced by the content of the clipboard
 
 	^attribute=[component "."] attribute
+	^property=[component "."] property
 
-	is replaced by the value of <attribute>. If the component qualifier is omitted, <attribute> is supposed to be an attribute of the
-	originator of the event.
+	is replaced by the value of <attribute> or <property>. 
+	If the component qualifier is omitted, <attribute> or <property> is supposed to be an attribute or property of the originator of the event.
 
 	If no MacroHandlerProcedure is found for a given macro, no substitution takes place.
 	Example:
 
-	onMiddleClick = SystemTools.Show ^attribute=FillColor
+	onLeftClick = SystemTools.Show ^attribute=generator
+	onMiddleClick = SystemTools.Show ^property=FillColor
 
 *)
 
@@ -87,6 +89,7 @@ CONST
 	MacroSelection = "selection";
 	MacroClipboard = "clipboard";
 	MacroAttributePrefix = "attribute=";
+	MacroPropertyPrefix = "property=";
 	CanYield = TRUE;
 	
 	(*temporary - to be removed*)
@@ -334,6 +337,15 @@ TYPE
 					END;
 				END;
 			END;
+			
+			enum :=xml.GetAttributes();
+			WHILE enum.HasMoreElements() DO
+				c := enum.GetNext();
+				IF c(XML.Attribute).GetName()^ # "generator" THEN
+					SetAttributeValue(c(XML.Attribute).GetName()^, c(XML.Attribute).GetValue()^);
+				END;
+			END;
+			
 			(*Initialize;*) (* redundant *)
 		END FromXML;
 
@@ -2956,6 +2968,27 @@ BEGIN
 	RETURN value;
 END GetAttributeValue;
 
+PROCEDURE GetPropertyValue(originator : Component; CONST fullname : ARRAY OF CHAR) : Strings.String;
+VAR value : ARRAY 256 OF CHAR; string:Strings.String; c : Component; component, property : ARRAY 64 OF CHAR;
+BEGIN
+	ASSERT(originator # NIL);
+	Strings.GetExtension(fullname, component, property);
+	IF (property = "") THEN COPY(component, property); COPY("", component);
+	END;
+	IF (component[0] = "@") THEN component[0] := "&"; END; (*? TBD: Hack to avoid ampersand in XML *)
+	IF (component = "") THEN c := originator;
+	ELSE c := originator.Find(component);
+	END;
+	IF (c # NIL) THEN
+		IF c.properties.GetPropertyValue(property,value) THEN RETURN Strings.NewString(value)
+		ELSE ReportError("Property % of component % not found", property, component);
+		END;
+	ELSE ReportError("Component % not found", component, "");
+	END;
+	RETURN NIL;
+
+END GetPropertyValue;
+
 PROCEDURE DefaultMacroHandler(CONST macro : Macro; originator : Component; w : Streams.Writer; VAR handled : BOOLEAN);
 VAR string, value : Strings.String;
 BEGIN
@@ -2968,6 +3001,14 @@ BEGIN
 	ELSIF Strings.StartsWith(MacroAttributePrefix, 0, macro) THEN
 		string := Strings.Substring(Strings.Length(MacroAttributePrefix), Strings.Length(macro), macro);
 		value := GetAttributeValue(originator, string^);
+		IF (value # NIL) THEN
+			w.String(value^);
+		ELSE
+			handled := FALSE;
+		END;
+	ELSIF Strings.StartsWith(MacroPropertyPrefix, 0, macro) THEN
+		string := Strings.Substring(Strings.Length(MacroPropertyPrefix), Strings.Length(macro), macro);
+		value := GetPropertyValue(originator,string^);
 		IF (value # NIL) THEN
 			w.String(value^);
 		ELSE
@@ -3330,12 +3371,14 @@ END FormWindowGen;
 
 (* generic loading of any form window using the generator procedure supplied in the XML as 'loader' attribute *)
 PROCEDURE LoadFormWindow*(xml:XML.Content): WM.Window;
-VAR winx: XML.Element; window: WM.Window; formx:XML.Content;
+VAR winx: XML.Element; window: WM.Window; formWindow:FormWindow;
+formx, c:Component;
 	name, string, load:Strings.String;
 	moduleName, procedureName : Modules.Name;
 	msg : ARRAY 128 OF CHAR;
 	res: LONGINT;
 	gen:WindowGenerator;
+	bounds:Rectangles.Rectangle;
 BEGIN
 	IF xml IS XML.Element THEN
 		winx:=xml(XML.Element);
@@ -3348,6 +3391,15 @@ BEGIN
 				IF (gen # NIL) THEN
 					window:=gen(xml);
 				END;
+			END;
+		ELSE (*generate FormWindow from generic Visual Component*)
+			c:=ComponentFromXML(xml(XML.Element));
+			IF (c#NIL) & (c IS VisualComponent) THEN
+				bounds:=c(VisualComponent).bounds.Get();
+				NEW(formWindow, bounds.r-bounds.l, bounds.b-bounds.t, TRUE);
+				formWindow.SetContent(c);
+				(*formWindow.SetTitle(c.GetName());*)
+				window:=formWindow;
 			END;
 		END;
 	END;
@@ -3652,6 +3704,7 @@ BEGIN
 END WMComponents.
 
 WMComponents.Open Test.Cwd ~
+WMComponents.Open DictEntry.wm ~
 
 The message sequencer contains a reader writer lock that can be used to block the hierarchy.
 Each message-call from the sequencer posesses the writer lock.
