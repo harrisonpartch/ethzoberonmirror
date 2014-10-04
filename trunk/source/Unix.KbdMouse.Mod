@@ -383,7 +383,9 @@ VAR
 		keySymbol[0A9H] := Inputs.KsEnd;
 		keySymbol[01BH] := Inputs.KsEscape;
 		
-		FOR i := 0F1H TO 0FCH DO keySymbol[i] := 0FFBEH + (i - 0F1H) END
+		FOR i := 0F1H TO 0FCH DO keySymbol[i] := 0FFBEH + (i - 0F1H) END;
+		keySymbol[0A4H] := Inputs.KsF1;
+		keySymbol[0A5H] := Inputs.KsF2;
 	END InitKeysym;
 
 	PROCEDURE GetXDisplay;
@@ -421,4 +423,4 @@ END KbdMouse.
 	ß	150
 	. . .
 	
-*)
+*) 

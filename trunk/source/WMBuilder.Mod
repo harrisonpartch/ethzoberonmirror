@@ -2093,15 +2093,42 @@ TYPE
 			END;
 		END DragOver;
 
-		PROCEDURE DragAddComponent(component : Repositories.Component; VAR res : LONGINT);
-		VAR x, y : LONGINT;
+		PROCEDURE DragAddComponent(component : Repositories.Component; VAR res : LONGINT); (* ! needs work work hierarchical buildup *)
+		VAR x, y : LONGINT; c: WMComponents.VisualComponent; rect:WMRectangles.Rectangle;
 		BEGIN
 			ASSERT(component # NIL);
 			IF (dragX < 0) OR (dragY < 0) THEN
+				KernelLog.String("case 1"); KernelLog.Ln;
 				AddComponent(component, 0, 0);
-			ELSE
+				
+			ELSIF ~(component IS WMComponents.VisualComponent) THEN
+				KernelLog.String("case 2"); KernelLog.Ln;
 				ToComponentCoordinates(insertObjAt, dragX, dragY, x, y);
-				AddComponent(component, x, y);
+				c:=FindPositionOwner(x,y);
+				c.AddContent(component);
+			ELSE
+				KernelLog.String("case 3"); KernelLog.Ln;
+				ToComponentCoordinates(insertObjAt, dragX, dragY, x, y);
+					KernelLog.String("from -to "); KernelLog.Ln;
+				rect:=component(WMComponents.VisualComponent).bounds.Get();
+					KernelLog.Int(rect.l,6); KernelLog.Int(rect.r,6); KernelLog.Int(rect.t,6); KernelLog.Int(rect.b,6); KernelLog.Ln;
+					KernelLog.Int(dragX,6); KernelLog.Int(dragY,6); KernelLog.Ln;
+					KernelLog.Int(x,6); KernelLog.Int(y,6); KernelLog.Ln;
+				c:=FindPositionOwner(x,y);
+					KernelLog.Int(c.bounds.GetLeft(),6); KernelLog.Int(c.bounds.GetTop(),6); KernelLog.Ln;
+				c.AddContent(component);
+				WMRectangles.MoveRel(rect, x-c.bounds.GetLeft(), y-c.bounds.GetTop());
+				KernelLog.Int(rect.l,6); KernelLog.Int(rect.r,6); KernelLog.Int(rect.t,6); KernelLog.Int(rect.b,6); KernelLog.Ln;	
+				component(WMComponents.VisualComponent).bounds.Set(rect);			
+				component(WMComponents.VisualComponent).Invalidate;
+				
+				(*AddComponent(component, x, y);*)
+				
+				(*insertObjAt.AddContent(component);*)
+				(*
+				component(WMComponents.VisualComponent).bounds.SetTop(y);
+				component(WMComponents.VisualComponent).bounds.SetLeft(x);
+				*)
 			END;
 		END DragAddComponent;
 

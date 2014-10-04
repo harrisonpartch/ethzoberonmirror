@@ -27,6 +27,7 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^();
+			SetGenerator("WMStandardComponents.GenTimer");
 			NEW(timer);
 			alive := TRUE;
 			enabled.Set(FALSE); internalEnabled := FALSE;
@@ -195,6 +196,7 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
+			SetGenerator("WMStandardComponents.GenSystemCommand");
 			NEW(commandString, PrototypeCommandString, NIL, NIL); properties.Add(commandString);
 			NEW(eRun, GSRun, GSRunSystemCommandInfo, SELF.Run); eventListeners.Add(eRun);
 			SetNameAsString(StrSystemCommand)
@@ -226,6 +228,7 @@ TYPE
 		PROCEDURE &Init*;
 		BEGIN
 			Init^;
+			SetGenerator("WMStandardComponents.GenEvent");
 			NEW(commandString, PrototypeCommandString, NIL, NIL); properties.Add(commandString);
 			NEW(eRun, GSRun, GSCallEventInfo, SELF.Run); eventListeners.Add(eRun);
 			SetNameAsString(StrEvent)
@@ -275,13 +278,15 @@ TYPE
 		BEGIN
 			WITH sender: Blinker DO
 				show := sender.visible;
+				(*visible.Set(sender.visible)*) (* more generic *)
 			END;
 			Invalidate;
 		END SetBlinker;
 		
-		(* currently, the Panel has no own DrawBackground method. 
+		(* currently, the Panel has no own Draw method. 
 		For this reason, blinking does not work in display of native Panels, but only on derived components 
-		which handle the "show" variable in their DrawBackground method
+		which handle the "show" variable in their DrawBackground method.
+		could be done with the 'visible' property, too. 
 		*)
 
 		PROCEDURE PropertyChanged*(sender, property : ANY);
@@ -295,7 +300,8 @@ TYPE
 						blinker.events.Add(SetBlinker);
 					ELSE
 						blinker.events.Remove(SetBlinker);
-						show := TRUE
+						show := TRUE;
+						(*? visible.Set(TRUE);*)
 					END;
 					Invalidate;
 				END;
@@ -303,6 +309,13 @@ TYPE
 				PropertyChanged^(sender, property)
 			END;
 		END PropertyChanged;
+
+(*
+		PROCEDURE Draw*(canvas : WMGraphics.Canvas);
+		BEGIN
+			IF show THEN Draw^(canvas) END;
+		END Draw;
+*)
 
 		PROCEDURE Finalize;
 		BEGIN
