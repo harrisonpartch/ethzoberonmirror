@@ -872,7 +872,7 @@ TYPE
 		BEGIN
 			SkipWhitespace;
 			String(string);
-			RETURN string[0] # 0X;
+			RETURN res = Ok;
 		END GetString;
 
 		(** First skip whitespace, then read integer *)

@@ -3351,7 +3351,8 @@ BEGIN
 	ProtCBHasThreeStates.Set(FALSE);
 	NEW(ProtCBState, NIL, NewString("State"), NewString("current state")); plCheckbox.Add(ProtCBState);
 	ProtCBState.Set(Unchecked);
-
+	NEW(PrototypeCBonClickHandler, NIL, NewString("onClickHandler"), NewString("onClickHandler")); plCheckbox.Add(PrototypeCBonClickHandler);
+	
 			(* background color *)
 	NEW(ColorPrototype, NIL, NewString("ClBack"), NewString("Checkbox Background Color")); ColorPrototype.Set(LONGINT(0FFFFFF80H));
 	NEW(ProtCBclBack, ColorPrototype, NIL, NIL); plCheckbox.Add(ProtCBclBack);
