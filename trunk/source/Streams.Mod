@@ -869,10 +869,12 @@ TYPE
 
 		(** First skip whitespace, then read string *)
 		PROCEDURE GetString*(VAR string : ARRAY OF CHAR): BOOLEAN;
+		VAR c: CHAR;
 		BEGIN
 			SkipWhitespace;
+			c := Peek();
 			String(string);
-			RETURN res = Ok;
+			RETURN (string[0] # 0X) OR (c = "'") OR (c = '"');
 		END GetString;
 
 		(** First skip whitespace, then read integer *)
