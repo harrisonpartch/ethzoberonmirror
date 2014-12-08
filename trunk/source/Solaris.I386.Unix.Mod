@@ -271,7 +271,7 @@ TYPE
 				r_di-		: LONGINT;
 				r_si-		: LONGINT;
 				r_bp-		: LONGINT;
-				r_sp_ -	: LONGINT;
+				r_nsp-	: LONGINT;
 				r_bx-		: LONGINT;
 				r_dx-		: LONGINT;
 				r_cx-		: LONGINT;
@@ -373,6 +373,7 @@ VAR
 	BEGIN
 		cont.mc.r_pc := pc;
 		cont.mc.r_bp := bp;
+		cont.mc.r_nsp := sp;	
 		cont.mc.r_sp := sp;	
 	END ModifyContext;
 

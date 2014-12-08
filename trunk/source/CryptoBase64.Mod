@@ -47,7 +47,6 @@ VAR
 		c: CHAR;
 	BEGIN
 		len := 0;  ix := 0;  group := 0;  i := 0;
-		WHILE (b64[ix] # 0X) & (b64[ix] <= ' ') DO  INC( ix )  END;	(* skip leading spaces *)
 		
 		REPEAT  c := b64[ix];  INC( ix )  UNTIL (c > ' ') OR (c = 0X);
 		code := dtab[ORD( c )]; 
@@ -116,7 +115,6 @@ VAR
 		i, rest, code, group, len: LONGINT;
 		c: CHAR;
 	BEGIN
-		r.SkipSpaces( );
 		len := 0; group := 0;  i := 0;
 		
 		REPEAT  r.Char( c )  UNTIL (c > ' ') OR (c = 0X);

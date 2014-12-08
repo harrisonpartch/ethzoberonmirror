@@ -7,7 +7,7 @@ CONST
 	PID = 9876;
 	NativeOS = "A2";
 	NativeLanMan = "STECIFS";
-	PrimaryDomain = "ETHZ";
+	PrimaryDomain = "WORKGROUP";
 	Trace = FALSE;
 	SendBufferSize = 32000;
 	RWLimit = 2048;
@@ -17,10 +17,10 @@ TYPE
 	Connection = POINTER TO RECORD
 		out: Streams.Writer;
 		in: Streams.Reader;
-		ipaddr: ARRAY 16 OF CHAR;
-		path, mask, fnLast: ARRAY 256 OF CHAR;
-		user, pw: ARRAY 64 OF CHAR;
 		tid, uid, sid: INTEGER;
+		ipaddr: ARRAY 16 OF CHAR;
+		user, pw: ARRAY 64 OF CHAR;
+		path, mask, fnLast: ARRAY 256 OF CHAR;
 	END;
 
 	FileSystem* = OBJECT(Files.FileSystem)	(** shareable *)
@@ -167,7 +167,6 @@ TYPE
 		PROCEDURE Enumerate0*(mask: ARRAY OF CHAR; flags: SET; enum: Files.Enumerator);
 		VAR
 			check, endOfSearch, findFirst: BOOLEAN;
-			dirMask, filename: ARRAY 256 OF CHAR;
 			byteCount, dataOff, paraOff, eos: INTEGER;
 			fileFlags : SET;
 			attr, curPos, nextEntryOff, progress, maskLen: LONGINT;
@@ -175,6 +174,7 @@ TYPE
 			ch: ARRAY 2 OF CHAR;
 			dt: Dates.DateTime;
 			date, time, size: LONGINT;
+			dirMask, filename: ARRAY 256 OF CHAR;
 		BEGIN
 			endOfSearch := FALSE;
 			findFirst := TRUE;
@@ -453,7 +453,7 @@ TYPE
  			END;
 
 		 	adjOff := 0;
-
+			r.res := 0;
 		 	WHILE len > 0 DO
 	 			IF len > RWLimit THEN
 	 				adjLen := RWLimit;
@@ -481,7 +481,7 @@ TYPE
 
  				IF ~check THEN
  					IF Trace THEN KernelLog.String(" -- ERROR on Read AndX"); KernelLog.Ln(); END;
- 					r.res := len;
+ 					r.res := r.res + len;
  					fs(FileSystem).lock.Release();
  					RETURN;
  				END;
@@ -492,7 +492,7 @@ TYPE
 				c.in.RawInt(byteCount);
 
 				IF (dataOff = 0) THEN
-					r.res := len;
+					r.res := r.res + len;
 					fs(FileSystem).lock.Release();
 					RETURN;
 				END;
@@ -509,7 +509,7 @@ TYPE
 				ofs := ofs + i;
 				r.apos := r.apos + i;
 
-				r.res := adjLen - i;
+				r.res := r.res + adjLen - i;
 				len := len - adjLen;
 				adjOff := adjOff + adjLen;
 			END;

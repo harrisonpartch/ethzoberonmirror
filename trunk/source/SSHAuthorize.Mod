@@ -246,7 +246,8 @@ VAR
 		IF privKey = NIL THEN
 			f := Files.Old( G.PrivateKeyFile );
 			IF f = NIL THEN
-				(* privat key not found *)
+				Out.String( "private key '" ); Out.String( G.PrivateKeyFile );
+				Out.String( "' not found" ); Out.Ln;
 				RETURN FALSE
 			END;
 			Files.OpenReader( r, f, 0 );  i := 0;
@@ -287,9 +288,11 @@ VAR
 			IF RequestService( ssh, "ssh-userauth" ) THEN
 				authorized := RequestAuthorizeNone( ssh, user );
 				IF ~authorized THEN
+					Out.String( "trying public key authorization" ); Out.Ln;
 					authorized := AuthorizeKey( ssh, user );
 				END;
 				IF ~authorized THEN
+					Out.String( "trying password authorization" ); Out.Ln;
 					authorized := AuthorizePasswd( ssh, host, user )
 				END;
 				IF ~authorized THEN

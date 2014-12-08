@@ -471,7 +471,9 @@ BEGIN
 
 	libraryPaths[0] := "/lib/i386-linux-gnu";
 	libraryPaths[1] := "/usr/lib/i386-linux-gnu";
-	noPaths := 2;
+	libraryPaths[2] := "/lib";
+	libraryPaths[3] := "/usr/lib";
+	noPaths := 4;
 
 
 

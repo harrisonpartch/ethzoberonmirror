@@ -110,6 +110,9 @@ BEGIN
 	Commands.Split(name, moduleName, procedureName, res, msg);
 	IF (res = Commands.Ok) THEN
 		GETPROCEDURE(moduleName, procedureName, factory);
+		IF factory = NIL THEN
+			error.String('failed to get file system factory with name "'); error.String(name); error.String('"!'); error.Ln;
+		END;
 	ELSE
 		error.String(msg); error.Ln;
 	END;
@@ -165,9 +168,8 @@ BEGIN
 			END
 		END;
 	ELSE
-		res := 1; context.error.String('Expected parameters: prefix alias ([volpar] ["|" fspar]'); context.error.Ln; 
+		context.error.String('Expected parameters: prefix alias ([volpar] ["|" fspar]'); context.error.Ln;
 	END;
-	context.result := res;
 END Mount;
 
 PROCEDURE Unmount*(context : Commands.Context); (** prefix[\f] *)

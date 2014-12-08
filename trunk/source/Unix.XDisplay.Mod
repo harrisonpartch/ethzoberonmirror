@@ -449,7 +449,7 @@ TYPE
 			END Display;
 
 VAR
-	dispname: ARRAY 64 OF CHAR;
+	dispname: ARRAY 128 OF CHAR;
 	
 	imgBuffer: POINTER TO ARRAY OF CHAR;
 

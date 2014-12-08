@@ -1,7 +1,7 @@
 MODULE WMNavigate; (** AUTHOR "staubesv"; PURPOSE "Windows navigation"; *)
 
 IMPORT
-	Modules, Kernel, Commands, Options, Locks, Strings, Raster, Plugins, Displays, KernelLog, Inputs, XML,
+	Modules, Kernel, Commands, Options, Locks, Strings, Raster, Plugins, Displays, KernelLog, Inputs, XML, WMMessages,
 	WMRectangles, WMGraphics, WMGraphicUtilities, WMWindowManager, WMComponents, WMProperties, WMRestorable, Files, Dates;
 
 CONST
@@ -245,7 +245,9 @@ TYPE
 	END;
 
 TYPE
-
+	(*
+	StoreCommand*=PROCEDURE{DELEGATE}(sender, par: ANY);	
+	*)
 	Base* = OBJECT(WMComponents.VisualComponent)
 	VAR
 		clDefault-, clSelected-, clMouseOver-, clSelectedMouseOver-,
@@ -1060,7 +1062,7 @@ TYPE
 						index := SystemCommand_Frame;
 					ELSIF (y < commandOffset + 6 * LineHeight) THEN
 						index := SystemCommand_WindowShot;
-					ELSIF (window IS WMComponents.FormWindow) & (y < commandOffset + 7 * LineHeight) THEN
+					ELSIF (WMWindowManager.FlagStorable IN window.flags) & (y < commandOffset + 7 * LineHeight) THEN
 						index := SystemCommand_StoreWindow;
 					END;
 				ELSIF (documentOffset <= y) & (y < documentOffset + nofDocuments * LineHeight) THEN
@@ -1135,7 +1137,7 @@ TYPE
 					DrawBg(y);
 					canvas.DrawString(LeftBorder, y + 16, "WindowShot"); INC(y, LineHeight);
 				END;
-				IF (window IS WMComponents.FormWindow) &  (WMWindowManager.FlagStorable IN window.flags) & (NofSystemCommands > 6) THEN
+				IF (*(window IS WMComponents.FormWindow) &*)  (WMWindowManager.FlagStorable IN window.flags) & (NofSystemCommands > 6) THEN
 					DrawBg(y);
 					canvas.DrawString(LeftBorder, y + 16, "StoreWindow"); INC(y, LineHeight);
 				END;
@@ -1443,30 +1445,38 @@ END StoreWindow;
 
 PROCEDURE StoreWindow(window: WMWindowManager.Window);
 VAR fn0,fn: Files.FileName;  s: ARRAY 6 OF CHAR; i, res: LONGINT; f:Files.File; w:Files.Writer;
-	xml:XML.Content;
+	xml:XML.Content; msg: WMMessages.Message; 
 BEGIN
-	IF (window IS WMComponents.FormWindow) & (WMWindowManager.FlagStorable IN window.flags) THEN
-		GenerateName(window.GetTitle(),fn0); Strings.Concat(fn0,".Cwd",fn); (* component window *)
-		f:=Files.Old(fn); 
-		i:=0;
-		WHILE f#NIL DO 
-			f:=NIL;
-			Strings.IntToStr(i,s);
-			COPY (fn0,fn);
-			Strings.Append(fn,"_");
-			Strings.Append(fn,s);
-			Strings.Append(fn,".Cwd");
+	IF (WMWindowManager.FlagStorable IN window.flags) THEN
+		GenerateName(window.GetTitle(),fn0);
+		IF window IS WMComponents.FormWindow THEN
+			Strings.Concat(fn0,".Cwd",fn); (* component window *)
 			f:=Files.Old(fn); 
-			INC(i);
-		END;
-		f:=Files.New(fn);
-		IF f#NIL THEN 
-			Files.OpenWriter(w,f,0);
-			w.String('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'); w.Ln;
-			window(WMComponents.FormWindow).ToXML().Write(w,NIL,0);
-			w.Update;
-			Files.Register(f);
-			KernelLog.String("WMNavigate.StoreWindow  "); KernelLog.String(fn); KernelLog.Ln;
+			i:=0;
+			WHILE f#NIL DO 
+				f:=NIL;
+				Strings.IntToStr(i,s);
+				COPY (fn0,fn);
+				Strings.Append(fn,"_");
+				Strings.Append(fn,s);
+				Strings.Append(fn,".Cwd");
+				f:=Files.Old(fn); 
+				INC(i);
+			END;
+			(*? WMRestorable.StoreWindow*(window: WM.Window; CONST fileName: ARRAY OF CHAR);*)
+			f:=Files.New(fn);
+			IF f#NIL THEN 
+				Files.OpenWriter(w,f,0);
+				w.String('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'); w.Ln;
+				window(WMComponents.FormWindow).ToXML().Write(w,NIL,0);
+				w.Update;
+				Files.Register(f);
+				KernelLog.String("WMNavigate.StoreWindow  "); KernelLog.String(fn); KernelLog.Ln;
+			END;	
+		ELSE (* try to serialize*)
+			msg.msgType := WMMessages.MsgSerialize; 
+			window.Handle(msg);
+		(*	IF (window.manager#NIL) & window.manager.SendMessage(window, msg) THEN END;*)
 		END;
 	END;
 END StoreWindow;

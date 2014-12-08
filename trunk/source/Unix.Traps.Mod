@@ -160,9 +160,10 @@ VAR
 		IF handler.pc # 0 THEN  
 			IF Unix.Version # "Darwin" THEN
 				(* in the Darwin port Unix.ModifyContext fails with bus error. Stack alignment problem? *)
-				Unix.ModifyContext( ucp, handler.pc, handler.fp, handler.sp );
 				w.Ln;  
 				w.String( "### program continues with exception handler ###" );   w.Ln;
+				
+				Unix.ModifyContext( ucp, handler.pc, handler.fp, handler.sp );
 				RETURN  (*! to exception handler !! *)  
 			END
 		END;

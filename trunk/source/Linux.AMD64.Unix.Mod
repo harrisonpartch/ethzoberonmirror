@@ -492,7 +492,9 @@ BEGIN
 
 	libraryPaths[0] := "/lib/x86_64-linux-gnu";
 	libraryPaths[1] := "/usr/lib/x86_64-linux-gnu";
-	noPaths := 2;
+	libraryPaths[2] := "/lib";
+	libraryPaths[3] := "/usr/lib";
+	noPaths := 4;
 
 
 	libc := Dlopen( libcname, 2 );

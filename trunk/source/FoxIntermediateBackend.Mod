@@ -7012,7 +7012,11 @@ TYPE
 			IF ~TryConstantDeclaration() THEN
 				IF constantDeclaration = NIL THEN constantDeclaration:=BuildConstant(module.module,x,constId) END;
 				Global.GetSymbolSegmentedName(constantDeclaration,name);
+					IF ~newObjectFile OR (constantDeclaration.scope = NIL) OR (constantDeclaration.scope.ownerModule = module.module) THEN
 				irv := NewSection(module.allSections, Sections.ConstSection, name,constantDeclaration,commentPrintout # NIL);
+					ELSE
+						irv := NewSection(module.importedSections, Sections.ConstSection, name,constantDeclaration,commentPrintout # NIL);
+					END;
 				FOR i := 0 TO x.length-1 DO
 					IntermediateCode.InitImmediate(op,IntermediateCode.GetType(system,system.characterType),ORD(x.value[i]));
 					irv.Emit(Data(position,op));

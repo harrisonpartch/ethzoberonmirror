@@ -1,6 +1,9 @@
 MODULE FoxArrayBase; (* stubs for array base runtime - can only be compiled by oc compiler *)
 (* (c) fof, fn, ETH Zürich, 2008 *)
 
+
+(*! do  do: MAX(array,scalar) and MAX(array,array) for all datatypes*)
+
 IMPORT SYSTEM, KernelLog, Heaps, Math, MathL;
 
 TYPE
@@ -6522,6 +6525,376 @@ Sufficient (but not necessary) conditions:
 		RETURN ApplyBinaryASBOp( ADDRESSOF( right ), ADDRESSOF( left ), LssAXSXLoop );
 	END ">";
 
+	(**** binary max/min operators array x scalar-> array ********************************************************************)
+	
+	PROCEDURE MaxAXSXLoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: LONGREAL;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval>val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;;
+			INC(dadr,dinc); 
+		END;
+	END MaxAXSXLoop;
+	
+	OPERATOR "MAX"*(CONST left: ARRAY [?] OF LONGREAL; right: LONGREAL): ARRAY [?] OF LONGREAL;
+	TYPE Type = LONGREAL;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MaxAXSXLoop );
+		RETURN RESULT
+	END "MAX";
+
+	PROCEDURE MaxARSRLoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: REAL;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval>val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;;
+			INC(dadr,dinc); 
+		END;
+	END MaxARSRLoop;
+	
+	OPERATOR "MAX"*(CONST left: ARRAY [?] OF REAL; right: REAL): ARRAY [?] OF REAL;
+	TYPE Type = REAL;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MaxARSRLoop );
+		RETURN RESULT
+	END "MAX";
+	
+	
+	PROCEDURE MaxALSLLoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: LONGINT;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval>val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;
+			INC(dadr,dinc); 
+		END;
+	END MaxALSLLoop;
+	
+	OPERATOR "MAX"*(CONST left: ARRAY [?] OF LONGINT; right: LONGINT): ARRAY [?] OF LONGINT;
+	TYPE Type = LONGINT;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MaxALSLLoop );
+		RETURN RESULT
+	END "MAX";
+	
+
+	PROCEDURE MaxAISILoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: INTEGER;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval>val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;
+			INC(dadr,dinc); 
+		END;
+	END MaxAISILoop;
+	
+	OPERATOR "MAX"*(CONST left: ARRAY [?] OF INTEGER; right: INTEGER): ARRAY [?] OF INTEGER;
+	TYPE Type = INTEGER;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MaxAISILoop );
+		RETURN RESULT
+	END "MAX";
+
+	PROCEDURE MaxASSSLoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: SHORTINT;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval>val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;
+			INC(dadr,dinc); 
+		END;
+	END MaxASSSLoop;
+	
+	OPERATOR "MAX"*(CONST left: ARRAY [?] OF SHORTINT; right: SHORTINT): ARRAY [?] OF SHORTINT;
+	TYPE Type = SHORTINT;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MaxASSSLoop );
+		RETURN RESULT
+	END "MAX";
+	
+
+	PROCEDURE MinAXSXLoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: LONGREAL;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval<val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;;
+			INC(dadr,dinc); 
+		END;
+	END MinAXSXLoop;
+	
+	OPERATOR "MIN"*(CONST left: ARRAY [?] OF LONGREAL; right: LONGREAL): ARRAY [?] OF LONGREAL;
+	TYPE Type = LONGREAL;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MinAXSXLoop );
+		RETURN RESULT
+	END "MIN";
+	
+
+	PROCEDURE MinARSRLoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: REAL;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval<val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;;
+			INC(dadr,dinc); 
+		END;
+	END MinARSRLoop;
+	
+	OPERATOR "MIN"*(CONST left: ARRAY [?] OF REAL; right: REAL): ARRAY [?] OF REAL;
+	TYPE Type = REAL;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MinARSRLoop );
+		RETURN RESULT
+	END "MIN";
+	
+	PROCEDURE MinALSLLoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: LONGINT;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval<val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;
+			INC(dadr,dinc); 
+		END;
+	END MinALSLLoop;
+	
+	OPERATOR "MIN"*(CONST left: ARRAY [?] OF LONGINT; right: LONGINT): ARRAY [?] OF LONGINT;
+	TYPE Type = LONGINT;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MinALSLLoop );
+		RETURN RESULT
+	END "MIN";
+
+	PROCEDURE MinAISILoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: INTEGER;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval<val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;
+			INC(dadr,dinc); 
+		END;
+	END MinAISILoop;
+	
+	OPERATOR "MIN"*(CONST left: ARRAY [?] OF INTEGER; right: INTEGER): ARRAY [?] OF INTEGER;
+	TYPE Type = INTEGER;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MinAISILoop );
+		RETURN RESULT
+	END "MIN";
+	
+	PROCEDURE MinASSSLoop( ladr, radr, dadr, linc, dinc, len: Address ); 
+	VAR lval, val: SHORTINT;
+	BEGIN
+		SYSTEM.GET( radr, val );
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval );
+			INC( ladr, linc ); DEC( len );
+			IF lval<val THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT(dadr, val) END;
+			INC(dadr,dinc); 
+		END;
+	END MinASSSLoop;
+	
+	OPERATOR "MIN"*(CONST left: ARRAY [?] OF SHORTINT; right: SHORTINT): ARRAY [?] OF SHORTINT;
+	TYPE Type = SHORTINT;
+	BEGIN
+		ApplyBinaryASAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( Type ), MinASSSLoop );
+		RETURN RESULT
+	END "MIN";
+
+	(**** binary max/min operators array x array -> array ********************************************************************)
+
+	PROCEDURE MaxAXAXLoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: LONGREAL;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval>rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MaxAXAXLoop;
+
+	OPERATOR "MAX"*(CONST left, right: ARRAY [?] OF LONGREAL): ARRAY [?] OF LONGREAL;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGREAL ), MaxAXAXLoop );
+		RETURN RESULT
+	END "MAX";
+	
+
+	PROCEDURE MaxARARLoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: REAL ;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval>rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MaxARARLoop;
+
+	OPERATOR "MAX"*(CONST left, right: ARRAY [?] OF REAL): ARRAY [?] OF REAL;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ), MaxARARLoop );
+		RETURN RESULT
+	END "MAX";
+
+	PROCEDURE MaxALALLoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: LONGINT;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval>rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MaxALALLoop;
+
+	OPERATOR "MAX"*(CONST left, right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT ;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGINT ), MaxALALLoop );
+		RETURN RESULT
+	END "MAX";
+	
+		PROCEDURE MaxAIAILoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: INTEGER;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval>rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MaxAIAILoop;
+
+	OPERATOR "MAX"*(CONST left, right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( INTEGER ), MaxAIAILoop );
+		RETURN RESULT
+	END "MAX";
+	
+	PROCEDURE MaxASASLoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: SHORTINT;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval>rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MaxASASLoop;
+
+	OPERATOR "MAX"*(CONST left, right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( SHORTINT ), MaxASASLoop );
+		RETURN RESULT
+	END "MAX";
+
+	PROCEDURE MinAXAXLoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: LONGREAL;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval );
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval<rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MinAXAXLoop;
+	
+	OPERATOR "MIN"*(CONST left, right: ARRAY [?] OF LONGREAL): ARRAY [?] OF LONGREAL;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGREAL ), MinAXAXLoop );
+		RETURN RESULT
+	END "MIN";
+		
+
+	PROCEDURE MinARARLoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: REAL ;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval<rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MinARARLoop;
+
+	OPERATOR "MIN"*(CONST left, right: ARRAY [?] OF REAL): ARRAY [?] OF REAL;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( REAL ), MinARARLoop );
+		RETURN RESULT
+	END "MIN";
+
+	PROCEDURE MinALALLoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: LONGINT;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval<rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MinALALLoop;
+
+	OPERATOR "MIN"*(CONST left, right: ARRAY [?] OF LONGINT): ARRAY [?] OF LONGINT ;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( LONGINT ), MinALALLoop );
+		RETURN RESULT
+	END "MIN";
+	
+	PROCEDURE MinAIAILoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: INTEGER;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval<rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MinAIAILoop;
+
+	OPERATOR "MIN"*(CONST left, right: ARRAY [?] OF INTEGER): ARRAY [?] OF INTEGER;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( INTEGER ), MinAIAILoop );
+		RETURN RESULT
+	END "MIN";
+	
+	PROCEDURE MinASASLoop( ladr, radr, dadr, linc, rinc, dinc, len: Address ); 
+	VAR lval, rval: SHORTINT;
+	BEGIN
+		WHILE (len > 0) DO
+			SYSTEM.GET( ladr, lval ); SYSTEM.GET( radr, rval ); 
+			INC( ladr, linc ); INC(radr,rinc ); DEC( len );
+			IF lval<rval THEN SYSTEM.PUT( dadr, lval) ELSE SYSTEM.PUT (dadr,rval) END;
+			INC(dadr,dinc); 
+		END;
+	END MinASASLoop;
+
+	OPERATOR "MIN"*(CONST left, right: ARRAY [?] OF SHORTINT): ARRAY [?] OF SHORTINT;
+	BEGIN
+		ApplyBinaryAAAOp( ADDRESSOF( RESULT ), ADDRESSOF( left ), ADDRESSOF( right ), SIZEOF( SHORTINT ), MinASASLoop );
+		RETURN RESULT
+	END "MIN";
+
 	(**** unary operators array -> scalar ********************************************************************)
 
 	(*** min: array -> scalar ****************************************)
@@ -9187,3 +9560,5 @@ BEGIN
 END FoxArrayBase.
 
 Compiler.Compile FoxArrayBase.Mod ~
+
+SystemTools.ListModules 

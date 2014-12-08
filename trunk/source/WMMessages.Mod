@@ -13,6 +13,7 @@ CONST
 	MsgResized* = 9;
 	MsgSetLanguage* = 10;
 	MsgInvalidate*= 11;
+	MsgSerialize*=12;
 	
 	MsgSubPointerMove* = 0; MsgSubPointerDown* = 1; MsgSubPointerUp* = 2; MsgSubPointerLeave* = 3;
 	MsgSubFocusGot* = 0; MsgSubFocusLost* = 1; MsgSubMasterFocusGot* = 2; MsgSubMasterFocusLost* = 3;
@@ -24,7 +25,7 @@ CONST
 	(** Gather statistics about added/discarded messages? *)
 	Statistics* = FALSE;
 	TraceQueue = FALSE;
-	MsgTypeMax* = 12;
+	MsgTypeMax* = 13;
 
 
 TYPE
@@ -528,4 +529,5 @@ BEGIN
 	MsgName[MsgResized] := "MsgResized" ;
 	MsgName[MsgSetLanguage] := "MsgSetLanguage";
 	MsgName[MsgInvalidate] := "MsgInvalidate";
+	MsgName[MsgSerialize] := "MsgSerialize";
 END WMMessages.

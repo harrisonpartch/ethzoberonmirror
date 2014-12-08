@@ -5,8 +5,8 @@ IMPORT SYSTEM, Texts, TextUtilities, UTF8Strings, Strings, Commands, Out := Kern
 CONST
 	ConfigFile* = "SSH.Configuration.Text";
 	HostkeysFile* = "SSH.KnownHosts.Data";		(* entries in openssh format! *)
-	PrivateKeyFile* = "PrivRSAKey.Data";
-	PublicKeyFile* = "PubRSAKey.Data";			(* openssh format *)
+	PrivateKeyFile* = "SSH.RSAKey.priv";
+	PublicKeyFile* = "SSH.RSAKey.pub";			(* openssh format *)
 
 	HT= 09X;  CR = 0DX; NL = 0AX;
 

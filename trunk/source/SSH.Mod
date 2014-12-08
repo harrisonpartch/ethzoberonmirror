@@ -326,6 +326,7 @@ TYPE
 						| ChannelEOF:
 								 done := TRUE
 						| ChannelClose:
+								conn.Disconnect( 11, "" );
 								state := ChanClosed;
 								pt := 0X;
 								done := TRUE
