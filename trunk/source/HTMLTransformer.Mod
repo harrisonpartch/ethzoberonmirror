@@ -305,722 +305,786 @@ TYPE
 
 		BEGIN
 			name := elem.GetName();
-			IF name^="A" THEN
-				s := GetElemAttributeValue(elem, "name", FALSE);
-				IF s#NIL THEN
-					AddLabel(s);
-				END;
-				s := GetElemAttributeValue(elem, "href", FALSE);
-				IF s#NIL THEN
-					style.color := linkColor;
-					Strings.TrimWS(s^);
-					style.link := ResolveAddress(baseAddress, s);
-					s := GetElemAttributeValue(elem, "target", FALSE);
+			CASE name[0] OF
+			|"A":
+				IF name^="A" THEN
+					s := GetElemAttributeValue(elem, "name", FALSE);
 					IF s#NIL THEN
+						AddLabel(s);
+					END;
+					s := GetElemAttributeValue(elem, "href", FALSE);
+					IF s#NIL THEN
+						style.color := linkColor;
 						Strings.TrimWS(s^);
-						style.linktarget := s;
-					ELSIF baseTarget # NIL THEN
-						style.linktarget := baseTarget;
-					ELSE
-						style.linktarget := frameName;
+						style.link := ResolveAddress(baseAddress, s);
+						s := GetElemAttributeValue(elem, "target", FALSE);
+						IF s#NIL THEN
+							Strings.TrimWS(s^);
+							style.linktarget := s;
+						ELSIF baseTarget # NIL THEN
+							style.linktarget := baseTarget;
+						ELSE
+							style.linktarget := frameName;
+						END;
 					END;
-				END;
-				TransformContent(elem, style);
-			ELSIF name^="ABBR" THEN
-				TransformContent(elem, style);
-			ELSIF name^="ACRONYM" THEN
-				TransformContent(elem, style);
-			ELSIF name^="ADDRESS" THEN
-				IF style.style = 0 THEN
-					style.style := 2;
-				ELSIF style.style = 1 THEN
-					style.style := 3;
-				END;
-				TransformContent(elem, style);
-				NewLine(FALSE);
-			ELSIF name^="APPLET" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="AREA" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="B" THEN
-				IF style.style = 0 THEN
-					style.style := 1;
-				ELSIF style.style = 2 THEN
-					style.style := 3;
-				END;
-				TransformContent(elem, style);
-			ELSIF name^="BASE" THEN
-				s := GetElemAttributeValue(elem, "href", FALSE);
-				IF s#NIL THEN
-					baseAddress := s;
-				END;
-				baseTarget := GetElemAttributeValue(elem, "target", FALSE);
-			ELSIF name^="BASEFONT" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="BDO" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="BIG" THEN
-				IF style.size < 7 THEN INC(style.size); END;
-				TransformContent(elem, style);
-			ELSIF name^="BLOCKQUOTE" THEN
-				NewParagraph(FALSE);
-				INC(style.indent);
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="BODY" THEN
-				s := GetElemAttributeValue(elem, "bgcolor", TRUE);
-				IF s#NIL THEN pageBgColor := GetColor(s); END;
-				s := GetElemAttributeValue(elem, "text", TRUE);
-				IF s#NIL THEN
-					textColor := GetColor(s);
-					style.color := textColor;
-				END;
-				s := GetElemAttributeValue(elem, "link", TRUE);
-				IF s#NIL THEN linkColor := GetColor(s); END;
-				s := GetElemAttributeValue(elem, "vlink", TRUE);
-				IF s#NIL THEN vlinkColor := GetColor(s); END;
-				s := GetElemAttributeValue(elem, "alink", TRUE);
-				IF s#NIL THEN alinkColor := GetColor(s); END;
-				s := GetElemAttributeValue(elem, "background", FALSE);
-				IF s#NIL THEN
-					bgImage := ResolveAddress(baseAddress, s);
-				END;
-
-				(* TODO: backround image *)
-				TransformContent(elem, style);
-			ELSIF name^="BR" THEN
-				NewLine(TRUE);
-			ELSIF name^="BUTTON" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="CENTER" THEN
-				NewLine(TRUE);
-				style.align := alignCenter;
-				TransformContent(elem, style);
-				NewLine(TRUE);
-			ELSIF name^="CITE" THEN
-				IF style.style = 0 THEN
-					style.style := 2;
-				ELSIF style.style = 1 THEN
-					style.style := 3;
-				END;
-				TransformContent(elem, style);
-			ELSIF name^="CODE" THEN
-				style.font := Strings.NewString(monospace);
-				TransformContent(elem, style);
-			ELSIF name^="DD" THEN
-				INC(style.indent);
-				TransformContent(elem, style);
-				NewLine(FALSE);
-			ELSIF name^="DEL" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="DFN" THEN
-				IF style.style = 0 THEN
-					style.style := 2;
-				ELSIF style.style = 1 THEN
-					style.style := 3;
-				END;
-				TransformContent(elem, style);
-			ELSIF name^="DIR" THEN
-				ul();
-			ELSIF name^="DIV" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "center" THEN
-						style.align := alignCenter;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSIF s^ = "justify" THEN
-						style.align := alignJustify;
+					TransformContent(elem, style);
+				ELSIF name^="ABBR" THEN
+					TransformContent(elem, style);
+				ELSIF name^="ACRONYM" THEN
+					TransformContent(elem, style);
+				ELSIF name^="ADDRESS" THEN
+					IF style.style = 0 THEN
+						style.style := 2;
+					ELSIF style.style = 1 THEN
+						style.style := 3;
 					END;
-				END;
-				NewLine(TRUE);
-				TransformContent(elem, style);
-				NewLine(TRUE);
-			ELSIF name^="DL" THEN
-				IF inDL THEN
-					INC(style.indent);
+					TransformContent(elem, style);
 					NewLine(FALSE);
-				ELSE
-					NewParagraph(FALSE);
+				ELSIF name^="APPLET" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="AREA" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
 				END;
-				b := inDL;
-				inDL := TRUE;
-				TransformContent(elem, style);
-				IF b THEN
-					NewLine(FALSE);
-				ELSE
-					NewParagraph(FALSE);
-				END;
-				inDL := b;
-			ELSIF name^="DT" THEN
-				TransformContent(elem, style);
-				NewLine(FALSE);
-			ELSIF name^="EM" THEN
-				IF style.style = 0 THEN
-					style.style := 2;
-				ELSIF style.style = 1 THEN
-					style.style := 3;
-				END;
-				TransformContent(elem, style);
-			ELSIF name^="FIELDSET" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="FONT" THEN
-				s := GetElemAttributeValue(elem, "size", FALSE);
-				IF s#NIL THEN
-					Strings.Copy(s^, 0, LEN(s^)-1, aoc);
-					Strings.TrimLeft(aoc, ' ');
-					Strings.StrToInt(aoc, res);
-					IF (aoc[0]='+') OR (aoc[0]='-') THEN
-						style.size := style.size + res;
-					ELSE
-						style.size := res;
+			|"B":
+				IF name^="B" THEN
+					IF style.style = 0 THEN
+						style.style := 1;
+					ELSIF style.style = 2 THEN
+						style.style := 3;
 					END;
-					IF style.size < 1 THEN
-						style.size := 1;
-					ELSIF style.size > 7 THEN
-						style.size := 7;
-					END;
-				END;
-				s := GetElemAttributeValue(elem, "color", TRUE);
-				IF s#NIL THEN style.color := GetColor(s); END;
-				s := GetElemAttributeValue(elem, "face", FALSE);
-				IF s#NIL THEN style.font := GetExistingFontName(s); END;
-				TransformContent(elem, style);
-			ELSIF name^="FORM" THEN
-				oldForm := style.form;
-				s := GetElemAttributeValue(elem, "action", FALSE);
-				IF s = NIL THEN
-					s := baseAddress;
-				ELSE
-					s := ResolveAddress(baseAddress, s);
-				END;
-				NEW(style.form, s, loadLink);
-				TransformContent(elem, style);
-				style.form := oldForm;
-			ELSIF name^="H1" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "center" THEN
-						style.align := alignCenter;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSIF s^ = "justify" THEN
-						style.align := alignJustify;
-					END;
-				END;
-				NewParagraph(FALSE);
-				style.size := 6;
-				style.style := 1;
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="H2" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "center" THEN
-						style.align := alignCenter;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSIF s^ = "justify" THEN
-						style.align := alignJustify;
-					END;
-				END;
-				NewParagraph(FALSE);
-				style.size := 5;
-				style.style := 1;
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="H3" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "center" THEN
-						style.align := alignCenter;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSIF s^ = "justify" THEN
-						style.align := alignJustify;
-					END;
-				END;
-				NewParagraph(FALSE);
-				style.size := 4;
-				style.style := 1;
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="H4" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "center" THEN
-						style.align := alignCenter;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSIF s^ = "justify" THEN
-						style.align := alignJustify;
-					END;
-				END;
-				NewParagraph(FALSE);
-				style.size := 3;
-				style.style := 1;
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="H5" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "center" THEN
-						style.align := alignCenter;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSIF s^ = "justify" THEN
-						style.align := alignJustify;
-					END;
-				END;
-				NewParagraph(FALSE);
-				style.size := 2;
-				style.style := 1;
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="H6" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "center" THEN
-						style.align := alignCenter;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSIF s^ = "justify" THEN
-						style.align := alignJustify;
-					END;
-				END;
-				NewParagraph(FALSE);
-				style.size := 1;
-				style.style := 1;
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="HEAD" THEN
-				TransformContent(elem, style);
-			ELSIF name^="HR" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSE
-						style.align := alignCenter;
-					END;
-				ELSE
-					style.align := alignCenter;
-				END;
-				NewLine(FALSE);
-				AddHR(style.align);
-				NewLine(FALSE);
-			ELSIF name^="HTML" THEN
-				TransformContent(elem, style);
-			ELSIF name^="I" THEN
-				IF style.style = 0 THEN
-					style.style := 2;
-				ELSIF style.style = 1 THEN
-					style.style := 3;
-				END;
-				TransformContent(elem, style);
-			ELSIF name^="IFRAME" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="IMG" THEN
-				i := -1; j := -1;
-				s := GetElemAttributeValue(elem, "width", FALSE);
-				IF s#NIL THEN
-					Strings.Copy(s^, 0, LEN(s^)-1, aoc);
-					Strings.StrToInt(aoc, i);
-				END;
-				s := GetElemAttributeValue(elem, "height", FALSE);
-				IF s#NIL THEN
-					Strings.Copy(s^, 0, LEN(s^)-1, aoc);
-					Strings.StrToInt(aoc, j);
-				END;
-				s := GetElemAttributeValue(elem, "src", FALSE);
-				IF s#NIL THEN
-					s := ResolveAddress(baseAddress, s);
-					AddImage(s, i, j, style);
-				END;
-			ELSIF name^="INPUT" THEN
-				IF style.form # NIL THEN
-					s := GetElemAttributeValue(elem, "type", TRUE);
+					TransformContent(elem, style);
+				ELSIF name^="BASE" THEN
+					s := GetElemAttributeValue(elem, "href", FALSE);
 					IF s#NIL THEN
-						IF s^="checkbox" THEN
-							s := GetElemAttributeValue(elem, "name", FALSE);
-							s2 := GetElemAttributeValue(elem, "value", FALSE);
-							IF s2 = NIL THEN s2 := Strings.NewString("on") END;
-							s3 := GetElemAttributeValue(elem, "checked", FALSE);
-							b := FALSE;
-							IF s3 # NIL THEN
-								b := TRUE;
-								Strings.TrimWS(s^);
-								IF s3^ = "no" THEN
-									b := FALSE;
+						baseAddress := s;
+					END;
+					baseTarget := GetElemAttributeValue(elem, "target", FALSE);
+				ELSIF name^="BASEFONT" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="BDO" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="BIG" THEN
+					IF style.size < 7 THEN INC(style.size); END;
+					TransformContent(elem, style);
+				ELSIF name^="BLOCKQUOTE" THEN
+					NewParagraph(FALSE);
+					INC(style.indent);
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSIF name^="BODY" THEN
+					s := GetElemAttributeValue(elem, "bgcolor", TRUE);
+					IF s#NIL THEN pageBgColor := GetColor(s); END;
+					s := GetElemAttributeValue(elem, "text", TRUE);
+					IF s#NIL THEN
+						textColor := GetColor(s);
+						style.color := textColor;
+					END;
+					s := GetElemAttributeValue(elem, "link", TRUE);
+					IF s#NIL THEN linkColor := GetColor(s); END;
+					s := GetElemAttributeValue(elem, "vlink", TRUE);
+					IF s#NIL THEN vlinkColor := GetColor(s); END;
+					s := GetElemAttributeValue(elem, "alink", TRUE);
+					IF s#NIL THEN alinkColor := GetColor(s); END;
+					s := GetElemAttributeValue(elem, "background", FALSE);
+					IF s#NIL THEN
+						bgImage := ResolveAddress(baseAddress, s);
+					END;
+
+					(* TODO: backround image *)
+					TransformContent(elem, style);
+				ELSIF name^="BR" THEN
+					NewLine(TRUE);
+				ELSIF name^="BUTTON" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF Strings.StartsWith2("BB:", name^) THEN
+					XMLTransformer.AddContentsOf(XMLTransformer.Transform(elem), txtElem);
+					currentAlign := -1;
+					currentIndent := -1;
+					SetAlignmentAndIndent(style.align, style.indent);
+				ELSE TransformContent(elem, style);
+				END;
+			|"C":
+				IF name^="CENTER" THEN
+					NewLine(TRUE);
+					style.align := alignCenter;
+					TransformContent(elem, style);
+					NewLine(TRUE);
+				ELSIF name^="CITE" THEN
+					IF style.style = 0 THEN
+						style.style := 2;
+					ELSIF style.style = 1 THEN
+						style.style := 3;
+					END;
+					TransformContent(elem, style);
+				ELSIF name^="CODE" THEN
+					style.font := Strings.NewString(monospace);
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
+				END;
+			|"D":
+				IF name^="DD" THEN
+					INC(style.indent);
+					TransformContent(elem, style);
+					NewLine(FALSE);
+				ELSIF name^="DEL" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="DFN" THEN
+					IF style.style = 0 THEN
+						style.style := 2;
+					ELSIF style.style = 1 THEN
+						style.style := 3;
+					END;
+					TransformContent(elem, style);
+				ELSIF name^="DIR" THEN
+					ul();
+				ELSIF name^="DIV" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "center" THEN
+							style.align := alignCenter;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSIF s^ = "justify" THEN
+							style.align := alignJustify;
+						END;
+					END;
+					NewLine(TRUE);
+					TransformContent(elem, style);
+					NewLine(TRUE);
+				ELSIF name^="DL" THEN
+					IF inDL THEN
+						INC(style.indent);
+						NewLine(FALSE);
+					ELSE
+						NewParagraph(FALSE);
+					END;
+					b := inDL;
+					inDL := TRUE;
+					TransformContent(elem, style);
+					IF b THEN
+						NewLine(FALSE);
+					ELSE
+						NewParagraph(FALSE);
+					END;
+					inDL := b;
+				ELSIF name^="DT" THEN
+					TransformContent(elem, style);
+					NewLine(FALSE);
+				ELSE TransformContent(elem, style);
+				END;
+			|"E":
+				IF name^="EM" THEN
+					IF style.style = 0 THEN
+						style.style := 2;
+					ELSIF style.style = 1 THEN
+						style.style := 3;
+					END;
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
+				END;
+			|"F":
+				IF name^="FIELDSET" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="FONT" THEN
+					s := GetElemAttributeValue(elem, "size", FALSE);
+					IF s#NIL THEN
+						Strings.Copy(s^, 0, LEN(s^)-1, aoc);
+						Strings.TrimLeft(aoc, ' ');
+						Strings.StrToInt(aoc, res);
+						IF (aoc[0]='+') OR (aoc[0]='-') THEN
+							style.size := style.size + res;
+						ELSE
+							style.size := res;
+						END;
+						IF style.size < 1 THEN
+							style.size := 1;
+						ELSIF style.size > 7 THEN
+							style.size := 7;
+						END;
+					END;
+					s := GetElemAttributeValue(elem, "color", TRUE);
+					IF s#NIL THEN style.color := GetColor(s); END;
+					s := GetElemAttributeValue(elem, "face", FALSE);
+					IF s#NIL THEN style.font := GetExistingFontName(s); END;
+					TransformContent(elem, style);
+				ELSIF name^="FORM" THEN
+					oldForm := style.form;
+					s := GetElemAttributeValue(elem, "action", FALSE);
+					IF s = NIL THEN
+						s := baseAddress;
+					ELSE
+						s := ResolveAddress(baseAddress, s);
+					END;
+					NEW(style.form, s, loadLink);
+					TransformContent(elem, style);
+					style.form := oldForm;
+				ELSE TransformContent(elem, style);
+				END;
+			|"G":
+				TransformContent(elem, style);
+			|"H":
+				IF name^="H1" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "center" THEN
+							style.align := alignCenter;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSIF s^ = "justify" THEN
+							style.align := alignJustify;
+						END;
+					END;
+					NewParagraph(FALSE);
+					style.size := 6;
+					style.style := 1;
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSIF name^="H2" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "center" THEN
+							style.align := alignCenter;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSIF s^ = "justify" THEN
+							style.align := alignJustify;
+						END;
+					END;
+					NewParagraph(FALSE);
+					style.size := 5;
+					style.style := 1;
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSIF name^="H3" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "center" THEN
+							style.align := alignCenter;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSIF s^ = "justify" THEN
+							style.align := alignJustify;
+						END;
+					END;
+					NewParagraph(FALSE);
+					style.size := 4;
+					style.style := 1;
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSIF name^="H4" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "center" THEN
+							style.align := alignCenter;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSIF s^ = "justify" THEN
+							style.align := alignJustify;
+						END;
+					END;
+					NewParagraph(FALSE);
+					style.size := 3;
+					style.style := 1;
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSIF name^="H5" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "center" THEN
+							style.align := alignCenter;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSIF s^ = "justify" THEN
+							style.align := alignJustify;
+						END;
+					END;
+					NewParagraph(FALSE);
+					style.size := 2;
+					style.style := 1;
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSIF name^="H6" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "center" THEN
+							style.align := alignCenter;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSIF s^ = "justify" THEN
+							style.align := alignJustify;
+						END;
+					END;
+					NewParagraph(FALSE);
+					style.size := 1;
+					style.style := 1;
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSIF name^="HEAD" THEN
+					TransformContent(elem, style);
+				ELSIF name^="HR" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSE
+							style.align := alignCenter;
+						END;
+					ELSE
+						style.align := alignCenter;
+					END;
+					NewLine(FALSE);
+					AddHR(style.align);
+					NewLine(FALSE);
+				ELSIF name^="HTML" THEN
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
+				END;
+			|"I":				
+				IF name^="I" THEN
+					IF style.style = 0 THEN
+						style.style := 2;
+					ELSIF style.style = 1 THEN
+						style.style := 3;
+					END;
+					TransformContent(elem, style);
+				ELSIF name^="IFRAME" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="IMG" THEN
+					i := -1; j := -1;
+					s := GetElemAttributeValue(elem, "width", FALSE);
+					IF s#NIL THEN
+						Strings.Copy(s^, 0, LEN(s^)-1, aoc);
+						Strings.StrToInt(aoc, i);
+					END;
+					s := GetElemAttributeValue(elem, "height", FALSE);
+					IF s#NIL THEN
+						Strings.Copy(s^, 0, LEN(s^)-1, aoc);
+						Strings.StrToInt(aoc, j);
+					END;
+					s := GetElemAttributeValue(elem, "src", FALSE);
+					IF s#NIL THEN
+						s := ResolveAddress(baseAddress, s);
+						AddImage(s, i, j, style);
+					END;
+				ELSIF name^="INPUT" THEN
+					IF style.form # NIL THEN
+						s := GetElemAttributeValue(elem, "type", TRUE);
+						IF s#NIL THEN
+							IF s^="checkbox" THEN
+								s := GetElemAttributeValue(elem, "name", FALSE);
+								s2 := GetElemAttributeValue(elem, "value", FALSE);
+								IF s2 = NIL THEN s2 := Strings.NewString("on") END;
+								s3 := GetElemAttributeValue(elem, "checked", FALSE);
+								b := FALSE;
+								IF s3 # NIL THEN
+									b := TRUE;
+									Strings.TrimWS(s^);
+									IF s3^ = "no" THEN
+										b := FALSE;
+									END;
 								END;
-							END;
-							NEW(formCheckbox, s, s2, b);
-							AddText(Strings.NewString(" "), style); AddText(Strings.NewString(" "), style); AddText(Strings.NewString(" "), style);
-							style.form.AddFormComponent(formCheckbox);
-							AddVisualComponent(formCheckbox.checkbox, style);
-							AddText(Strings.NewString(" "), style);
-						ELSIF s^="radio" THEN
-							s := GetElemAttributeValue(elem, "name", FALSE);
-							IF s = NIL THEN s := Strings.NewString("radioButton") END;
-							s2 := GetElemAttributeValue(elem, "value", FALSE);
-							IF s2 = NIL THEN s2 := Strings.NewString("on") END;
-							s3 := GetElemAttributeValue(elem, "checked", FALSE);
-							b := FALSE;
-							IF s3 # NIL THEN
-								b := TRUE;
-								Strings.TrimWS(s^);
-								IF s3^ = "no" THEN
-									b := FALSE;
+								NEW(formCheckbox, s, s2, b);
+								AddText(Strings.NewString(" "), style); AddText(Strings.NewString(" "), style); AddText(Strings.NewString(" "), style);
+								style.form.AddFormComponent(formCheckbox);
+								AddVisualComponent(formCheckbox.checkbox, style);
+								AddText(Strings.NewString(" "), style);
+							ELSIF s^="radio" THEN
+								s := GetElemAttributeValue(elem, "name", FALSE);
+								IF s = NIL THEN s := Strings.NewString("radioButton") END;
+								s2 := GetElemAttributeValue(elem, "value", FALSE);
+								IF s2 = NIL THEN s2 := Strings.NewString("on") END;
+								s3 := GetElemAttributeValue(elem, "checked", FALSE);
+								b := FALSE;
+								IF s3 # NIL THEN
+									b := TRUE;
+									Strings.TrimWS(s^);
+									IF s3^ = "no" THEN
+										b := FALSE;
+									END;
 								END;
+								NEW(formRadioButton, s, s2, b);
+								style.form.AddRadioButton(formRadioButton);
+								AddText(Strings.NewString(" "), style); AddText(Strings.NewString(" "), style); AddText(Strings.NewString(" "), style);
+								AddVisualComponent(formRadioButton.radioButton, style);
+								AddText(Strings.NewString(" "), style);
+							ELSIF s^="submit" THEN
+								s := GetElemAttributeValue(elem, "name", FALSE);
+								s2 := GetElemAttributeValue(elem, "value", FALSE);
+								IF s2 = NIL THEN s2 := Strings.NewString("Submit Query") END;
+								NEW(formButton, s, s2, style.form.Send);
+								style.form.AddFormComponent(formButton);
+								AddVisualComponent(formButton.button, style);
+								AddText(Strings.NewString(" "), style);
+							ELSIF s^="reset" THEN
+								s := GetElemAttributeValue(elem, "name", FALSE);
+								s2 := GetElemAttributeValue(elem, "value", FALSE);
+								IF s2 = NIL THEN s2 := Strings.NewString("Reset") END;
+								NEW(formButton, s, s2, style.form.Reset);
+								style.form.AddFormComponent(formButton);
+								AddVisualComponent(formButton.button, style);
+								AddText(Strings.NewString(" "), style);
+							ELSIF s^="file" THEN
+							ELSIF s^="hidden" THEN
+								s := GetElemAttributeValue(elem, "name", FALSE);
+								s2 := GetElemAttributeValue(elem, "value", FALSE);
+								IF s2 = NIL THEN s2 := Strings.NewString("") END;
+								NEW(formHiddenControl, s, s2);
+								style.form.AddFormComponent(formHiddenControl);
+							ELSIF s^="image" THEN
+							ELSIF s^="button" THEN
+								s := GetElemAttributeValue(elem, "name", FALSE);
+								s2 := GetElemAttributeValue(elem, "value", FALSE);
+								IF s2 = NIL THEN s2 := Strings.NewString("") END;
+								NEW(formButton, s, s2, NIL); (* when implementing scripts: replace NIL with a function *)
+								style.form.AddFormComponent(formButton);
+								AddVisualComponent(formButton.button, style);
+								AddText(Strings.NewString(" "), style);
+							ELSIF s^="password" THEN
+								textInput(TRUE);
+							ELSE
+								textInput(FALSE);
 							END;
-							NEW(formRadioButton, s, s2, b);
-							style.form.AddRadioButton(formRadioButton);
-							AddText(Strings.NewString(" "), style); AddText(Strings.NewString(" "), style); AddText(Strings.NewString(" "), style);
-							AddVisualComponent(formRadioButton.radioButton, style);
-							AddText(Strings.NewString(" "), style);
-						ELSIF s^="submit" THEN
-							s := GetElemAttributeValue(elem, "name", FALSE);
-							s2 := GetElemAttributeValue(elem, "value", FALSE);
-							IF s2 = NIL THEN s2 := Strings.NewString("Submit Query") END;
-							NEW(formButton, s, s2, style.form.Send);
-							style.form.AddFormComponent(formButton);
-							AddVisualComponent(formButton.button, style);
-							AddText(Strings.NewString(" "), style);
-						ELSIF s^="reset" THEN
-							s := GetElemAttributeValue(elem, "name", FALSE);
-							s2 := GetElemAttributeValue(elem, "value", FALSE);
-							IF s2 = NIL THEN s2 := Strings.NewString("Reset") END;
-							NEW(formButton, s, s2, style.form.Reset);
-							style.form.AddFormComponent(formButton);
-							AddVisualComponent(formButton.button, style);
-							AddText(Strings.NewString(" "), style);
-						ELSIF s^="file" THEN
-						ELSIF s^="hidden" THEN
-							s := GetElemAttributeValue(elem, "name", FALSE);
-							s2 := GetElemAttributeValue(elem, "value", FALSE);
-							IF s2 = NIL THEN s2 := Strings.NewString("") END;
-							NEW(formHiddenControl, s, s2);
-							style.form.AddFormComponent(formHiddenControl);
-						ELSIF s^="image" THEN
-						ELSIF s^="button" THEN
-							s := GetElemAttributeValue(elem, "name", FALSE);
-							s2 := GetElemAttributeValue(elem, "value", FALSE);
-							IF s2 = NIL THEN s2 := Strings.NewString("") END;
-							NEW(formButton, s, s2, NIL); (* when implementing scripts: replace NIL with a function *)
-							style.form.AddFormComponent(formButton);
-							AddVisualComponent(formButton.button, style);
-							AddText(Strings.NewString(" "), style);
-						ELSIF s^="password" THEN
-							textInput(TRUE);
 						ELSE
 							textInput(FALSE);
 						END;
-					ELSE
-						textInput(FALSE);
 					END;
+				ELSIF name^="INS" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="ISINDEX" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
 				END;
-			ELSIF name^="INS" THEN
-				(* to be implemented *)
+			|"J":
 				TransformContent(elem, style);
-			ELSIF name^="ISINDEX" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="KBD" THEN
-				style.font := Strings.NewString(monospace);
-				TransformContent(elem, style);
-			ELSIF name^="LABEL" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="LEGEND" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="LI" THEN
-				NewLine(FALSE);
-				IF olulStackTop#NIL THEN
-					s := GetElemAttributeValue(elem, "value", FALSE);
-					IF s#NIL THEN
-						Strings.StrToInt(s^, olulStackTop.value);
-					END;
+			|"K":
+				IF name^="KBD" THEN
+					style.font := Strings.NewString(monospace);
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
 				END;
-				i := style.enumtype;
-				s := GetElemAttributeValue(elem, "type", FALSE);
-				IF s#NIL THEN
-					IF s^="square" THEN
-						i := 1;
-					ELSIF s^="circle" THEN
-						i := 2;
-					ELSE (* "disc" *)
-						i := 0;
-					END;
-				END;
-				CASE i OF
-				| 1 : s := Strings.NewString("&#9633; "); (* square *)
-				| 2 : s := Strings.NewString("&#9675; "); (* circle *)
-				| 3 : IF olulStackTop#NIL THEN  (* 1, 2, 3... *)
-						Strings.IntToStr(olulStackTop.value, aoc);
-						j :=Strings.Length(aoc);
-						IF (j+2) <= (LEN(aoc)-1) THEN
-							aoc[j]:='.'; aoc[j+1]:=' '; aoc[j+2]:=0X;
-						END;
-					ELSE
-						aoc := "0. ";
-					END;
-					s := Strings.NewString(aoc);
-				| 4 : IF olulStackTop#NIL THEN  (* a, b, c... *)
-						s := IntToABCString(olulStackTop.value, FALSE);
-					ELSE
-						s := Strings.NewString("0. ");
-					END;
-				| 5 : IF olulStackTop#NIL THEN (* A, B, C... *)
-						s := IntToABCString(olulStackTop.value, TRUE);
-					ELSE
-						s := Strings.NewString("0. ");
-					END;
-				| 6 : IF olulStackTop#NIL THEN (* i, ii, iii... *)
-						s := IntToRomanString(olulStackTop.value, FALSE);
-					ELSE
-						s := Strings.NewString("0. ");
-					END;
-				| 7 : IF olulStackTop#NIL THEN (* I, II, III... *)
-						s := IntToRomanString(olulStackTop.value, TRUE);
-					ELSE
-						s := Strings.NewString("0. ");
-					END;
-				ELSE  (* 0 *)
-					s := Strings.NewString("&#9679; "); (* disc *)
-				END;
-				AddText(s, style);
-				IF olulStackTop#NIL THEN INC(olulStackTop.value); END;
-				TransformContent(elem, style);
-				NewLine(FALSE);
-			ELSIF name^="LINK" THEN
-				(* ignore *)
-			ELSIF name^="MAP" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="MENU" THEN
-				ul();
-			ELSIF name^="META" THEN
-				s := GetElemAttributeValue(elem, "content", TRUE);
-				IF s#NIL THEN
-					i := Strings.Pos("charset", s^);
-					IF i # -1 THEN
-						i := Strings.IndexOfByte('=', i+7, s^) + 1;
-						IF i < Strings.Length(s^) THEN
-							s := Strings.Substring2(i, s^);
-							charsetConv := GetCharsetConverter(s^);
-							charset := s;
-						END;
-					END;
-				END;
-		(* Frames are handeled in WebBrowserPanel.HTMLPanel
-			ELSIF name^="NOFRAMES" THEN
-		*)
-			ELSIF name^="NOSCRIPT" THEN
-				(* TODO: remove if scripts are implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="OBJECT" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="OL" THEN
-				IF olulStackTop = NIL THEN
-					NewParagraph(FALSE);
-				ELSE
+			|"L":
+				IF name^="LABEL" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="LEGEND" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="LI" THEN
 					NewLine(FALSE);
+					IF olulStackTop#NIL THEN
+						s := GetElemAttributeValue(elem, "value", FALSE);
+						IF s#NIL THEN
+							Strings.StrToInt(s^, olulStackTop.value);
+						END;
+					END;
+					i := style.enumtype;
+					s := GetElemAttributeValue(elem, "type", FALSE);
+					IF s#NIL THEN
+						IF s^="square" THEN
+							i := 1;
+						ELSIF s^="circle" THEN
+							i := 2;
+						ELSE (* "disc" *)
+							i := 0;
+						END;
+					END;
+					CASE i OF
+					| 1 : s := Strings.NewString("&#9633; "); (* square *)
+					| 2 : s := Strings.NewString("&#9675; "); (* circle *)
+					| 3 : IF olulStackTop#NIL THEN  (* 1, 2, 3... *)
+							Strings.IntToStr(olulStackTop.value, aoc);
+							j :=Strings.Length(aoc);
+							IF (j+2) <= (LEN(aoc)-1) THEN
+								aoc[j]:='.'; aoc[j+1]:=' '; aoc[j+2]:=0X;
+							END;
+						ELSE
+							aoc := "0. ";
+						END;
+						s := Strings.NewString(aoc);
+					| 4 : IF olulStackTop#NIL THEN  (* a, b, c... *)
+							s := IntToABCString(olulStackTop.value, FALSE);
+						ELSE
+							s := Strings.NewString("0. ");
+						END;
+					| 5 : IF olulStackTop#NIL THEN (* A, B, C... *)
+							s := IntToABCString(olulStackTop.value, TRUE);
+						ELSE
+							s := Strings.NewString("0. ");
+						END;
+					| 6 : IF olulStackTop#NIL THEN (* i, ii, iii... *)
+							s := IntToRomanString(olulStackTop.value, FALSE);
+						ELSE
+							s := Strings.NewString("0. ");
+						END;
+					| 7 : IF olulStackTop#NIL THEN (* I, II, III... *)
+							s := IntToRomanString(olulStackTop.value, TRUE);
+						ELSE
+							s := Strings.NewString("0. ");
+						END;
+					ELSE  (* 0 *)
+						s := Strings.NewString("&#9679; "); (* disc *)
+					END;
+					AddText(s, style);
+					IF olulStackTop#NIL THEN INC(olulStackTop.value); END;
+					TransformContent(elem, style);
+					NewLine(FALSE);
+				ELSIF name^="LINK" THEN
+					(* ignore *)
+				ELSE TransformContent(elem, style);
 				END;
-				INC(style.indent);
-				s := GetElemAttributeValue(elem, "type", FALSE);
-				IF s#NIL THEN
-					IF s^="a" THEN
-						style.enumtype := 4;
-					ELSIF s^="A" THEN
-						style.enumtype := 5;
-					ELSIF s^="i" THEN
-						style.enumtype := 6;
-					ELSIF s^="I" THEN
-						style.enumtype := 7;
-					ELSE (* "1" *)
+			|"M":
+				IF name^="MAP" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="MENU" THEN
+					ul();
+				ELSIF name^="META" THEN
+					s := GetElemAttributeValue(elem, "content", TRUE);
+					IF s#NIL THEN
+						i := Strings.Pos("charset", s^);
+						IF i # -1 THEN
+							i := Strings.IndexOfByte('=', i+7, s^) + 1;
+							IF i < Strings.Length(s^) THEN
+								s := Strings.Substring2(i, s^);
+								charsetConv := GetCharsetConverter(s^);
+								charset := s;
+							END;
+						END;
+					END;
+				ELSE TransformContent(elem, style);
+				END;
+			|"N":
+			(* Frames are handeled in WebBrowserPanel.HTMLPanel
+				ELSIF name^="NOFRAMES" THEN
+			*)
+				IF name^="NOSCRIPT" THEN
+					(* TODO: remove if scripts are implemented *)
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
+				END;
+			|"O":
+				IF name^="OBJECT" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="OL" THEN
+					IF olulStackTop = NIL THEN
+						NewParagraph(FALSE);
+					ELSE
+						NewLine(FALSE);
+					END;
+					INC(style.indent);
+					s := GetElemAttributeValue(elem, "type", FALSE);
+					IF s#NIL THEN
+						IF s^="a" THEN
+							style.enumtype := 4;
+						ELSIF s^="A" THEN
+							style.enumtype := 5;
+						ELSIF s^="i" THEN
+							style.enumtype := 6;
+						ELSIF s^="I" THEN
+							style.enumtype := 7;
+						ELSE (* "1" *)
+							style.enumtype := 3;
+						END;
+					ELSE
 						style.enumtype := 3;
 					END;
-				ELSE
-					style.enumtype := 3;
-				END;
-				NEW(olulStackItem);
-				olulStackItem.prev := olulStackTop;
-				olulStackTop := olulStackItem;
-				s := GetElemAttributeValue(elem, "start", FALSE);
-				IF s#NIL THEN
-					Strings.StrToInt(s^, olulStackItem.value);
-				ELSE
-					olulStackItem.value := 1;
-				END;
-				TransformContent(elem, style);
-				olulStackTop := olulStackTop.prev;
-				IF olulStackTop = NIL THEN
-					NewParagraph(FALSE);
-				ELSE
-					NewLine(FALSE);
-				END;
-			ELSIF name^="OPTGROUP" THEN
-				TransformContent(elem, style);
-			ELSIF name^="OPTION" THEN
-				IF formMenu # NIL THEN
-					s := GetElemAttributeValue(elem, "value", FALSE);
-					s2 := GetElemAttributeValue(elem, "label", FALSE);
-					IF s2 = NIL THEN
-						s2 := GetText(elem);
+					NEW(olulStackItem);
+					olulStackItem.prev := olulStackTop;
+					olulStackTop := olulStackItem;
+					s := GetElemAttributeValue(elem, "start", FALSE);
+					IF s#NIL THEN
+						Strings.StrToInt(s^, olulStackItem.value);
+					ELSE
+						olulStackItem.value := 1;
 					END;
-					s3 := GetElemAttributeValue(elem, "selected", FALSE);
-					formMenu.NewItem(s, s2, s3 # NIL);
-				END;
-			ELSIF name^="P" THEN
-				s := GetElemAttributeValue(elem, "align", TRUE);
-				IF s # NIL THEN
-					Strings.TrimWS(s^);
-					IF s^ = "left" THEN
-						style.align := alignLeft;
-					ELSIF s^ = "center" THEN
-						style.align := alignCenter;
-					ELSIF s^ = "right" THEN
-						style.align := alignRight;
-					ELSIF s^ = "justify" THEN
-						style.align := alignJustify;
-					END;
-				END;
-				NewParagraph(FALSE);
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="PARAM" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="PRE" THEN
-				NewParagraph(FALSE);
-				style.preformatted := TRUE;
-				style.font := Strings.NewString(monospace);
-				TransformContent(elem, style);
-				NewParagraph(FALSE);
-			ELSIF name^="Q" THEN
-				AddText(Strings.NewString('"'), style);
-				TransformContent(elem, style);
-				AddText(Strings.NewString('"'), style);
-			ELSIF name^="S" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="SAMP" THEN
-				style.font := Strings.NewString(monospace);
-				TransformContent(elem, style);
-			ELSIF name^="SCRIPT" THEN
-				(* ignore *)
-			ELSIF name^="SELECT" THEN
-				IF style.form # NIL THEN
-					s := GetElemAttributeValue(elem, "name", FALSE);
-					IF s = NIL THEN s := Strings.NewString("defaultMenu") END;
-					NEW(formMenu, s);
-					style.form.AddFormComponent(formMenu);
-					AddVisualComponent(formMenu.button, style);
-					AddText(Strings.NewString(" "), style);
 					TransformContent(elem, style);
-					formMenu := NIL;
+					olulStackTop := olulStackTop.prev;
+					IF olulStackTop = NIL THEN
+						NewParagraph(FALSE);
+					ELSE
+						NewLine(FALSE);
+					END;
+				ELSIF name^="OPTGROUP" THEN
+					TransformContent(elem, style);
+				ELSIF name^="OPTION" THEN
+					IF formMenu # NIL THEN
+						s := GetElemAttributeValue(elem, "value", FALSE);
+						s2 := GetElemAttributeValue(elem, "label", FALSE);
+						IF s2 = NIL THEN
+							s2 := GetText(elem);
+						END;
+						s3 := GetElemAttributeValue(elem, "selected", FALSE);
+						formMenu.NewItem(s, s2, s3 # NIL);
+					END;
+				ELSE TransformContent(elem, style);
 				END;
-			ELSIF name^="SMALL" THEN
-				IF style.size > 1 THEN DEC(style.size); END;
-				TransformContent(elem, style);
-			ELSIF name^="SPAN" THEN
-				TransformContent(elem, style);
-			ELSIF name^="STRIKE" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="STRONG" THEN
-				IF style.style = 0 THEN
-					style.style := 1;
-				ELSIF style.style = 2 THEN
-					style.style := 3;
-				END;
-				TransformContent(elem, style);
-			ELSIF name^="STYLE" THEN
-				(* ignore *)
-			ELSIF name^="SUB" THEN
-				IF style.shift = 0 THEN style.shift := 1; END;
-				IF style.size >1 THEN DEC(style.size); END;
-				TransformContent(elem, style);
-			ELSIF name^="SUP" THEN
-				IF style.shift = 0 THEN style.shift := -1; END;
-				IF style.size >1 THEN DEC(style.size); END;
-				TransformContent(elem, style);
-			ELSIF name^="SVG" THEN
-				AddSVG(elem, style);
-			ELSIF name^="TABLE" THEN
-				AddTable(elem, style);
-			ELSIF name^="TEXTAREA" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="TITLE" THEN
-				IF title = NIL THEN
-					exitLoop := FALSE;
-					enum := elem.GetContents();
-					WHILE enum.HasMoreElements() & ~exitLoop DO
-						p := enum.GetNext();
-						IF p IS XML.ArrayChars THEN
-							title := p(XML.ArrayChars).GetStr();
-							title := ReplaceWhiteSpaces(title);
-							title := charsetConv(title^);
-							title := TransformCharEnt(title);
-							exitLoop := TRUE;
+			|"P":
+				IF name^="P" THEN
+					s := GetElemAttributeValue(elem, "align", TRUE);
+					IF s # NIL THEN
+						Strings.TrimWS(s^);
+						IF s^ = "left" THEN
+							style.align := alignLeft;
+						ELSIF s^ = "center" THEN
+							style.align := alignCenter;
+						ELSIF s^ = "right" THEN
+							style.align := alignRight;
+						ELSIF s^ = "justify" THEN
+							style.align := alignJustify;
 						END;
 					END;
+					NewParagraph(FALSE);
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSIF name^="PARAM" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="PRE" THEN
+					NewParagraph(FALSE);
+					style.preformatted := TRUE;
+					style.font := Strings.NewString(monospace);
+					TransformContent(elem, style);
+					NewParagraph(FALSE);
+				ELSE TransformContent(elem, style);
 				END;
-			ELSIF name^="TT" THEN
-				style.font := Strings.NewString(monospace);
-				TransformContent(elem, style);
-			ELSIF name^="U" THEN
-				(* to be implemented *)
-				TransformContent(elem, style);
-			ELSIF name^="UL" THEN
-				ul();
-			ELSIF name^="VAR" THEN
-				IF style.style = 0 THEN
-					style.style := 2;
-				ELSIF style.style = 1 THEN
-					style.style := 3;
+			|"Q":
+				IF name^="Q" THEN
+					AddText(Strings.NewString('"'), style);
+					TransformContent(elem, style);
+					AddText(Strings.NewString('"'), style);
+				ELSE TransformContent(elem, style);
 				END;
+			|"R":
 				TransformContent(elem, style);
-			ELSIF Strings.StartsWith2("BB:", name^) THEN
-				XMLTransformer.AddContentsOf(XMLTransformer.Transform(elem), txtElem);
-				currentAlign := -1;
-				currentIndent := -1;
-				SetAlignmentAndIndent(style.align, style.indent);
+			|"S":
+				IF name^="S" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="SAMP" THEN
+					style.font := Strings.NewString(monospace);
+					TransformContent(elem, style);
+				ELSIF name^="SCRIPT" THEN
+					(* ignore *)
+				ELSIF name^="SELECT" THEN
+					IF style.form # NIL THEN
+						s := GetElemAttributeValue(elem, "name", FALSE);
+						IF s = NIL THEN s := Strings.NewString("defaultMenu") END;
+						NEW(formMenu, s);
+						style.form.AddFormComponent(formMenu);
+						AddVisualComponent(formMenu.button, style);
+						AddText(Strings.NewString(" "), style);
+						TransformContent(elem, style);
+						formMenu := NIL;
+					END;
+				ELSIF name^="SMALL" THEN
+					IF style.size > 1 THEN DEC(style.size); END;
+					TransformContent(elem, style);
+				ELSIF name^="SPAN" THEN
+					TransformContent(elem, style);
+				ELSIF name^="STRIKE" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="STRONG" THEN
+					IF style.style = 0 THEN
+						style.style := 1;
+					ELSIF style.style = 2 THEN
+						style.style := 3;
+					END;
+					TransformContent(elem, style);
+				ELSIF name^="STYLE" THEN
+					(* ignore *)
+				ELSIF name^="SUB" THEN
+					IF style.shift = 0 THEN style.shift := 1; END;
+					IF style.size >1 THEN DEC(style.size); END;
+					TransformContent(elem, style);
+				ELSIF name^="SUP" THEN
+					IF style.shift = 0 THEN style.shift := -1; END;
+					IF style.size >1 THEN DEC(style.size); END;
+					TransformContent(elem, style);
+				ELSIF name^="SVG" THEN
+					AddSVG(elem, style);
+				ELSE TransformContent(elem, style);
+				END;
+			|"T":
+				IF name^="TABLE" THEN
+					AddTable(elem, style);
+				ELSIF name^="TEXTAREA" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="TITLE" THEN
+					IF title = NIL THEN
+						exitLoop := FALSE;
+						enum := elem.GetContents();
+						WHILE enum.HasMoreElements() & ~exitLoop DO
+							p := enum.GetNext();
+							IF p IS XML.ArrayChars THEN
+								title := p(XML.ArrayChars).GetStr();
+								title := ReplaceWhiteSpaces(title);
+								title := charsetConv(title^);
+								title := TransformCharEnt(title);
+								exitLoop := TRUE;
+							END;
+						END;
+					END;
+				ELSIF name^="TT" THEN
+					style.font := Strings.NewString(monospace);
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
+				END;
+			|"U":
+				IF name^="U" THEN
+					(* to be implemented *)
+					TransformContent(elem, style);
+				ELSIF name^="UL" THEN
+					ul();
+				ELSE TransformContent(elem, style);
+				END;
+			|"V":
+				IF name^="VAR" THEN
+					IF style.style = 0 THEN
+						style.style := 2;
+					ELSIF style.style = 1 THEN
+						style.style := 3;
+					END;
+					TransformContent(elem, style);
+				ELSE TransformContent(elem, style);
+				END;
 			ELSE
 				TransformContent(elem, style);
 			END;
@@ -1895,6 +1959,7 @@ TYPE
 		BEGIN
 			Init;
 			SetSequencer(seq);
+
 			SELF.parentTable := parentTable;
 
 			takesFocus.Set(FALSE);
@@ -1994,8 +2059,11 @@ TYPE
 			writer.Update;*)
 
 			NEW(tv);
+			
+			 tv.SetText(text); (*!??  redundant calls to tv.SetText, implying internal updates ...*)
 			tv.onLinkClicked.Add(loadLink);
 			AddContent(tv);
+			
 			tv.alignment.Set(WMComponents.AlignClient);
 			rec.l := parentTable.cellpadding; rec.t := parentTable.cellpadding; rec.r := parentTable.cellpadding; rec.b := parentTable.cellpadding;
 			tv.borders.Set(rec);
@@ -2010,7 +2078,7 @@ TYPE
 				END;
 				item := item.prev;
 			END;
-			tv.SetText(text);
+			(*tv.SetText(text);*)
 			tv.GetMinMaxWidth(minWidth, dummy);
 			(*KernelLog.String("TableCell.New: minWidth of this cell: "); KernelLog.Int(minWidth, 0);*)
 			INC(minWidth, 2 * colspan * parentTable.cellpadding + (colspan - 1) * parentTable.cellspacing);
@@ -2028,6 +2096,8 @@ TYPE
 			tv.GetMinMaxWidth(dummy, maxWidth);
 			(*KernelLog.String(", maxWidth of this cell: "); KernelLog.Int(maxWidth, 0); KernelLog.Ln;*)
 			INC(maxWidth, 2 * colspan * parentTable.cellpadding + (colspan - 1) * parentTable.cellspacing);
+			
+			(*SetSequencer(seq); *)(*!??PH*)
 		END New;
 
 		PROCEDURE SetWidth(width : LONGINT);
@@ -2537,7 +2607,7 @@ BEGIN
 	END;
 END EncodeLinkData;
 
-PROCEDURE Utf82UrlEncodedUtf8(VAR in : ARRAY OF CHAR) : String;
+PROCEDURE Utf82UrlEncodedUtf8*(VAR in : ARRAY OF CHAR) : String;
 VAR
 	i, cnt : LONGINT;
 	output : String;

@@ -770,9 +770,11 @@ TYPE
 				IF piece = NIL THEN RETURN END;
 
 				IF ~(piece.startpos + piece.len >= pos) THEN
-					KernelLog.String("pos = "); KernelLog.Int(pos, 0); KernelLog.Ln;
-					KernelLog.String("startpos = "); KernelLog.Int(piece.startpos, 0);  KernelLog.Ln;
-					KernelLog.String("len = "); KernelLog.Int(piece.len, 0);  KernelLog.Ln;
+					IF FALSE (*debug*) THEN
+						KernelLog.String("pos = "); KernelLog.Int(pos, 0); KernelLog.Ln;
+						KernelLog.String("startpos = "); KernelLog.Int(piece.startpos, 0);  KernelLog.Ln;
+						KernelLog.String("len = "); KernelLog.Int(piece.len, 0);  KernelLog.Ln;
+					END;
 				END;
 
 			ELSE

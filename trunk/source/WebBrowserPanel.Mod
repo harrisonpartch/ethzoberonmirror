@@ -82,7 +82,7 @@ TYPE
 		PROCEDURE Load*(loadID : LONGINT);
 		VAR
 			cl : ContentLoader;
-		BEGIN
+		BEGIN  (*{EXCLUSIVE}  ??*)
 			IF ~pending THEN
 				pending := TRUE;
 				SELF.loadID := loadID;
@@ -157,6 +157,7 @@ TYPE
 		vc : VisualComponent;
 		url : String;
 		title : String;
+		encodedUrl: ARRAY 1024 OF CHAR;
 
 		PROCEDURE &New*(webPanel : WebPanel);
 		BEGIN
@@ -263,9 +264,9 @@ TYPE
 				(* Parse the page *)
 				NEW(scanner, rc.reader);
 				NEW(parser, scanner);
-				IF verbose THEN KernelLog.String("---Parsing "); KernelLog.String(rc.url^); KernelLog.Ln(); END;
+				IF verbose THEN KernelLog.String("-Parsing "); KernelLog.String(rc.url^); KernelLog.Ln(); END;
 				xmlDoc := parser.Parse();
-				IF verbose THEN KernelLog.String("---Parsing done."); KernelLog.Ln(); END;
+				IF verbose THEN KernelLog.String("-Parsing done."); KernelLog.Ln(); END;
 				NEW(text);
 				NEW(textWriter, text);
 				xmlDoc.Write(textWriter, NIL,  0);
@@ -288,9 +289,9 @@ TYPE
 				(* Parse the page *)
 				NEW(scanner, rc.reader);
 				NEW(parser, scanner);
-				IF verbose THEN KernelLog.String("---Parsing "); KernelLog.String(rc.url^); KernelLog.Ln(); END;
+				IF verbose THEN KernelLog.String("--Parsing "); KernelLog.String(rc.url^); KernelLog.Ln(); END;
 				xmlDoc := parser.Parse();
-				IF verbose THEN KernelLog.String("---Parsing done."); KernelLog.Ln(); END;
+				IF verbose THEN KernelLog.String("--Parsing done."); KernelLog.Ln(); END;
 				(* Transform the document *)
 				NEW(transformer, xmlDoc, rc.url, width, NIL, charset, NIL);
 				xmlDoc := transformer.Transform();
@@ -693,6 +694,7 @@ VAR
 	charset : String;
 	charsetPos : LONGINT;
 BEGIN
+
 	rc := WebBrowserComponents.GetResourceConnection(url);
 	IF rc = NIL THEN
 		IF verbose THEN KernelLog.String("Not found: "); KernelLog.String(url^); KernelLog.Ln; END;

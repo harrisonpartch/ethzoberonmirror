@@ -414,9 +414,9 @@ TYPE
 								sequencer.ScheduleEvent(SELF(VisualComponent).InvalidateCommand, SELF, NIL); 
 							END;
 						ELSE (* no tree traversal - is less costly *)
-							c(Component).sequencer:=NIL; c(Component).initialized:=FALSE;
+							c(Component).sequencer:=NIL; 
+							c(Component).initialized:=FALSE; (*? is this necessary/correct ?*)
 						END;
-					ELSE  (* does this case ever happen ?*)
 					END;
 				ELSIF ~(c IS XML.Comment) THEN
 					RETURN
@@ -1152,9 +1152,8 @@ TYPE
 			Rectangles.MoveRel(bounds, x, y);
 			c.bounds.Set(bounds);
 			c.AdaptRelativeBounds(c.bounds.Get(), SELF);
-
-			IF c.sequencer # sequencer THEN c.SetSequencer(sequencer) END;
 			(*
+			IF c.sequencer # sequencer THEN c.SetSequencer(sequencer) END; (* redundant - implicit in AddContent *)
 			c.Reset(NIL, NIL); (*currently redundant - already in happens Component.AddContent() *)
 			c.RecacheProperties; (*currently redundant - already in happens Reset() *)
 			*)

@@ -1,7 +1,7 @@
 MODULE WebBrowser; (** AUTHOR "Simon L. Keel"; PURPOSE "Simple Web Browser GUI"; *)
 
 IMPORT
-	WebBrowserPanel,
+	WebBrowserPanel, 
 	Strings, KernelLog, WMGraphics, WMComponents, WMStandardComponents, WMWindowManager, WMEditors,
 	Modules, WMRestorable, XML, WMRectangles, WMMessages, Commands, Files;
 
@@ -365,10 +365,21 @@ BEGIN
 END OpenURL;
 
 PROCEDURE OpenFile*(context : Commands.Context);
-VAR inst : Window; name : ARRAY 1024 OF CHAR; url : String;
+VAR inst : Window; prefix, name, path : ARRAY 1024 OF CHAR; urlpath, url : String; i,j:LONGINT;
 BEGIN
 	IF context.arg.GetString(name) THEN
-		url := Strings.ConcatToNew("file://", name);
+		Files.SplitName(name, prefix, path);
+		j:=0;
+		FOR i:=0 TO Strings.Length(path)-1 DO
+			IF path[i]#" " THEN name[j]:=path[i]
+			ELSE name[j]:="%"; name[j+1]:="2"; name[j+2]:="0"; INC(j,2);
+			END;
+			INC(j);
+		END;
+		name[j]:=0X;
+		path:="file://"; 
+		IF prefix#"" THEN Strings.Append(path,prefix); Strings.Append(path,":"); END;
+		url := Strings.ConcatToNew(path, name);
 		NEW(inst, NIL, url);
 	END;
 END OpenFile;
@@ -417,5 +428,8 @@ SystemTools.Free WebBrowser WebBrowserPanel HTMLParser HTMLScanner HTMLTransform
 WebBrowser.Open ~
 
 WebBrowser.OpenURL http://www.google.com ~
+WebBrowser.OpenURL  http://www.wikipedia.org~
+WebBrowser.OpenURL http://www.wikipedia.org/wiki/man ~
 
 WebBrowser.OpenFile OberonReport.html ~
+

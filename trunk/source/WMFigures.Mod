@@ -182,7 +182,7 @@ TYPE
 		BEGIN
 			bl:=bounds.GetLeft(); 
 			bt:=bounds.GetTop();
-			IF (keys={0}) & (Reshape IN state) (*reshape.Get()*)  THEN
+			IF (keys={0}) & (Reshape IN state)  THEN
 				IF (selected # NIL) THEN MovePoint(selected, fx, fy); selected := NIL; selectedLine:=FALSE;
 				ELSE  
 					dx:=fx+bl-oldx; oldx:=fx+bl; 
@@ -230,21 +230,12 @@ TYPE
 		END PointerMove;
 		
 				(* Is X, Y somewhere inside the polygon defined by p ? *)
-		PROCEDURE Inside*(X, Y: LONGINT): BOOLEAN;(*! to be done for children*)
+		PROCEDURE Inside*(X, Y: LONGINT): BOOLEAN;(*Prototype*)
 		END Inside;
 		
 		(** Return if the line is hit at (x, y) in parent coordinates *)
-		
-		PROCEDURE IsHit*(x, y: LONGINT): BOOLEAN; (*! to be done for children*)
+		PROCEDURE IsHit*(x, y: LONGINT): BOOLEAN; (*Prototype*)
 		END IsHit;		
-		
-		(*
-		PROCEDURE Resized;
-		BEGIN
-			GetParent()(WMComponents.VisualComponent).Invalidate; (*! should only invalidate current rect*)
-		END Resized;
-		*)
-		
 		
 		PROCEDURE PropertyChanged*(sender, property : ANY);
 		BEGIN
@@ -302,29 +293,6 @@ TYPE
 			END;
 			bounds.Set(rect);
 		END Normalize;
-
-(*
-	PROCEDURE Normalize; 
-		VAR p:Point; oldrect, rect: WMRectangles.Rectangle;
-		BEGIN
-			oldrect:=bounds.Get();
-			rect.l := MAX(LONGINT); rect.t := MAX(LONGINT); rect.r := MIN(LONGINT); rect.b := MIN(LONGINT);
-			p:=points;
-			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
-				rect.l:=MIN(rect.l, p.x-PointSize DIV 2 -1); rect.r:=MAX(rect.r, p.x+PointSize DIV 2+1);  (*compute bounds*)
-				rect.t:=MIN(rect.t, p.y-PointSize DIV 2 -1); rect.b:=MAX(rect.b, p.y+PointSize DIV 2+1);
-				p:=p.next; 
-			END;
-			p:=points;
-			WHILE p#NIL DO (* adapt display point coordinates to new bounds *) 
-				p.x:=p.x-rect.l; 
-				p.y:=p.y-rect.t; 
-				p:=p.next; 
-			END;
-			bounds.Set(rect);
-		END Normalize;
-
-*)
 
 		PROCEDURE Scale;
 		END Scale;
@@ -437,7 +405,6 @@ TYPE
 		PROCEDURE Initialize*;
 		VAR pp:WMProperties.PointProperty;
 		BEGIN
-
 			RecachePoints;
 			IF nofPoints=0 THEN (* prototype*)
 				Acquire;
@@ -451,7 +418,6 @@ TYPE
 			Normalize;
 			Initialize^;
 		END Initialize;
-		
 
 		PROCEDURE Scale;
 		VAR p : Point; bounds, box : WMRectangles.Rectangle; oldWidth, oldHeight, newWidth, newHeight, n : LONGINT;
@@ -566,7 +532,6 @@ TYPE
 			(* adapt display point coordinates to new bounds *)
 			rect.l:=p.x-n; rect.r:=p.x+n;  (*compute bounds*)
 			rect.t:=p.y-n; rect.b:=p.y+n;
-			
 			p:=points;
 			WHILE p#NIL DO (* adapt display point coordinates to new bounds *)
 				p.x:=p.x-rect.l; p.y:=p.y-rect.t; 
@@ -645,7 +610,6 @@ TYPE
 				InLineVicinity(mx, my, points.next.x, points.y, points.next.x, points.next.y) 
 			END;
 		END IsHit;
-		
 
 		PROCEDURE DrawBackground*(canvas : WMGraphics.Canvas);
 		VAR p, q : Point; rect : WMRectangles.Rectangle;
@@ -701,7 +665,7 @@ TYPE
 			Normalize;
 		END Initialize;
 		
-			(* Is X, Y somewhere inside the polygon defined by p ? *) (*! to be implemented for pointarray; eliminate bias*)
+			(* Is X, Y somewhere inside the polygon defined by p ? *) (*! to be implemented for pointarray*)
 		PROCEDURE Inside(X, Y: LONGINT): BOOLEAN;
 		VAR c: LONGINT; p,q: Point;
 		BEGIN
@@ -781,10 +745,6 @@ TYPE
 		VAR p: Point; col: LONGINT; 
 		BEGIN
 			DrawBackground^(canvas); 
-			(*RecachePoints;
-			SplineToPoly(points, Closed IN state, pointArray, nSegments); (* spline boundary computation requires prior spline expansion, not normalized *)
-			Normalize; *)
-			
 			IF mouseOver THEN col:=clHover.Get() ELSE col:=color.Get() END;
 			IF Filled IN state THEN
 				canvas.FillPolygonFlat(pointArray, nSegments, col, WMGraphics.ModeSrcOverDst);
