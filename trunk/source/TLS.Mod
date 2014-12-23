@@ -1,22 +1,30 @@
 MODULE TLS;	(** AUTHOR "F.N."; PURPOSE "RFC 2246: Transport Layer Security v1.0"; *)
-
+(*
+	05.2014 -- Timothée Martiel -- Implemented TLS client connection.
+*)
 IMPORT
 	TCP, Streams, Files, IP, KernelLog , Pipes, Kernel, Clock, BIT,
 	Ciphers := CryptoCiphers, Utils := CryptoUtils, HMAC := CryptoHMAC,
-	CryptoMD5, CryptoSHA1, CryptoRSA, CryptoBigNumbers;
+	CryptoMD5, CryptoSHA1, CryptoRSA, CryptoBigNumbers, PKCS1, X509;
 
 CONST
 	(* debugging *)
-	Trace = FALSE; 
+	Trace = TRUE;
 
 	(** tlsStates *)
 	ServerHandshake* = 12;
+	ClientHandshake* = 13;
+
+	(* client and server common handshake states *)
+	NotAValidHandshakeState = 100; HandshakeFinished = 101; GenerateChangeCipherSpec = 102; AwaitFinished = 103;
 
 	(* server-side handshake states *)
-	NotAValidHandshakeState = 200; HandshakeFinished = 215;
 	AwaitClientHello = 201; GenerateServerHello = 202; GenerateServerHelloDone = 203; AwaitClientKeyExchange = 204;
-	AwaitChangeSpec = 205; AwaitFinished = 206; GenerateChangeCipherSpec = 207; GenerateHelloWithResumption = 210;
+	AwaitChangeSpec = 205; GenerateHelloWithResumption = 210;
 	AwaitChangeSpecWithResumption = 211; AwaitFinishedWithResumption = 212;
+
+	(* client-side handshake states *)
+	GenerateClientHello = 300; AwaitServerHello = 301; AwaitCertificate = 302; AwaitServerHelloDone = 303; GenerateClientKeyExchange = 304;
 
 	(** available cipher suites *)
 	TlsRsaWithNullMd5* = 0001H; TlsRsaWithNullSha* = 0002H; TlsRsaWithRc4128Md5* = 0004H;
@@ -47,7 +55,7 @@ CONST
 	BadCertificate = 42; UnsupportedCertificate = 43; CertificateRevoked = 44; CertificateExpired = 45;
 	CertificateUnknown = 46; IllegalParameter = 47; UnknownCA = 48; AccessDenied = 49;
 	DecodeError = 50; DecryptError = 51; ExportRestriction = 60; ProtocolVersion = 70;
-	InsufficientSecurity = 71; InternalError = 80; UserCancelled = 90; NoRenegotiation = 100;
+	InsufficientSecurity = 71; InternalError = 80; UserCancelled = 90; NoRenegotiation = 100; UnsupportedExtension=110;
 
 	(** error numbers *)
 	Ok* = 0; TLSHandshakeAborted* = 2;
@@ -329,7 +337,7 @@ TYPE
 		VAR
 			policy-: Policy;
 			rsaCertificate: ARRAY 10000 OF CHAR;
-			rsaPrivateKey: CryptoRSA.Key;
+			rsaPrivateKey, rsaPublicKey: CryptoRSA.Key;
 			lengthOfRsaCertificate: LONGINT;
 			sessionCache: ARRAY SessionHashtableSize OF Session;
 			timer: Kernel.Timer;
@@ -406,6 +414,29 @@ TYPE
 				CryptoBigNumbers.Print( SELF.rsaPrivateKey.exponent );
 			END
 		END LoadRsaPrivateKey;
+
+		(** Fills rsaPublicKey from server certificate. *)
+		PROCEDURE GetRsaPublicKey*;
+		VAR
+			certificate: X509.Certificate;
+			reader: Streams.StringReader;
+			algorithm: POINTER TO ARRAY OF CHAR;
+			e, m: CryptoBigNumbers.BigNumber;
+			writer: Streams.StringWriter;
+			print: ARRAY 10 * 1024 OF CHAR;
+		BEGIN
+			IF rsaPublicKey = NIL THEN
+				(* Read X509 Certificate *)
+				NEW(certificate);
+				NEW(reader, lengthOfRsaCertificate);
+				(* Skip 6 bytes: they represent the length of the certificate, but are not part of it. *)
+				reader.SetRaw(rsaCertificate, 6, lengthOfRsaCertificate);
+				certificate.Read(reader);
+
+				(* Get modulus and exponent of public key *)
+				rsaPublicKey := certificate.publicKey;
+			END
+		END GetRsaPublicKey;
 
 		PROCEDURE  PrintRsaCertificate*;
 		BEGIN
@@ -522,20 +553,25 @@ TYPE
 			hsSHAsend, hsSHAverify: CryptoSHA1.Hash;	(* handshake hash functions; to be used in the Finished messages *)
 			pendingSecurityParameters: SecurityParameters;
 			currentWriteState, pendingWriteState, currentReadState, pendingReadState: ConnectionState;
+			client: BOOLEAN;
 
 		PROCEDURE &Init*;
 		BEGIN
 			state := TCP.Unused;
 			tlsErrorCause := NoError;
 			(* establish application-data-out-buffer *)
-			NEW( applicationDataPipe, 4096 ); (* is this a good size? *)
-			Streams.OpenWriter( appDataWriter, applicationDataPipe.Send );
+			NEW( applicationDataPipe, 1024 * 1024(*4096*) ); (* is this a good size? *)
+			(*Streams.OpenWriter( appDataWriter, applicationDataPipe.Send );*)
+			NEW(appDataWriter, applicationDataPipe.Send, 1024*1024);
 			Streams.OpenReader( appDataReader, applicationDataPipe.Receive );
 			NEW( hsMD5send );	NEW( hsSHAsend );
 			NEW( hsMD5verify );	NEW( hsSHAverify );
 			NEW( pendingWriteState );	NEW( currentWriteState );
 			NEW( pendingReadState );	NEW( currentReadState );
 			NEW( pendingSecurityParameters );
+
+			hsMD5send.Initialize( );	hsSHAsend.Initialize( );
+			hsMD5verify.Initialize( );	hsSHAverify.Initialize( )
 		END Init;
 
 
@@ -578,16 +614,18 @@ TYPE
 		an unused local port. Use IP.NilAdr for fip to open a passive connection. *)
 		PROCEDURE Open*(  lport: LONGINT; fip: IP.Adr; fport: LONGINT; VAR res: LONGINT );
 		BEGIN
-			ASSERT( IP.IsNilAdr(fip) );	(* only server-side is implemented *)
+			(*ASSERT( IP.IsNilAdr(fip) );	(* only server-side is implemented *)*)
 			ASSERT( context # NIL );	(* context must be set before calling Open *)
 			ASSERT( conn = NIL );	(* invoke this method only once per instance *)
-			IF Trace THEN KernelLog.String("Connection.Open");KernelLog.Ln END;
+			client := ~IP.IsNilAdr(fip);
+			
 			(* open TCPConnection *)
 			NEW( SELF.conn );
 			SELF.conn.Open( lport, fip, fport, res );
 			IF res # TCP.Ok THEN RETURN END;
 			SetState(conn.state);
 			res := Ok;
+			IF client THEN Connect END;
 			ASSERT( conn # NIL )
 		END Open;
 
@@ -618,6 +656,15 @@ TYPE
 			res := Ok
 		END Accept;
 
+		(** Sets up the TCP connection for a client-side connection. *)
+		PROCEDURE Connect*;
+		BEGIN
+			Streams.OpenReader( in, SELF.conn.Receive );
+			Streams.OpenWriter( out, SELF.conn.Send );
+			SetState(ClientHandshake);
+			handshakeState := GenerateClientHello
+		END Connect;
+
 		(** Close this TLS.Connection *)
 		PROCEDURE Close*;
 		BEGIN
@@ -639,7 +686,7 @@ TYPE
 			AWAIT((state = TCP.Established) OR (state = TCP.Closed));
 			IF state = TCP.Established THEN
 				WHILE len > 0 DO
-					IF Trace THEN KernelLog.String("S  >  C Application Data");KernelLog.Ln END;
+					IF Trace THEN PrintDirection(TRUE); KernelLog.String("Application Data");KernelLog.Ln END;
 					size := len;
 					IF size > MaxPlaintextLength THEN		size := MaxPlaintextLength		END;
 					FOR i := 0 TO size-1 DO
@@ -688,7 +735,11 @@ TYPE
 			(* calculate the needed amount of key-material *)
 			macSecretSize := SELF.pendingWriteState.mac.size;
 			cipherKeySize := SELF.pendingSecurityParameters.cipherKeySize;
-			cipherBlockSize := SELF.pendingWriteState.cipher.blockSize;
+			IF SELF.pendingWriteState.cipher # NIL THEN
+				cipherBlockSize := SELF.pendingWriteState.cipher.blockSize
+			ELSE
+				cipherBlockSize := 0
+			END;
 			keyBlockLen := 2 * macSecretSize + 2 * cipherKeySize;
 			IF cipherBlockSize > 1 THEN	(* if a blockcipher is used, initialization vectors are needed *)
 			INC( keyBlockLen, 2 * cipherBlockSize )
@@ -702,21 +753,36 @@ TYPE
 			prf.GetBytes( SELF.session.masterSecret, seed, keyBlock, "key expansion", 48, 64, keyBlockLen );
 			(* mac secret *)
 			FOR i := 0 TO macSecretSize - 1 DO
-				SELF.pendingReadState.macSecret[ i ] := keyBlock[ i ];
-				SELF.pendingWriteState.macSecret[ i ] := keyBlock[ macSecretSize + i ]
+				IF client THEN
+					SELF.pendingWriteState.macSecret[ i ] := keyBlock[ i ];
+					SELF.pendingReadState.macSecret[ i ] := keyBlock[ macSecretSize + i ]
+				ELSE
+					SELF.pendingReadState.macSecret[ i ] := keyBlock[ i ];
+					SELF.pendingWriteState.macSecret[ i ] := keyBlock[ macSecretSize + i ]
+				END
 			END;
 			(* keys for encryption and decription *)
 			ofs := 2 * macSecretSize;
 			FOR i := 0 TO cipherKeySize - 1 DO
-			SELF.pendingReadState.cipherKey[ i ] := keyBlock[ ofs + i ];
-				SELF.pendingWriteState.cipherKey[ i ] := keyBlock[ ofs + cipherKeySize + i ]
+				IF client THEN
+					SELF.pendingWriteState.cipherKey[ i ] := keyBlock[ ofs + i ];
+					SELF.pendingReadState.cipherKey[ i ] := keyBlock[ ofs + cipherKeySize + i ]
+				ELSE
+					SELF.pendingReadState.cipherKey[ i ] := keyBlock[ ofs + i ];
+					SELF.pendingWriteState.cipherKey[ i ] := keyBlock[ ofs + cipherKeySize + i ]
+				END
 			END;
 			(* initialization vectors *)
 			IF cipherBlockSize > 1 THEN
 				ofs := 2 * macSecretSize + 2 * cipherKeySize;
 				FOR i := 0 TO cipherBlockSize - 1 DO
-					SELF.pendingReadState.iv[ i ] := keyBlock[ ofs + i ];
-					SELF.pendingWriteState.iv[ i ] := keyBlock[ ofs + cipherBlockSize + i ]
+					IF client THEN
+						SELF.pendingWriteState.iv[ i ] := keyBlock[ ofs + i ];
+						SELF.pendingReadState.iv[ i ] := keyBlock[ ofs + cipherBlockSize + i ]
+					ELSE
+						SELF.pendingReadState.iv[ i ] := keyBlock[ ofs + i ];
+						SELF.pendingWriteState.iv[ i ] := keyBlock[ ofs + cipherBlockSize + i ]
+					END
 				END
 			END
 		END GenerateKeys;
@@ -725,9 +791,11 @@ TYPE
 			the given SecurityParameters *)
 		PROCEDURE InitializeConnectionState( state: ConnectionState; sp: SecurityParameters );
 		BEGIN
-			state.cipher.InitKey( state.cipherKey, 0, 8 * sp.cipherKeySize );
-			IF state.cipher.blockSize > 0 THEN
-				state.cipher.SetIV( state.iv, 0 )
+			IF state.cipher # NIL THEN
+				state.cipher.InitKey( state.cipherKey, 0, 8 * sp.cipherKeySize );
+				IF state.cipher.blockSize > 0 THEN
+					state.cipher.SetIV( state.iv, 0 )
+				END
 			END
 		END InitializeConnectionState;
 
@@ -795,6 +863,7 @@ TYPE
 			VAR
 				macInput: ARRAY 13 OF CHAR;
 				i, length, padLen, blocksize: LONGINT;
+				t: LONGINT;
 		BEGIN
 			ASSERT( len <= MaxPlaintextLength );
 			(* increment the number of sent records *)
@@ -826,7 +895,7 @@ TYPE
 					data[ ofs + length + padLen ] := CHR( padLen );
 					length := length + padLen + 1
 				END;
-				currentWriteState.cipher.Encrypt( data, ofs, length )
+				currentWriteState.cipher.Encrypt( data, ofs, length );
 			END;
 			(* record header *)
 			out.Char( CHR( contentType ) );
@@ -835,7 +904,7 @@ TYPE
 			out.Char( CHR( length DIV 256 ) );
 			out.Char( CHR( length ) );
 			out.Bytes( data, ofs, length );
-			out.Update
+			out.Update;
 		END SendRecord;
 
 		(* receive one record *)
@@ -844,16 +913,12 @@ TYPE
 				macInput: ARRAY 13 OF CHAR;
 				verify: ARRAY 20 OF CHAR;
 				i, length, len, type, macSize, res, major, minor: LONGINT;
+				tt: LONGINT;
 		BEGIN
 			(* increment the number of received records *)
 			currentReadState.recordSeq.Inc( );
 			(* record header *)
-			IF Trace THEN
-				KernelLog.String("Receiving Record No. ");KernelLog.Int(currentReadState.recordSeq.numL, 2);KernelLog.Ln;
-				KernelLog.String("Currently available: ");KernelLog.Int(in.Available(), 8);KernelLog.Ln
-			END;
 			type := ORD( in.Get( ) );	(* content type *)
-			IF Trace THEN KernelLog.String("  contentType: ");KernelLog.Int(type, 6);KernelLog.Ln END;
 			IF type = 128 THEN (* SSLv2-compatible ClientHello *)
 				len := ORD( in.Get() );
 				in.Bytes( inbuf, 0, len, length );
@@ -867,9 +932,7 @@ TYPE
 			END;
 			major := ORD( in.Get() );	minor := ORD( in.Get() );
 			IF ( major # 3 ) OR ( minor # 1) THEN  END;	(* version control *)
-			IF Trace THEN KernelLog.String("  version: ");KernelLog.Int(major, 6);KernelLog.String(".");KernelLog.Int(minor, 6);KernelLog.Ln END;
 			len := 256 * ORD( in.Get() ) + ORD( in.Get() );	(* length of payload *)
-			IF Trace THEN KernelLog.String( "  length: " ); KernelLog.Int( len, 5 );KernelLog.Ln END;
 			IF len > MaxCiphertextLength THEN
 				SendError( RecordOverflow );
 				RETURN
@@ -925,7 +988,6 @@ TYPE
 				| Handshake:
 					ReceiveHandshake( inbuf, 0, len )
 				| ApplicationData:
-					IF Trace THEN KernelLog.String("C  >  S Application Data");KernelLog.Ln END;
 					appDataWriter.Bytes( inbuf, 0, len );
 					appDataWriter.Update;
 				| Alert:
@@ -943,7 +1005,7 @@ TYPE
 
 		PROCEDURE SendChangeCipherSpec;
 		BEGIN
-			IF Trace THEN KernelLog.String("S > C  ChangeCipherSpec: ");KernelLog.Ln END;
+			IF Trace THEN PrintDirection(TRUE); KernelLog.String("ChangeCipherSpec: ");KernelLog.Ln END;
 			outbuf[ 0 ] := CHR( 1 );
 			SendRecord( outbuf, ChangeCipherSpec, 0, 1 );
 			ChangeWriteState( )
@@ -951,7 +1013,7 @@ TYPE
 
 		PROCEDURE ReceiveChangeCipherSpec( VAR data: ARRAY OF CHAR; ofs: LONGINT );
 		BEGIN
-			IF Trace THEN KernelLog.String("C > S  ChangeCipherSpec");KernelLog.Ln END;
+			IF Trace THEN PrintDirection(FALSE); KernelLog.String("ChangeCipherSpec");KernelLog.Ln END;
 			IF ORD( data[ ofs ] ) # 1 THEN (* wrong content of ChangeCipherSpec *)
 				SendError( IllegalParameter )
 			ELSE
@@ -966,10 +1028,6 @@ TYPE
 		PROCEDURE SendHandshake( VAR data: ARRAY OF CHAR; hsType, ofs, len: LONGINT );
 			VAR l: LONGINT;
 		BEGIN
-			IF Trace THEN
-				KernelLog.String("S > C  Handshake");KernelLog.Ln;
-				KernelLog.String("  length: ");KernelLog.Int(len, 4);KernelLog.Ln
-			END;
 			ASSERT( len < 256 * 256 * 256 );
 			l := len;
 			data[ ofs ] := CHR( hsType );
@@ -978,7 +1036,7 @@ TYPE
 			data[ ofs + 1 ] := CHR( l MOD 256 );
 			IF hsType # HelloRequest THEN
 				(* update the digests used in the finished-messages *)
-				IF hsType # Finished THEN (* Finished-msg doesn't contain digest of itself *)
+				IF (hsType # Finished) OR (hsType # ClientHello) THEN (* Finished-msg doesn't contain digest of itself *)
 					hsMD5send.Update( data, ofs, len + 4 );
 					hsSHAsend.Update( data, ofs, len + 4 )
 				END;
@@ -990,19 +1048,13 @@ TYPE
 
 		(* receives one or more handshake messages *)
 		PROCEDURE ReceiveHandshake( VAR data: ARRAY OF CHAR; ofs, len: LONGINT );
-			VAR msgLen, hsType, ptr: LONGINT;
+			VAR msgLen, hsType, ptr, (*debug*) i: LONGINT;
 		BEGIN
 			ASSERT( LEN( data ) >= ofs + len );
-			IF Trace THEN KernelLog.String("C > S  Handshake");KernelLog.Ln END;
 			ptr := ofs;
 			WHILE ptr < ofs + len DO	(* for each handshake message *)
 				hsType := ORD( data[ ptr ] );	(* handshake type *)
 				msgLen := 256 * 256 * ORD( data[ ptr + 1 ] ) + 256 * ORD( data[ ptr + 2 ] ) + ORD( data[ ptr + 3 ] );
-				IF Trace THEN KernelLog.String("  msg length: ");KernelLog.Int(msgLen,5);KernelLog.Ln END;
-				IF hsType = ClientHello THEN	(* new handshake begin *)
-					hsMD5send.Initialize( );	hsSHAsend.Initialize( );
-					hsMD5verify.Initialize( );	hsSHAverify.Initialize( )
-				END;
 				(* update the digests used in the finished-messages *)
 				hsMD5send.Update( data, ptr, msgLen + 4 );
 				hsSHAsend.Update( data, ptr, msgLen + 4 );
@@ -1029,11 +1081,20 @@ TYPE
 			Transition( data, Handshake, V2ClientHello, ofs, len );
 		END ReceiveV2Handshake;
 
+		PROCEDURE StartHandshake;
+		BEGIN
+			Streams.OpenReader( in, SELF.conn.Receive );
+			Streams.OpenWriter( out, SELF.conn.Send );
+			SetState(ClientHandshake);
+			handshakeState := GenerateClientHello;
+			Transition(outbuf, Handshake, 0, 0, 0)
+		END StartHandshake;
+
 		PROCEDURE ReceiveClientHello( VAR data: ARRAY OF CHAR; ofs, len: LONGINT ): LONGINT;
 			VAR
 				nofSuites, i, idLen, idPos, pos, cipherSuite, major, minor, res: LONGINT;
 		BEGIN
-			IF Trace THEN KernelLog.String("C > S  ClientHello");KernelLog.Ln END;
+			IF Trace THEN PrintDirection(FALSE); KernelLog.String("ClientHello");KernelLog.Ln END;
 			pos := ofs;
 			(* version check *)
 			major := ORD( data[ pos ] );	minor := ORD( data[ pos + 1 ] );
@@ -1046,12 +1107,13 @@ TYPE
 			(* 32 bytes client random *)
 			FOR i := 0 TO 31 DO		pendingSecurityParameters.clientRandom[ i ] := data[ pos + i ]		END;
 			INC( pos, 32 );
+			IF Trace THEN KernelLog.String("SERVER client random:"); KernelLog.Ln; KernelLog.Buffer(pendingSecurityParameters.clientRandom, 0, 32); KernelLog.Ln END;
 			(* session id *)
 			idLen := ORD( data[ pos ] );
 			idPos := pos + 1;
 			INC( pos, idLen + 1 );
 			(* cipher-suites *)
-			nofSuites := 256 * ORD( data[ pos ] ) + ORD( data[ pos + 1 ] ); (* number of cipher-suites supported by the client *)
+			nofSuites := (256 * ORD( data[ pos ] ) + ORD( data[ pos + 1 ] )) DIV 2; (* number of cipher-suites supported by the client *)
 			INC( pos, 2 );
 
 			IF idLen = SessionIdLength THEN	(* client attempted session resumption *)
@@ -1074,6 +1136,7 @@ TYPE
 			i := 0;
 			LOOP
 				cipherSuite := 256 * ORD( data[ pos + 2 * i ] ) + ORD( data[ pos + 2 * i + 1 ] );
+				IF Trace THEN KernelLog.String("Server: client accepts cipher suite: "); KernelLog.Int(cipherSuite, 0); KernelLog.Ln END;
 				IF context.policy.IsSupported( cipherSuite ) THEN
 					EXIT
 				END;
@@ -1081,22 +1144,26 @@ TYPE
 				IF i = nofSuites THEN EXIT END
 			END;
 			IF cipherSuite = 0 THEN	(* no compatible cipher-suite found *)
+				IF Trace THEN KernelLog.String("Server: No common cipher suite found"); KernelLog.Ln END;
 				SendError( HandshakeFailure );
 				RETURN -1
 			END;
 			SELF.session.cipherSuite := cipherSuite;
 			PrepareSecurityParameters( pendingSecurityParameters, cipherSuite, res );
 			IF res < 0 THEN
+				IF Trace THEN KernelLog.String("Server: Error preparing cipher suite"); KernelLog.Ln END;
 				SendError( HandshakeFailure );
 				RETURN -1
 			END;
 			PrepareConnectionState( pendingWriteState, cipherSuite, res );
 			IF res < 0 THEN
+				IF Trace THEN KernelLog.String("Server: Error preparing pending write state"); KernelLog.Ln END;
 				SendError( HandshakeFailure );
 				RETURN -1
 			END;
 			PrepareConnectionState( pendingReadState, cipherSuite, res );
 			IF res < 0 THEN
+				IF Trace THEN KernelLog.String("Server: Error preparing pending read state"); KernelLog.Ln END;
 				SendError( HandshakeFailure );
 				RETURN -1
 			END;
@@ -1104,10 +1171,59 @@ TYPE
 			RETURN GenerateServerHello
 		END ReceiveClientHello;
 
+		PROCEDURE SendClientHello(VAR data: ARRAY OF CHAR; ofs: LONGINT);
+		VAR
+			pos, i: LONGINT;
+		BEGIN
+			IF Trace THEN PrintDirection(TRUE); KernelLog.String("ClientHello");KernelLog.Ln END;
+			ASSERT( ofs > 3 );
+
+			pos := ofs;
+
+			(* client version *)
+			data[ pos ] := version[ 0 ];	data[ pos + 1 ] := version[ 1 ];	(* only 3.1 is supported *)
+			INC( pos, 2 );
+
+			(* client random bytes generation*)
+			Create32RandomBytes( pendingSecurityParameters.clientRandom );
+			FOR i := 0 TO 31 DO	data[ pos + i ] := pendingSecurityParameters.clientRandom[ i ]	END;	(* copy random to outbuf *)
+			INC( pos, 32 );
+
+			(* session-id *)
+			IF session # NIL THEN
+				(* if a previous session is available, ask server to resume it. *)
+				data[ pos ] := CHR( session.idLength );
+				INC(pos);
+				FOR i := 0 TO session.idLength - 1 DO data[pos + i] := session.id[i] END;
+				INC(pos, session.idLength)
+			ELSE
+				data[pos] := 0X;
+				INC(pos)
+			END;
+
+			(* cipher-suite: length, then suite *)
+			data[pos] := CHR((2 * context.policy.nofCipherSuites) DIV 256);
+			data[pos + 1] := CHR((2 * context.policy.nofCipherSuites) MOD 256);
+			INC(pos, 2);
+			FOR i := 0 TO context.policy.nofCipherSuites - 1 DO
+				data[ pos ] := CHR(context.policy.cipherSuites[i] DIV 256);
+				data[ pos + 1 ] := CHR(context.policy.cipherSuites[i] MOD 256);
+				INC( pos, 2 )
+			END;
+
+			(* compression-method *)
+			data[ pos ] := 1X;
+			INC( pos );
+			data[ pos ] := 0X;
+			INC( pos );
+
+			SendHandshake( data, ClientHello, ofs - 4, pos - ofs)
+		END SendClientHello;
+
 		PROCEDURE ReceiveV2ClientHello( VAR data: ARRAY OF CHAR; ofs, len: LONGINT ): LONGINT;
 			VAR nofSuites, idLen, challengeLen, i, cipherSuite, res: LONGINT;
 		BEGIN
-			IF Trace THEN KernelLog.String("C > S  SSLv2.0 ClientHello");KernelLog.Ln END;
+			IF Trace THEN PrintDirection(FALSE); KernelLog.String("SSLv2.0 ClientHello");KernelLog.Ln END;
 			nofSuites := ( 256 * ORD(data[ofs+3]) + ORD(data[ofs+4]) ) DIV 3;
 			idLen := 256 * ORD(data[ofs+5]) + ORD(data[ofs+6]);
 			challengeLen := 256 * ORD(data[ofs+7]) + ORD(data[ofs+8]);
@@ -1159,10 +1275,66 @@ TYPE
 			RETURN GenerateServerHello
 		END ReceiveV2ClientHello;
 
+		PROCEDURE ReceiveServerHello(VAR data: ARRAY OF CHAR; ofs, len: LONGINT): LONGINT;
+		VAR
+			pos, major, minor, i, idLen, idPos, cipherSuite, res: LONGINT;
+		BEGIN
+			IF Trace THEN PrintDirection(FALSE); KernelLog.String("ServerHello");KernelLog.Ln END;
+			pos := ofs;
+
+			(* version check *)
+			major := ORD( data[ pos ] );	minor := ORD( data[ pos + 1 ] );
+			IF ( major < 3  ) OR ( minor < 1 ) THEN (* fatal error: protocol version not supported *)
+				IF Trace THEN KernelLog.String("Incompatible protocol version"); KernelLog.Ln END;
+				RETURN -1
+			END;
+			INC( pos, 2 );
+
+			(* 32 bytes server random *)
+			FOR i := 0 TO 31 DO		pendingSecurityParameters.serverRandom[ i ] := data[ pos + i ]		END;
+			INC( pos, 32 );
+
+			(* session id *)
+			idLen := ORD( data[ pos ] );
+			idPos := pos + 1;
+			INC( pos, idLen + 1 );
+
+			IF session # NIL THEN
+				(* See if session was restored *)
+				session := context.FindSessionByID(data, idPos, idLen);
+			END;
+			IF session = NIL THEN
+				(* create a new session *)
+				NEW(session, TRUE, data, idPos, idLen, context.policy.sessionLifetime);
+			END;
+
+			(* cipher-suite selected by the server*)
+			cipherSuite := 250 * ORD( data[ pos] ) + ORD( data[ pos + 1 ] );
+			SELF.session.cipherSuite := cipherSuite;
+			PrepareSecurityParameters( pendingSecurityParameters, cipherSuite, res );
+			IF res < 0 THEN
+				IF Trace THEN KernelLog.String("Failed to Prepare TLS security parameters"); KernelLog.Ln END;
+				RETURN -1
+			END;
+			PrepareConnectionState( pendingWriteState, cipherSuite, res );
+			IF res < 0 THEN
+				IF Trace THEN KernelLog.String("Failed to Prepare TLS pending write state"); KernelLog.Ln END;
+				RETURN -1
+			END;
+			PrepareConnectionState( pendingReadState, cipherSuite, res );
+			IF res < 0 THEN
+				IF Trace THEN KernelLog.String("Failed to Prepare TLS pending read state"); KernelLog.Ln END;
+				RETURN -1
+			END;
+
+			(* ignore compression method *)
+			RETURN AwaitCertificate
+		END ReceiveServerHello;
+
 		PROCEDURE SendServerHello( VAR data: ARRAY OF CHAR; ofs: LONGINT );
 			VAR i, pos: LONGINT;
 		BEGIN
-			IF Trace THEN KernelLog.String("S > C  ServerHello");KernelLog.Ln END;
+			IF Trace THEN PrintDirection(TRUE); KernelLog.String("ServerHello");KernelLog.Ln END;
 			ASSERT( ofs > 3 );
 			pos := ofs;
 			(* server version *)
@@ -1187,18 +1359,46 @@ TYPE
 			SendHandshake( data, ServerHello, ofs-4, pos-ofs )
 		END SendServerHello;
 
+		PROCEDURE SendClientKeyExchange(VAR data: ARRAY OF CHAR; ofs: LONGINT): LONGINT;
+		VAR
+			length: LONGINT;
+		BEGIN
+			IF Trace THEN
+				PrintDirection(TRUE);
+				KernelLog.String("Client Key Exchange"); KernelLog.Ln
+			END;
+			context.GetRsaPublicKey;
+
+			(* Premaster secret *)
+			session.preMasterSecret[0] := version[0];
+			session.preMasterSecret[1] := version[1];
+			Utils.RandomBytes(session.preMasterSecret, 2, 46);
+
+			PKCS1.Encrypt(session.preMasterSecret, 0, 48, context.rsaPublicKey, 2, data, ofs + 2, length);
+			ASSERT(length # 0);
+			data[ofs] := CHR(length DIV 256);
+			data[ofs + 1] := CHR(length MOD 256);
+			SendHandshake(data, ClientKeyExchange, ofs - 4, length + 2);
+
+			(* Generate master secret. Done in the end, because premaster secret is eraased. *)
+			GenerateMasterSecret;
+			GenerateKeys;
+			InitializeConnectionState( SELF.pendingWriteState, SELF.pendingSecurityParameters );
+			InitializeConnectionState( SELF.pendingReadState, SELF.pendingSecurityParameters );
+
+			RETURN GenerateChangeCipherSpec
+		END SendClientKeyExchange;
+
 		PROCEDURE ReceiveClientKeyExchange(CONST data: ARRAY OF CHAR; ofs, len: LONGINT );
 			VAR
 				encryptedPremasterSecret, premasterSecret: CryptoBigNumbers.BigNumber;
-				res: BOOLEAN;
 				tmp: ARRAY 512 OF CHAR;
 				i: LONGINT;
 		BEGIN
 			INC( ofs, 2 ); DEC( len, 2 );	(* the two first bytes have to be ignored *)
 			IF Trace THEN
+				PrintDirection(FALSE);
 				KernelLog.String("ClientKeyExchange");KernelLog.Ln;
-				KernelLog.String("   EncryptedPreMasterSecret [" );KernelLog.Int( len, 3);KernelLog.String("]");
-				Utils.PrintHex(data, ofs, len );KernelLog.Ln
 			END;
 			(* decryption of the PreMasterSecret *)
 			CryptoBigNumbers.AssignBin( encryptedPremasterSecret, data, ofs, len );
@@ -1208,27 +1408,49 @@ TYPE
 				SendError( IllegalParameter )
 			END;
 			CryptoBigNumbers.GetBinaryValue( premasterSecret, tmp, 0 );
+
 			(* pkcs#1 block type 2 has to be used *)
-			IF ( tmp[ 0 ] # CHR( 0 ) ) OR ( tmp[ 1 ] # CHR( 2 ) )THEN	SendError( IllegalParameter )	END;
+			IF ( tmp[ 0 ] # CHR( 0 ) ) OR ( tmp[ 1 ] # CHR( 2 ) )THEN	SendError( IllegalParameter ) END;
 			i := 10;	(* there are at least 8 padding bytes *)
 			WHILE tmp[ i ] # CHR( 0 ) DO	INC( i )	END;	(* padding ends with a zero-byte *)
 			INC( i );
 			SELF.session.SetPreMasterSecret( tmp, i );
-			IF Trace THEN
-				KernelLog.String("PreMasterSecret [48]");
-				Utils.PrintHex(SELF.session.preMasterSecret, 0, 48);KernelLog.Ln
-			END;
+
 			GenerateMasterSecret( );
 			GenerateKeys( );
 			InitializeConnectionState( SELF.pendingWriteState, SELF.pendingSecurityParameters );
 			InitializeConnectionState( SELF.pendingReadState, SELF.pendingSecurityParameters )
 		END ReceiveClientKeyExchange;
 
+		PROCEDURE ReceiveCertificate( VAR data: ARRAY OF CHAR; ofs, len: LONGINT ): LONGINT;
+		VAR
+			pos, length, lengthP3: LONGINT;
+		BEGIN
+			IF Trace THEN
+				PrintDirection(FALSE);
+				KernelLog.String("Certificate"); KernelLog.Ln;
+			END;
+
+			(* Get Certificate Length. First 3 bytes: length + 3, next 3 bytes: length *)
+			lengthP3 := ORD(data[ofs]) * 256 * 256 + ORD(data[ofs + 1]) * 256 + ORD(data[ofs + 2]);
+			length := ORD(data[ofs + 3]) * 256 * 256 + ORD(data[ofs + 4]) * 256 + ORD(data[ofs + 5]);
+			(*ASSERT(lengthP3 = length + 3);*)
+			context.lengthOfRsaCertificate := length;
+
+			(* Get content, including first 6 bytes *)
+			FOR pos := 0  TO length + 5 DO
+				context.rsaCertificate[pos] := data[pos + ofs]
+			END;
+
+			(* Check certificate *)
+			RETURN AwaitServerHelloDone
+		END ReceiveCertificate;
+
 		PROCEDURE SendCertificate( VAR data: ARRAY OF CHAR; ofs: LONGINT );
 			VAR i: LONGINT;
 		BEGIN
 			ASSERT( ofs > 3 );
-			IF Trace THEN KernelLog.String("S > C  Certificate");KernelLog.Ln END;
+			IF Trace THEN PrintDirection(TRUE); KernelLog.String("Certificate");KernelLog.Ln END;
 			FOR i := 0 TO context.lengthOfRsaCertificate-1 DO
 				data[ ofs + i ] := context.rsaCertificate[ i ];
 			END;
@@ -1238,9 +1460,15 @@ TYPE
 		PROCEDURE SendServerHelloDone( VAR data: ARRAY OF CHAR; ofs: LONGINT );
 		BEGIN
 			ASSERT( ofs > 3 );
-			IF Trace THEN KernelLog.String("S > C  ServerHelloDone");KernelLog.Ln END;
+			IF Trace THEN PrintDirection(TRUE); KernelLog.String("ServerHelloDone");KernelLog.Ln END;
 			SendHandshake( data, ServerHelloDone, ofs-4, 0 )
 		END SendServerHelloDone;
+
+		PROCEDURE ReceiveServerHelloDone(CONST data: ARRAY OF CHAR; ofs, len: LONGINT): LONGINT;
+		BEGIN
+			IF Trace THEN PrintDirection(FALSE); KernelLog.String("ServerHelloDone"); KernelLog.Ln END;
+			RETURN GenerateClientKeyExchange
+		END ReceiveServerHelloDone;
 
 		PROCEDURE SendFinished( VAR data: ARRAY OF CHAR; ofs: LONGINT );
 			VAR
@@ -1249,11 +1477,16 @@ TYPE
 				i: LONGINT;
 				prf: PRF;
 		BEGIN
-			IF Trace THEN KernelLog.String("S > C  Finished");KernelLog.Ln END;
+			IF Trace THEN PrintDirection(TRUE); KernelLog.String("Finished");KernelLog.Ln END;
 			ASSERT( ofs > 3 );
 			hsMD5send.GetHash( seed, 0 );	hsSHAsend.GetHash( seed, 16 );	(* concatenate md5 and sha output *)
 			NEW( prf );
-			prf.GetBytes( SELF.session.masterSecret, seed, verifyData, "server finished", 48, 36, 12 );
+			IF client THEN
+				prf.GetBytes( SELF.session.masterSecret, seed, verifyData, "client finished", 48, 36, 12 )
+			ELSE
+				prf.GetBytes( SELF.session.masterSecret, seed, verifyData, "server finished", 48, 36, 12 )
+			END;
+
 			FOR i := 0 TO 11 DO
 				data[ ofs + i ] := verifyData[ i ]
 			END;
@@ -1267,11 +1500,15 @@ TYPE
 				prf: PRF;
 				i: LONGINT;
 		BEGIN
-			IF Trace THEN KernelLog.String("C > S  Finished"); KernelLog.Ln END;
+			IF Trace THEN PrintDirection(FALSE); KernelLog.String("Finished"); KernelLog.Ln END;
 			ASSERT( len = 12 );
 			hsMD5verify.GetHash( seed, 0 );	hsSHAverify.GetHash( seed, 16 );	(* concatenate md5 and sha output *)
 			NEW( prf );
-			prf.GetBytes( SELF.session.masterSecret, seed, verifyData, "client finished", 48, 36, 12 );
+			IF client THEN
+				prf.GetBytes( SELF.session.masterSecret, seed, verifyData, "server finished", 48, 36, 12 )
+			ELSE
+				prf.GetBytes( SELF.session.masterSecret, seed, verifyData, "client finished", 48, 36, 12 )
+			END;
 			FOR i := 0 TO 11 DO
 				IF verifyData[ i ] # data[ ofs + i ] THEN
 					SendError( DecryptError );
@@ -1312,7 +1549,8 @@ TYPE
 		PROCEDURE ReceiveError( alertType: LONGINT);
 		BEGIN
 			IF Trace THEN
-				KernelLog.String("C > S  Error");KernelLog.Ln;
+				PrintDirection(FALSE);
+				KernelLog.String("Error");KernelLog.Ln;
 				KernelLog.String("  alertType: ");KernelLog.Int(alertType, 3);KernelLog.Ln;
 			END;
 			IF session # NIL THEN 		SELF.session.Invalidate( )		END;
@@ -1324,7 +1562,8 @@ TYPE
 		PROCEDURE SendWarning( alertType: LONGINT );
 		BEGIN
 			IF Trace THEN
-				KernelLog.String("S > C  Warning");KernelLog.Ln;
+				PrintDirection(TRUE);
+				KernelLog.String("Warning");KernelLog.Ln;
 				KernelLog.String("  alertType: ");KernelLog.Int(alertType, 3);KernelLog.Ln;
 			END;
 			outbuf[ 0 ] := CHR( 1 );	(* level: warning *)
@@ -1335,7 +1574,8 @@ TYPE
 		PROCEDURE SendError( alertType: LONGINT );
 		BEGIN
 			IF Trace THEN
-				KernelLog.String("S > C  Error");KernelLog.Ln;
+				PrintDirection(TRUE);
+				KernelLog.String("Error");KernelLog.Ln;
 				KernelLog.String("  alertType: ");KernelLog.Int(alertType, 3);KernelLog.Ln;
 			END;
 			outbuf[ 0 ] := CHR( 2 );	(* level: fatal *)
@@ -1439,6 +1679,32 @@ TYPE
 								SendError( UnexpectedMessage )
 							END
 					END (* CASE *)
+				ELSIF State() = ClientHandshake THEN
+					CASE handshakeState OF
+						 GenerateClientHello:
+						 	SendClientHello(outbuf, 4);
+						 	handshakeState := AwaitServerHello
+						|AwaitServerHello:
+							handshakeState := ReceiveServerHello(data, ofs, len);
+						|AwaitCertificate:
+							handshakeState := ReceiveCertificate(data, ofs, len);
+						|AwaitServerHelloDone:
+							handshakeState := ReceiveServerHelloDone(data, ofs, len);
+							Transition(dummy, Handshake, 0, 0, 0)
+						|GenerateClientKeyExchange:
+							handshakeState := SendClientKeyExchange(outbuf, 4);
+							Transition(dummy, Handshake, 0, 0, 0)
+						|GenerateChangeCipherSpec:
+							SendChangeCipherSpec;
+							SendFinished(outbuf, 4);
+							handshakeState := AwaitChangeSpec
+						|AwaitChangeSpec:
+							ReceiveChangeCipherSpec(data, ofs);
+							handshakeState := AwaitFinished
+						|AwaitFinished:
+							ReceiveFinished(data, ofs, len);
+							SetState(TCP.Established);
+					END
 				ELSIF State() = TCP.Established THEN
 					IF subAction = ClientHello THEN (* the only handshake msg a server should receive after a finished handshake *)
 						SetState(ServerHandshake);
@@ -1470,18 +1736,43 @@ TYPE
 			Utils.RandomBytes( data, 4, 28 )
 		END Create32RandomBytes;
 
+		(** Prints the correct S > C or C > S depending on current action and state *)
+		PROCEDURE PrintDirection(send: BOOLEAN);
+		BEGIN
+			IF client & send THEN
+				KernelLog.String("CLIENT: C > S ")
+			ELSIF client & ~send THEN
+				KernelLog.String("CLIENT: S > C ")
+			ELSIF ~client & send THEN
+				KernelLog.String("SERVER: S > C ")
+			ELSE
+				KernelLog.String("SERVER: C > S ")
+			END
+		END PrintDirection;
 
 	BEGIN { ACTIVE }
 		AwaitStateNotEqual(TCP.Unused);
-		IF State() # TCP.Listen THEN
-			(* listen for incoming messages *)
+		IF client THEN
+			StartHandshake;
 			REPEAT
-				ReceiveRecord( )
-			UNTIL (State() = TCP.Closed) OR (in.res # Streams.Ok);
-			Close();
-		END;
+				ReceiveRecord
+			UNTIL (State() = TCP.Established) OR (State() = TCP.Closed);
+			IF State() = TCP.Established THEN
+				REPEAT
+					ReceiveRecord
+				UNTIL (State() = TCP.Closed) OR (in.res # Streams.Ok);
+				Close
+			END
+		ELSE
+			IF State() # TCP.Listen THEN
+				(* listen for incoming messages *)
+				REPEAT
+					ReceiveRecord( )
+				UNTIL (State() = TCP.Closed) OR (in.res # Streams.Ok);
+				Close();
+			END;
+		END
 	END Connection;
-
 VAR
 	version: ARRAY 2 OF CHAR;
 
