@@ -172,7 +172,7 @@ TYPE
 		lockedBy : ANY;
 		viewChanged : BOOLEAN;
 
-		PROCEDURE &Init;
+		PROCEDURE &Init*;
 		BEGIN
 			NEW(onChanged, SELF, Strings.NewString("DropDownListModelChanged"), NIL, NIL);
 			NEW(entries, InitialEntryArraySize);
@@ -366,7 +366,7 @@ TYPE
 			button.caption.SetAOC("^");
 			button.bounds.SetWidth(14);
 			button.onClick.Add(ShowDropDownList);
-			AddContent(button);
+			AddInternalComponent(button);
 
 			NEW(editor); editor.alignment.Set(WMComponents.AlignClient);
 			editor.multiLine.Set(FALSE);
@@ -374,7 +374,7 @@ TYPE
 			editor.tv.showBorder.Set(TRUE);
 			editor.tv.SetExtKeyEventHandler(KeyPressed);
 			editor.text.onTextChanged.Add(TextChanged);
-			AddContent(editor);
+			AddInternalComponent(editor);
 
 			captionI := NIL;
 			currentMask := "*";
@@ -382,6 +382,8 @@ TYPE
 
 			mode.Set(Mode_Eager);
 			SetMode(Mode_Eager);
+			
+			SetGenerator("WMDropDownLists.GenDropDownList");
 		END Init;
 
 		PROCEDURE Initialize;

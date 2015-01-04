@@ -711,7 +711,7 @@ PACKAGE Applications ARCHIVE "Applications.zip" SOURCE "ApplicationsSrc.zip" DES
 
 	RAWPrinter.Mod LPR.Mod	# Sending ps files to Printers
 
-	TLS.Mod
+	ASN1.Mod  PKCS1.Mod  X509.Mod  TLS.Mod
 	bluebottleselfsigned.der
 
 	TCPServices.Mod  TestServer.Mod 	# TCP services
