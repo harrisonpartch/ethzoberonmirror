@@ -507,6 +507,8 @@ TYPE
 
 		textAlignH- : WMProperties.Int32Property;
 		textAlignV- : WMProperties.Int32Property;
+		horizontalFit: WMProperties.BooleanProperty;
+		textBorder: WMProperties.Int32Property;
 
 		PROCEDURE &Init*;
 		BEGIN
@@ -566,6 +568,8 @@ TYPE
 
 			NEW(textAlignH, PrototypeButtonAlignH, NIL, NIL); properties.Add(textAlignH);
 			NEW(textAlignV, PrototypeButtonAlignV, NIL, NIL); properties.Add(textAlignV);
+			NEW(horizontalFit, PrototypeHorizontalFit, NIL, NIL); properties.Add(horizontalFit);
+			NEW(textBorder, PrototypeTextBorder, NIL, NIL); properties.Add(textBorder);
 
 			(* events *)
 			NEW(onClick, SELF, GSonClick, GSonClickButtonInfo, SELF.StringToCompCommand); events.Add(onClick);
@@ -593,6 +597,53 @@ TYPE
 				END;
 			END;
 		END ExecuteClickHandler;
+
+		PROCEDURE ScaleFont*(height: LONGINT; percent: LONGINT);
+		VAR fh,hfh,ntw,newSize,width: LONGINT; f,hf: WMGraphics.Font; str: String; tw, th: LONGINT; oldFontSize: LONGINT;
+		BEGIN
+			height := height - 2*textBorder.Get();
+			IF height < 4 THEN height := 4 END;
+			IF percent <= 0 THEN RETURN END;
+			
+			Acquire;
+			oldFontSize := font.GetSize(); 
+			
+			(* vertical scaling *)
+			f := GetFont();
+			hf := WMGraphics.GetFont(f.name, 100, f.style); (* expensive ? *)
+			hfh := hf.GetAscent() + hf.GetDescent();
+			fh := height * percent DIV hfh;
+
+			IF fh > 128 THEN fh := fh - fh MOD 8
+			ELSIF fh > 64 THEN fh := fh - fh MOD 4
+			ELSIF fh > 32 THEN fh := fh - fh MOD 2
+			END;
+			
+			font.SetSize(fh);
+			f := GetFont();
+			
+			IF horizontalFit.Get()  THEN
+				width := bounds.GetWidth() - 2*textBorder.Get();
+				str := caption.Get();
+				IF str # NIL THEN
+					f.GetStringSize(str^, tw, th);
+					IF tw > width THEN 
+						fh :=fh * width DIV tw;
+						IF fh > 100 THEN fh := fh - fh MOD 8
+						ELSIF fh > 32 THEN fh := fh - fh MOD 4
+						ELSIF fh > 12 THEN fh := fh - fh MOD 2
+						END;
+						font.SetSize(fh);
+					END;
+				END;
+			END;
+			
+			IF font.GetSize() # oldFontSize THEN
+				Invalidate;
+			END;
+				
+			Release;
+		END ScaleFont;
 
 		PROCEDURE RecacheProperties;
 		VAR element : XML.Element; s : String;
@@ -667,7 +718,10 @@ TYPE
 		PROCEDURE PropertyChanged*(sender, data : ANY);
 		VAR element : XML.Element;
 		BEGIN
-			IF (data = caption) OR (data = textAlignH) OR (data = textAlignV) THEN Invalidate;
+			IF (data = caption)  THEN 
+				IF horizontalFit.Get() THEN ScaleFont(bounds.GetHeight(), scaleFont.Get()) END; 
+				Invalidate;
+			ELSIF (data = textAlignH) OR (data = textAlignV) THEN Invalidate;
 			ELSIF (data = onClickHandler) THEN CheckClickHandler
 			ELSIF (data = clDefault) OR (data = clHover) OR (data = clPressed) OR (data = clTextInactive)
 				OR (data = clTextDefault) OR (data = clTextHover) OR (data = clTextPressed) OR (data = clTextInactive) THEN Invalidate;
@@ -682,7 +736,7 @@ TYPE
 				OR (data = imgPressedNameTop) OR (data = imgPressedNameBottom)
 				OR (data = imgDefaultName) OR (data = imgPressedName)
 				OR (data = imgHoverName) OR (data = imgInactiveName) OR (data = enabled)
-				OR (data = decoDefaultName) OR (data = decoHoverName) OR (data= decoPressedName) OR (data = useDeco)
+				OR (data = decoDefaultName) OR (data = decoHoverName) OR (data= decoPressedName) OR (data = useDeco) OR (data=horizontalFit) OR (data = textBorder)
 				THEN
 					RecacheProperties; Invalidate;
 			ELSIF (data = model) THEN Invalidate
@@ -2982,6 +3036,8 @@ VAR
 
 	(* Image Panel *)
 	ProtoIpImgName* : WMProperties.StringProperty;
+	PrototypeHorizontalFit : WMProperties.BooleanProperty;
+	PrototypeTextBorder : WMProperties.Int32Property;
 
 
 	StrTimer*, StrSystemCommand*, StrEvent*, StrPanel*, StrDecoratorPanel*, StrLabel*, StrButton*, StrScrollbar*, StrResizer* ,
@@ -3393,6 +3449,8 @@ BEGIN
 	NEW(plImagePanel); WMComponents.propertyListList.Add("ImagePanel", plImagePanel);
 	NEW(ProtoIpImgName, NIL, NewString("Image"), NewString("Name of image to be displayed")); plImagePanel.Add(ProtoIpImgName);
 	NEW(PrototypeBlinking, NIL, NewString("Blinking"), NewString("Toggle Display of Component")); PrototypeBlinking.Set(FALSE);
+	NEW(PrototypeHorizontalFit, NIL, Strings.NewString("HorFit"), Strings.NewString("horiztonal fit")); PrototypeHorizontalFit.Set(TRUE);
+	NEW(PrototypeTextBorder, NIL, Strings.NewString("TextBorder"), Strings.NewString("inner text border")); PrototypeTextBorder.Set(1);
 	WMComponents.propertyListList.UpdateStyle
 END InitPrototypes;
 
@@ -3528,3 +3586,4 @@ BEGIN
 	InitPrototypes;
 END WMStandardComponents.
 
+Release.Rebuild WinAos WMStandardComponents.Mod ~
